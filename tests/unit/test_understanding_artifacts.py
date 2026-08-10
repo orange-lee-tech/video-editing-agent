@@ -31,4 +31,6 @@ def test_persisted_frames_keep_sampling_traceability(tmp_path: Path) -> None:
     assert [item.sample for item in stored] == [item.sample for item in extracted]
     assert [item.visual_ref.ordinal for item in stored] == [0, 1, 2]
     assert [item.visual_ref.source_timestamp_ms for item in stored] == [333, 1_000, 1_666]
-    assert all(item.visual_ref.artifact_ref.artifact_id.startswith("art_sha256_") for item in stored)
+    assert all(
+        item.visual_ref.artifact_ref.artifact_id.startswith("art_sha256_") for item in stored
+    )

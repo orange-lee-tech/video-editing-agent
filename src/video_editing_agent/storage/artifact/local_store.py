@@ -39,7 +39,9 @@ class LocalArtifactStore:
         if destination.exists():
             existing = destination.read_bytes()
             if existing != payload.content:
-                raise RuntimeError("artifact content-address collision or store corruption detected")
+                raise RuntimeError(
+                    "artifact content-address collision or store corruption detected"
+                )
             return ref
 
         with tempfile.NamedTemporaryFile(
