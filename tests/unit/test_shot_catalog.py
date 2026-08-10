@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -26,7 +26,7 @@ def proposal(start: int, end: int, *, asset_id: str = "ast_1") -> ShotBoundaryPr
 
 
 def test_catalog_commits_contiguous_proposals_with_neighbor_refs() -> None:
-    now = datetime(2026, 8, 10, 7, 45, tzinfo=timezone.utc)
+    now = datetime(2026, 8, 10, 7, 45, tzinfo=UTC)
     catalog = ShotCatalog(shot_id_factory=SequentialIds(), clock=lambda: now)
 
     shots = catalog.commit_boundaries(
@@ -50,7 +50,6 @@ def test_catalog_rejects_gap_or_overlap() -> None:
 
     with pytest.raises(ValueError, match="contiguous"):
         catalog.commit_boundaries((proposal(0, 1_000), proposal(1_100, 2_000)))
-
 
 
 def test_catalog_rejects_mixed_asset_revisions() -> None:

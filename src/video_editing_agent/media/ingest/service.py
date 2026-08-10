@@ -4,7 +4,7 @@ import hashlib
 import pathlib
 import uuid
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from video_editing_agent.domain.asset.model import Asset
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityStatus
@@ -20,7 +20,7 @@ def _default_asset_id() -> str:
 
 
 def _utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _sha256_file(path: pathlib.Path) -> str:

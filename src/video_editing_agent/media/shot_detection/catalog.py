@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Callable, Iterable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from video_editing_agent.application.ports.shot_detector import ShotBoundaryProposal
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevisionRef, EntityStatus
@@ -16,7 +16,7 @@ def _default_shot_id() -> str:
 
 
 def _utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class ShotCatalog:
@@ -43,7 +43,9 @@ class ShotCatalog:
 
         asset_ref = ordered[0].asset_ref
         if any(proposal.asset_ref != asset_ref for proposal in ordered):
-            raise ValueError("all ShotBoundaryProposal values must reference the same Asset revision")
+            raise ValueError(
+                "all ShotBoundaryProposal values must reference the same Asset revision"
+            )
         if ordered[0].source_start_ms != 0:
             raise ValueError("the first shot boundary must start at source time 0")
 
@@ -62,9 +64,7 @@ class ShotCatalog:
         for index, proposal in enumerate(ordered):
             previous_ref = EntityRevisionRef(shot_ids[index - 1], 1) if index > 0 else None
             next_ref = (
-                EntityRevisionRef(shot_ids[index + 1], 1)
-                if index + 1 < len(shot_ids)
-                else None
+                EntityRevisionRef(shot_ids[index + 1], 1) if index + 1 < len(shot_ids) else None
             )
             shots.append(
                 Shot(

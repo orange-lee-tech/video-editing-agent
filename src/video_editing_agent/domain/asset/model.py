@@ -6,6 +6,15 @@ from datetime import datetime
 from video_editing_agent.domain.common.entity import EntityEnvelope
 
 
+def _validate_optional_non_negative_int(name: str, value: int | None) -> None:
+    if value is None:
+        return
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise TypeError(f"{name} must be an int or None")
+    if value < 0:
+        raise ValueError(f"{name} must be >= 0")
+
+
 @dataclass(frozen=True, slots=True)
 class AssetProvenance:
     origin_type: str
@@ -59,19 +68,11 @@ class Asset:
         if self.byte_size < 0:
             raise ValueError("byte_size must be >= 0")
 
-        for name, value in (
-            ("duration_ms", self.duration_ms),
-            ("width", self.width),
-            ("height", self.height),
-            ("audio_channels", self.audio_channels),
-            ("sample_rate_hz", self.sample_rate_hz),
-        ):
-            if value is None:
-                continue
-            if isinstance(value, bool) or not isinstance(value, int):
-                raise TypeError(f"{name} must be an int or None")
-            if value < 0:
-                raise ValueError(f"{name} must be >= 0")
+        _validate_optional_non_negative_int("duration_ms", self.duration_ms)
+        _validate_optional_non_negative_int("width", self.width)
+        _validate_optional_non_negative_int("height", self.height)
+        _validate_optional_non_negative_int("audio_channels", self.audio_channels)
+        _validate_optional_non_negative_int("sample_rate_hz", self.sample_rate_hz)
 
         if self.fps is not None:
             if isinstance(self.fps, bool) or not isinstance(self.fps, (int, float)):

@@ -17,6 +17,7 @@ def test_shot_duration_is_derived_from_boundaries() -> None:
         asset_ref=EntityRevisionRef("ast_test", 1),
         source_start_ms=1_000,
         source_end_ms=2_750,
+        boundary_method="test",
     )
 
     assert shot.duration_ms == 1_750

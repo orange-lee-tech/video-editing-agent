@@ -1,5 +1,5 @@
 import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from video_editing_agent.domain.asset.model import AssetProvenance
@@ -27,7 +27,7 @@ def test_local_ingest_creates_valid_asset_with_hash_and_metadata(tmp_path: Path)
     media = tmp_path / "clip.mp4"
     payload = b"test-media-payload"
     media.write_bytes(payload)
-    now = datetime(2026, 8, 10, 7, 40, tzinfo=timezone.utc)
+    now = datetime(2026, 8, 10, 7, 40, tzinfo=UTC)
     service = AssetIngestService(
         StaticProbe(),
         asset_id_factory=lambda: "ast_test",
