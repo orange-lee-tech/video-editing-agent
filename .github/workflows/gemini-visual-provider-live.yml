@@ -1,0 +1,105 @@
+name: Gemini Visual Provider Live Probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/gemini-visual-provider-live.yml"
+      - "scripts/probe_gemini_visual_provider.py"
+      - "src/video_editing_agent/providers/vision/gemini_generate_content.py"
+  workflow_dispatch:
+    inputs:
+      model:
+        description: >-
+          Optional Gemini base model id; leave empty for stable Flash-Lite auto-discovery
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: gemini-visual-live-probe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-live-provider:
+    name: Windows Gemini Visual Provider Probe
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[gemini-live-probe]')
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.12.2"
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Sync locked base environment
+        run: uv sync --frozen
+
+      - name: Install pinned FFmpeg 8.1
+        shell: pwsh
+        run: .\.github\scripts\install-ffmpeg-windows.ps1
+
+      - name: Generate live probe video
+        shell: pwsh
+        run: |
+          ffmpeg -hide_banner -loglevel error -f lavfi `
+            -i "testsrc2=size=320x180:rate=25:duration=2" `
+            -c:v mpeg4 -q:v 2 gemini-visual-live-probe.mp4
+
+      - name: Run live Gemini visual provider probe
+        id: live_probe
+        continue-on-error: true
+        shell: pwsh
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MODEL_OVERRIDE: ${{ inputs.model }}
+        run: |
+          $arguments = @(
+            ".\scripts\probe_gemini_visual_provider.py",
+            ".\gemini-visual-live-probe.mp4",
+            "--database", ".\.probe-state\gemini.sqlite3",
+            "--artifact-root", ".\.probe-artifacts"
+          )
+          if ($env:MODEL_OVERRIDE) {
+            $arguments += @("--model", $env:MODEL_OVERRIDE)
+          }
+          uv run python @arguments
+
+      - name: Publish live provider status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LIVE_PROBE_OUTCOME: ${{ steps.live_probe.outcome }}
+        run: |
+          if [ "$LIVE_PROBE_OUTCOME" = "success" ]; then
+            state="success"
+            description="Gemini visual provider owner-chain probe passed"
+          else
+            state="failure"
+            description="Gemini visual provider owner-chain probe failed"
+          fi
+
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -f state="$state" \
+            -f context="ci/gemini-visual-live" \
+            -f description="$description" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      - name: Fail workflow when live provider probe failed
+        if: steps.live_probe.outcome != 'success'
+        run: exit 1
