@@ -1,71 +1,84 @@
 from __future__ import annotations
 
 import subprocess
+import tempfile
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from typing import BinaryIO
 
 
 RGB24_CHANNELS = 3
 
 
 @dataclass(frozen=True, slots=True)
-class RawRgb24Frames:
-    """Complete fixed-size RGB24 frames returned by an FFmpeg decode operation."""
+class Rgb24FrameSpec:
+    """Fixed FFmpeg sampling geometry for a stream of RGB24 frames."""
 
-    data: bytes
-    frame_count: int
+    frames_per_second: int
     width: int
     height: int
 
     def __post_init__(self) -> None:
-        if self.frame_count < 0:
-            raise ValueError("frame_count must be >= 0")
-        if self.width <= 0:
-            raise ValueError("width must be > 0")
-        if self.height <= 0:
-            raise ValueError("height must be > 0")
-
-        expected_bytes = self.frame_count * self.width * self.height * RGB24_CHANNELS
-        if len(self.data) != expected_bytes:
-            raise ValueError(
-                f"RGB24 payload length mismatch: expected {expected_bytes} bytes, "
-                f"got {len(self.data)}"
-            )
+        for name, value in (
+            ("frames_per_second", self.frames_per_second),
+            ("width", self.width),
+            ("height", self.height),
+        ):
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise TypeError(f"{name} must be an int")
+            if value <= 0:
+                raise ValueError(f"{name} must be > 0")
 
     @property
     def bytes_per_frame(self) -> int:
         return self.width * self.height * RGB24_CHANNELS
 
 
-def decode_video_to_rgb24_frames(
+def _read_exact(stream: BinaryIO, size: int) -> bytes:
+    chunks: list[bytes] = []
+    remaining = size
+
+    while remaining > 0:
+        chunk = stream.read(remaining)
+        if not chunk:
+            break
+        chunks.append(chunk)
+        remaining -= len(chunk)
+
+    return b"".join(chunks)
+
+
+def _read_process_stderr(stderr_file: BinaryIO) -> str:
+    stderr_file.flush()
+    stderr_file.seek(0)
+    return stderr_file.read().decode("utf-8", errors="replace")
+
+
+def iter_video_rgb24_frames(
     input_video: Path,
     *,
     ffmpeg_executable: str = "ffmpeg",
     frames_per_second: int,
     target_width: int,
     target_height: int,
-) -> RawRgb24Frames:
-    """Decode a video to fixed-rate, fixed-size RGB24 frames using FFmpeg.
+) -> Iterator[bytes]:
+    """Stream complete fixed-rate RGB24 frames from FFmpeg.
 
-    This function owns only media decoding. It does not know about TransNetV2,
-    `Asset`, `Shot`, application workflow state, or output clip creation.
+    Frames are yielded one at a time so video duration does not determine resident raw-frame
+    memory. The consumer owns any higher-level model batching/windowing policy.
     """
-    if isinstance(frames_per_second, bool) or not isinstance(frames_per_second, int):
-        raise TypeError("frames_per_second must be an int")
-    if frames_per_second <= 0:
-        raise ValueError("frames_per_second must be > 0")
-    if isinstance(target_width, bool) or not isinstance(target_width, int):
-        raise TypeError("target_width must be an int")
-    if isinstance(target_height, bool) or not isinstance(target_height, int):
-        raise TypeError("target_height must be an int")
-    if target_width <= 0 or target_height <= 0:
-        raise ValueError("target dimensions must be > 0")
+    spec = Rgb24FrameSpec(
+        frames_per_second=frames_per_second,
+        width=target_width,
+        height=target_height,
+    )
     if not ffmpeg_executable.strip():
         raise ValueError("ffmpeg_executable must not be empty")
 
     video_filter = (
-        f"fps={frames_per_second},"
-        f"scale={target_width}:{target_height}:flags=fast_bilinear"
+        f"fps={spec.frames_per_second},"
+        f"scale={spec.width}:{spec.height}:flags=fast_bilinear"
     )
     command = [
         ffmpeg_executable,
@@ -85,27 +98,39 @@ def decode_video_to_rgb24_frames(
         "pipe:1",
     ]
 
-    completed = subprocess.run(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-    if completed.returncode != 0:
-        stderr = completed.stderr.decode("utf-8", errors="replace")
-        raise RuntimeError(f"FFmpeg RGB24 decode failed for {input_video}:\n{stderr}")
+    with tempfile.TemporaryFile() as stderr_file:
+        try:
+            process: subprocess.Popen[bytes] = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=stderr_file,
+            )
+        except FileNotFoundError as exc:
+            raise RuntimeError(f"FFmpeg executable not found: {ffmpeg_executable}") from exc
 
-    bytes_per_frame = target_width * target_height * RGB24_CHANNELS
-    payload_size = len(completed.stdout)
-    if payload_size % bytes_per_frame != 0:
-        raise RuntimeError(
-            "FFmpeg returned an incomplete RGB24 frame payload: "
-            f"{payload_size} bytes is not divisible by {bytes_per_frame} bytes/frame"
-        )
+        if process.stdout is None:
+            process.kill()
+            process.wait()
+            raise RuntimeError("FFmpeg stdout pipe was not created")
 
-    return RawRgb24Frames(
-        data=completed.stdout,
-        frame_count=payload_size // bytes_per_frame,
-        width=target_width,
-        height=target_height,
-    )
+        try:
+            while True:
+                frame = _read_exact(process.stdout, spec.bytes_per_frame)
+                if not frame:
+                    break
+                if len(frame) != spec.bytes_per_frame:
+                    raise RuntimeError(
+                        "FFmpeg returned an incomplete RGB24 frame: "
+                        f"expected {spec.bytes_per_frame} bytes, got {len(frame)}"
+                    )
+                yield frame
+
+            return_code = process.wait()
+            if return_code != 0:
+                stderr = _read_process_stderr(stderr_file)
+                raise RuntimeError(f"FFmpeg RGB24 decode failed for {input_video}:\n{stderr}")
+        finally:
+            process.stdout.close()
+            if process.poll() is None:
+                process.kill()
+                process.wait()
