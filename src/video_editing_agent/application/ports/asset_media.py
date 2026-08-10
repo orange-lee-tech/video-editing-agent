@@ -14,6 +14,6 @@ class ResolvedLocalAssetMedia:
 
 
 class AssetMediaResolver(Protocol):
-    """Resolve an exact Asset revision to local media without exposing storage layout as identity."""
+    """Resolve an exact Asset revision to local media without exposing storage layout."""
 
     def resolve_local(self, asset_ref: EntityRevisionRef) -> ResolvedLocalAssetMedia: ...

@@ -140,5 +140,7 @@ class ProviderNeutralVisualUnderstandingService(UnderstandingService):
         if latest is None:
             raise ValueError("Shot has no prior analysis; use analyze() for the first revision")
         if latest.shot_ref != shot_ref:
-            raise RuntimeError("ShotAnalysisRepository returned analysis for a different Shot revision")
+            raise RuntimeError(
+                "ShotAnalysisRepository returned analysis for a different Shot revision"
+            )
         return self._create_analysis(shot_ref, profile, revision=latest.revision + 1)
