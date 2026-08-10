@@ -1,0 +1,39 @@
+name: TransNetV2 Runtime Probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/transnet-runtime-probe.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: transnet-runtime-probe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-runtime:
+    name: Windows Runtime Probe
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.12.2"
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Sync locked base environment
+        run: uv sync --frozen
+
+      - name: Probe real transnetv2-pytorch runtime
+        run: uv run --with "transnetv2-pytorch==1.0.5" python .\scripts\probe_transnetv2_runtime.py
