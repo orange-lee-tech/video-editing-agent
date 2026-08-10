@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import subprocess
 import tempfile
+import typing
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO
 
 
 RGB24_CHANNELS = 3
@@ -35,7 +35,7 @@ class Rgb24FrameSpec:
         return self.width * self.height * RGB24_CHANNELS
 
 
-def _read_exact(stream: BinaryIO, size: int) -> bytes:
+def _read_exact(stream: typing.BinaryIO, size: int) -> bytes:
     chunks: list[bytes] = []
     remaining = size
 
@@ -49,7 +49,7 @@ def _read_exact(stream: BinaryIO, size: int) -> bytes:
     return b"".join(chunks)
 
 
-def _read_process_stderr(stderr_file: BinaryIO) -> str:
+def _read_process_stderr(stderr_file: typing.BinaryIO) -> str:
     stderr_file.flush()
     stderr_file.seek(0)
     return stderr_file.read().decode("utf-8", errors="replace")
@@ -76,9 +76,7 @@ def iter_video_rgb24_frames(
     if not ffmpeg_executable.strip():
         raise ValueError("ffmpeg_executable must not be empty")
 
-    video_filter = (
-        f"fps={spec.frames_per_second},scale={spec.width}:{spec.height}:flags=fast_bilinear"
-    )
+    video_filter = f"fps={spec.frames_per_second},scale={spec.width}:{spec.height}:flags=fast_bilinear"
     command = [
         ffmpeg_executable,
         "-hide_banner",
@@ -111,7 +109,7 @@ def iter_video_rgb24_frames(
             process.kill()
             process.wait()
             raise RuntimeError("FFmpeg stdout pipe was not created")
-        stdout_stream = process.stdout
+        stdout_stream = typing.cast(typing.BinaryIO, process.stdout)
 
         try:
             while True:

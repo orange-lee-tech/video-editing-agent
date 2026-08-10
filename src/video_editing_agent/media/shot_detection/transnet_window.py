@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections import deque
-from collections.abc import Iterable, Iterator
+import collections
+import collections.abc
 from dataclasses import dataclass
 
 
@@ -45,7 +45,9 @@ def _validate_frame(frame: bytes, *, expected_size: int | None) -> int:
     return len(frame)
 
 
-def iter_transnetv2_windows(frames: Iterable[bytes]) -> Iterator[TransNetV2Window]:
+def iter_transnetv2_windows(
+    frames: collections.abc.Iterable[bytes],
+) -> collections.abc.Iterator[TransNetV2Window]:
     """Build streaming 100-frame TransNetV2 inference windows with 25-frame context.
 
     The first frame supplies the 25-frame left context. New inference windows advance by
@@ -62,7 +64,9 @@ def iter_transnetv2_windows(frames: Iterable[bytes]) -> Iterator[TransNetV2Windo
 
     frame_size = _validate_frame(first_frame, expected_size=None)
     last_real_frame = first_frame
-    window: deque[bytes] = deque([first_frame] * TRANSNETV2_CONTEXT_FRAMES)
+    window: collections.deque[bytes] = collections.deque(
+        [first_frame] * TRANSNETV2_CONTEXT_FRAMES
+    )
     window.append(first_frame)
 
     actual_frames_seen = 1

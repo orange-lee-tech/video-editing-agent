@@ -28,14 +28,14 @@ def test_streaming_windows_reconstruct_each_real_frame_exactly_once(frame_count:
 
 
 def test_first_and_last_frame_supply_padding_context() -> None:
-    source_frames = [b"first", b"last"]
+    source_frames = [b"first", b"last!"]
     windows = list(iter_transnetv2_windows(source_frames))
 
     assert len(windows) == 1
     window = windows[0]
     assert window.frames[:TRANSNETV2_CONTEXT_FRAMES] == (b"first",) * TRANSNETV2_CONTEXT_FRAMES
     assert window.center_frames == tuple(source_frames)
-    assert window.frames[-1] == b"last"
+    assert window.frames[-1] == b"last!"
 
 
 def test_empty_stream_produces_no_windows() -> None:
