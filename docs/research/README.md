@@ -18,6 +18,9 @@ benchmarks. A research conclusion does not become architecture merely because it
   anchors → Resolver → EDL → review, with explicit cost-control principles.
 - `LOCAL_TOOLBOX_AND_DEPLOYMENT.md` — local-first execution, optional GPU acceleration, environment doctor,
   proxy/cache strategy, Windows runtime guidance, and user installation assistance principles.
+- `RESOLVER_RETRIEVAL_AND_TIMING_OPTIMIZER.md` — detailed Survey V2 work on hybrid Shot retrieval,
+  multilingual embeddings, temporal anchors, Resolver scoring, elastic beat/action alignment, and
+  deterministic beam-search / DP timing optimization.
 
 ## Research discipline
 
