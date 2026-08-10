@@ -25,6 +25,22 @@ benchmarks. A research conclusion does not become architecture merely because it
   coarse-to-fine action timing, anchor confidence, and targeted VLM escalation.
 - `RESOLVER_SCORE_AND_COMMERCIAL_SKILLS.md` — versioned scoring policy, commercial/Vlog skill separation,
   platform-prior provenance, human preference calibration, user overlays, uncertainty and review rubrics.
+- `SURVEY_V2_CLOSURE_GAP_AUDIT.md` — closure gate across the Product Constitution, Architecture Contracts,
+  all six research documents and upstream governance. Current verdict: the AI editing core is closed for
+  architecture design, while two focused product-wide Survey blockers remain — Audio Editorial / Music
+  Selection & Rights, and Auto Reframe / Aspect-Ratio Composition.
+
+## Current closure posture
+
+Broad open-ended ecosystem exploration is finished.
+
+The remaining Survey V2 work should be narrowly scoped to:
+
+1. Audio Editorial / Music Selection & Rights;
+2. Auto Reframe / Aspect-Ratio Composition.
+
+After those two focused surveys close, promote stable conclusions into Architecture Contract v0.2,
+Capability Specifications, ADRs, an updated Upstream Ledger/Policy, and Roadmap V2.
 
 ## Research discipline
 
