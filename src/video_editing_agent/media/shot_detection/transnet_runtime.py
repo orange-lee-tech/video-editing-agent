@@ -178,15 +178,19 @@ class TorchTransNetV2WindowPredictor:
         numpy_module, torch_module, model = self._load_runtime()
 
         frame_buffer = b"".join(frames)
-        input_array = numpy_module.frombuffer(frame_buffer, dtype=numpy_module.uint8).reshape(
-            (
-                1,
-                TRANSNETV2_WINDOW_FRAMES,
-                TRANSNETV2_FRAME_HEIGHT,
-                TRANSNETV2_FRAME_WIDTH,
-                TRANSNETV2_FRAME_CHANNELS,
+        input_array = (
+            numpy_module.frombuffer(frame_buffer, dtype=numpy_module.uint8)
+            .reshape(
+                (
+                    1,
+                    TRANSNETV2_WINDOW_FRAMES,
+                    TRANSNETV2_FRAME_HEIGHT,
+                    TRANSNETV2_FRAME_WIDTH,
+                    TRANSNETV2_FRAME_CHANNELS,
+                )
             )
-        ).copy()
+            .copy()
+        )
         input_tensor = torch_module.from_numpy(input_array)
 
         with torch_module.no_grad():
