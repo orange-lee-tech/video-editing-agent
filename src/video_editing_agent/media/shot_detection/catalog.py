@@ -5,6 +5,7 @@ from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 
 from video_editing_agent.application.ports.shot_detector import ShotBoundaryProposal
+from video_editing_agent.application.ports.shot_repository import ShotPersistenceRepository
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevisionRef, EntityStatus
 from video_editing_agent.domain.shot.model import Shot
 
@@ -25,9 +26,11 @@ class ShotCatalog:
     def __init__(
         self,
         *,
+        repository: ShotPersistenceRepository | None = None,
         shot_id_factory: Callable[[], str] = _default_shot_id,
         clock: Callable[[], datetime] = _utc_now,
     ) -> None:
+        self._repository = repository
         self._shot_id_factory = shot_id_factory
         self._clock = clock
 
@@ -85,4 +88,7 @@ class ShotCatalog:
                 )
             )
 
-        return tuple(shots)
+        committed = tuple(shots)
+        if self._repository is not None:
+            self._repository.save_many(committed)
+        return committed

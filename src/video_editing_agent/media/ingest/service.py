@@ -6,6 +6,7 @@ import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
 
+from video_editing_agent.application.ports.asset_repository import AssetRepository
 from video_editing_agent.domain.asset.model import Asset
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityStatus
 from video_editing_agent.media.ingest.probe import MediaProbe
@@ -38,10 +39,12 @@ class AssetIngestService:
         self,
         probe: MediaProbe,
         *,
+        repository: AssetRepository | None = None,
         asset_id_factory: Callable[[], str] = _default_asset_id,
         clock: Callable[[], datetime] = _utc_now,
     ) -> None:
         self._probe = probe
+        self._repository = repository
         self._asset_id_factory = asset_id_factory
         self._clock = clock
 
@@ -56,7 +59,7 @@ class AssetIngestService:
         if not asset_id.startswith("ast_"):
             raise ValueError("asset_id_factory must return an ast_* identifier")
 
-        return Asset(
+        asset = Asset(
             envelope=EntityEnvelope(
                 id=asset_id,
                 revision=1,
@@ -80,3 +83,6 @@ class AssetIngestService:
             audio_channels=metadata.audio_channels,
             sample_rate_hz=metadata.sample_rate_hz,
         )
+        if self._repository is not None:
+            self._repository.save(asset)
+        return asset

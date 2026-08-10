@@ -100,29 +100,42 @@ class SqliteShotRepository(ShotPersistenceRepository):
         self._database = database
 
     def save(self, shot: Shot) -> None:
-        payload = encode_shot(shot)
-        identity = (shot.envelope.id, shot.envelope.revision)
-        with self._database.write_connection() as connection:
-            _save_immutable_record(
-                connection,
-                table="shots",
-                identity_columns=("entity_id", "revision"),
-                identity_values=identity,
-                insert_columns=(
-                    "entity_id",
-                    "revision",
-                    "asset_entity_id",
-                    "asset_revision",
-                    "payload_json",
-                ),
-                insert_values=(
-                    *identity,
-                    shot.asset_ref.entity_id,
-                    shot.asset_ref.revision,
-                    payload,
-                ),
-                payload_json=payload,
+        self.save_many((shot,))
+
+    def save_many(self, shots: tuple[Shot, ...]) -> None:
+        records = tuple(
+            (
+                shot,
+                encode_shot(shot),
+                (shot.envelope.id, shot.envelope.revision),
             )
+            for shot in shots
+        )
+        if not records:
+            return
+
+        with self._database.write_connection() as connection:
+            for shot, payload, identity in records:
+                _save_immutable_record(
+                    connection,
+                    table="shots",
+                    identity_columns=("entity_id", "revision"),
+                    identity_values=identity,
+                    insert_columns=(
+                        "entity_id",
+                        "revision",
+                        "asset_entity_id",
+                        "asset_revision",
+                        "payload_json",
+                    ),
+                    insert_values=(
+                        *identity,
+                        shot.asset_ref.entity_id,
+                        shot.asset_ref.revision,
+                        payload,
+                    ),
+                    payload_json=payload,
+                )
 
     def load(self, shot_ref: EntityRevisionRef) -> Shot:
         with self._database.read_connection() as connection:
