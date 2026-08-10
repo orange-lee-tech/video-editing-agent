@@ -19,9 +19,7 @@ class TransNetV2Window:
 
     def __post_init__(self) -> None:
         if len(self.frames) != TRANSNETV2_WINDOW_FRAMES:
-            raise ValueError(
-                f"TransNetV2 window must contain {TRANSNETV2_WINDOW_FRAMES} frames"
-            )
+            raise ValueError(f"TransNetV2 window must contain {TRANSNETV2_WINDOW_FRAMES} frames")
         if not 1 <= self.valid_output_frames <= TRANSNETV2_OUTPUT_FRAMES:
             raise ValueError(
                 f"valid_output_frames must be between 1 and {TRANSNETV2_OUTPUT_FRAMES}"
