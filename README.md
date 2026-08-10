@@ -46,10 +46,14 @@ Current engineering baseline:
 - FireRed-informed R0.1 Shot Detection capability complete;
 - streaming FFmpeg RGB24 decode with bounded-memory TransNetV2 100/50 windows;
 - lazy optional `transnetv2-pytorch==1.0.5` Torch runtime adapter;
-- real Windows runtime probe passed;
-- real four-second MP4 full-chain probe passed with boundaries `(960, 1960, 2960)` ms;
-- R0.2-A begins the AssetIngest / ShotCatalog identity layer;
+- real Windows runtime and real-video probes passed;
+- R0.2 Asset / Shot Identity complete;
+- real ffprobe Asset ingest is validated with canonical SHA-256 identity data;
+- real four-second Asset-to-Shots pipeline commits four contiguous Shot identities at `(0,960)`, `(960,1960)`, `(1960,2960)`, `(2960,4000)` ms;
+- R0.3 footage understanding is the current phase;
 - no AI provider integration, renderer, or end-user application is claimed complete yet.
+
+See `docs/validation/R0.2_ASSET_SHOT_IDENTITY.md` for the R0.2 full-chain evidence and the boundary-semantics bug caught by the integration gate.
 
 ## Upstream engineering map
 
