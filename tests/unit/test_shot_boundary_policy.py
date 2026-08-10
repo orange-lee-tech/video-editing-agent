@@ -27,11 +27,14 @@ def test_scene_end_times_ignore_near_duplicate_or_non_increasing_values() -> Non
 
 
 def test_minimum_duration_merges_short_interior_and_tail_segments() -> None:
-    assert enforce_shot_duration_policy(
-        [500, 1_500],
-        total_duration_ms=2_000,
-        min_shot_duration_ms=1_000,
-    ) == ()
+    assert (
+        enforce_shot_duration_policy(
+            [500, 1_500],
+            total_duration_ms=2_000,
+            min_shot_duration_ms=1_000,
+        )
+        == ()
+    )
 
 
 def test_maximum_duration_splits_long_segment_evenly() -> None:
@@ -69,11 +72,14 @@ def test_impossible_minimum_and_maximum_partition_fails_explicitly() -> None:
 
 
 def test_source_shorter_than_minimum_remains_single_unavoidable_shot() -> None:
-    assert enforce_shot_duration_policy(
-        [],
-        total_duration_ms=800,
-        min_shot_duration_ms=1_000,
-    ) == ()
+    assert (
+        enforce_shot_duration_policy(
+            [],
+            total_duration_ms=800,
+            min_shot_duration_ms=1_000,
+        )
+        == ()
+    )
 
     assert split_points_to_ranges_ms([], total_duration_ms=800) == ((0, 800),)
 
