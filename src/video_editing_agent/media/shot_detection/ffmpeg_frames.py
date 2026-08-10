@@ -77,8 +77,7 @@ def iter_video_rgb24_frames(
         raise ValueError("ffmpeg_executable must not be empty")
 
     video_filter = (
-        f"fps={spec.frames_per_second},"
-        f"scale={spec.width}:{spec.height}:flags=fast_bilinear"
+        f"fps={spec.frames_per_second},scale={spec.width}:{spec.height}:flags=fast_bilinear"
     )
     command = [
         ffmpeg_executable,
