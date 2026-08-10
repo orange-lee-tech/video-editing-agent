@@ -89,7 +89,9 @@ def main() -> int:
     for previous, current in zip(shots, shots[1:], strict=False):
         if previous.source_end_ms != current.source_start_ms:
             raise RuntimeError("Committed Shots contain a gap or overlap")
-        if previous.next_shot_ref != EntityRevisionRef(current.envelope.id, current.envelope.revision):
+        if previous.next_shot_ref != EntityRevisionRef(
+            current.envelope.id, current.envelope.revision
+        ):
             raise RuntimeError("Forward Shot neighbor reference is inconsistent")
         if current.previous_shot_ref != EntityRevisionRef(
             previous.envelope.id, previous.envelope.revision
