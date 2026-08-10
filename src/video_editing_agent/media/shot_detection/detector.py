@@ -11,17 +11,17 @@ from video_editing_agent.application.ports.shot_detector import (
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.media.shot_detection.policy import (
     enforce_shot_duration_policy,
-    scene_end_times_to_split_points_ms,
+    normalize_split_points_ms,
     split_points_to_ranges_ms,
 )
 
 
 @dataclass(frozen=True, slots=True)
-class SceneDetectionResult:
-    """Model/backend output normalized before local duration policy is applied."""
+class SceneBoundaryResult:
+    """Backend output normalized to internal cut boundaries in source milliseconds."""
 
     total_duration_ms: int
-    scene_end_times_ms: tuple[int, ...]
+    boundary_times_ms: tuple[int, ...]
     detection_method: str
 
     def __post_init__(self) -> None:
@@ -32,11 +32,20 @@ class SceneDetectionResult:
         if not self.detection_method.strip():
             raise ValueError("detection_method must not be empty")
 
+        for boundary_ms in self.boundary_times_ms:
+            if isinstance(boundary_ms, bool) or not isinstance(boundary_ms, int):
+                raise TypeError("boundary_times_ms must contain only ints")
+            if not 0 < boundary_ms < self.total_duration_ms:
+                raise ValueError("every boundary must be strictly inside the source duration")
+
+        if self.boundary_times_ms != tuple(sorted(set(self.boundary_times_ms))):
+            raise ValueError("boundary_times_ms must be unique and strictly increasing")
+
 
 class SceneBoundaryBackend(Protocol):
-    """Infrastructure-facing scene detector normalized to millisecond scene ends."""
+    """Infrastructure-facing detector normalized to internal millisecond cut boundaries."""
 
-    def detect_scenes(self, asset_ref: EntityRevisionRef) -> SceneDetectionResult: ...
+    def detect_boundaries(self, asset_ref: EntityRevisionRef) -> SceneBoundaryResult: ...
 
 
 class PolicyDrivenShotDetector(ShotDetector):
@@ -54,11 +63,14 @@ class PolicyDrivenShotDetector(ShotDetector):
         asset_ref: EntityRevisionRef,
         options: ShotDetectionOptions,
     ) -> tuple[ShotBoundaryProposal, ...]:
-        result = self._backend.detect_scenes(asset_ref)
+        result = self._backend.detect_boundaries(asset_ref)
         if result.total_duration_ms == 0:
             return ()
 
-        split_points_ms = scene_end_times_to_split_points_ms(result.scene_end_times_ms)
+        split_points_ms = normalize_split_points_ms(
+            result.boundary_times_ms,
+            total_duration_ms=result.total_duration_ms,
+        )
         constrained_split_points_ms = enforce_shot_duration_policy(
             split_points_ms,
             total_duration_ms=result.total_duration_ms,

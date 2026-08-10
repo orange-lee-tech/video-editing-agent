@@ -38,17 +38,17 @@ def _frame_index_to_ms(frame_index: int, *, frames_per_second: int) -> int:
     return (frame_index * 1000 + frames_per_second // 2) // frames_per_second
 
 
-def single_frame_predictions_to_scene_end_times_ms(
+def single_frame_predictions_to_boundary_times_ms(
     predictions: Iterable[float],
     *,
     threshold: float = 0.5,
     frames_per_second: int = 25,
 ) -> tuple[int, ...]:
-    """Convert TransNetV2 transition probabilities into gap-free cut timestamps.
+    """Convert TransNetV2 transition probabilities into gap-free internal cut timestamps.
 
     A contiguous above-threshold transition run contributes one cut at the midpoint of that
-    run. This keeps every source frame assigned to one side of the cut instead of reproducing
-    the upstream helper's transition-frame gap between adjacent scene intervals.
+    run. Only internal source boundaries are returned; media end is carried separately by the
+    authoritative source duration.
     """
     normalized_threshold = _normalize_threshold(threshold)
     normalized_fps = _normalize_frames_per_second(frames_per_second)
@@ -59,7 +59,7 @@ def single_frame_predictions_to_scene_end_times_ms(
         return ()
 
     transition_start: int | None = None
-    scene_end_times_ms: list[int] = []
+    boundary_times_ms: list[int] = []
 
     for index, probability in enumerate(normalized_predictions):
         is_transition = probability > normalized_threshold
@@ -72,7 +72,7 @@ def single_frame_predictions_to_scene_end_times_ms(
         transition_end = index - 1
         midpoint_frame = (transition_start + transition_end + 1) // 2
         if transition_start > 0 and transition_end < len(normalized_predictions) - 1:
-            scene_end_times_ms.append(
+            boundary_times_ms.append(
                 _frame_index_to_ms(midpoint_frame, frames_per_second=normalized_fps)
             )
         transition_start = None
@@ -81,8 +81,8 @@ def single_frame_predictions_to_scene_end_times_ms(
         transition_end = len(normalized_predictions) - 1
         midpoint_frame = (transition_start + transition_end + 1) // 2
         if transition_start > 0 and transition_end < len(normalized_predictions) - 1:
-            scene_end_times_ms.append(
+            boundary_times_ms.append(
                 _frame_index_to_ms(midpoint_frame, frames_per_second=normalized_fps)
             )
 
-    return tuple(dict.fromkeys(scene_end_times_ms))
+    return tuple(dict.fromkeys(boundary_times_ms))

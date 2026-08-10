@@ -6,14 +6,14 @@ import pathlib
 from typing import Protocol
 
 from video_editing_agent.domain.common.entity import EntityRevisionRef
-from video_editing_agent.media.shot_detection.detector import SceneDetectionResult
+from video_editing_agent.media.shot_detection.detector import SceneBoundaryResult
 from video_editing_agent.media.shot_detection.ffmpeg_frames import iter_video_rgb24_frames
 from video_editing_agent.media.shot_detection.transnet_predictions import (
     TransNetV2WindowPredictor,
     collect_transnetv2_single_frame_predictions,
 )
 from video_editing_agent.media.shot_detection.transnet_scenes import (
-    single_frame_predictions_to_scene_end_times_ms,
+    single_frame_predictions_to_boundary_times_ms,
 )
 
 TRANSNETV2_FRAME_WIDTH = 48
@@ -77,7 +77,7 @@ class TransNetV2BackendConfig:
 
 
 class TransNetV2SceneBoundaryBackend:
-    """Stream video frames through a window predictor and normalize them to scene endpoints."""
+    """Stream video through TransNetV2 and return normalized internal cut boundaries."""
 
     def __init__(
         self,
@@ -92,12 +92,12 @@ class TransNetV2SceneBoundaryBackend:
         self._config = config or TransNetV2BackendConfig()
         self._frame_source = frame_source
 
-    def detect_scenes(self, asset_ref: EntityRevisionRef) -> SceneDetectionResult:
+    def detect_boundaries(self, asset_ref: EntityRevisionRef) -> SceneBoundaryResult:
         resolved = self._asset_resolver.resolve_video(asset_ref)
         if resolved.duration_ms == 0:
-            return SceneDetectionResult(
+            return SceneBoundaryResult(
                 total_duration_ms=0,
-                scene_end_times_ms=(),
+                boundary_times_ms=(),
                 detection_method=self._config.detection_method,
             )
 
@@ -109,14 +109,14 @@ class TransNetV2SceneBoundaryBackend:
             target_height=TRANSNETV2_FRAME_HEIGHT,
         )
         predictions = collect_transnetv2_single_frame_predictions(frames, self._predictor)
-        scene_end_times_ms = single_frame_predictions_to_scene_end_times_ms(
+        boundary_times_ms = single_frame_predictions_to_boundary_times_ms(
             predictions,
             threshold=self._config.threshold,
             frames_per_second=self._config.frames_per_second,
         )
 
-        return SceneDetectionResult(
+        return SceneBoundaryResult(
             total_duration_ms=resolved.duration_ms,
-            scene_end_times_ms=scene_end_times_ms,
+            boundary_times_ms=boundary_times_ms,
             detection_method=self._config.detection_method,
         )

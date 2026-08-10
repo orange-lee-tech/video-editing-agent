@@ -58,22 +58,22 @@ def main() -> int:
             ffmpeg_executable=args.ffmpeg,
         ),
     )
-    result = backend.detect_scenes(EntityRevisionRef("ast_transnet_video_probe", 1))
+    result = backend.detect_boundaries(EntityRevisionRef("ast_transnet_video_probe", 1))
 
     if result.total_duration_ms != args.duration_ms:
         raise RuntimeError("Probe backend changed authoritative source duration")
-    if tuple(sorted(set(result.scene_end_times_ms))) != result.scene_end_times_ms:
+    if tuple(sorted(set(result.boundary_times_ms))) != result.boundary_times_ms:
         raise RuntimeError("Scene boundaries must be unique and ordered")
-    if any(not 0 < boundary_ms < args.duration_ms for boundary_ms in result.scene_end_times_ms):
+    if any(not 0 < boundary_ms < args.duration_ms for boundary_ms in result.boundary_times_ms):
         raise RuntimeError("Scene boundaries must stay inside the source duration")
-    if args.require_boundary and not result.scene_end_times_ms:
+    if args.require_boundary and not result.boundary_times_ms:
         raise RuntimeError("TransNetV2 produced no internal boundary for the probe video")
 
     print("TransNetV2 video probe: PASS")
     print(f"video={video_path}")
     print(f"duration_ms={result.total_duration_ms}")
-    print(f"boundary_count={len(result.scene_end_times_ms)}")
-    print(f"scene_end_times_ms={result.scene_end_times_ms}")
+    print(f"boundary_count={len(result.boundary_times_ms)}")
+    print(f"boundary_times_ms={result.boundary_times_ms}")
     return 0
 
 

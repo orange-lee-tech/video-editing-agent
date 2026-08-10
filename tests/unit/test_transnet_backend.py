@@ -48,7 +48,7 @@ class RecordingFrameSource:
         yield from self._frames
 
 
-def test_backend_streams_frames_and_returns_normalized_scene_ends(tmp_path: Path) -> None:
+def test_backend_streams_frames_and_returns_normalized_boundaries(tmp_path: Path) -> None:
     video_path = tmp_path / "video.mp4"
     video_path.touch()
     frames = [bytes([255 if index in {24, 25} else 0]) for index in range(75)]
@@ -59,10 +59,10 @@ def test_backend_streams_frames_and_returns_normalized_scene_ends(tmp_path: Path
         frame_source=source,
     )
 
-    result = backend.detect_scenes(EntityRevisionRef("ast_1", 1))
+    result = backend.detect_boundaries(EntityRevisionRef("ast_1", 1))
 
     assert result.total_duration_ms == 3_000
-    assert result.scene_end_times_ms == (1000,)
+    assert result.boundary_times_ms == (1000,)
     assert result.detection_method == "transnetv2-pytorch:1.0.5"
     assert source.calls == [(video_path, "ffmpeg", 25, 48, 27)]
 
@@ -75,10 +75,10 @@ def test_zero_duration_asset_does_not_decode_frames(tmp_path: Path) -> None:
         frame_source=source,
     )
 
-    result = backend.detect_scenes(EntityRevisionRef("ast_zero", 1))
+    result = backend.detect_boundaries(EntityRevisionRef("ast_zero", 1))
 
     assert result.total_duration_ms == 0
-    assert result.scene_end_times_ms == ()
+    assert result.boundary_times_ms == ()
     assert source.calls == []
 
 
