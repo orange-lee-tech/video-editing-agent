@@ -56,8 +56,10 @@ Current engineering baseline:
 - R0.1-C1 policy-driven detector core separates model/media backends from boundary policy;
 - R0.1-C2 streaming FFmpeg RGB24 frame source avoids whole-video raw-frame buffering;
 - R0.1-C3 reproduces the published TransNetV2 100-frame / 50-output overlap contract as bounded-memory streaming windows and stitches only valid center predictions;
+- R0.1-D1 adds a lazy optional `transnetv2-pytorch` predictor adapter, gap-free scene normalization and a composed scene-boundary backend without adding the heavy runtime to the base dependency lock;
 - a one-command Windows verification gate is available at `scripts/verify.ps1`;
-- no TransNetV2/Torch model adapter, model-weight lifecycle, real-video integration probe, AI provider integration, renderer, or end-user application has been claimed complete yet.
+- a real package/weights runtime probe and real-video integration probe remain required before the TransNetV2 runtime is considered validated;
+- no AI provider integration, renderer, or end-user application has been claimed complete yet.
 
 ## Upstream engineering map
 
@@ -65,6 +67,7 @@ The project currently uses upstream work selectively:
 
 - **FireRed-OpenStoryline** — primary pipeline/media/render implementation reference; selective reuse or independent reimplementation only after review;
 - **soCzech/TransNetV2** — authoritative model inference-contract reference;
+- **transnetv2-pytorch** — optional runtime compatibility target under an explicit heavy-dependency boundary;
 - **MoneyPrinterTurbo** — material-provider and operational-engineering reference;
 - **CutClaw** — architecture/algorithm reference only; source code is not copied;
 - **BeatSync Engine** — BeatMap/music-analysis reference.
