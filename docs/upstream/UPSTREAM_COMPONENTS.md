@@ -1,4 +1,8 @@
-# Upstream Component Ledger
+# Upstream Component Ledger — Legacy v0.1 Snapshot
+
+**Status:** HISTORICAL — superseded by `UPSTREAM_COMPONENTS_V2.md` for current decisions.
+
+This file preserves the early repository-bootstrap ledger. Do not use it as the current dependency-approval map.
 
 | Upstream | Role | Code reuse status | Destination | Provenance |
 |---|---|---|---|---|
@@ -9,7 +13,7 @@
 | CutClaw | Editing architecture reference | Forbidden | N/A | Reference only |
 | BeatSync Engine | BeatMap algorithm reference | Not migrated | TBD | Reference only |
 
-Before any source migration:
+Historical bootstrap rule:
 
 1. identify exact upstream file;
 2. record upstream commit SHA;
@@ -17,4 +21,6 @@ Before any source migration:
 4. identify local destination;
 5. classify copied/adapted/independently reimplemented;
 6. preserve notices when required;
-7. run all architecture and test gates.
+7. run architecture/test gates.
+
+The current policy is stricter and additionally audits model/checkpoint/data/transitive/API/patent/runtime terms. See `UPSTREAM_POLICY_V2.md`.
