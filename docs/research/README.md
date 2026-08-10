@@ -21,6 +21,10 @@ benchmarks. A research conclusion does not become architecture merely because it
 - `RESOLVER_RETRIEVAL_AND_TIMING_OPTIMIZER.md` — detailed Survey V2 work on hybrid Shot retrieval,
   multilingual embeddings, temporal anchors, Resolver scoring, elastic beat/action alignment, and
   deterministic beam-search / DP timing optimization.
+- `VISUAL_EVENT_ANCHOR_GENERATION.md` — camera-motion compensation, residual/local motion, ROI tracking,
+  coarse-to-fine action timing, anchor confidence, and targeted VLM escalation.
+- `RESOLVER_SCORE_AND_COMMERCIAL_SKILLS.md` — versioned scoring policy, commercial/Vlog skill separation,
+  platform-prior provenance, human preference calibration, user overlays, uncertainty and review rubrics.
 
 ## Research discipline
 
