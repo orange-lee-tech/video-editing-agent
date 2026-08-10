@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import base64
 import json
-import re
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -32,7 +31,6 @@ _PROPOSAL_KEYS = frozenset(
         "quality_scores",
     }
 )
-_STABLE_FLASH_LITE_PATTERN = re.compile(r"^gemini-(\d+)\.(\d+)-flash-lite$")
 
 _VISUAL_PROPOSAL_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -102,7 +100,7 @@ class GeminiVisualConfig:
 
 
 class UrllibGeminiGenerateContentTransport(GeminiGenerateContentTransport):
-    """Minimal stdlib transport for Gemini generateContent and models.list."""
+    """Minimal stdlib transport for Gemini generateContent."""
 
     def __init__(
         self,
@@ -124,43 +122,10 @@ class UrllibGeminiGenerateContentTransport(GeminiGenerateContentTransport):
     def generate_content(self, model: str, payload: dict[str, Any]) -> dict[str, Any]:
         encoded_model = urllib.parse.quote(model, safe="-._")
         endpoint = f"{self._api_root}/models/{encoded_model}:generateContent"
-        return self._request_json(endpoint, method="POST", payload=payload)
+        return self._request_json(endpoint, payload)
 
-    def list_models(self) -> tuple[dict[str, Any], ...]:
-        models: list[dict[str, Any]] = []
-        page_token: str | None = None
-        while True:
-            query = {"pageSize": "1000"}
-            if page_token is not None:
-                query["pageToken"] = page_token
-            endpoint = f"{self._api_root}/models?{urllib.parse.urlencode(query)}"
-            response = self._request_json(endpoint, method="GET")
-            page = response.get("models")
-            if not isinstance(page, list):
-                raise VisualProviderResponseError("Gemini models.list returned no models array")
-            for item in page:
-                if isinstance(item, dict):
-                    models.append(item)
-            next_token = response.get("nextPageToken")
-            if next_token is None:
-                break
-            if not isinstance(next_token, str) or not next_token:
-                raise VisualProviderResponseError(
-                    "Gemini models.list returned an invalid page token"
-                )
-            page_token = next_token
-        return tuple(models)
-
-    def _request_json(
-        self,
-        endpoint: str,
-        *,
-        method: str,
-        payload: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        body = None
-        if payload is not None:
-            body = json.dumps(payload, ensure_ascii=False, allow_nan=False).encode("utf-8")
+    def _request_json(self, endpoint: str, payload: dict[str, Any]) -> dict[str, Any]:
+        body = json.dumps(payload, ensure_ascii=False, allow_nan=False).encode("utf-8")
         request = urllib.request.Request(
             endpoint,
             data=body,
@@ -168,7 +133,7 @@ class UrllibGeminiGenerateContentTransport(GeminiGenerateContentTransport):
                 "Content-Type": "application/json",
                 "x-goog-api-key": self._api_key,
             },
-            method=method,
+            method="POST",
         )
         try:
             with urllib.request.urlopen(request, timeout=self._timeout_seconds) as response:
@@ -178,9 +143,7 @@ class UrllibGeminiGenerateContentTransport(GeminiGenerateContentTransport):
                 raise VisualProviderTransientError(
                     f"Gemini request returned retryable HTTP {exc.code}"
                 ) from exc
-            raise VisualProviderResponseError(
-                f"Gemini request returned HTTP {exc.code}"
-            ) from exc
+            raise VisualProviderResponseError(f"Gemini request returned HTTP {exc.code}") from exc
         except (urllib.error.URLError, TimeoutError) as exc:
             raise VisualProviderTransientError("Gemini request failed in transport") from exc
 
@@ -241,36 +204,11 @@ class GeminiGenerateContentVisualUnderstanding(VisualUnderstandingPort):
             "systemInstruction": {"parts": [{"text": _SYSTEM_INSTRUCTION}]},
             "contents": [{"role": "user", "parts": parts}],
             "generationConfig": {
-                "temperature": 0,
                 "maxOutputTokens": self._config.max_output_tokens,
                 "responseMimeType": "application/json",
                 "responseJsonSchema": _VISUAL_PROPOSAL_SCHEMA,
             },
         }
-
-
-def select_stable_flash_lite_model(models: tuple[dict[str, Any], ...]) -> str:
-    """Choose the highest-version stable Flash-Lite model exposed by models.list."""
-
-    candidates: dict[tuple[int, int], str] = {}
-    for model in models:
-        methods = model.get("supportedGenerationMethods")
-        if not isinstance(methods, list) or "generateContent" not in methods:
-            continue
-        base_model_id = model.get("baseModelId")
-        if not isinstance(base_model_id, str):
-            continue
-        match = _STABLE_FLASH_LITE_PATTERN.fullmatch(base_model_id)
-        if match is None:
-            continue
-        version = (int(match.group(1)), int(match.group(2)))
-        candidates[version] = base_model_id
-
-    if not candidates:
-        raise VisualProviderResponseError(
-            "Gemini models.list exposed no stable gemini-X.Y-flash-lite generateContent model"
-        )
-    return candidates[max(candidates)]
 
 
 def _parse_response(response: dict[str, Any]) -> VisualSemanticsProposal:

@@ -18,7 +18,6 @@ from video_editing_agent.providers.vision.gemini_generate_content import (
     GeminiGenerateContentVisualUnderstanding,
     GeminiVisualConfig,
     UrllibGeminiGenerateContentTransport,
-    select_stable_flash_lite_model,
 )
 
 
@@ -131,15 +130,13 @@ def test_adapter_sends_inline_pngs_and_returns_proposal() -> None:
     generation_config = transport.payload["generationConfig"]
     assert generation_config["responseMimeType"] == "application/json"
     assert generation_config["responseJsonSchema"]["additionalProperties"] is False
-    assert generation_config["temperature"] == 0
+    assert "temperature" not in generation_config
 
     parts = transport.payload["contents"][0]["parts"]
     images = [item["inlineData"] for item in parts if "inlineData" in item]
     assert len(images) == 2
     assert images[0]["mimeType"] == "image/png"
-    assert base64.b64decode(images[0]["data"]) == values[
-        request.frames[0].artifact_ref.artifact_id
-    ]
+    assert base64.b64decode(images[0]["data"]) == values[request.frames[0].artifact_ref.artifact_id]
 
 
 def test_adapter_rejects_structured_output_with_missing_or_extra_fields() -> None:
@@ -167,41 +164,6 @@ def test_adapter_rejects_response_without_candidates() -> None:
 
     with pytest.raises(VisualProviderResponseError, match="no candidates"):
         adapter.analyze(request)
-
-
-def test_selector_prefers_highest_stable_flash_lite_version() -> None:
-    models: tuple[dict[str, Any], ...] = (
-        {
-            "name": "models/gemini-2.5-flash-lite",
-            "baseModelId": "gemini-2.5-flash-lite",
-            "supportedGenerationMethods": ["generateContent"],
-        },
-        {
-            "name": "models/gemini-3.5-flash-lite",
-            "baseModelId": "gemini-3.5-flash-lite",
-            "supportedGenerationMethods": ["generateContent"],
-        },
-        {
-            "name": "models/gemini-9.9-flash-lite-preview",
-            "baseModelId": "gemini-9.9-flash-lite-preview",
-            "supportedGenerationMethods": ["generateContent"],
-        },
-    )
-
-    assert select_stable_flash_lite_model(models) == "gemini-3.5-flash-lite"
-
-
-def test_selector_rejects_when_no_stable_flash_lite_is_available() -> None:
-    models: tuple[dict[str, Any], ...] = (
-        {
-            "name": "models/gemini-3.6-flash",
-            "baseModelId": "gemini-3.6-flash",
-            "supportedGenerationMethods": ["generateContent"],
-        },
-    )
-
-    with pytest.raises(VisualProviderResponseError, match="no stable"):
-        select_stable_flash_lite_model(models)
 
 
 def test_transport_classifies_retryable_http_status(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -234,57 +196,6 @@ def test_transport_classifies_non_retryable_http_status(
 
     with pytest.raises(VisualProviderResponseError, match="HTTP 400"):
         transport.generate_content("gemini-3.5-flash-lite", {"contents": []})
-
-
-def test_list_models_paginates_and_selector_uses_base_model_id(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    responses = iter(
-        (
-            FakeHttpResponse(
-                json.dumps(
-                    {
-                        "models": [
-                            {
-                                "name": "models/gemini-2.5-flash-lite",
-                                "baseModelId": "gemini-2.5-flash-lite",
-                                "supportedGenerationMethods": ["generateContent"],
-                            }
-                        ],
-                        "nextPageToken": "next",
-                    }
-                ).encode()
-            ),
-            FakeHttpResponse(
-                json.dumps(
-                    {
-                        "models": [
-                            {
-                                "name": "models/gemini-3.5-flash-lite",
-                                "baseModelId": "gemini-3.5-flash-lite",
-                                "supportedGenerationMethods": ["generateContent"],
-                            }
-                        ]
-                    }
-                ).encode()
-            ),
-        )
-    )
-
-    def return_response(*args: object, **kwargs: object) -> FakeHttpResponse:
-        del args, kwargs
-        return next(responses)
-
-    monkeypatch.setattr("urllib.request.urlopen", return_response)
-    transport = UrllibGeminiGenerateContentTransport(
-        api_key="secret",
-        api_root="https://example.invalid",
-    )
-
-    models = transport.list_models()
-
-    assert len(models) == 2
-    assert select_stable_flash_lite_model(models) == "gemini-3.5-flash-lite"
 
 
 @pytest.mark.parametrize(

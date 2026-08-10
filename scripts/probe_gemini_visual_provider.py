@@ -20,7 +20,6 @@ from video_editing_agent.providers.vision.gemini_generate_content import (
     GeminiGenerateContentVisualUnderstanding,
     GeminiVisualConfig,
     UrllibGeminiGenerateContentTransport,
-    select_stable_flash_lite_model,
 )
 from video_editing_agent.storage.artifact.local_store import LocalArtifactStore
 from video_editing_agent.storage.asset.repository_media import RepositoryLocalAssetMediaResolver
@@ -33,6 +32,7 @@ from video_editing_agent.storage.repositories.sqlite_repositories import (
 
 ASSET_ID = "ast_gemini_visual_live_probe"
 SHOT_ID = "sht_gemini_visual_live_probe"
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
 
 
 def parse_args() -> argparse.Namespace:
@@ -42,7 +42,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("video", type=pathlib.Path)
     parser.add_argument("--database", type=pathlib.Path, required=True)
     parser.add_argument("--artifact-root", type=pathlib.Path, required=True)
-    parser.add_argument("--model", default="")
+    parser.add_argument("--model", default=DEFAULT_MODEL)
     return parser.parse_args()
 
 
@@ -51,12 +51,11 @@ def main() -> int:
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY is not configured")
-
-    transport = UrllibGeminiGenerateContentTransport(api_key=api_key)
     model = args.model.strip()
     if not model:
-        model = select_stable_flash_lite_model(transport.list_models())
+        raise ValueError("--model must not be empty")
 
+    transport = UrllibGeminiGenerateContentTransport(api_key=api_key)
     video_path = args.video.expanduser().resolve(strict=True)
     database = SqliteProjectDatabase(args.database.expanduser().resolve())
     database.initialize()
