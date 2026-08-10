@@ -68,10 +68,13 @@ _VISUAL_PROPOSAL_SCHEMA: dict[str, Any] = {
     ],
 }
 
-_DEVELOPER_INSTRUCTION = """Analyze the supplied sampled video frames as factual source footage.
-Describe only observable visual facts useful to later retrieval and editing. Do not select clips, do not
-make timeline decisions, and do not invent events outside the frames. Treat frame order and timestamps
-as temporal evidence. Return only the requested structured visual-semantics fields."""
+_DEVELOPER_INSTRUCTION = (
+    "Analyze the supplied sampled video frames as factual source footage. "
+    "Describe only observable visual facts useful to later retrieval and editing. "
+    "Do not select clips, make timeline decisions, or invent events outside the frames. "
+    "Treat frame order and timestamps as temporal evidence. "
+    "Return only the requested structured visual-semantics fields."
+)
 
 
 class OpenAIResponsesTransport(Protocol):
@@ -141,7 +144,9 @@ class UrllibOpenAIResponsesTransport(OpenAIResponsesTransport):
                 f"OpenAI Responses request returned HTTP {exc.code}"
             ) from exc
         except (urllib.error.URLError, TimeoutError) as exc:
-            raise VisualProviderTransientError("OpenAI Responses request failed in transport") from exc
+            raise VisualProviderTransientError(
+                "OpenAI Responses request failed in transport"
+            ) from exc
 
         try:
             decoded: Any = json.loads(response_body.decode("utf-8"))
@@ -257,7 +262,9 @@ def _parse_response(response: dict[str, Any]) -> VisualSemanticsProposal:
     if not isinstance(decoded, dict):
         raise VisualProviderResponseError("OpenAI structured output must be a JSON object")
     if set(decoded) != _PROPOSAL_KEYS:
-        raise VisualProviderResponseError("OpenAI structured output had unexpected or missing fields")
+        raise VisualProviderResponseError(
+            "OpenAI structured output had unexpected or missing fields"
+        )
 
     try:
         quality_scores = _parse_quality_scores(decoded["quality_scores"])
@@ -272,7 +279,9 @@ def _parse_response(response: dict[str, Any]) -> VisualSemanticsProposal:
             quality_scores=quality_scores,
         )
     except (TypeError, ValueError) as exc:
-        raise VisualProviderResponseError("OpenAI structured output failed local validation") from exc
+        raise VisualProviderResponseError(
+            "OpenAI structured output failed local validation"
+        ) from exc
 
 
 def _optional_string(value: Any, field_name: str) -> str | None:
