@@ -54,7 +54,13 @@ Current engineering baseline:
 - SHA-256 content-addressed local ArtifactStore implemented;
 - provider-neutral VisualUnderstandingPort returns proposals only;
 - UnderstandingService owns ShotAnalysis revisions and has a real-frame ownership probe;
-- no concrete VLM provider, speech analysis, persistent Shot/Analysis repository, renderer, or end-user application is claimed complete yet.
+- R0.4 local structured persistence complete with SQLite schema v1;
+- exact revisioned Asset / Shot / ShotAnalysis records survive separate Python processes;
+- AssetIngestService, ShotCatalog and UnderstandingService remain semantic owners while repositories
+  persist their committed records;
+- binary frame artifacts remain outside SQLite in the content-addressed ArtifactStore;
+- no concrete VLM provider, speech analysis, ShotIndex, renderer, or end-user application is claimed
+  complete yet.
 
 See `docs/validation/` for full-chain evidence and integration bugs caught by automated probes.
 
