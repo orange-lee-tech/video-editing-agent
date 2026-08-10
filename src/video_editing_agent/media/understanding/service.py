@@ -22,7 +22,7 @@ from video_editing_agent.media.understanding.sampling import (
     plan_uniform_frame_samples,
 )
 from video_editing_agent.media.understanding.visual_validation import (
-    normalize_visual_semantics_proposal,
+    normalize_visual_understanding_proposal,
 )
 
 VISUAL_FRAME_BUDGETS: Mapping[AnalysisProfile, int] = {
@@ -116,13 +116,14 @@ class ProviderNeutralVisualUnderstandingService(UnderstandingService):
                 frames=tuple(stored.visual_ref for stored in stored_frames),
             )
         )
-        visual = normalize_visual_semantics_proposal(proposal)
+        validated = normalize_visual_understanding_proposal(proposal)
         analysis = ShotAnalysis(
             shot_ref=shot_ref,
             revision=revision,
             profile=profile,
             analyzed_at=self._clock(),
-            visual=visual,
+            technical_quality=validated.quality_scores,
+            visual=validated.visual,
             artifact_refs=tuple(
                 stored.visual_ref.artifact_ref.artifact_id for stored in stored_frames
             ),

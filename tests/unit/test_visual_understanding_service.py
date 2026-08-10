@@ -6,6 +6,7 @@ import pytest
 from video_editing_agent.application.ports.artifact_store import ArtifactPayload
 from video_editing_agent.application.ports.asset_media import ResolvedLocalAssetMedia
 from video_editing_agent.application.ports.visual_understanding import (
+    VisualQualityScoreProposal,
     VisualSemanticsProposal,
     VisualUnderstandingRequest,
 )
@@ -77,6 +78,7 @@ class RecordingVisualPort:
             summary="  Person enters room. ",
             tags=("person", " room ", "person"),
             actions=("walking",),
+            quality_scores=(VisualQualityScoreProposal("aesthetic", 0.84),),
         )
 
 
@@ -129,6 +131,9 @@ def test_analyze_owns_first_revision_and_persists_frame_artifacts(tmp_path: Path
     assert analysis.visual is not None
     assert analysis.visual.summary == "Person enters room."
     assert analysis.visual.tags == ("person", "room")
+    assert [(score.name, score.value) for score in analysis.technical_quality] == [
+        ("aesthetic", 0.84)
+    ]
     assert len(analysis.artifact_refs) == 3
     assert repository.saved == [analysis]
     assert len(visual_port.requests) == 1

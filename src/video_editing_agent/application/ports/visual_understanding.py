@@ -1,11 +1,24 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Protocol
 
 from video_editing_agent.application.ports.artifact_store import StoredArtifactRef
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.shot.analysis import AnalysisProfile
+
+
+class VisualProviderError(RuntimeError):
+    """Base error for a visual-understanding provider adapter."""
+
+
+class VisualProviderTransientError(VisualProviderError):
+    """A provider failure that may succeed when the same request is retried."""
+
+
+class VisualProviderResponseError(VisualProviderError):
+    """A non-retryable provider response/schema failure."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,6 +59,23 @@ class VisualUnderstandingRequest:
 
 
 @dataclass(frozen=True, slots=True)
+class VisualQualityScoreProposal:
+    """Provider-proposed normalized visual-quality dimension."""
+
+    name: str
+    value: float
+
+    def __post_init__(self) -> None:
+        if not self.name.strip():
+            raise ValueError("visual quality score name must not be empty")
+        if isinstance(self.value, bool) or not isinstance(self.value, (int, float)):
+            raise TypeError("visual quality score value must be a number")
+        value = float(self.value)
+        if not math.isfinite(value) or not 0.0 <= value <= 1.0:
+            raise ValueError("visual quality score value must be finite and between 0 and 1")
+
+
+@dataclass(frozen=True, slots=True)
 class VisualSemanticsProposal:
     """Provider output only. It is not Domain state until deterministically validated."""
 
@@ -56,6 +86,7 @@ class VisualSemanticsProposal:
     environment: str | None = None
     framing: str | None = None
     camera_motion: str | None = None
+    quality_scores: tuple[VisualQualityScoreProposal, ...] = ()
 
 
 class VisualUnderstandingPort(Protocol):
