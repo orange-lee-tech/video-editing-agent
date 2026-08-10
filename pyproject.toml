@@ -62,10 +62,14 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "Application must not depend on infrastructure adapters"
+name = "Application must depend on capabilities through ports"
 type = "forbidden"
 source_modules = ["video_editing_agent.application"]
 forbidden_modules = [
+    "video_editing_agent.planning",
+    "video_editing_agent.media",
+    "video_editing_agent.music",
+    "video_editing_agent.editing",
     "video_editing_agent.providers",
     "video_editing_agent.render",
     "video_editing_agent.storage",
