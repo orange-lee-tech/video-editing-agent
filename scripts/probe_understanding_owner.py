@@ -71,7 +71,9 @@ class DeterministicVisualProvider:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Probe UnderstandingService ownership with real frames and a fake visual provider."
+        description=(
+            "Probe UnderstandingService ownership with real frames and a fake visual provider."
+        )
     )
     parser.add_argument("video", type=pathlib.Path)
     parser.add_argument("--duration-ms", type=int, required=True)
