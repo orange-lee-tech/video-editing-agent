@@ -52,8 +52,7 @@ class DeterministicVisualProvider:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Prove SQLite Asset/Shot/ShotAnalysis recovery across "
-            "separate Python processes."
+            "Prove SQLite Asset/Shot/ShotAnalysis recovery across separate Python processes."
         )
     )
     parser.add_argument("phase", choices=("seed", "resume"))
