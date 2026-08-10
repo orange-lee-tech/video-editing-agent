@@ -70,6 +70,18 @@ jobs:
             run_gate whitespace git diff --check
           fi
 
+          if printf '%s\n' "${failures[@]}" | grep -qx format; then
+            echo "::group::format autofix diff"
+            uv run ruff format --diff . || true
+            echo "::endgroup::"
+          fi
+
+          if printf '%s\n' "${failures[@]}" | grep -qx lint; then
+            echo "::group::lint autofix diff"
+            uv run ruff check --diff . || true
+            echo "::endgroup::"
+          fi
+
           if [ "${#failures[@]}" -eq 0 ]; then
             echo "failures=" >> "$GITHUB_OUTPUT"
             echo "Quality gate passed."
