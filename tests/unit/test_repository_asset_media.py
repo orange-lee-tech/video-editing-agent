@@ -53,7 +53,9 @@ def test_repository_media_resolver_restores_local_file_uri_with_spaces(tmp_path:
     asset = make_asset(media_path.resolve().as_uri())
     asset_ref = EntityRevisionRef(asset.envelope.id, asset.envelope.revision)
 
-    resolved = RepositoryLocalAssetMediaResolver(StaticAssetRepository(asset)).resolve_local(asset_ref)
+    resolved = RepositoryLocalAssetMediaResolver(StaticAssetRepository(asset)).resolve_local(
+        asset_ref
+    )
 
     assert resolved.asset_ref == asset_ref
     assert resolved.path == media_path.resolve()

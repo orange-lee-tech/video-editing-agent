@@ -17,7 +17,9 @@ from video_editing_agent.media.ingest.service import AssetIngestService
 from video_editing_agent.media.ingest.source import LocalMediaSource
 from video_editing_agent.media.shot_detection.catalog import ShotCatalog
 from video_editing_agent.media.understanding.frame_extraction import FfmpegPngFrameExtractor
-from video_editing_agent.media.understanding.service import ProviderNeutralVisualUnderstandingService
+from video_editing_agent.media.understanding.service import (
+    ProviderNeutralVisualUnderstandingService,
+)
 from video_editing_agent.storage.artifact.local_store import LocalArtifactStore
 from video_editing_agent.storage.asset.repository_media import RepositoryLocalAssetMediaResolver
 from video_editing_agent.storage.repositories.sqlite_database import SqliteProjectDatabase
@@ -49,7 +51,10 @@ class DeterministicVisualProvider:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Prove SQLite Asset/Shot/ShotAnalysis recovery across separate Python processes."
+        description=(
+            "Prove SQLite Asset/Shot/ShotAnalysis recovery across "
+            "separate Python processes."
+        )
     )
     parser.add_argument("phase", choices=("seed", "resume"))
     parser.add_argument("video", type=pathlib.Path)
@@ -86,8 +91,12 @@ def make_understanding_service(
     )
 
 
-def seed(video_path: pathlib.Path, database_path: pathlib.Path, artifact_root: pathlib.Path) -> None:
-    database, asset_repository, shot_repository, analysis_repository = open_repositories(database_path)
+def seed(
+    video_path: pathlib.Path, database_path: pathlib.Path, artifact_root: pathlib.Path
+) -> None:
+    database, asset_repository, shot_repository, analysis_repository = open_repositories(
+        database_path
+    )
     ingest = AssetIngestService(
         FfprobeMediaProbe(),
         repository=asset_repository,
@@ -145,8 +154,12 @@ def seed(video_path: pathlib.Path, database_path: pathlib.Path, artifact_root: p
     print(f"artifact_count={len(first.artifact_refs)}")
 
 
-def resume(video_path: pathlib.Path, database_path: pathlib.Path, artifact_root: pathlib.Path) -> None:
-    database, asset_repository, shot_repository, analysis_repository = open_repositories(database_path)
+def resume(
+    video_path: pathlib.Path, database_path: pathlib.Path, artifact_root: pathlib.Path
+) -> None:
+    database, asset_repository, shot_repository, analysis_repository = open_repositories(
+        database_path
+    )
     asset_ref = EntityRevisionRef(ASSET_ID, 1)
     shot_ref = EntityRevisionRef(SHOT_ID, 1)
 
@@ -157,7 +170,9 @@ def resume(video_path: pathlib.Path, database_path: pathlib.Path, artifact_root:
 
     resolved = RepositoryLocalAssetMediaResolver(asset_repository).resolve_local(asset_ref)
     if resolved.path != video_path.resolve(strict=True):
-        raise RuntimeError("reopened Asset storage_ref did not recover the original local video path")
+        raise RuntimeError(
+            "reopened Asset storage_ref did not recover the original local video path"
+        )
     if asset.storage_ref != resolved.path.as_uri():
         raise RuntimeError("reopened Asset storage_ref changed during local media resolution")
 
