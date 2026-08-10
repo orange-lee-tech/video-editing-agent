@@ -61,8 +61,7 @@ def plan_uniform_frame_samples(
     sample_count = min(resolved_options.max_frames, shot.duration_ms)
 
     timestamps_ms = tuple(
-        shot.source_start_ms
-        + ((2 * index + 1) * shot.duration_ms) // (2 * sample_count)
+        shot.source_start_ms + ((2 * index + 1) * shot.duration_ms) // (2 * sample_count)
         for index in range(sample_count)
     )
     samples = tuple(
