@@ -64,13 +64,36 @@ When a segment cannot mathematically be partitioned such that both minimum and m
 
 A complete source shorter than the configured minimum remains one unavoidable shot because boundary manipulation cannot make source media longer.
 
-## Deferred from R0.1-A
+## R0.1-B capability contract
 
-The following FireRed-related capabilities are intentionally deferred:
+Local destination:
+
+`src/video_editing_agent/application/ports/shot_detector.py`
+
+R0.1-B formalizes the architecture boundary already required by Architecture Contract v0.1.2:
+
+`Asset revision -> ShotDetector -> ShotBoundaryProposal[]`
+
+The port defines:
+
+- `ShotDetectionOptions` for model-agnostic minimum/maximum duration policy;
+- `ShotBoundaryProposal` for asset-scoped source intervals, detection method and optional confidence;
+- `ShotDetector` as the application-facing capability protocol.
+
+Model-specific controls such as TransNetV2 threshold, frame sampling rate, model weights and device are intentionally excluded from the application port. They belong to the concrete detector adapter configuration introduced later.
+
+A `ShotBoundaryProposal` is not a `Shot` and cannot create Shot identity. Shot identity remains owned by the future `ShotCatalog` owner.
+
+R0.1-B is also independently implemented and copies no FireRed source.
+
+## Deferred after R0.1-B
+
+The following FireRed-related capabilities remain intentionally deferred:
 
 - TransNetV2 model loading and caching;
 - FFmpeg RGB frame extraction;
 - model prediction and confidence mapping;
+- concrete `ShotDetector` adapter implementation;
 - actual media segmentation;
 - Shot identity creation;
 - Artifact/session integration.
@@ -83,10 +106,12 @@ R0.1-A lives under:
 
 `media/shot_detection`
 
-It owns no Domain Entity.
+R0.1-B exposes the inward-facing port under:
 
-The future flow remains:
+`application/ports`
+
+Neither owns a Domain Entity.
+
+The flow remains:
 
 `Asset -> ShotDetector -> ShotBoundaryProposal[] -> ShotCatalog -> Shot[]`
-
-R0.1-A implements only deterministic boundary policy used inside `ShotDetector`.
