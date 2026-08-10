@@ -54,14 +54,17 @@ Current engineering baseline:
 - FireRed-informed R0.1-A pure shot-boundary policy independently implemented;
 - R0.1-B model-agnostic `ShotDetector` capability contract defined;
 - R0.1-C1 policy-driven detector core separates model/media backends from boundary policy;
-- R0.1-C2 streaming FFmpeg RGB24 frame source implemented without whole-video raw-frame buffering;
-- no TransNetV2/Torch model backend, model-weight lifecycle, real-video integration probe, AI provider integration, renderer, or end-user application has been claimed complete yet.
+- R0.1-C2 streaming FFmpeg RGB24 frame source avoids whole-video raw-frame buffering;
+- R0.1-C3 reproduces the published TransNetV2 100-frame / 50-output overlap contract as bounded-memory streaming windows and stitches only valid center predictions;
+- a one-command Windows verification gate is available at `scripts/verify.ps1`;
+- no TransNetV2/Torch model adapter, model-weight lifecycle, real-video integration probe, AI provider integration, renderer, or end-user application has been claimed complete yet.
 
 ## Upstream engineering map
 
 The project currently uses upstream work selectively:
 
 - **FireRed-OpenStoryline** — primary pipeline/media/render implementation reference; selective reuse or independent reimplementation only after review;
+- **soCzech/TransNetV2** — authoritative model inference-contract reference;
 - **MoneyPrinterTurbo** — material-provider and operational-engineering reference;
 - **CutClaw** — architecture/algorithm reference only; source code is not copied;
 - **BeatSync Engine** — BeatMap/music-analysis reference.
