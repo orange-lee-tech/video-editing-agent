@@ -1,0 +1,85 @@
+name: Asset to Shots Pipeline Probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/asset-shot-pipeline-probe.yml"
+      - ".github/scripts/install-ffmpeg-windows.ps1"
+      - "scripts/probe_asset_to_shots.py"
+      - "src/video_editing_agent/application/ports/shot_detector.py"
+      - "src/video_editing_agent/domain/asset/model.py"
+      - "src/video_editing_agent/domain/shot/model.py"
+      - "src/video_editing_agent/media/ingest/**"
+      - "src/video_editing_agent/media/shot_detection/**"
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: asset-shot-pipeline-probe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-pipeline:
+    name: Windows Asset-to-Shots Probe
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.12.2"
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Sync locked base environment
+        run: uv sync --frozen
+
+      - name: Install pinned FFmpeg 8.1
+        shell: pwsh
+        run: .\.github\scripts\install-ffmpeg-windows.ps1
+
+      - name: Generate synthetic hard-cut video
+        shell: pwsh
+        run: |
+          ffmpeg -hide_banner -loglevel error -f lavfi -i "testsrc=size=320x180:rate=25:duration=1" -f lavfi -i "smptebars=size=320x180:rate=25:duration=1" -f lavfi -i "testsrc2=size=320x180:rate=25:duration=1" -f lavfi -i "color=c=blue:size=320x180:rate=25:duration=1" -filter_complex "[0:v][1:v][2:v][3:v]concat=n=4:v=1:a=0,format=yuv420p[v]" -map "[v]" -c:v mpeg4 -q:v 2 asset-shot-pipeline.mp4
+
+      - name: Probe Asset to committed Shots
+        id: pipeline_probe
+        continue-on-error: true
+        run: uv run --with "transnetv2-pytorch==1.0.5" python .\scripts\probe_asset_to_shots.py .\asset-shot-pipeline.mp4 --expected-shots 4
+
+      - name: Publish pipeline status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROBE_OUTCOME: ${{ steps.pipeline_probe.outcome }}
+        run: |
+          if [ "$PROBE_OUTCOME" = "success" ]; then
+            state="success"
+            description="real Asset to Shot identity pipeline passed on Windows"
+          else
+            state="failure"
+            description="real Asset to Shot identity pipeline failed on Windows"
+          fi
+
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -f state="$state" \
+            -f context="ci/asset-to-shots-windows" \
+            -f description="$description" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      - name: Fail workflow when pipeline probe failed
+        if: steps.pipeline_probe.outcome != 'success'
+        run: exit 1
