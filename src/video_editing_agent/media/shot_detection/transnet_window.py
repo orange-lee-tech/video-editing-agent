@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import collections
 import collections.abc
-from dataclasses import dataclass
+import dataclasses
 
 
 TRANSNETV2_CONTEXT_FRAMES = 25
@@ -10,7 +10,7 @@ TRANSNETV2_OUTPUT_FRAMES = 50
 TRANSNETV2_WINDOW_FRAMES = 100
 
 
-@dataclass(frozen=True, slots=True)
+@dataclasses.dataclass(frozen=True, slots=True)
 class TransNetV2Window:
     """One padded model window plus the number of center predictions that are real video."""
 
@@ -64,9 +64,7 @@ def iter_transnetv2_windows(
 
     frame_size = _validate_frame(first_frame, expected_size=None)
     last_real_frame = first_frame
-    window: collections.deque[bytes] = collections.deque(
-        [first_frame] * TRANSNETV2_CONTEXT_FRAMES
-    )
+    window: collections.deque[bytes] = collections.deque([first_frame] * TRANSNETV2_CONTEXT_FRAMES)
     window.append(first_frame)
 
     actual_frames_seen = 1

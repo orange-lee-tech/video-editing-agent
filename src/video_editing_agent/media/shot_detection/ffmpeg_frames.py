@@ -1,17 +1,17 @@
 from __future__ import annotations
 
+import collections.abc
+import dataclasses
+import pathlib
 import subprocess
 import tempfile
 import typing
-from collections.abc import Iterator
-from dataclasses import dataclass
-from pathlib import Path
 
 
 RGB24_CHANNELS = 3
 
 
-@dataclass(frozen=True, slots=True)
+@dataclasses.dataclass(frozen=True, slots=True)
 class Rgb24FrameSpec:
     """Fixed FFmpeg sampling geometry for a stream of RGB24 frames."""
 
@@ -56,13 +56,13 @@ def _read_process_stderr(stderr_file: typing.BinaryIO) -> str:
 
 
 def iter_video_rgb24_frames(
-    input_video: Path,
+    input_video: pathlib.Path,
     *,
     ffmpeg_executable: str = "ffmpeg",
     frames_per_second: int,
     target_width: int,
     target_height: int,
-) -> Iterator[bytes]:
+) -> collections.abc.Iterator[bytes]:
     """Stream complete fixed-rate RGB24 frames from FFmpeg.
 
     Frames are yielded one at a time so video duration does not determine resident raw-frame
@@ -76,7 +76,9 @@ def iter_video_rgb24_frames(
     if not ffmpeg_executable.strip():
         raise ValueError("ffmpeg_executable must not be empty")
 
-    video_filter = f"fps={spec.frames_per_second},scale={spec.width}:{spec.height}:flags=fast_bilinear"
+    video_filter = (
+        f"fps={spec.frames_per_second},scale={spec.width}:{spec.height}:flags=fast_bilinear"
+    )
     command = [
         ffmpeg_executable,
         "-hide_banner",
