@@ -112,10 +112,11 @@ def iter_video_rgb24_frames(
             process.kill()
             process.wait()
             raise RuntimeError("FFmpeg stdout pipe was not created")
+        stdout_stream = process.stdout
 
         try:
             while True:
-                frame = _read_exact(process.stdout, spec.bytes_per_frame)
+                frame = _read_exact(stdout_stream, spec.bytes_per_frame)
                 if not frame:
                     break
                 if len(frame) != spec.bytes_per_frame:
@@ -130,7 +131,7 @@ def iter_video_rgb24_frames(
                 stderr = _read_process_stderr(stderr_file)
                 raise RuntimeError(f"FFmpeg RGB24 decode failed for {input_video}:\n{stderr}")
         finally:
-            process.stdout.close()
+            stdout_stream.close()
             if process.poll() is None:
                 process.kill()
                 process.wait()
