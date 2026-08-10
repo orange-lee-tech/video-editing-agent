@@ -29,6 +29,7 @@ Important ownership boundaries include:
 
 - `ShotDetector` proposes boundaries; `ShotCatalog` owns final `Shot` identity;
 - `UnderstandingService` owns derived `ShotAnalysis` revisions; providers only return proposals;
+- `ShotIndex` is rebuildable retrieval infrastructure; it does not establish Resolver eligibility;
 - `BeatMap` describes music facts; it does not decide cuts;
 - `Director` creates `EditPlan`; it does not freeze source timestamps;
 - `ShotResolver` chooses concrete footage; it does not rewrite director intent;
@@ -59,8 +60,12 @@ Current engineering baseline:
 - AssetIngestService, ShotCatalog and UnderstandingService remain semantic owners while repositories
   persist their committed records;
 - binary frame artifacts remain outside SQLite in the content-addressed ArtifactStore;
-- no concrete VLM provider, speech analysis, ShotIndex, renderer, or end-user application is claimed
-  complete yet.
+- R0.5 provider-neutral Shot Retrieval foundation complete;
+- deterministic local lexical retrieval supports Latin and CJK matching, retrieval prefilters and exact
+  analysis revision tracking;
+- ShotIndex can be discarded and rebuilt from R0.4 persisted Shot + latest ShotAnalysis facts;
+- no concrete VLM provider, speech analysis, vector/embedding retrieval, Director, Resolver, renderer,
+  or end-user application is claimed complete yet.
 
 See `docs/validation/` for full-chain evidence and integration bugs caught by automated probes.
 
