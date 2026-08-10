@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 concurrency:
   group: transnet-runtime-probe-${{ github.ref }}
@@ -36,4 +37,33 @@ jobs:
         run: uv sync --frozen
 
       - name: Probe real transnetv2-pytorch runtime
+        id: runtime_probe
+        continue-on-error: true
         run: uv run --with "transnetv2-pytorch==1.0.5" python .\scripts\probe_transnetv2_runtime.py
+
+      - name: Publish runtime probe status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROBE_OUTCOME: ${{ steps.runtime_probe.outcome }}
+        run: |
+          if [ "$PROBE_OUTCOME" = "success" ]; then
+            state="success"
+            description="real transnetv2-pytorch runtime probe passed on Windows"
+          else
+            state="failure"
+            description="real transnetv2-pytorch runtime probe failed on Windows"
+          fi
+
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -f state="$state" \
+            -f context="ci/transnetv2-windows-runtime" \
+            -f description="$description" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      - name: Fail workflow when runtime probe failed
+        if: steps.runtime_probe.outcome != 'success'
+        run: exit 1
