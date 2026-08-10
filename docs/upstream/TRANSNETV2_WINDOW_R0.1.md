@@ -1,4 +1,4 @@
-# TransNetV2 Streaming Window — R0.1-C3 Provenance Record
+# TransNetV2 Streaming Inference — R0.1-C3 Provenance Record
 
 ## Upstream reference
 
@@ -9,9 +9,10 @@
   - `inference-pytorch/README.md`
 - Upstream license: MIT
 
-## Local destination
+## Local destinations
 
-`src/video_editing_agent/media/shot_detection/transnet_window.py`
+- `src/video_editing_agent/media/shot_detection/transnet_window.py`
+- `src/video_editing_agent/media/shot_detection/transnet_predictions.py`
 
 Reuse classification:
 
@@ -38,11 +39,11 @@ The upstream convenience `predict_frames` implementation accepts an already mate
 
 This project targets long personal footage and has already established a streaming FFmpeg frame source. R0.1-C3 therefore reformulates the same inference geometry as a bounded-memory iterator:
 
-`RGB24 frame stream -> one padded 100-frame window -> advance 50 frames -> next window`
+`RGB24 frame stream -> padded 100-frame window -> model probability window -> valid center 50 predictions -> advance 50 frames`
 
-Only one model window plus small iterator state is resident regardless of total video duration.
+Only one raw model window plus small iterator state is resident regardless of total video duration. One scalar single-frame probability per source frame may be retained for later scene conversion; this is intentionally much smaller than retaining raw RGB frames.
 
-## Local API
+## Local window API
 
 `TransNetV2Window`
 
@@ -53,13 +54,31 @@ Only one model window plus small iterator state is resident regardless of total 
 `iter_transnetv2_windows(frames)`
 
 - consumes any iterable of fixed-size frame bytes;
-- validates frame-type and frame-size consistency;
+- validates frame type and frame-size consistency;
 - performs first/last frame padding;
 - emits one window per 50 output frames;
 - never depends on Torch, NumPy, model weights, FFmpeg, `Asset`, or `Shot` identity.
+
+## Local predictor seam
+
+`TransNetV2WindowPredictor`
+
+- accepts exactly one normalized 100-frame window;
+- returns one single-frame transition probability per model-window frame;
+- is the only contract a future heavy Torch adapter must implement.
+
+`collect_transnetv2_single_frame_predictions(frames, predictor)`
+
+- drives the streaming window iterator;
+- validates predictor output length;
+- keeps only valid center predictions;
+- rejects non-finite or out-of-range probabilities;
+- reconstructs exactly one single-frame probability per real source frame.
+
+This prevents the heavy model adapter from owning overlap policy, padding policy, Shot boundary policy, or application/domain semantics.
 
 ## Dependency impact
 
 R0.1-C3 adds no Python package dependency.
 
-A later model runner may depend on `transnetv2_pytorch`/Torch, but that dependency will sit behind the window and backend contracts rather than becoming an application/domain concern.
+A later model runner may depend on `transnetv2_pytorch`/Torch, but that dependency will sit behind the window-predictor/backend contracts rather than becoming an application/domain concern.
