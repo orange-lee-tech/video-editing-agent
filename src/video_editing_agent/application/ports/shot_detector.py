@@ -68,5 +68,4 @@ class ShotDetector(Protocol):
         self,
         asset_ref: EntityRevisionRef,
         options: ShotDetectionOptions,
-    ) -> tuple[ShotBoundaryProposal, ...]:
-        ...
+    ) -> tuple[ShotBoundaryProposal, ...]: ...
