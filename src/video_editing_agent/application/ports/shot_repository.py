@@ -10,3 +10,9 @@ class ShotRepository(Protocol):
     """Load authoritative Shot identity by exact revision."""
 
     def load(self, shot_ref: EntityRevisionRef) -> Shot: ...
+
+
+class ShotPersistenceRepository(ShotRepository, Protocol):
+    """Persist already-created Shot revisions without acquiring identity ownership."""
+
+    def save(self, shot: Shot) -> None: ...
