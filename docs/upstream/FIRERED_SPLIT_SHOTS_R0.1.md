@@ -52,8 +52,6 @@ It does not depend on:
 - NumPy
 - FFmpeg
 
-The detector/model adapter will be introduced separately in a later R0.1 phase.
-
 ## Intentional behavioral change
 
 The reviewed FireRed implementation first merges segments shorter than the minimum and then evenly subdivides segments longer than the maximum. It does not subsequently verify that subdivisions introduced by the maximum-duration pass still satisfy the minimum-duration constraint.
@@ -80,20 +78,49 @@ The port defines:
 - `ShotBoundaryProposal` for asset-scoped source intervals, detection method and optional confidence;
 - `ShotDetector` as the application-facing capability protocol.
 
-Model-specific controls such as TransNetV2 threshold, frame sampling rate, model weights and device are intentionally excluded from the application port. They belong to the concrete detector adapter configuration introduced later.
+Model-specific controls such as TransNetV2 threshold, frame sampling rate, model weights and device are intentionally excluded from the application port. They belong to a concrete backend adapter.
 
 A `ShotBoundaryProposal` is not a `Shot` and cannot create Shot identity. Shot identity remains owned by the future `ShotCatalog` owner.
 
-R0.1-B is also independently implemented and copies no FireRed source.
+R0.1-B is independently implemented and copies no FireRed source.
 
-## Deferred after R0.1-B
+## R0.1-C1 policy-driven detector core
 
-The following FireRed-related capabilities remain intentionally deferred:
+Local destination:
 
-- TransNetV2 model loading and caching;
-- FFmpeg RGB frame extraction;
+`src/video_editing_agent/media/shot_detection/detector.py`
+
+R0.1-C1 adds the capability implementation seam without importing an ML/media runtime.
+
+It defines:
+
+- `SceneDetectionResult` — backend output normalized to total duration, millisecond scene-end timestamps and a detection method;
+- `SceneBoundaryBackend` — an internal protocol that hides model/media integration;
+- `PolicyDrivenShotDetector` — the concrete application-port implementation that converts backend observations into `ShotBoundaryProposal` values using the R0.1-A duration policy.
+
+The design intentionally separates:
+
+`model/media backend -> normalized scene observations -> deterministic boundary policy -> ShotBoundaryProposal[]`
+
+This means TransNetV2, a future alternative detector, or a test double can be exchanged without changing the application-facing `ShotDetector` contract.
+
+R0.1-C1 still creates no `Shot` identity and introduces no runtime dependency.
+
+## Dependency audit before the real TransNetV2 backend
+
+The reviewed FireRed revision pins `transnetv2_pytorch==1.0.5` and combines it with Torch plus FFmpeg-based RGB frame extraction. The real backend therefore crosses a materially heavier dependency boundary than R0.1-A/B/C1.
+
+The project deliberately does not place those dependencies in the core runtime merely to reproduce FireRed's node implementation. The concrete backend will be introduced separately and kept behind `SceneBoundaryBackend`.
+
+## Deferred after R0.1-C1
+
+The following remain intentionally deferred:
+
+- TransNetV2 package/model loading and caching;
+- model weights lifecycle;
+- FFmpeg RGB frame extraction backend;
 - model prediction and confidence mapping;
-- concrete `ShotDetector` adapter implementation;
+- concrete TransNetV2 `SceneBoundaryBackend`;
 - actual media segmentation;
 - Shot identity creation;
 - Artifact/session integration.
@@ -104,13 +131,17 @@ These belong to later adapters or owners under Architecture Contract v0.1.2.
 
 R0.1-A lives under:
 
-`media/shot_detection`
+`media/shot_detection/policy.py`
 
 R0.1-B exposes the inward-facing port under:
 
-`application/ports`
+`application/ports/shot_detector.py`
 
-Neither owns a Domain Entity.
+R0.1-C1 implements that port under:
+
+`media/shot_detection/detector.py`
+
+None of these components owns a Domain Entity.
 
 The flow remains:
 
