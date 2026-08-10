@@ -1,4 +1,4 @@
-# transnetv2-pytorch Runtime — R0.1-D1 Provenance Record
+# transnetv2-pytorch Runtime — R0.1-D Provenance Record
 
 ## Package reference
 
@@ -8,112 +8,67 @@
 - Package repository: `allenday/transnetv2_pytorch`
 - License expression published by PyPI: MIT
 - Requires Python: `>=3.10`
-- Published runtime dependencies: `ffmpeg-python`, `numpy`, `pandas`, `pillow`, `torch>=1.9.0`, `tqdm`
 - Low-level API used as the compatibility target: `TransNetV2.predict_raw`
 
-The package documentation states that `predict_raw` returns single-frame and all-frame predictions.
-It also documents CPU, CUDA and MPS device modes and warns that MPS can produce numerically
-inconsistent scene counts. The local adapter therefore defaults to CPU; faster devices remain an
-explicit runtime choice.
-
-## Local destinations
-
-- `src/video_editing_agent/media/shot_detection/transnet_runtime.py`
-- `src/video_editing_agent/media/shot_detection/transnet_backend.py`
-- `src/video_editing_agent/media/shot_detection/transnet_scenes.py`
-- `scripts/probe_transnetv2_runtime.py`
-
-Reuse classification:
-
-**The local adapter and normalization code are independently implemented. No source code from
-`transnetv2-pytorch` or `soCzech/TransNetV2` is copied.**
+The local runtime and normalization code are independently implemented. No source code from
+`transnetv2-pytorch` or `soCzech/TransNetV2` is copied.
 
 ## Dependency boundary
 
-R0.1-D1 deliberately does **not** add `transnetv2-pytorch`, Torch or NumPy to the project's base
-`pyproject.toml` or `uv.lock`.
-
-The package currently pulls a materially wider dependency set than the low-level model call actually
-needs from this project. Before adopting it as a persistent optional dependency, the package, weights,
-Torch device behavior and Windows compatibility are probed in an isolated uv invocation.
-
-The probe command is:
+R0.1 deliberately does **not** add `transnetv2-pytorch`, Torch or NumPy to the project's base
+installation. Heavy-runtime probes use an isolated uv invocation:
 
 ```powershell
-uv run --with "transnetv2-pytorch==1.0.5" python .\scripts\probe_transnetv2_runtime.py
+uv run --with "transnetv2-pytorch==1.0.5" ...
 ```
 
-This adds the reviewed package only for that invocation and does not modify project dependency
-metadata.
+This keeps the default project environment light while the optional runtime boundary is validated.
 
-## Runtime adapter contract
+## Runtime adapter evidence
 
-`TorchTransNetV2WindowPredictor` implements the already-frozen `TransNetV2WindowPredictor` seam.
-Its authority is intentionally narrow:
-
-`100 RGB24 frames -> one predict_raw call -> 100 single-frame probabilities`
-
-It cannot decide overlap, padding, source duration, scene boundaries, shot duration policy, `Shot`
-identity or final timeline placement.
-
-The adapter:
-
-- validates exactly 100 frames;
-- validates `27 x 48 x 3` RGB24 geometry;
-- imports NumPy, Torch and `transnetv2_pytorch` lazily;
-- loads model state with `weights_only=True`;
-- defaults to CPU for reproducibility;
-- accepts `auto`, `cpu`, `cuda` or `mps` only as explicit backend/runtime configuration;
-- locates an explicit weights path first and otherwise checks beside the installed package module;
-- fails clearly when the optional runtime or weights are unavailable.
-
-The first real Windows package probe established an additional implementation fact that was not
-assumed from the high-level package documentation: version `1.0.5` asserts that `predict_raw` receives
-a `torch.Tensor` with uint8 RGB geometry. The local adapter therefore builds a writable NumPy uint8
+The Windows package probe established that version `1.0.5` requires `predict_raw` input to be a
+`torch.Tensor` with uint8 RGB geometry. The local adapter therefore builds a writable NumPy uint8
 window and converts it with `torch.from_numpy` before calling `predict_raw`.
 
-## Scene-boundary backend
+At commit `1aeed11f80a6bae873847d7b2434488b45880074`, both the ordinary quality gate and the real
+Windows runtime probe passed. This proved package installation, package-local weights discovery,
+model state loading and real `predict_raw` execution on Python 3.12 / Windows Server 2025.
 
-`TransNetV2SceneBoundaryBackend` composes existing local pieces rather than bypassing them:
+## Real-video full-chain evidence
 
-`Asset revision`
-`-> VideoAssetResolver`
-`-> streaming FFmpeg RGB24 frames`
-`-> TransNetV2WindowPredictor`
-`-> prediction stitcher`
-`-> scene normalization`
-`-> SceneDetectionResult`
-`-> PolicyDrivenShotDetector`
-`-> ShotBoundaryProposal[]`
+R0.1-D2 is validated at commit `0c1c6098b973eca14b3a9b93cfa0c4c270c4e9ea`.
 
-The backend receives authoritative source duration from `VideoAssetResolver`; it does not infer Asset
-identity or duration from a model package.
+The Windows integration workflow installs a pinned FFmpeg 8.1 Windows build, verifies the archive
+SHA-256, generates a four-second MP4 containing hard cuts at approximately 1, 2 and 3 seconds, then
+executes the complete path:
 
-## Gap-free scene normalization
+`MP4 -> FFmpeg RGB24 stream -> 100/50 TransNetV2 windows -> real Torch model -> scene normalization`
 
-The original TransNetV2 convenience scene conversion represents above-threshold transition spans as
-separators between stable scene intervals. This project ultimately needs contiguous source ranges for
-EDL-safe media handling.
+Observed result:
 
-R0.1-D1 therefore converts every **internal** contiguous above-threshold transition run into one cut at
-the run midpoint. Transition runs touching the start or end of the source do not create artificial
-edge cuts. This is a deliberate local normalization policy, not copied upstream behavior.
+```text
+TransNetV2 video probe: PASS
+duration_ms=4000
+boundary_count=3
+scene_end_times_ms=(960, 1960, 2960)
+```
 
-The threshold and sampling rate remain backend configuration, not application-level `ShotDetectionOptions`.
+The detected boundaries are inside the authoritative source duration and closely match the known
+synthetic hard-cut positions. The workflow publishes `ci/transnetv2-windows-video` and remains a
+relevant-path integration gate.
 
-## R0.1-D1 validation scope
+## R0.1 closure
 
-Unit coverage includes:
+The Shot Detection selective-migration phase now has evidence for:
 
-- transition-run to millisecond boundary conversion;
-- threshold/probability validation;
-- backend composition with an injected frame source and predictor;
-- zero-duration short-circuit behavior;
-- exact model-window and RGB24 geometry checks;
-- lazy optional-runtime loading using test doubles;
-- package-local weights discovery behavior;
-- model state loading and `predict_raw` output normalization.
+- pure duration/boundary policy;
+- model-agnostic ShotDetector contract;
+- streaming FFmpeg RGB24 decode;
+- bounded-memory 100/50 TransNetV2 windowing;
+- prediction stitching;
+- gap-free scene normalization;
+- real `transnetv2-pytorch==1.0.5` inference on Windows;
+- real video file full-chain execution.
 
-The real Windows package probe is automated by `.github/workflows/transnet-runtime-probe.yml` and
-runs when the runtime adapter, probe script or workflow itself changes. A real-video FFmpeg + model
-probe follows only after that runtime gate passes.
+Shot Detection therefore exits R0.1 as a validated capability. Asset identity, Shot identity commit,
+persistence and downstream understanding remain separate architectural phases.
