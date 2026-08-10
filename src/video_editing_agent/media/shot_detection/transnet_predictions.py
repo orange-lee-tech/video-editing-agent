@@ -17,8 +17,7 @@ class TransNetV2WindowPredictor(Protocol):
     def predict_single_frame_probabilities(
         self,
         frames: tuple[bytes, ...],
-    ) -> tuple[float, ...]:
-        ...
+    ) -> tuple[float, ...]: ...
 
 
 def _validate_probability(value: float, *, index: int) -> float:
