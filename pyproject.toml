@@ -1,0 +1,79 @@
+[project]
+name = "video-editing-agent"
+version = "0.1.0"
+description = "Script-driven personal video editing agent"
+readme = "README.md"
+authors = [
+    { name = "雨涟帘", email = "16175136+rainy-curtain@user.noreply.gitee.com" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.12.2,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "import-linter>=2.13",
+    "mypy>=2.3.0",
+    "pytest>=9.1.1",
+    "ruff>=0.16.2",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
+show_error_codes = true
+pretty = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q"
+
+[tool.importlinter]
+root_package = "video_editing_agent"
+
+[[tool.importlinter.contracts]]
+name = "Domain must not depend on outer layers"
+type = "forbidden"
+source_modules = ["video_editing_agent.domain"]
+forbidden_modules = [
+    "video_editing_agent.application",
+    "video_editing_agent.planning",
+    "video_editing_agent.media",
+    "video_editing_agent.music",
+    "video_editing_agent.editing",
+    "video_editing_agent.providers",
+    "video_editing_agent.render",
+    "video_editing_agent.storage",
+    "video_editing_agent.adapters",
+]
+
+[[tool.importlinter.contracts]]
+name = "Application must not depend on infrastructure adapters"
+type = "forbidden"
+source_modules = ["video_editing_agent.application"]
+forbidden_modules = [
+    "video_editing_agent.providers",
+    "video_editing_agent.render",
+    "video_editing_agent.storage",
+    "video_editing_agent.adapters",
+]
+
+[[tool.importlinter.contracts]]
+name = "Providers must not depend on adapters"
+type = "forbidden"
+source_modules = ["video_editing_agent.providers"]
+forbidden_modules = ["video_editing_agent.adapters"]
