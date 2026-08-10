@@ -20,6 +20,9 @@ class FakeArray:
         self.shape = shape
         return self
 
+    def copy(self):
+        return self
+
     def tolist(self) -> list[object]:
         return list(self.values)
 
@@ -50,6 +53,11 @@ class FakeTensor:
         return self._array
 
 
+class FakeInputTensor:
+    def __init__(self, array: FakeArray) -> None:
+        self.array = array
+
+
 class FakeTorch:
     def __init__(self) -> None:
         self.loaded: tuple[str, object, bool] | None = None
@@ -57,6 +65,9 @@ class FakeTorch:
     def load(self, file: str, *, map_location: object, weights_only: bool) -> object:
         self.loaded = (file, map_location, weights_only)
         return {"weight": "state"}
+
+    def from_numpy(self, array: FakeArray) -> FakeInputTensor:
+        return FakeInputTensor(array)
 
     def no_grad(self):
         return nullcontext()
@@ -134,8 +145,8 @@ def test_runtime_predictor_loads_lazily_and_returns_100_probabilities(
     assert fake_torch.loaded == (str(weights), "cpu", True)
     assert fake_model.loaded_state == {"weight": "state"}
     assert fake_model.was_evaluated is True
-    assert isinstance(fake_model.last_input, FakeArray)
-    assert fake_model.last_input.shape == (1, 100, 27, 48, 3)
+    assert isinstance(fake_model.last_input, FakeInputTensor)
+    assert fake_model.last_input.array.shape == (1, 100, 27, 48, 3)
 
 
 def test_runtime_predictor_validates_window_before_optional_imports() -> None:

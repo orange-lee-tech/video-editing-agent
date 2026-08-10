@@ -11,10 +11,10 @@
 - Published runtime dependencies: `ffmpeg-python`, `numpy`, `pandas`, `pillow`, `torch>=1.9.0`, `tqdm`
 - Low-level API used as the compatibility target: `TransNetV2.predict_raw`
 
-The package documentation states that `predict_raw` accepts model-ready frame data and returns
-single-frame and all-frame predictions. It also documents CPU, CUDA and MPS device modes and warns
-that MPS can produce numerically inconsistent scene counts. The local adapter therefore defaults to
-CPU; faster devices remain an explicit runtime choice.
+The package documentation states that `predict_raw` returns single-frame and all-frame predictions.
+It also documents CPU, CUDA and MPS device modes and warns that MPS can produce numerically
+inconsistent scene counts. The local adapter therefore defaults to CPU; faster devices remain an
+explicit runtime choice.
 
 ## Local destinations
 
@@ -67,6 +67,11 @@ The adapter:
 - locates an explicit weights path first and otherwise checks beside the installed package module;
 - fails clearly when the optional runtime or weights are unavailable.
 
+The first real Windows package probe established an additional implementation fact that was not
+assumed from the high-level package documentation: version `1.0.5` asserts that `predict_raw` receives
+a `torch.Tensor` with uint8 RGB geometry. The local adapter therefore builds a writable NumPy uint8
+window and converts it with `torch.from_numpy` before calling `predict_raw`.
+
 ## Scene-boundary backend
 
 `TransNetV2SceneBoundaryBackend` composes existing local pieces rather than bypassing them:
@@ -109,5 +114,6 @@ Unit coverage includes:
 - package-local weights discovery behavior;
 - model state loading and `predict_raw` output normalization.
 
-A real package/weights execution remains the next hardware/runtime gate. A real-video FFmpeg + model
+The real Windows package probe is automated by `.github/workflows/transnet-runtime-probe.yml` and
+runs when the runtime adapter, probe script or workflow itself changes. A real-video FFmpeg + model
 probe follows only after that runtime gate passes.

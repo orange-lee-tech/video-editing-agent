@@ -24,6 +24,8 @@ class TransNetV2RuntimeUnavailable(RuntimeError):
 class _ArrayLike(Protocol):
     def reshape(self, shape: tuple[int, ...]) -> _ArrayLike: ...
 
+    def copy(self) -> _ArrayLike: ...
+
     def tolist(self) -> list[float]: ...
 
 
@@ -49,6 +51,8 @@ class _TorchModule(Protocol):
         map_location: object,
         weights_only: bool,
     ) -> object: ...
+
+    def from_numpy(self, array: object) -> object: ...
 
     def no_grad(self) -> AbstractContextManager[None]: ...
 
@@ -182,10 +186,11 @@ class TorchTransNetV2WindowPredictor:
                 TRANSNETV2_FRAME_WIDTH,
                 TRANSNETV2_FRAME_CHANNELS,
             )
-        )
+        ).copy()
+        input_tensor = torch_module.from_numpy(input_array)
 
         with torch_module.no_grad():
-            single_frame_predictions, _ = model.predict_raw(input_array)
+            single_frame_predictions, _ = model.predict_raw(input_tensor)
 
         values = single_frame_predictions.detach().cpu().numpy().reshape((-1,)).tolist()
         if len(values) != TRANSNETV2_WINDOW_FRAMES:
