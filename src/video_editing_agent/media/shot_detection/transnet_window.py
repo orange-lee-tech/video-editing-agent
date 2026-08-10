@@ -4,7 +4,6 @@ import collections
 import collections.abc
 import dataclasses
 
-
 TRANSNETV2_CONTEXT_FRAMES = 25
 TRANSNETV2_OUTPUT_FRAMES = 50
 TRANSNETV2_WINDOW_FRAMES = 100

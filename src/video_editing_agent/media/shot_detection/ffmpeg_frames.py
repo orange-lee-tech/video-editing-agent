@@ -7,7 +7,6 @@ import subprocess
 import tempfile
 import typing
 
-
 RGB24_CHANNELS = 3
 
 
