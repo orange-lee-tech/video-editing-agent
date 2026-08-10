@@ -50,10 +50,12 @@ Current engineering baseline:
 - Python 3.12 + uv project layout;
 - strict Ruff / mypy / pytest / Import Linter quality gates;
 - architecture dependency rules encoded in `pyproject.toml`;
-- GitHub Actions quality gate on `main`;
-- FireRed-informed R0.1-A pure shot-boundary policy implemented independently;
-- R0.1-B `ShotDetector` capability contract defined;
-- no TransNetV2, Torch, FFmpeg runtime integration, AI provider integration, renderer, or end-user application has been claimed complete yet.
+- GitHub Actions quality gate configured for `main`;
+- FireRed-informed R0.1-A pure shot-boundary policy independently implemented;
+- R0.1-B model-agnostic `ShotDetector` capability contract defined;
+- R0.1-C1 policy-driven detector core separates model/media backends from boundary policy;
+- R0.1-C2 streaming FFmpeg RGB24 frame source implemented without whole-video raw-frame buffering;
+- no TransNetV2/Torch model backend, model-weight lifecycle, real-video integration probe, AI provider integration, renderer, or end-user application has been claimed complete yet.
 
 ## Upstream engineering map
 
