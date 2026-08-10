@@ -36,8 +36,7 @@ class SceneDetectionResult:
 class SceneBoundaryBackend(Protocol):
     """Infrastructure-facing scene detector normalized to millisecond scene ends."""
 
-    def detect_scenes(self, asset_ref: EntityRevisionRef) -> SceneDetectionResult:
-        ...
+    def detect_scenes(self, asset_ref: EntityRevisionRef) -> SceneDetectionResult: ...
 
 
 class PolicyDrivenShotDetector(ShotDetector):
