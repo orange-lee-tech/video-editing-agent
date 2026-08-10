@@ -64,8 +64,12 @@ Current engineering baseline:
 - deterministic local lexical retrieval supports Latin and CJK matching, retrieval prefilters and exact
   analysis revision tracking;
 - ShotIndex can be discarded and rebuilt from R0.4 persisted Shot + latest ShotAnalysis facts;
-- no concrete VLM provider, speech analysis, vector/embedding retrieval, Director, Resolver, renderer,
-  or end-user application is claimed complete yet.
+- R0.6 first concrete visual-provider integration complete;
+- Gemini `gemini-3.5-flash-lite` is validated as the default cost-efficient visual-understanding adapter;
+- a real Windows owner-chain probe sent three extracted PNG frames to Gemini and persisted
+  `ShotAnalysis@1` with non-empty searchable semantics;
+- the OpenAI Responses visual adapter remains available as an optional provider;
+- no speech analysis, Director, Resolver, renderer, or end-user application is claimed complete yet.
 
 See `docs/validation/` for full-chain evidence and integration bugs caught by automated probes.
 
