@@ -19,6 +19,20 @@ The intended workflow is:
 9. render and review;
 10. revise through structured or natural-language editing instructions.
 
+## Product constitution
+
+The highest-level product constraints are defined in
+[`docs/product/PRODUCT_CONSTITUTION_V1.0.md`](docs/product/PRODUCT_CONSTITUTION_V1.0.md).
+
+The product is an **AI Director + AI Video Editor**, not an AI visual-content generator. Source visual
+material in commercial outputs must come from user-supplied local files. Missing visual coverage is
+surfaced to the user instead of being filled with generated or autonomously downloaded footage.
+
+The Product Constitution governs product intent, source/authorship boundaries, local-first execution,
+commercial-use policy, and development governance. Architecture Contracts govern durable domain and
+ownership semantics where they are consistent with the Constitution. Product-policy conflicts must be
+migrated explicitly rather than bypassed in implementation.
+
 ## Architecture first
 
 The repository is governed by three reviewed Architecture Contracts under `docs/architecture/`.
@@ -66,8 +80,8 @@ Current engineering baseline:
 - ShotIndex can be discarded and rebuilt from R0.4 persisted Shot + latest ShotAnalysis facts;
 - R0.6 first concrete visual-provider integration complete;
 - Gemini `gemini-3.5-flash-lite` is validated as the default cost-efficient visual-understanding adapter;
-- a real Windows owner-chain probe sent three extracted PNG frames to Gemini and persisted
-  `ShotAnalysis@1` with non-empty searchable semantics;
+- a live Windows API engineering probe used a synthetic FFmpeg fixture, sent three extracted PNG frames
+  to Gemini, and persisted `ShotAnalysis@1` with non-empty searchable semantics;
 - the OpenAI Responses visual adapter remains available as an optional provider;
 - no speech analysis, Director, Resolver, renderer, or end-user application is claimed complete yet.
 
@@ -78,7 +92,8 @@ See `docs/validation/` for full-chain evidence and integration bugs caught by au
 - **FireRed-OpenStoryline** — primary pipeline/media/render implementation reference;
 - **soCzech/TransNetV2** — model inference-contract reference;
 - **transnetv2-pytorch** — validated optional runtime compatibility target;
-- **MoneyPrinterTurbo** — material-provider and operational-engineering reference;
+- **MoneyPrinterTurbo** — provider-abstraction and operational-engineering reference; autonomous visual
+  stock acquisition is prohibited by the Product Constitution;
 - **CutClaw** — architecture/algorithm reference only; source code is not copied;
 - **BeatSync Engine** — BeatMap/music-analysis reference.
 
@@ -89,8 +104,9 @@ See `docs/upstream/` for provenance and reuse policy.
 Development proceeds directly on `main` with automated quality gates. A coherent change batch is
 committed atomically, CI must return green, and only then does the next batch begin.
 
-Do not bypass Architecture Contracts merely to accommodate a library or SDK. If implementation
-evidence requires an architectural change, record an ADR under `docs/decisions/` first.
+Do not bypass the Product Constitution or Architecture Contracts merely to accommodate a library or SDK.
+Product-level changes require a deliberate constitutional amendment; architecture-level changes require
+the appropriate contract revision / ADR before implementation.
 
 ## License status
 
