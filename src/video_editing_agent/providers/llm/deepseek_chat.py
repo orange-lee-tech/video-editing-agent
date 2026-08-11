@@ -435,9 +435,7 @@ def _requirement_payload(requirement: ShotRequirement) -> dict[str, Any]:
 def _shooting_plan_payload(shooting_plan: ShootingPlan | None) -> dict[str, Any] | None:
     if shooting_plan is None:
         return None
-    requirements = [
-        _requirement_payload(requirement) for requirement in shooting_plan.requirements
-    ]
+    requirements = list(map(_requirement_payload, shooting_plan.requirements))
     return {
         "ref": _domain_entity_ref_payload(shooting_plan),
         "script_plan_ref": _entity_ref_payload(shooting_plan.script_plan_ref),
@@ -514,14 +512,10 @@ def _optional_media_time(value: dict[str, Any], key: str, context: str) -> Media
     if item is None:
         return None
     if not isinstance(item, dict):
-        raise DeepSeekPlanningResponseError(
-            f"{context}.{key} must be a MediaTime object or null"
-        )
+        raise DeepSeekPlanningResponseError(f"{context}.{key} must be a MediaTime object or null")
     typed = cast(dict[str, Any], item)
     if set(typed) != {"value", "scale"}:
-        raise DeepSeekPlanningResponseError(
-            f"{context}.{key} must contain exactly value and scale"
-        )
+        raise DeepSeekPlanningResponseError(f"{context}.{key} must contain exactly value and scale")
     time_value = typed["value"]
     scale = typed["scale"]
     if (
@@ -530,9 +524,7 @@ def _optional_media_time(value: dict[str, Any], key: str, context: str) -> Media
         or isinstance(scale, bool)
         or not isinstance(scale, int)
     ):
-        raise DeepSeekPlanningResponseError(
-            f"{context}.{key} value and scale must be integers"
-        )
+        raise DeepSeekPlanningResponseError(f"{context}.{key} value and scale must be integers")
     try:
         return MediaTime(value=time_value, scale=scale)
     except ValueError as exc:
@@ -614,9 +606,7 @@ def _parse_requirement(value: object, index: int) -> ShotRequirementProposal:
         camera_motion=_optional_string(typed, "camera_motion", context),
         target_duration=_optional_media_time(typed, "target_duration", context),
         minimum_duration=_optional_media_time(typed, "minimum_duration", context),
-        audio_dialogue_requirement=_optional_string(
-            typed, "audio_dialogue_requirement", context
-        ),
+        audio_dialogue_requirement=_optional_string(typed, "audio_dialogue_requirement", context),
         continuity_hint=_optional_string(typed, "continuity_hint", context),
         visual_constraints=_string_tuple(typed, "visual_constraints", context),
         priority=_optional_string(typed, "priority", context) or "recommended",
