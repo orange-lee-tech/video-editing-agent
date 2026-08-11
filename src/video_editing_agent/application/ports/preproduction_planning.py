@@ -27,7 +27,9 @@ def _require_nonempty(name: str, value: str) -> None:
 def _validate_reference_guidance(values: tuple[ReferenceStyleGuidance, ...]) -> None:
     reference_refs = tuple(value.reference_asset_ref for value in values)
     if len(set(reference_refs)) != len(reference_refs):
-        raise ValueError("reference_guidance must contain at most one item per exact reference Asset")
+        raise ValueError(
+            "reference_guidance must contain at most one item per exact reference Asset"
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,7 +71,9 @@ class ReferenceStyleGuidance:
     def __post_init__(self) -> None:
         _require_nonempty("evidence_artifact_id", self.evidence_artifact_id)
         if not self.evidence_artifact_id.startswith("art_sha256_"):
-            raise ValueError("evidence_artifact_id must use the content-addressed art_sha256_* form")
+            raise ValueError(
+                "evidence_artifact_id must use the content-addressed art_sha256_* form"
+            )
         if not self.observations:
             raise ValueError("reference observations must not be empty")
         if any(not item.strip() for item in self.observations):
