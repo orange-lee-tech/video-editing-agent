@@ -31,7 +31,7 @@ DEEPSEEK_CHAT_COMPLETIONS_ENDPOINT = "https://api.deepseek.com/chat/completions"
 _RETIRED_MODEL_ALIASES = frozenset({"deepseek-chat", "deepseek-reasoner"})
 _RETRYABLE_HTTP_CODES = frozenset({408, 409, 429})
 
-_SCRIPT_EXAMPLE = {
+_SCRIPT_EXAMPLE: dict[str, Any] = {
     "sections": [
         {
             "section_id": "hook",
@@ -337,11 +337,9 @@ def _brief_payload(brief: Brief) -> dict[str, Any]:
                 "reference_id": reference.reference_id,
                 "kind": reference.kind,
                 "description": reference.description,
-                "asset_ref": (
-                    None
-                    if reference.asset_ref is None
-                    else _entity_ref_payload(reference.asset_ref)
-                ),
+                "asset_ref": None
+                if reference.asset_ref is None
+                else _entity_ref_payload(reference.asset_ref),
             }
             for reference in brief.references
         ],
@@ -371,9 +369,7 @@ def _script_plan_payload(script_plan: ScriptPlan | None) -> dict[str, Any] | Non
     if script_plan is None:
         return None
     return {
-        "ref": _entity_ref_payload(
-            EntityRevisionRef(script_plan.envelope.id, script_plan.envelope.revision)
-        ),
+        "ref": _entity_ref_payload(EntityRevisionRef(script_plan.envelope.id, script_plan.envelope.revision)),
         "brief_ref": _entity_ref_payload(script_plan.brief_ref),
         "sections": [_section_payload(section) for section in script_plan.sections],
     }
@@ -434,13 +430,9 @@ def _shooting_plan_payload(shooting_plan: ShootingPlan | None) -> dict[str, Any]
     if shooting_plan is None:
         return None
     return {
-        "ref": _entity_ref_payload(
-            EntityRevisionRef(shooting_plan.envelope.id, shooting_plan.envelope.revision)
-        ),
+        "ref": _entity_ref_payload(EntityRevisionRef(shooting_plan.envelope.id, shooting_plan.envelope.revision)),
         "script_plan_ref": _entity_ref_payload(shooting_plan.script_plan_ref),
-        "requirements": [
-            _requirement_payload(requirement) for requirement in shooting_plan.requirements
-        ],
+        "requirements": [_requirement_payload(requirement) for requirement in shooting_plan.requirements],
         "constraints": _constraints_payload(shooting_plan.constraints),
         "notes": list(shooting_plan.notes),
     }
@@ -458,11 +450,9 @@ def _script_context(request: ScriptPlanningRequest) -> dict[str, Any]:
 
 def _shooting_context(request: ShootingPlanningRequest) -> dict[str, Any]:
     return {
-        "task": (
-            "revise_shooting_plan"
-            if request.current_shooting_plan is not None
-            else "generate_shooting_plan"
-        ),
+        "task": "revise_shooting_plan"
+        if request.current_shooting_plan is not None
+        else "generate_shooting_plan",
         "brief": _brief_payload(request.brief),
         "script_plan": _script_plan_payload(request.script_plan),
         "production_constraints": _constraints_payload(request.constraints),
@@ -538,9 +528,7 @@ def _optional_media_time(value: dict[str, Any], key: str, context: str) -> Media
     try:
         return MediaTime(value=time_value, scale=scale)
     except ValueError as exc:
-        raise DeepSeekPlanningResponseError(
-            f"{context}.{key} is not a valid MediaTime"
-        ) from exc
+        raise DeepSeekPlanningResponseError(f"{context}.{key} is not a valid MediaTime") from exc
 
 
 def _parse_script_proposal(value: dict[str, Any]) -> ScriptPlanProposal:
