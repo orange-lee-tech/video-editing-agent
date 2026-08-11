@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import json
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass
 from fractions import Fraction
 from itertools import chain
-from typing import Iterable
 
 from video_editing_agent.application.ports.artifact_store import (
     ArtifactPayload,
@@ -106,8 +106,7 @@ class ReferenceStyleEvidenceService:
             _sequence_value(None if visual is None else visual.framing) for visual in visuals
         )
         motion_sequence = tuple(
-            _sequence_value(None if visual is None else visual.camera_motion)
-            for visual in visuals
+            _sequence_value(None if visual is None else visual.camera_motion) for visual in visuals
         )
         opening_visual = visuals[0]
 
@@ -134,14 +133,10 @@ class ReferenceStyleEvidenceService:
                 None if visual is None else visual.camera_motion for visual in visuals
             ),
             action_patterns=_pattern_counts(
-                chain.from_iterable(
-                    () if visual is None else visual.actions for visual in visuals
-                )
+                chain.from_iterable(() if visual is None else visual.actions for visual in visuals)
             ),
             subject_patterns=_pattern_counts(
-                chain.from_iterable(
-                    () if visual is None else visual.subjects for visual in visuals
-                )
+                chain.from_iterable(() if visual is None else visual.subjects for visual in visuals)
             ),
             environment_patterns=_pattern_counts(
                 None if visual is None else visual.environment for visual in visuals
@@ -242,7 +237,7 @@ def _media_time_from_fraction(value: Fraction) -> MediaTime:
 
 
 def _median_time(values: tuple[MediaTime, ...]) -> MediaTime:
-    ordered = sorted((value.as_fraction() for value in values))
+    ordered = sorted(value.as_fraction() for value in values)
     midpoint = len(ordered) // 2
     if len(ordered) % 2:
         return _media_time_from_fraction(ordered[midpoint])
