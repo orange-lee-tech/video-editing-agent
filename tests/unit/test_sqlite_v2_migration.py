@@ -125,18 +125,20 @@ def test_v1_database_migrates_without_rewriting_legacy_payload(tmp_path: Path) -
 
     database.initialize()
 
-    assert database.schema_version() == 2
+    assert database.schema_version() == 3
     with database.read_connection() as connection:
         row = connection.execute(
             "SELECT payload_json FROM assets WHERE entity_id = 'ast_legacy' AND revision = 1"
         ).fetchone()
-        migration = connection.execute(
-            "SELECT from_version, to_version FROM project_migrations"
-        ).fetchone()
+        migrations = connection.execute(
+            "SELECT from_version, to_version FROM project_migrations ORDER BY to_version"
+        ).fetchall()
     assert row is not None
     assert str(row["payload_json"]) == original_payload
-    assert migration is not None
-    assert (migration["from_version"], migration["to_version"]) == (1, 2)
+    assert [(item["from_version"], item["to_version"]) for item in migrations] == [
+        (1, 2),
+        (2, 3),
+    ]
 
 
 def test_legacy_remote_visual_migrates_fail_closed(tmp_path: Path) -> None:
@@ -176,7 +178,7 @@ def test_schema_migration_is_idempotent(tmp_path: Path) -> None:
 
     with database.read_connection() as connection:
         count = int(connection.execute("SELECT COUNT(*) FROM project_migrations").fetchone()[0])
-    assert count == 1
+    assert count == 2
 
 
 def test_schema_migration_rolls_back_transactionally(

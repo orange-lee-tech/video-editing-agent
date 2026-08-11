@@ -6,8 +6,8 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 
-SCHEMA_VERSION = 2
-_SUPPORTED_SCHEMA_VERSIONS = frozenset({0, 1, SCHEMA_VERSION})
+SCHEMA_VERSION = 3
+_SUPPORTED_SCHEMA_VERSIONS = frozenset({0, 1, 2, SCHEMA_VERSION})
 
 
 class PersistenceError(RuntimeError):
@@ -73,6 +73,49 @@ def _create_v2_tables(connection: sqlite3.Connection) -> None:
     )
 
 
+def _create_v3_tables(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS briefs (
+            entity_id TEXT NOT NULL,
+            revision INTEGER NOT NULL CHECK (revision >= 1),
+            payload_json TEXT NOT NULL,
+            PRIMARY KEY (entity_id, revision)
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS script_plans (
+            entity_id TEXT NOT NULL,
+            revision INTEGER NOT NULL CHECK (revision >= 1),
+            brief_entity_id TEXT NOT NULL,
+            brief_revision INTEGER NOT NULL CHECK (brief_revision >= 1),
+            payload_json TEXT NOT NULL,
+            PRIMARY KEY (entity_id, revision),
+            FOREIGN KEY (brief_entity_id, brief_revision)
+                REFERENCES briefs (entity_id, revision)
+                ON DELETE RESTRICT
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS shooting_plans (
+            entity_id TEXT NOT NULL,
+            revision INTEGER NOT NULL CHECK (revision >= 1),
+            script_plan_entity_id TEXT NOT NULL,
+            script_plan_revision INTEGER NOT NULL CHECK (script_plan_revision >= 1),
+            payload_json TEXT NOT NULL,
+            PRIMARY KEY (entity_id, revision),
+            FOREIGN KEY (script_plan_entity_id, script_plan_revision)
+                REFERENCES script_plans (entity_id, revision)
+                ON DELETE RESTRICT
+        )
+        """
+    )
+
+
 def _record_migration(
     connection: sqlite3.Connection,
     *,
@@ -113,14 +156,28 @@ class SqliteProjectDatabase:
             connection.execute("BEGIN IMMEDIATE")
             try:
                 _create_core_tables(connection)
-                _create_v2_tables(connection)
+                if current_version < 2:
+                    _create_v2_tables(connection)
+                    _record_migration(
+                        connection,
+                        from_version=current_version,
+                        to_version=2,
+                    )
+                    connection.execute("PRAGMA user_version = 2")
+                    current_version = 2
+                else:
+                    _create_v2_tables(connection)
+
                 if current_version < SCHEMA_VERSION:
+                    _create_v3_tables(connection)
                     _record_migration(
                         connection,
                         from_version=current_version,
                         to_version=SCHEMA_VERSION,
                     )
                     connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+                else:
+                    _create_v3_tables(connection)
                 connection.execute("COMMIT")
             except BaseException:
                 if connection.in_transaction:
