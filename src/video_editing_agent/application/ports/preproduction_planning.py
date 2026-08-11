@@ -50,8 +50,12 @@ class ScriptPlanningRequest:
 
     def __post_init__(self) -> None:
         _validate_instruction(self.instruction)
-        if self.current_script is not None and self.current_script.brief_ref != _entity_ref(self.brief):
-            raise ValueError("current_script must reference the exact Brief revision in the request")
+        if self.current_script is not None and self.current_script.brief_ref != _entity_ref(
+            self.brief
+        ):
+            raise ValueError(
+                "current_script must reference the exact Brief revision in the request"
+            )
 
 
 class ScriptPlanningPort(Protocol):

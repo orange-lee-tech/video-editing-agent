@@ -5,10 +5,10 @@ import pytest
 
 from video_editing_agent.application.ports.preproduction_planning import (
     NarrativeSectionProposal,
-    ScriptPlanProposal,
     ScriptPlanningRequest,
-    ShootingPlanProposal,
+    ScriptPlanProposal,
     ShootingPlanningRequest,
+    ShootingPlanProposal,
     ShotRequirementProposal,
 )
 from video_editing_agent.domain.brief.model import AuthoritativeFact
@@ -74,9 +74,7 @@ def create_brief(briefs: SqliteBriefRepository, *, brief_id: str = "brf_proposal
             platform="short-form vertical",
             core_message="Simple to use",
             target_duration=MediaTime(30, 1),
-            authoritative_facts=(
-                AuthoritativeFact("fact_price", "Approved price is 99 USD."),
-            ),
+            authoritative_facts=(AuthoritativeFact("fact_price", "Approved price is 99 USD."),),
         )
     )
 
