@@ -75,6 +75,39 @@ class ScriptPlanner:
         self._script_plan_id_factory = script_plan_id_factory
         self._clock = clock
 
+    def validate_create(
+        self,
+        brief_ref: EntityRevisionRef,
+        sections: tuple[NarrativeSection, ...],
+    ) -> None:
+        """Run owner invariants without creating or saving a ScriptPlan revision."""
+
+        brief = self._brief_repository.load(brief_ref)
+        _validate_protected_facts(brief, sections)
+
+    def validate_revision(
+        self,
+        current_ref: EntityRevisionRef,
+        sections: tuple[NarrativeSection, ...],
+        *,
+        brief_ref: EntityRevisionRef | None = None,
+        allow_locked_changes: bool = False,
+    ) -> None:
+        """Run revision owner invariants without creating or saving a revision."""
+
+        current = self._script_plan_repository.load(current_ref)
+        actual_ref = EntityRevisionRef(current.envelope.id, current.envelope.revision)
+        if actual_ref != current_ref:
+            raise RuntimeError("ScriptPlanRepository returned a different exact revision")
+        target_brief_ref = brief_ref or current.brief_ref
+        brief = self._brief_repository.load(target_brief_ref)
+        _validate_locked_sections(
+            current,
+            sections,
+            allow_locked_changes=allow_locked_changes,
+        )
+        _validate_protected_facts(brief, sections)
+
     def create(
         self,
         brief_ref: EntityRevisionRef,
@@ -82,8 +115,7 @@ class ScriptPlanner:
         *,
         created_by: str = "system",
     ) -> ScriptPlan:
-        brief = self._brief_repository.load(brief_ref)
-        _validate_protected_facts(brief, sections)
+        self.validate_create(brief_ref, sections)
         script_plan_id = self._script_plan_id_factory()
         if not script_plan_id.startswith("scp_"):
             raise ValueError("script_plan_id_factory must return an scp_* identifier")
@@ -112,18 +144,14 @@ class ScriptPlanner:
         allow_locked_changes: bool = False,
         created_by: str = "system",
     ) -> ScriptPlan:
-        current = self._script_plan_repository.load(current_ref)
-        actual_ref = EntityRevisionRef(current.envelope.id, current.envelope.revision)
-        if actual_ref != current_ref:
-            raise RuntimeError("ScriptPlanRepository returned a different exact revision")
-        target_brief_ref = brief_ref or current.brief_ref
-        brief = self._brief_repository.load(target_brief_ref)
-        _validate_locked_sections(
-            current,
+        self.validate_revision(
+            current_ref,
             sections,
+            brief_ref=brief_ref,
             allow_locked_changes=allow_locked_changes,
         )
-        _validate_protected_facts(brief, sections)
+        current = self._script_plan_repository.load(current_ref)
+        target_brief_ref = brief_ref or current.brief_ref
         revised = ScriptPlan(
             envelope=EntityEnvelope(
                 id=current.envelope.id,
