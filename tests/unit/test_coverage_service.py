@@ -5,9 +5,13 @@ from video_editing_agent.domain.asset.model import Asset, AssetProvenance
 from video_editing_agent.domain.asset.policy import AssetUsageRole
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevisionRef, EntityStatus
 from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
+from video_editing_agent.domain.shooting.model import (
+    CoveragePriority,
+    ShootingPlan,
+    ShotRequirement,
+)
 from video_editing_agent.domain.shot.analysis import AnalysisProfile, ShotAnalysis, VisualSemantics
 from video_editing_agent.domain.shot.model import Shot
-from video_editing_agent.domain.shooting.model import CoveragePriority, ShootingPlan, ShotRequirement
 from video_editing_agent.media.indexing.lexical import LexicalShotIndex
 from video_editing_agent.planning.coverage.service import (
     CoverageAction,
@@ -137,9 +141,11 @@ def test_reference_only_visual_candidate_does_not_satisfy_coverage() -> None:
     shot = make_shot("sht_reference", asset.envelope.id, MediaTime(5, 1))
     analysis = make_analysis(shot.envelope.id, "product", "operate")
 
-    assessment = service_for((asset,), (shot,), (analysis,)).evaluate(
-        make_plan(required_product_requirement())
-    ).assessments[0]
+    assessment = (
+        service_for((asset,), (shot,), (analysis,))
+        .evaluate(make_plan(required_product_requirement()))
+        .assessments[0]
+    )
 
     assert assessment.state is CoverageState.UNMATCHED
     assert assessment.action is CoverageAction.RESHOOT_REQUIRED
@@ -154,9 +160,11 @@ def test_editable_local_candidate_meeting_target_satisfies_requirement() -> None
     shot = make_shot("sht_good", asset.envelope.id, MediaTime(5, 1))
     analysis = make_analysis(shot.envelope.id, "product", "operate")
 
-    assessment = service_for((asset,), (shot,), (analysis,)).evaluate(
-        make_plan(required_product_requirement())
-    ).assessments[0]
+    assessment = (
+        service_for((asset,), (shot,), (analysis,))
+        .evaluate(make_plan(required_product_requirement()))
+        .assessments[0]
+    )
 
     assert assessment.state is CoverageState.SATISFIED
     assert assessment.action is CoverageAction.NONE
@@ -169,9 +177,11 @@ def test_matching_footage_below_declared_minimum_is_weak_and_requires_reshoot() 
     shot = make_shot("sht_short", asset.envelope.id, MediaTime(1, 1))
     analysis = make_analysis(shot.envelope.id, "product", "operate")
 
-    assessment = service_for((asset,), (shot,), (analysis,)).evaluate(
-        make_plan(required_product_requirement())
-    ).assessments[0]
+    assessment = (
+        service_for((asset,), (shot,), (analysis,))
+        .evaluate(make_plan(required_product_requirement()))
+        .assessments[0]
+    )
 
     assert assessment.state is CoverageState.WEAK
     assert assessment.action is CoverageAction.RESHOOT_REQUIRED
@@ -183,9 +193,11 @@ def test_matching_footage_between_minimum_and_target_is_weak() -> None:
     shot = make_shot("sht_target", asset.envelope.id, MediaTime(3, 1))
     analysis = make_analysis(shot.envelope.id, "product", "operate")
 
-    assessment = service_for((asset,), (shot,), (analysis,)).evaluate(
-        make_plan(required_product_requirement())
-    ).assessments[0]
+    assessment = (
+        service_for((asset,), (shot,), (analysis,))
+        .evaluate(make_plan(required_product_requirement()))
+        .assessments[0]
+    )
 
     assert assessment.state is CoverageState.WEAK
     assert "target duration" in assessment.reason
@@ -202,17 +214,25 @@ def test_overcovered_state_requires_explicit_policy_threshold() -> None:
     )
     plan = make_plan(required_product_requirement())
 
-    default_assessment = service_for(
-        (first_asset, second_asset),
-        (first_shot, second_shot),
-        analyses,
-    ).evaluate(plan).assessments[0]
-    configured_assessment = service_for(
-        (first_asset, second_asset),
-        (first_shot, second_shot),
-        analyses,
-        policy=CoverageEvaluationPolicy(overcovered_candidate_count=2),
-    ).evaluate(plan).assessments[0]
+    default_assessment = (
+        service_for(
+            (first_asset, second_asset),
+            (first_shot, second_shot),
+            analyses,
+        )
+        .evaluate(plan)
+        .assessments[0]
+    )
+    configured_assessment = (
+        service_for(
+            (first_asset, second_asset),
+            (first_shot, second_shot),
+            analyses,
+            policy=CoverageEvaluationPolicy(overcovered_candidate_count=2),
+        )
+        .evaluate(plan)
+        .assessments[0]
+    )
 
     assert default_assessment.state is CoverageState.SATISFIED
     assert configured_assessment.state is CoverageState.OVERCOVERED

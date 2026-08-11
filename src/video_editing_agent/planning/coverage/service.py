@@ -9,7 +9,11 @@ from video_editing_agent.application.ports.shot_repository import ShotRepository
 from video_editing_agent.domain.asset.policy import is_visual_resolver_eligible
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTime
-from video_editing_agent.domain.shooting.model import CoveragePriority, ShootingPlan, ShotRequirement
+from video_editing_agent.domain.shooting.model import (
+    CoveragePriority,
+    ShootingPlan,
+    ShotRequirement,
+)
 
 
 class CoverageState(StrEnum):
@@ -34,9 +38,8 @@ class CoverageEvaluationPolicy:
 
     def __post_init__(self) -> None:
         if self.overcovered_candidate_count is not None:
-            if (
-                isinstance(self.overcovered_candidate_count, bool)
-                or not isinstance(self.overcovered_candidate_count, int)
+            if isinstance(self.overcovered_candidate_count, bool) or not isinstance(
+                self.overcovered_candidate_count, int
             ):
                 raise TypeError("overcovered_candidate_count must be an int or None")
             if self.overcovered_candidate_count < 2:
@@ -91,7 +94,9 @@ def _requirement_query(requirement: ShotRequirement) -> str:
     )
     query = " ".join(part.strip() for part in parts if part is not None and part.strip())
     if not query:
-        raise ValueError(f"ShotRequirement {requirement.requirement_id!r} has no searchable content")
+        raise ValueError(
+            f"ShotRequirement {requirement.requirement_id!r} has no searchable content"
+        )
     return query
 
 
