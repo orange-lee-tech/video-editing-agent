@@ -4,7 +4,7 @@ from enum import StrEnum
 
 
 class AssetOrigin(StrEnum):
-    """Active v0.2 origin categories. Origin answers where media came from, not how it may be used."""
+    """Active v0.2 origin categories, separate from permitted usage."""
 
     CAPTURED_LOCAL = "captured_local"
     IMPORTED_LOCAL = "imported_local"
