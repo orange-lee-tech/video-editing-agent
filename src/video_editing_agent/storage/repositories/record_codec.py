@@ -73,10 +73,14 @@ def _envelope_payload(value: EntityEnvelope) -> dict[str, object]:
         "status": value.status.value,
         "created_at": _datetime_text(value.created_at),
         "created_by": value.created_by,
+        "derived_from": [_ref_payload(item) for item in value.derived_from],
     }
 
 
 def _envelope_from_payload(value: dict[str, Any]) -> EntityEnvelope:
+    derived_from_payload = value.get("derived_from", [])
+    if not isinstance(derived_from_payload, list):
+        raise PersistenceIntegrityError("EntityEnvelope derived_from must be a list")
     return EntityEnvelope(
         id=str(value["id"]),
         revision=int(value["revision"]),
@@ -84,6 +88,7 @@ def _envelope_from_payload(value: dict[str, Any]) -> EntityEnvelope:
         status=EntityStatus(str(value["status"])),
         created_at=_parse_datetime(str(value["created_at"])),
         created_by=str(value["created_by"]),
+        derived_from=tuple(_ref_from_payload(item) for item in derived_from_payload),
     )
 
 
