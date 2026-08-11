@@ -1,0 +1,68 @@
+name: R0.7B DeepSeek Live Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: r0-7b-deepseek-live-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  live-probe:
+    name: DeepSeek Pre-production Live Probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.12.2"
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Run isolated live probe
+        id: probe
+        continue-on-error: true
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          uv sync --frozen
+          uv run ruff format --check tools/probes/r0_7b_deepseek_live.py
+          uv run ruff check tools/probes/r0_7b_deepseek_live.py
+          uv run python -m py_compile tools/probes/r0_7b_deepseek_live.py
+          uv run python tools/probes/r0_7b_deepseek_live.py
+
+      - name: Publish diagnostic commit status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROBE_OUTCOME: ${{ steps.probe.outcome }}
+        run: |
+          if [ "$PROBE_OUTCOME" = "success" ]; then
+            state="success"
+            description="DeepSeek pre-production live probe passed"
+          else
+            state="failure"
+            description="DeepSeek pre-production live probe failed"
+          fi
+
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -f state="$state" \
+            -f context="probe/r0.7b-deepseek-live" \
+            -f description="$description" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      - name: Fail workflow when live probe failed
+        if: steps.probe.outcome != 'success'
+        run: exit 1
