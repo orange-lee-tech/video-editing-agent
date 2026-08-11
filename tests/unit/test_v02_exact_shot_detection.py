@@ -96,7 +96,7 @@ def test_exact_max_duration_policy_partitions_without_millisecond_rounding() -> 
     assert all(proposal.source_range.duration == MediaTime(1001, 1200) for proposal in proposals)
     assert all(
         previous.source_range.end == current.source_range.start
-        for previous, current in zip(proposals, proposals[1:], strict=True)
+        for previous, current in zip(proposals, proposals[1:], strict=False)
     )
 
 
