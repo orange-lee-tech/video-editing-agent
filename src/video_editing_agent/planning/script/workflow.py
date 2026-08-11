@@ -3,6 +3,7 @@ from __future__ import annotations
 from video_editing_agent.application.ports.brief_repository import BriefRepository
 from video_editing_agent.application.ports.preproduction_planning import (
     NarrativeSectionProposal,
+    PlanningPolicyGuidance,
     ScriptPlanningPort,
     ScriptPlanningRequest,
 )
@@ -59,10 +60,16 @@ class ScriptPlanningWorkflow:
         self,
         brief_ref: EntityRevisionRef,
         *,
+        policy_guidance: PlanningPolicyGuidance | None = None,
         created_by: str = "model-proposal",
     ) -> ScriptPlan:
         brief = self._brief_repository.load(brief_ref)
-        proposal = self._planning_port.propose(ScriptPlanningRequest(brief=brief))
+        proposal = self._planning_port.propose(
+            ScriptPlanningRequest(
+                brief=brief,
+                policy_guidance=policy_guidance,
+            )
+        )
         sections = _sections_from_proposal(proposal.sections)
         return self._planner.create(brief_ref, sections, created_by=created_by)
 
@@ -71,6 +78,7 @@ class ScriptPlanningWorkflow:
         current_ref: EntityRevisionRef,
         instruction: str,
         *,
+        policy_guidance: PlanningPolicyGuidance | None = None,
         created_by: str = "model-proposal",
     ) -> ScriptPlan:
         if not instruction.strip():
@@ -82,6 +90,7 @@ class ScriptPlanningWorkflow:
                 brief=brief,
                 current_script=current,
                 instruction=instruction,
+                policy_guidance=policy_guidance,
             )
         )
         sections = _sections_from_proposal(proposal.sections)

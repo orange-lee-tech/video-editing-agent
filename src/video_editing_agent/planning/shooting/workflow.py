@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from video_editing_agent.application.ports.brief_repository import BriefRepository
 from video_editing_agent.application.ports.preproduction_planning import (
+    PlanningPolicyGuidance,
     ShootingPlanningPort,
     ShootingPlanningRequest,
     ShotRequirementProposal,
@@ -77,6 +78,7 @@ class ShootingPlanningWorkflow:
         script_plan_ref: EntityRevisionRef,
         constraints: ProductionConstraints,
         *,
+        policy_guidance: PlanningPolicyGuidance | None = None,
         created_by: str = "model-proposal",
     ) -> ShootingPlan:
         script_plan = self._script_plan_repository.load(script_plan_ref)
@@ -86,6 +88,7 @@ class ShootingPlanningWorkflow:
                 brief=brief,
                 script_plan=script_plan,
                 constraints=constraints,
+                policy_guidance=policy_guidance,
             )
         )
         requirements = _requirements_from_proposal(proposal.requirements)
@@ -104,6 +107,7 @@ class ShootingPlanningWorkflow:
         *,
         script_plan_ref: EntityRevisionRef | None = None,
         constraints: ProductionConstraints | None = None,
+        policy_guidance: PlanningPolicyGuidance | None = None,
         created_by: str = "model-proposal",
     ) -> ShootingPlan:
         if not instruction.strip():
@@ -120,6 +124,7 @@ class ShootingPlanningWorkflow:
                 constraints=effective_constraints,
                 current_shooting_plan=current,
                 instruction=instruction,
+                policy_guidance=policy_guidance,
             )
         )
         requirements = _requirements_from_proposal(proposal.requirements)

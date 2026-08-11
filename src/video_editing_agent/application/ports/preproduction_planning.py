@@ -19,6 +19,38 @@ def _validate_instruction(instruction: str | None) -> None:
         raise ValueError("instruction must not be empty when provided")
 
 
+def _require_nonempty(name: str, value: str) -> None:
+    if not value.strip():
+        raise ValueError(f"{name} must not be empty")
+
+
+@dataclass(frozen=True, slots=True)
+class PlanningPolicyGuidance:
+    """Neutral, inspectable policy context supplied to a replaceable planning provider."""
+
+    platform_profile_id: str
+    platform_profile_version: str
+    skill_id: str
+    skill_version: str
+    guidance: tuple[str, ...]
+    marketing_objective: str | None = None
+
+    def __post_init__(self) -> None:
+        for name, value in (
+            ("platform_profile_id", self.platform_profile_id),
+            ("platform_profile_version", self.platform_profile_version),
+            ("skill_id", self.skill_id),
+            ("skill_version", self.skill_version),
+        ):
+            _require_nonempty(name, value)
+        if not self.guidance:
+            raise ValueError("guidance must not be empty")
+        if any(not item.strip() for item in self.guidance):
+            raise ValueError("guidance must not contain empty values")
+        if self.marketing_objective is not None:
+            _require_nonempty("marketing_objective", self.marketing_objective)
+
+
 @dataclass(frozen=True, slots=True)
 class NarrativeSectionProposal:
     section_id: str
@@ -47,6 +79,7 @@ class ScriptPlanningRequest:
     brief: Brief
     current_script: ScriptPlan | None = None
     instruction: str | None = None
+    policy_guidance: PlanningPolicyGuidance | None = None
 
     def __post_init__(self) -> None:
         _validate_instruction(self.instruction)
@@ -100,6 +133,7 @@ class ShootingPlanningRequest:
     constraints: ProductionConstraints
     current_shooting_plan: ShootingPlan | None = None
     instruction: str | None = None
+    policy_guidance: PlanningPolicyGuidance | None = None
 
     def __post_init__(self) -> None:
         _validate_instruction(self.instruction)
