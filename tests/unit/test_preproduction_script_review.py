@@ -210,9 +210,7 @@ def test_semantic_veto_rejects_implied_leak_resistance_without_owner_commit(
         excerpt="will not spill in your bag",
         reason="A screw-on lid does not establish leak resistance.",
     )
-    review_port = StaticReviewPort(
-        ScriptProposalReview(accepted=False, violations=(violation,))
-    )
+    review_port = StaticReviewPort(ScriptProposalReview(accepted=False, violations=(violation,)))
 
     with pytest.raises(ScriptProposalRejectedError) as captured:
         workflow(briefs, scripts, planning_port, review_port).generate(
@@ -295,9 +293,7 @@ def test_deepseek_reviewer_respects_explicit_thinking_configuration(tmp_path: Pa
         config=DeepSeekChatConfig(thinking_enabled=True, max_tokens=1_000),
     )
 
-    review = adapter.review(
-        ScriptProposalReviewRequest(brief=brief, proposal=safe_proposal())
-    )
+    review = adapter.review(ScriptProposalReviewRequest(brief=brief, proposal=safe_proposal()))
 
     assert review.accepted
     assert transport.payloads[0]["thinking"] == {"type": "enabled"}
