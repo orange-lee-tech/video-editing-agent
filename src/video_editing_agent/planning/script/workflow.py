@@ -49,11 +49,7 @@ def _sections_from_proposal(
 
 
 def _brief_requires_review(brief: Brief) -> bool:
-    return bool(
-        brief.authoritative_facts
-        or brief.prohibited_content
-        or brief.brand_constraints
-    )
+    return bool(brief.authoritative_facts or brief.prohibited_content or brief.brand_constraints)
 
 
 def _review_summary(review: ScriptProposalReview) -> str:
@@ -72,7 +68,7 @@ class ScriptProposalRejectedError(ValueError):
 
 
 class ScriptPlanningWorkflow:
-    """Proposal -> semantic/deterministic validation -> ScriptPlanner owner commit."""
+    """Proposal -> deterministic preflight -> semantic review -> owner commit."""
 
     def __init__(
         self,
@@ -132,6 +128,8 @@ class ScriptPlanningWorkflow:
                 reference_guidance=reference_guidance,
             )
         )
+        sections = _sections_from_proposal(proposal.sections)
+        self._planner.validate_create(brief_ref, sections)
         self._review_or_raise(
             brief=brief,
             proposal=proposal,
@@ -139,7 +137,6 @@ class ScriptPlanningWorkflow:
             instruction=None,
             policy_guidance=policy_guidance,
         )
-        sections = _sections_from_proposal(proposal.sections)
         return self._planner.create(brief_ref, sections, created_by=created_by)
 
     def revise(
@@ -164,6 +161,8 @@ class ScriptPlanningWorkflow:
                 reference_guidance=reference_guidance,
             )
         )
+        sections = _sections_from_proposal(proposal.sections)
+        self._planner.validate_revision(current_ref, sections)
         self._review_or_raise(
             brief=brief,
             proposal=proposal,
@@ -171,7 +170,6 @@ class ScriptPlanningWorkflow:
             instruction=instruction,
             policy_guidance=policy_guidance,
         )
-        sections = _sections_from_proposal(proposal.sections)
         return self._planner.revise(
             current_ref,
             sections,
