@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import UTC, datetime
 
 from video_editing_agent.application.ports.brief_repository import BriefRepository
@@ -138,3 +139,31 @@ class ScriptPlanner:
         )
         self._script_plan_repository.save(revised)
         return revised
+
+    def set_section_lock(
+        self,
+        current_ref: EntityRevisionRef,
+        section_id: str,
+        *,
+        locked: bool,
+        created_by: str = "user",
+    ) -> ScriptPlan:
+        if not section_id.strip():
+            raise ValueError("section_id must not be empty")
+        current = self._script_plan_repository.load(current_ref)
+        matching = tuple(section for section in current.sections if section.section_id == section_id)
+        if not matching:
+            raise ValueError(f"unknown Script section: {section_id!r}")
+        section = matching[0]
+        if section.locked is locked:
+            return current
+        revised_sections = tuple(
+            replace(item, locked=locked) if item.section_id == section_id else item
+            for item in current.sections
+        )
+        return self.revise(
+            current_ref,
+            revised_sections,
+            allow_locked_changes=True,
+            created_by=created_by,
+        )
