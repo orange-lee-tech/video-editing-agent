@@ -23,12 +23,12 @@ from video_editing_agent.application.ports.spatial_composer import (
 )
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevisionRef, EntityStatus
 from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
-from video_editing_agent.domain.edl.model import EDL, EDLSegment
 from video_editing_agent.domain.edit.resolution import (
     ResolutionDecision,
     ResolutionDecisionType,
     ResolvedSelection,
 )
+from video_editing_agent.domain.edl.model import EDL, EDLSegment
 from video_editing_agent.domain.evidence.temporal import TemporalAnchor, TemporalEvidence
 from video_editing_agent.domain.review.model import (
     FindingSeverity,
