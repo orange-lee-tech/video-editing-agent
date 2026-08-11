@@ -9,8 +9,8 @@ from video_editing_agent.domain.script.model import NarrativeSection, ScriptPlan
 from video_editing_agent.domain.shooting.model import (
     CoveragePriority,
     ProductionConstraints,
-    ShotRequirement,
     ShootingPlan,
+    ShotRequirement,
 )
 
 NOW = datetime(2026, 8, 11, 18, 0, tzinfo=UTC)

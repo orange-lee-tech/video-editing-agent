@@ -98,7 +98,7 @@ class ShotRequirement:
             ("subject", self.subject),
         ):
             _require_nonempty(name, value)
-        for name, value in (
+        for optional_name, optional_value in (
             ("action", self.action),
             ("environment", self.environment),
             ("framing", self.framing),
@@ -108,7 +108,7 @@ class ShotRequirement:
             ("backup_intent", self.backup_intent),
             ("capture_instruction", self.capture_instruction),
         ):
-            _require_optional_nonempty(name, value)
+            _require_optional_nonempty(optional_name, optional_value)
         _require_time("target_duration", self.target_duration)
         _require_time("minimum_duration", self.minimum_duration)
         _require_time("handle_before", self.handle_before, allow_zero=True)
