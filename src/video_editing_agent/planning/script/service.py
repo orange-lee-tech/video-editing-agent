@@ -151,7 +151,9 @@ class ScriptPlanner:
         if not section_id.strip():
             raise ValueError("section_id must not be empty")
         current = self._script_plan_repository.load(current_ref)
-        matching = tuple(section for section in current.sections if section.section_id == section_id)
+        matching = tuple(
+            section for section in current.sections if section.section_id == section_id
+        )
         if not matching:
             raise ValueError(f"unknown Script section: {section_id!r}")
         section = matching[0]
