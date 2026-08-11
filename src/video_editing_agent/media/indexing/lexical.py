@@ -107,15 +107,9 @@ def _passes_constraints(record: _IndexedShot, constraints: ShotSearchConstraints
     if constraints.profiles and record.profile not in constraints.profiles:
         return False
     duration = record.duration.as_fraction()
-    if (
-        constraints.min_duration is not None
-        and duration < constraints.min_duration.as_fraction()
-    ):
+    if constraints.min_duration is not None and duration < constraints.min_duration.as_fraction():
         return False
-    if (
-        constraints.max_duration is not None
-        and duration > constraints.max_duration.as_fraction()
-    ):
+    if constraints.max_duration is not None and duration > constraints.max_duration.as_fraction():
         return False
     return True
 

@@ -27,8 +27,7 @@ def envelope() -> EntityEnvelope:
 
 def test_ffprobe_duration_string_becomes_exact_rational_time() -> None:
     metadata = parse_ffprobe_metadata(
-        '{"streams":[{"codec_type":"video","codec_name":"h264"}],'
-        '"format":{"duration":"2.5025"}}'
+        '{"streams":[{"codec_type":"video","codec_name":"h264"}],"format":{"duration":"2.5025"}}'
     )
 
     assert metadata.duration == MediaTime(1001, 400)
