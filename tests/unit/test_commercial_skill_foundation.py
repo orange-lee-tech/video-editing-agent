@@ -55,7 +55,9 @@ def test_generic_platform_profile_labels_selected_format_without_claiming_platfo
     assert any("not frozen" in item for item in profile.evidence_notes)
 
 
-def test_provider_guidance_composes_platform_skill_and_objective_without_flattened_weights() -> None:
+def test_provider_guidance_composes_platform_skill_and_objective_without_flattened_weights() -> (
+    None
+):
     selection = CommercialPolicySelection(
         platform_profile=GENERIC_VERTICAL_SHORT_FORM_V1,
         skill=PERFORMANCE_PRODUCT_AD_V1,

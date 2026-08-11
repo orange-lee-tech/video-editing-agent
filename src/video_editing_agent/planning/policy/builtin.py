@@ -22,7 +22,8 @@ GENERIC_VERTICAL_SHORT_FORM_V1 = PlatformProfile(
         "Do not encode platform folklore as a hard creative rule without dated evidence.",
     ),
     evidence_notes=(
-        "R0.7B baseline is deliberately generic; platform-specific official guidance is not frozen here.",
+        "R0.7B baseline is deliberately generic; platform-specific official guidance is not "
+        "frozen here.",
     ),
 )
 
@@ -55,7 +56,8 @@ PERFORMANCE_PRODUCT_AD_V1 = CommercialSkill(
         ),
         CreativePrior(
             "brief_driven_cta",
-            "Use an explicit call to action only when the Brief or marketing objective requires it.",
+            "Use an explicit call to action only when the Brief or marketing objective "
+            "requires it.",
         ),
         CreativePrior(
             "energy_tolerance",
@@ -93,11 +95,13 @@ NATURAL_VLOG_V1 = CommercialSkill(
         ),
         CreativePrior(
             "situational_chronology",
-            "Preserve chronology and situational coherence when they help the viewer follow events.",
+            "Preserve chronology and situational coherence when they help the viewer "
+            "follow events.",
         ),
         CreativePrior(
             "emotional_continuity",
-            "Preserve emotional continuity and meaningful reactions rather than optimizing only speed.",
+            "Preserve emotional continuity and meaningful reactions rather than optimizing "
+            "only speed.",
         ),
         CreativePrior(
             "reaction_holds",
@@ -113,7 +117,8 @@ NATURAL_VLOG_V1 = CommercialSkill(
         ),
         CreativePrior(
             "restrained_transitions",
-            "Prefer restrained transition density unless the Brief explicitly asks for stylization.",
+            "Prefer restrained transition density unless the Brief explicitly asks for "
+            "stylization.",
         ),
     ),
     review_dimensions=(
