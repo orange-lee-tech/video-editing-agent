@@ -87,7 +87,8 @@ _BASE_SYSTEM_RULES = (
     "or locked Script sections. Reference-style evidence describes abstract technique only: "
     "never copy wording or distinctive visual expression, and never infer dimensions explicitly "
     "marked unavailable. Never choose source footage or timestamps. Never propose remote/generated "
-    "visual fallback. Return one json object only, with no markdown or prose outside the json object."
+    "visual fallback. Return one json object only, with no markdown or prose outside the "
+    "json object."
 )
 
 _SCRIPT_SYSTEM_PROMPT = (
