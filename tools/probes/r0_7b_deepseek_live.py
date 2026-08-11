@@ -8,7 +8,7 @@ from pathlib import Path
 from video_editing_agent.domain.brief.model import AuthoritativeFact
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTime
-from video_editing_agent.domain.shooting.model import ProductionConstraints
+from video_editing_agent.domain.shooting.model import ProductionConstraints, ProductionLocation
 from video_editing_agent.planning.brief.service import BriefContent, BriefService
 from video_editing_agent.planning.policy.builtin import (
     GENERIC_VERTICAL_SHORT_FORM_V1,
@@ -131,7 +131,18 @@ def main() -> None:
             stabilizer="handheld only",
             lighting="window light and normal room lighting",
             people_count=1,
-            locations=("home desk", "entryway"),
+            locations=(
+                ProductionLocation(
+                    location_id="loc_home_desk",
+                    label="home desk",
+                    notes="Desk area and a fixed phone position immediately beside it are allowed.",
+                ),
+                ProductionLocation(
+                    location_id="loc_entryway",
+                    label="entryway",
+                    notes="Use only the home's entryway area.",
+                ),
+            ),
             available_time_notes="about 20 minutes",
             user_skill_level="beginner",
             notes=("No assistant or specialist camera equipment is available.",),
@@ -174,6 +185,19 @@ def main() -> None:
             for requirement in shooting_plan.requirements
         ):
             raise AssertionError("ShootingPlan contains an invalid Script section reference")
+        location_ids = {location.location_id for location in constraints.locations}
+        if any(
+            requirement.location_ref is not None and requirement.location_ref not in location_ids
+            for requirement in shooting_plan.requirements
+        ):
+            raise AssertionError("ShootingPlan contains an invalid production location reference")
+        if any(
+            constraints.locations
+            and requirement.environment_description is not None
+            and requirement.location_ref is None
+            for requirement in shooting_plan.requirements
+        ):
+            raise AssertionError("ShootingPlan contains an unbound environment description")
 
         reopened_database = SqliteProjectDatabase(database_path)
         reopened_database.initialize()
@@ -198,6 +222,7 @@ def main() -> None:
                     "model": config.model,
                     "thinking_enabled": config.thinking_enabled,
                     "semantic_review_enabled": True,
+                    "structured_location_identity": True,
                     "schema_version": reopened_database.schema_version(),
                     "script_sections": len(script.sections),
                     "shot_requirements": len(shooting_plan.requirements),

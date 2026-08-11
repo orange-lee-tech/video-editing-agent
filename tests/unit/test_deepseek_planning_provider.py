@@ -16,7 +16,7 @@ from video_editing_agent.domain.brief.model import AuthoritativeFact, Brief
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevisionRef, EntityStatus
 from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.domain.script.model import NarrativeSection, ScriptPlan
-from video_editing_agent.domain.shooting.model import ProductionConstraints
+from video_editing_agent.domain.shooting.model import ProductionConstraints, ProductionLocation
 from video_editing_agent.providers.llm.deepseek_chat import (
     DeepSeekChatConfig,
     DeepSeekPlanningResponseError,
@@ -125,6 +125,8 @@ def shooting_content() -> dict[str, Any]:
                 "purpose": "Show the product working",
                 "subject": "product and hand",
                 "action": "operate",
+                "location_ref": "loc_home_desk",
+                "environment_description": "fixed phone position beside the home desk",
                 "target_duration": {"value": 4, "scale": 1},
                 "minimum_duration": {"value": 2, "scale": 1},
                 "priority": "required",
@@ -209,7 +211,7 @@ def test_script_revision_serializes_locked_current_section_as_untrusted_data() -
     assert context["current_script"]["sections"][0]["spoken_content"] == "Approved hook"
 
 
-def test_shooting_adapter_receives_constraints_but_cannot_output_them() -> None:
+def test_shooting_adapter_receives_structured_locations_but_cannot_output_constraints() -> None:
     current_script = ScriptPlan(
         envelope=envelope("scp_deepseek_shoot"),
         brief_ref=EntityRevisionRef("brf_deepseek", 1),
@@ -219,7 +221,13 @@ def test_shooting_adapter_receives_constraints_but_cannot_output_them() -> None:
         camera_or_phone="user phone",
         stabilizer="none",
         people_count=1,
-        locations=("home desk",),
+        locations=(
+            ProductionLocation(
+                "loc_home_desk",
+                "home desk",
+                "Use the desk area; camera may sit beside it.",
+            ),
+        ),
     )
     transport = FakeTransport(completed(shooting_content()))
     adapter = DeepSeekShootingPlanningPort(transport=transport)
@@ -235,9 +243,21 @@ def test_shooting_adapter_receives_constraints_but_cannot_output_them() -> None:
 
     assert proposal.requirements[0].priority == "required"
     assert proposal.requirements[0].target_duration == MediaTime(4, 1)
-    context = json.loads(transport.payloads[0]["messages"][1]["content"])
+    assert proposal.requirements[0].location_ref == "loc_home_desk"
+    assert proposal.requirements[0].environment_description == (
+        "fixed phone position beside the home desk"
+    )
+    payload = transport.payloads[0]
+    context = json.loads(payload["messages"][1]["content"])
     assert context["production_constraints"]["camera_or_phone"] == "user phone"
-    assert context["production_constraints"]["locations"] == ["home desk"]
+    assert context["production_constraints"]["locations"] == [
+        {
+            "location_id": "loc_home_desk",
+            "label": "home desk",
+            "notes": "Use the desk area; camera may sit beside it.",
+        }
+    ]
+    assert "location_ref must be exactly one location_id" in payload["messages"][0]["content"]
 
     bad = shooting_content()
     bad["constraints"] = {"camera_or_phone": "expensive cinema camera"}

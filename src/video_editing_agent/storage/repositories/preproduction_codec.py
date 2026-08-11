@@ -11,12 +11,14 @@ from video_editing_agent.domain.script.model import NarrativeSection, ScriptPlan
 from video_editing_agent.domain.shooting.model import (
     CoveragePriority,
     ProductionConstraints,
+    ProductionLocation,
     ShootingPlan,
     ShotRequirement,
 )
 from video_editing_agent.storage.repositories.sqlite_database import PersistenceError
 
 PREPRODUCTION_CODEC_VERSION = 1
+SHOOTING_PLAN_CODEC_VERSION = 2
 
 
 class PreproductionPersistenceIntegrityError(PersistenceError):
@@ -99,15 +101,26 @@ def _envelope_from_payload(value: object) -> EntityEnvelope:
     )
 
 
-def _require_record(value: dict[str, Any], record_type: str) -> None:
-    if value.get("codec_version") != PREPRODUCTION_CODEC_VERSION:
+def _require_record(
+    value: dict[str, Any],
+    record_type: str,
+    *,
+    supported_versions: tuple[int, ...] = (PREPRODUCTION_CODEC_VERSION,),
+) -> int:
+    codec_version = value.get("codec_version")
+    if isinstance(codec_version, bool) or not isinstance(codec_version, int):
         raise PreproductionPersistenceIntegrityError(
-            f"unsupported {record_type} codec version: {value.get('codec_version')!r}"
+            f"unsupported {record_type} codec version: {codec_version!r}"
+        )
+    if codec_version not in supported_versions:
+        raise PreproductionPersistenceIntegrityError(
+            f"unsupported {record_type} codec version: {codec_version!r}"
         )
     if value.get("record_type") != record_type:
         raise PreproductionPersistenceIntegrityError(
             f"expected {record_type} payload, found {value.get('record_type')!r}"
         )
+    return codec_version
 
 
 def _string_tuple(value: object, field_name: str) -> tuple[str, ...]:
@@ -279,6 +292,52 @@ def decode_script_plan(payload: str) -> ScriptPlan:
     )
 
 
+def _location_payload(value: ProductionLocation) -> dict[str, object]:
+    return {
+        "location_id": value.location_id,
+        "label": value.label,
+        "notes": value.notes,
+    }
+
+
+def _locations_from_payload(value: object, *, codec_version: int) -> tuple[ProductionLocation, ...]:
+    if not isinstance(value, list):
+        raise PreproductionPersistenceIntegrityError("locations must be an array")
+    if codec_version == 1:
+        if any(not isinstance(item, str) for item in value):
+            raise PreproductionPersistenceIntegrityError(
+                "legacy shooting locations must be an array of strings"
+            )
+        return tuple(
+            ProductionLocation(location_id=f"loc_legacy_{index + 1:03d}", label=item)
+            for index, item in enumerate(cast(list[str], value))
+        )
+    locations: list[ProductionLocation] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, dict):
+            raise PreproductionPersistenceIntegrityError(
+                f"locations[{index}] must be a ProductionLocation object"
+            )
+        typed = cast(dict[str, Any], item)
+        if set(typed) != {"location_id", "label", "notes"}:
+            raise PreproductionPersistenceIntegrityError(
+                f"locations[{index}] must contain exactly location_id, label, and notes"
+            )
+        notes = typed["notes"]
+        if notes is not None and not isinstance(notes, str):
+            raise PreproductionPersistenceIntegrityError(
+                f"locations[{index}].notes must be a string or null"
+            )
+        locations.append(
+            ProductionLocation(
+                location_id=str(typed["location_id"]),
+                label=str(typed["label"]),
+                notes=notes,
+            )
+        )
+    return tuple(locations)
+
+
 def _constraints_payload(value: ProductionConstraints) -> dict[str, object]:
     return {
         "camera_or_phone": value.camera_or_phone,
@@ -286,14 +345,14 @@ def _constraints_payload(value: ProductionConstraints) -> dict[str, object]:
         "lighting": value.lighting,
         "microphones": list(value.microphones),
         "people_count": value.people_count,
-        "locations": list(value.locations),
+        "locations": [_location_payload(location) for location in value.locations],
         "available_time_notes": value.available_time_notes,
         "user_skill_level": value.user_skill_level,
         "notes": list(value.notes),
     }
 
 
-def _constraints_from_payload(value: object) -> ProductionConstraints:
+def _constraints_from_payload(value: object, *, codec_version: int) -> ProductionConstraints:
     if not isinstance(value, dict):
         raise PreproductionPersistenceIntegrityError(
             "ProductionConstraints payload must be an object"
@@ -310,7 +369,7 @@ def _constraints_from_payload(value: object) -> ProductionConstraints:
         lighting=cast(str | None, typed.get("lighting")),
         microphones=_string_tuple(typed.get("microphones", []), "microphones"),
         people_count=people_count,
-        locations=_string_tuple(typed.get("locations", []), "locations"),
+        locations=_locations_from_payload(typed.get("locations", []), codec_version=codec_version),
         available_time_notes=cast(str | None, typed.get("available_time_notes")),
         user_skill_level=cast(str | None, typed.get("user_skill_level")),
         notes=_string_tuple(typed.get("notes", []), "notes"),
@@ -324,7 +383,8 @@ def _requirement_payload(value: ShotRequirement) -> dict[str, object]:
         "purpose": value.purpose,
         "subject": value.subject,
         "action": value.action,
-        "environment": value.environment,
+        "location_ref": value.location_ref,
+        "environment_description": value.environment_description,
         "framing": value.framing,
         "camera_motion": value.camera_motion,
         "target_duration": _optional_time_payload(value.target_duration),
@@ -341,7 +401,7 @@ def _requirement_payload(value: ShotRequirement) -> dict[str, object]:
     }
 
 
-def _requirement_from_payload(value: object) -> ShotRequirement:
+def _requirement_from_payload(value: object, *, codec_version: int) -> ShotRequirement:
     if not isinstance(value, dict):
         raise PreproductionPersistenceIntegrityError("ShotRequirement payload must be an object")
     typed = cast(dict[str, Any], value)
@@ -349,13 +409,20 @@ def _requirement_from_payload(value: object) -> ShotRequirement:
         priority = CoveragePriority(str(typed["priority"]))
     except (KeyError, ValueError) as exc:
         raise PreproductionPersistenceIntegrityError("invalid ShotRequirement priority") from exc
+    if codec_version == 1:
+        location_ref = None
+        environment_description = cast(str | None, typed.get("environment"))
+    else:
+        location_ref = cast(str | None, typed.get("location_ref"))
+        environment_description = cast(str | None, typed.get("environment_description"))
     return ShotRequirement(
         requirement_id=str(typed["requirement_id"]),
         script_section_ref=str(typed["script_section_ref"]),
         purpose=str(typed["purpose"]),
         subject=str(typed["subject"]),
         action=cast(str | None, typed.get("action")),
-        environment=cast(str | None, typed.get("environment")),
+        location_ref=location_ref,
+        environment_description=environment_description,
         framing=cast(str | None, typed.get("framing")),
         camera_motion=cast(str | None, typed.get("camera_motion")),
         target_duration=_optional_time_from_payload(typed.get("target_duration")),
@@ -375,7 +442,7 @@ def _requirement_from_payload(value: object) -> ShotRequirement:
 def encode_shooting_plan(shooting_plan: ShootingPlan) -> str:
     return _canonical_json(
         {
-            "codec_version": PREPRODUCTION_CODEC_VERSION,
+            "codec_version": SHOOTING_PLAN_CODEC_VERSION,
             "record_type": "shooting_plan",
             "envelope": _envelope_payload(shooting_plan.envelope),
             "script_plan_ref": _ref_payload(shooting_plan.script_plan_ref),
@@ -393,14 +460,24 @@ def decode_shooting_plan(payload: str) -> ShootingPlan:
     if not isinstance(raw, dict):
         raise PreproductionPersistenceIntegrityError("ShootingPlan payload must be an object")
     value = cast(dict[str, Any], raw)
-    _require_record(value, "shooting_plan")
+    codec_version = _require_record(
+        value,
+        "shooting_plan",
+        supported_versions=(PREPRODUCTION_CODEC_VERSION, SHOOTING_PLAN_CODEC_VERSION),
+    )
     requirements = value.get("requirements", [])
     if not isinstance(requirements, list):
         raise PreproductionPersistenceIntegrityError("ShootingPlan requirements must be an array")
+    constraints = _constraints_from_payload(
+        value.get("constraints", {}),
+        codec_version=codec_version,
+    )
     return ShootingPlan(
         envelope=_envelope_from_payload(value["envelope"]),
         script_plan_ref=_ref_from_payload(value["script_plan_ref"]),
-        requirements=tuple(_requirement_from_payload(item) for item in requirements),
-        constraints=_constraints_from_payload(value.get("constraints", {})),
+        requirements=tuple(
+            _requirement_from_payload(item, codec_version=codec_version) for item in requirements
+        ),
+        constraints=constraints,
         notes=_string_tuple(value.get("notes", []), "notes"),
     )

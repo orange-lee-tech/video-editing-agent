@@ -61,7 +61,8 @@ _SHOOTING_EXAMPLE = {
             "purpose": "Show the product immediately.",
             "subject": "product",
             "action": None,
-            "environment": None,
+            "location_ref": None,
+            "environment_description": None,
             "framing": "close",
             "camera_motion": "static",
             "target_duration": {"value": 4, "scale": 1},
@@ -106,7 +107,12 @@ _SHOOTING_SYSTEM_PROMPT = (
     "'requirements' and 'notes'. Do not return or rewrite production constraints. "
     "Each requirement may use only the fields shown in this example json: "
     + json.dumps(_SHOOTING_EXAMPLE, ensure_ascii=False, separators=(",", ":"))
-    + " Instructions must be practical for the declared user skill/equipment. Missing visual "
+    + " When a requirement needs a declared production location, location_ref must be exactly one "
+    "location_id from production_constraints.locations. Never invent, combine, or rewrite "
+    "location identities. environment_description may describe the camera position or local setup "
+    "within that referenced location; it is descriptive and never location authority. If declared "
+    "locations exist and you give an environment_description, also give its location_ref. "
+    "Instructions must be practical for the declared user skill/equipment. Missing visual "
     "coverage must be captured by the user, never replaced with stock or generated footage."
 )
 
@@ -418,7 +424,14 @@ def _constraints_payload(constraints: ProductionConstraints) -> dict[str, Any]:
         "lighting": constraints.lighting,
         "microphones": list(constraints.microphones),
         "people_count": constraints.people_count,
-        "locations": list(constraints.locations),
+        "locations": [
+            {
+                "location_id": location.location_id,
+                "label": location.label,
+                "notes": location.notes,
+            }
+            for location in constraints.locations
+        ],
         "available_time_notes": constraints.available_time_notes,
         "user_skill_level": constraints.user_skill_level,
         "notes": list(constraints.notes),
@@ -432,7 +445,8 @@ def _requirement_payload(requirement: ShotRequirement) -> dict[str, Any]:
         "purpose": requirement.purpose,
         "subject": requirement.subject,
         "action": requirement.action,
-        "environment": requirement.environment,
+        "location_ref": requirement.location_ref,
+        "environment_description": requirement.environment_description,
         "framing": requirement.framing,
         "camera_motion": requirement.camera_motion,
         "target_duration": _optional_time_payload(requirement.target_duration),
@@ -620,7 +634,8 @@ def _parse_requirement(value: object, index: int) -> ShotRequirementProposal:
         purpose=_required_string(typed, "purpose", context),
         subject=_required_string(typed, "subject", context),
         action=_optional_string(typed, "action", context),
-        environment=_optional_string(typed, "environment", context),
+        location_ref=_optional_string(typed, "location_ref", context),
+        environment_description=_optional_string(typed, "environment_description", context),
         framing=_optional_string(typed, "framing", context),
         camera_motion=_optional_string(typed, "camera_motion", context),
         target_duration=_optional_media_time(typed, "target_duration", context),

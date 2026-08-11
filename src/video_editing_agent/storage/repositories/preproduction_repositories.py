@@ -153,6 +153,18 @@ class SqliteShootingPlanRepository(ShootingPlanRepository):
         payload = encode_shooting_plan(shooting_plan)
         identity = (shooting_plan.envelope.id, shooting_plan.envelope.revision)
         with self._database.write_connection() as connection:
+            existing = connection.execute(
+                "SELECT payload_json FROM shooting_plans WHERE entity_id = ? AND revision = ?",
+                identity,
+            ).fetchone()
+            if existing is not None:
+                existing_plan = decode_shooting_plan(str(existing["payload_json"]))
+                if existing_plan == shooting_plan:
+                    return
+                raise PreproductionRevisionConflictError(
+                    "shooting_plans exact revision already exists with different content: "
+                    f"{identity!r}"
+                )
             _save_immutable_record(
                 connection,
                 table="shooting_plans",

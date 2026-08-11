@@ -137,7 +137,8 @@ class ShotRequirementProposal:
     purpose: str
     subject: str
     action: str | None = None
-    environment: str | None = None
+    location_ref: str | None = None
+    environment_description: str | None = None
     framing: str | None = None
     camera_motion: str | None = None
     target_duration: MediaTime | None = None

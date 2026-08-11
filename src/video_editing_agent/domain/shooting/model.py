@@ -34,13 +34,27 @@ class CoveragePriority(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class ProductionLocation:
+    """User-authorized production location identity; label/notes are descriptive only."""
+
+    location_id: str
+    label: str
+    notes: str | None = None
+
+    def __post_init__(self) -> None:
+        _require_nonempty("location_id", self.location_id)
+        _require_nonempty("label", self.label)
+        _require_optional_nonempty("notes", self.notes)
+
+
+@dataclass(frozen=True, slots=True)
 class ProductionConstraints:
     camera_or_phone: str | None = None
     stabilizer: str | None = None
     lighting: str | None = None
     microphones: tuple[str, ...] = ()
     people_count: int | None = None
-    locations: tuple[str, ...] = ()
+    locations: tuple[ProductionLocation, ...] = ()
     available_time_notes: str | None = None
     user_skill_level: str | None = None
     notes: tuple[str, ...] = ()
@@ -61,11 +75,29 @@ class ProductionConstraints:
                 raise ValueError("people_count must be >= 0")
         for name, values in (
             ("microphones", self.microphones),
-            ("locations", self.locations),
             ("notes", self.notes),
         ):
             if any(not value.strip() for value in values):
                 raise ValueError(f"{name} must not contain empty values")
+
+        normalized_locations: list[ProductionLocation] = []
+        for index, location in enumerate(self.locations):
+            if isinstance(location, str):
+                # R0.7B migration shim for pre-identity callers/persisted v1 payloads.
+                normalized_locations.append(
+                    ProductionLocation(
+                        location_id=f"loc_legacy_{index + 1:03d}",
+                        label=location,
+                    )
+                )
+            elif isinstance(location, ProductionLocation):
+                normalized_locations.append(location)
+            else:
+                raise TypeError("locations must contain ProductionLocation values")
+        location_ids = tuple(location.location_id for location in normalized_locations)
+        if len(set(location_ids)) != len(location_ids):
+            raise ValueError("locations must have unique location_id values")
+        object.__setattr__(self, "locations", tuple(normalized_locations))
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,7 +107,8 @@ class ShotRequirement:
     purpose: str
     subject: str
     action: str | None = None
-    environment: str | None = None
+    location_ref: str | None = None
+    environment_description: str | None = None
     framing: str | None = None
     camera_motion: str | None = None
     target_duration: MediaTime | None = None
@@ -100,7 +133,8 @@ class ShotRequirement:
             _require_nonempty(name, value)
         for optional_name, optional_value in (
             ("action", self.action),
-            ("environment", self.environment),
+            ("location_ref", self.location_ref),
+            ("environment_description", self.environment_description),
             ("framing", self.framing),
             ("camera_motion", self.camera_motion),
             ("audio_dialogue_requirement", self.audio_dialogue_requirement),
@@ -141,3 +175,10 @@ class ShootingPlan:
             raise ValueError("requirements must have unique requirement_id values")
         if any(not note.strip() for note in self.notes):
             raise ValueError("notes must not contain empty values")
+        location_ids = {location.location_id for location in self.constraints.locations}
+        for requirement in self.requirements:
+            if requirement.location_ref is not None and requirement.location_ref not in location_ids:
+                raise ValueError(
+                    f"ShotRequirement {requirement.requirement_id!r} references unknown production "
+                    f"location {requirement.location_ref!r}"
+                )
