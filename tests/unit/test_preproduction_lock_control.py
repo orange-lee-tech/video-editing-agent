@@ -7,6 +7,7 @@ from video_editing_agent.application.ports.preproduction_planning import (
     NarrativeSectionProposal,
     ScriptPlanProposal,
 )
+from video_editing_agent.application.ports.preproduction_review import ScriptProposalReview
 from video_editing_agent.domain.brief.model import AuthoritativeFact
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.script.model import NarrativeSection
@@ -29,6 +30,16 @@ class MutableScriptPort:
     def propose(self, request):
         del request
         return self.proposal
+
+
+class AcceptingReviewPort:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def review(self, request) -> ScriptProposalReview:
+        del request
+        self.calls += 1
+        return ScriptProposalReview(accepted=True)
 
 
 def setup(tmp_path: Path):
@@ -114,15 +125,18 @@ def test_automatic_revision_fails_while_locked_then_succeeds_after_user_unlock(
             )
         )
     )
+    reviewer = AcceptingReviewPort()
     workflow = ScriptPlanningWorkflow(
         brief_repository=briefs,
         script_plan_repository=scripts,
         planning_port=port,
         planner=planner,
+        review_port=reviewer,
     )
 
     with pytest.raises(ValueError, match="locked section"):
         workflow.revise(locked_ref, "rewrite the hook")
+    assert reviewer.calls == 0
 
     unlocked = planner.set_section_lock(locked_ref, "hook", locked=False)
     unlocked_ref = EntityRevisionRef(unlocked.envelope.id, 3)
@@ -139,6 +153,7 @@ def test_automatic_revision_fails_while_locked_then_succeeds_after_user_unlock(
     )
     revised = workflow.revise(unlocked_ref, "rewrite the hook")
 
+    assert reviewer.calls == 1
     assert revised.envelope.revision == 4
     assert revised.sections[0].spoken_content == "Model revision"
     assert revised.sections[0].locked is False

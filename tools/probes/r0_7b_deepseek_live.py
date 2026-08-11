@@ -29,6 +29,9 @@ from video_editing_agent.providers.llm.deepseek_chat import (
     DeepSeekShootingPlanningPort,
     UrllibDeepSeekChatTransport,
 )
+from video_editing_agent.providers.llm.deepseek_preproduction_review import (
+    DeepSeekScriptProposalReviewPort,
+)
 from video_editing_agent.storage.repositories.preproduction_repositories import (
     SqliteBriefRepository,
     SqliteScriptPlanRepository,
@@ -114,6 +117,7 @@ def main() -> None:
             script_plan_repository=scripts,
             planning_port=DeepSeekScriptPlanningPort(transport=transport, config=config),
             planner=script_planner,
+            review_port=DeepSeekScriptProposalReviewPort(transport=transport),
         )
         script = script_workflow.generate(
             brief_ref,
@@ -193,6 +197,7 @@ def main() -> None:
                     "status": "passed",
                     "model": config.model,
                     "thinking_enabled": config.thinking_enabled,
+                    "semantic_review_enabled": True,
                     "schema_version": reopened_database.schema_version(),
                     "script_sections": len(script.sections),
                     "shot_requirements": len(shooting_plan.requirements),

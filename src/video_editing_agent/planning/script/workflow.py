@@ -7,8 +7,15 @@ from video_editing_agent.application.ports.preproduction_planning import (
     ReferenceStyleGuidance,
     ScriptPlanningPort,
     ScriptPlanningRequest,
+    ScriptPlanProposal,
+)
+from video_editing_agent.application.ports.preproduction_review import (
+    ScriptProposalReview,
+    ScriptProposalReviewPort,
+    ScriptProposalReviewRequest,
 )
 from video_editing_agent.application.ports.script_plan_repository import ScriptPlanRepository
+from video_editing_agent.domain.brief.model import Brief
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.script.model import NarrativeSection, ScriptPlan
 from video_editing_agent.planning.script.service import ScriptPlanner
@@ -41,8 +48,27 @@ def _sections_from_proposal(
     return tuple(_section_from_proposal(proposal) for proposal in proposals)
 
 
+def _brief_requires_review(brief: Brief) -> bool:
+    return bool(brief.authoritative_facts or brief.prohibited_content or brief.brand_constraints)
+
+
+def _review_summary(review: ScriptProposalReview) -> str:
+    return "; ".join(
+        f"{violation.code}@{violation.section_id or 'plan'}: {violation.reason}"
+        for violation in review.violations
+    )
+
+
+class ScriptProposalRejectedError(ValueError):
+    """A semantic reviewer vetoed the proposal before owner commit."""
+
+    def __init__(self, review: ScriptProposalReview) -> None:
+        self.review = review
+        super().__init__(f"Script proposal rejected: {_review_summary(review)}")
+
+
 class ScriptPlanningWorkflow:
-    """Proposal -> deterministic validation -> ScriptPlanner owner commit."""
+    """Proposal -> deterministic preflight -> semantic review -> owner commit."""
 
     def __init__(
         self,
@@ -51,11 +77,40 @@ class ScriptPlanningWorkflow:
         script_plan_repository: ScriptPlanRepository,
         planning_port: ScriptPlanningPort,
         planner: ScriptPlanner,
+        review_port: ScriptProposalReviewPort | None = None,
     ) -> None:
         self._brief_repository = brief_repository
         self._script_plan_repository = script_plan_repository
         self._planning_port = planning_port
         self._planner = planner
+        self._review_port = review_port
+
+    def _review_or_raise(
+        self,
+        *,
+        brief: Brief,
+        proposal: ScriptPlanProposal,
+        current_script: ScriptPlan | None,
+        instruction: str | None,
+        policy_guidance: PlanningPolicyGuidance | None,
+    ) -> None:
+        if self._review_port is None:
+            if _brief_requires_review(brief):
+                raise RuntimeError(
+                    "guarded Brief requires ScriptProposalReviewPort before model proposal commit"
+                )
+            return
+        review = self._review_port.review(
+            ScriptProposalReviewRequest(
+                brief=brief,
+                proposal=proposal,
+                current_script=current_script,
+                instruction=instruction,
+                policy_guidance=policy_guidance,
+            )
+        )
+        if not review.accepted:
+            raise ScriptProposalRejectedError(review)
 
     def generate(
         self,
@@ -74,6 +129,14 @@ class ScriptPlanningWorkflow:
             )
         )
         sections = _sections_from_proposal(proposal.sections)
+        self._planner.validate_create(brief_ref, sections)
+        self._review_or_raise(
+            brief=brief,
+            proposal=proposal,
+            current_script=None,
+            instruction=None,
+            policy_guidance=policy_guidance,
+        )
         return self._planner.create(brief_ref, sections, created_by=created_by)
 
     def revise(
@@ -99,6 +162,14 @@ class ScriptPlanningWorkflow:
             )
         )
         sections = _sections_from_proposal(proposal.sections)
+        self._planner.validate_revision(current_ref, sections)
+        self._review_or_raise(
+            brief=brief,
+            proposal=proposal,
+            current_script=current,
+            instruction=instruction,
+            policy_guidance=policy_guidance,
+        )
         return self._planner.revise(
             current_ref,
             sections,
