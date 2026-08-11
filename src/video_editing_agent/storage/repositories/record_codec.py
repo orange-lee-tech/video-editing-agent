@@ -136,13 +136,9 @@ def _envelope_from_payload(value: dict[str, Any]) -> EntityEnvelope:
 def _codec_version(value: dict[str, Any], record_type: str) -> int:
     raw_version = value.get("codec_version")
     if isinstance(raw_version, bool) or not isinstance(raw_version, int):
-        raise PersistenceIntegrityError(
-            f"invalid {record_type} codec version: {raw_version!r}"
-        )
+        raise PersistenceIntegrityError(f"invalid {record_type} codec version: {raw_version!r}")
     if raw_version not in _SUPPORTED_CODEC_VERSIONS:
-        raise PersistenceIntegrityError(
-            f"unsupported {record_type} codec version: {raw_version!r}"
-        )
+        raise PersistenceIntegrityError(f"unsupported {record_type} codec version: {raw_version!r}")
     if value.get("record_type") != record_type:
         raise PersistenceIntegrityError(
             f"expected {record_type} payload, found {value.get('record_type')!r}"
@@ -214,9 +210,7 @@ def decode_asset(payload: str) -> Asset:
     origin = str(value["origin"])
     if version == 1:
         duration_ms = value.get("duration_ms")
-        duration = (
-            None if duration_ms is None else MediaTime.from_milliseconds(int(duration_ms))
-        )
+        duration = None if duration_ms is None else MediaTime.from_milliseconds(int(duration_ms))
         usage_role = default_asset_usage_role(media_kind=media_kind, origin=origin)
     else:
         duration = _optional_media_time_from_payload(value.get("duration"))
@@ -291,9 +285,7 @@ def decode_shot(payload: str) -> Shot:
     return Shot(
         envelope=envelope,
         asset_ref=asset_ref,
-        source_range=_media_time_range_from_payload(
-            cast(dict[str, Any], source_range_payload)
-        ),
+        source_range=_media_time_range_from_payload(cast(dict[str, Any], source_range_payload)),
         boundary_method=boundary_method,
         previous_shot_ref=previous_shot_ref,
         next_shot_ref=next_shot_ref,
