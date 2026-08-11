@@ -38,6 +38,30 @@ def _validate_requirement_sections(
             )
 
 
+def _validate_requirement_locations(
+    constraints: ProductionConstraints,
+    requirements: tuple[ShotRequirement, ...],
+) -> None:
+    if not constraints.locations:
+        return
+    allowed_locations = set(constraints.locations)
+    for requirement in requirements:
+        if requirement.environment not in allowed_locations:
+            raise ValueError(
+                f"ShotRequirement {requirement.requirement_id!r} environment must exactly match "
+                f"one declared ProductionConstraints location: {constraints.locations!r}"
+            )
+
+
+def _validate_requirements(
+    script_plan: ScriptPlan,
+    constraints: ProductionConstraints,
+    requirements: tuple[ShotRequirement, ...],
+) -> None:
+    _validate_requirement_sections(script_plan, requirements)
+    _validate_requirement_locations(constraints, requirements)
+
+
 def _derived_refs(
     current_ref: EntityRevisionRef,
     script_plan_ref: EntityRevisionRef,
@@ -73,7 +97,8 @@ class ShootingPlanner:
         created_by: str = "system",
     ) -> ShootingPlan:
         script_plan = self._script_plan_repository.load(script_plan_ref)
-        _validate_requirement_sections(script_plan, requirements)
+        effective_constraints = ProductionConstraints() if constraints is None else constraints
+        _validate_requirements(script_plan, effective_constraints, requirements)
         shooting_plan_id = self._shooting_plan_id_factory()
         if not shooting_plan_id.startswith("shp_"):
             raise ValueError("shooting_plan_id_factory must return an shp_* identifier")
@@ -89,7 +114,7 @@ class ShootingPlanner:
             ),
             script_plan_ref=script_plan_ref,
             requirements=requirements,
-            constraints=ProductionConstraints() if constraints is None else constraints,
+            constraints=effective_constraints,
             notes=notes,
         )
         self._shooting_plan_repository.save(shooting_plan)
@@ -111,7 +136,8 @@ class ShootingPlanner:
             raise RuntimeError("ShootingPlanRepository returned a different exact revision")
         target_script_ref = script_plan_ref or current.script_plan_ref
         script_plan = self._script_plan_repository.load(target_script_ref)
-        _validate_requirement_sections(script_plan, requirements)
+        effective_constraints = current.constraints if constraints is None else constraints
+        _validate_requirements(script_plan, effective_constraints, requirements)
         revised = ShootingPlan(
             envelope=EntityEnvelope(
                 id=current.envelope.id,
@@ -124,7 +150,7 @@ class ShootingPlanner:
             ),
             script_plan_ref=target_script_ref,
             requirements=requirements,
-            constraints=current.constraints if constraints is None else constraints,
+            constraints=effective_constraints,
             notes=current.notes if notes is None else notes,
         )
         self._shooting_plan_repository.save(revised)
