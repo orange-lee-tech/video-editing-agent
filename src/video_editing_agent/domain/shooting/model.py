@@ -177,7 +177,10 @@ class ShootingPlan:
             raise ValueError("notes must not contain empty values")
         location_ids = {location.location_id for location in self.constraints.locations}
         for requirement in self.requirements:
-            if requirement.location_ref is not None and requirement.location_ref not in location_ids:
+            if (
+                requirement.location_ref is not None
+                and requirement.location_ref not in location_ids
+            ):
                 raise ValueError(
                     f"ShotRequirement {requirement.requirement_id!r} references unknown production "
                     f"location {requirement.location_ref!r}"

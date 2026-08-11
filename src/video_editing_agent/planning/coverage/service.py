@@ -88,7 +88,7 @@ def _requirement_query(requirement: ShotRequirement) -> str:
         requirement.subject,
         requirement.action,
         requirement.purpose,
-        requirement.environment,
+        requirement.environment_description,
         requirement.framing,
         *requirement.visual_constraints,
     )

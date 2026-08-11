@@ -218,9 +218,7 @@ def _legacy_v1_payload() -> str:
 def test_legacy_v1_shooting_payload_is_readable_without_inventing_location_authority() -> None:
     plan = decode_shooting_plan(_legacy_v1_payload())
 
-    assert plan.constraints.locations == (
-        ProductionLocation("loc_legacy_001", "家中书桌"),
-    )
+    assert plan.constraints.locations == (ProductionLocation("loc_legacy_001", "家中书桌"),)
     assert plan.requirements[0].location_ref is None
     assert plan.requirements[0].environment_description == "家中书桌旁固定机位"
     upgraded = json.loads(encode_shooting_plan(plan))
