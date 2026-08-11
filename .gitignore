@@ -8,3 +8,7 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Local development tools and private media samples
+/.tools/
+/example/
