@@ -226,7 +226,9 @@ def _parse_product_review(value: dict[str, Any]) -> dict[str, Any]:
     normalized: list[dict[str, Any]] = []
     for index, item in enumerate(violations):
         if not isinstance(item, dict):
-            raise DeepSeekPlanningResponseError(f"product review violations[{index}] must be an object")
+            raise DeepSeekPlanningResponseError(
+                f"product review violations[{index}] must be an object"
+            )
         typed = cast(dict[str, Any], item)
         if set(typed) != {"code", "scope", "excerpt", "reason"}:
             raise DeepSeekPlanningResponseError(
@@ -252,9 +254,7 @@ def _parse_product_review(value: dict[str, Any]) -> dict[str, Any]:
             raise DeepSeekPlanningResponseError(
                 f"product review violations[{index}].excerpt must be nonempty or null"
             )
-        normalized.append(
-            {"code": code, "scope": scope, "excerpt": excerpt, "reason": reason}
-        )
+        normalized.append({"code": code, "scope": scope, "excerpt": excerpt, "reason": reason})
     if accepted and normalized:
         raise DeepSeekPlanningResponseError("accepted product review cannot contain violations")
     if not accepted and not normalized:
