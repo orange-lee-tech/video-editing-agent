@@ -11,6 +11,7 @@ from video_editing_agent.domain.script.model import NarrativeSection, ScriptPlan
 from video_editing_agent.planning.script.duration import assess_script_duration
 
 NOW = datetime(2026, 8, 11, 22, 0, tzinfo=UTC)
+DEFAULT_TARGET_DURATION = MediaTime(30, 1)
 
 
 def envelope(entity_id: str) -> EntityEnvelope:
@@ -24,11 +25,14 @@ def envelope(entity_id: str) -> EntityEnvelope:
     )
 
 
-def brief(*, target_duration: MediaTime | None = MediaTime(30, 1)) -> Brief:
+def brief(*, target_duration: MediaTime | None = DEFAULT_TARGET_DURATION) -> Brief:
     return Brief(
         envelope=envelope("brf_duration"),
         title="Duration plan",
         objective="Fit a short-form plan to the declared target.",
+        audience="general audience",
+        platform="vertical short-form",
+        core_message="Keep the plan within the declared target when durations are explicit.",
         target_duration=target_duration,
     )
 
@@ -99,6 +103,9 @@ def test_duration_assessment_requires_exact_brief_revision() -> None:
         ),
         title="Updated duration plan",
         objective="Updated objective",
+        audience="general audience",
+        platform="vertical short-form",
+        core_message="Updated message",
         target_duration=MediaTime(30, 1),
     )
 
