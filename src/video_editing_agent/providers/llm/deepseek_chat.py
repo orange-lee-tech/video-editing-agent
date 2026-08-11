@@ -303,6 +303,10 @@ def _entity_ref_payload(value: EntityRevisionRef) -> dict[str, object]:
     return {"entity_id": value.entity_id, "revision": value.revision}
 
 
+def _domain_entity_ref_payload(entity: Brief | ScriptPlan | ShootingPlan) -> dict[str, object]:
+    return _entity_ref_payload(EntityRevisionRef(entity.envelope.id, entity.envelope.revision))
+
+
 def _optional_time_payload(value: MediaTime | None) -> dict[str, int] | None:
     if value is None:
         return None
@@ -311,7 +315,7 @@ def _optional_time_payload(value: MediaTime | None) -> dict[str, int] | None:
 
 def _brief_payload(brief: Brief) -> dict[str, Any]:
     return {
-        "ref": _entity_ref_payload(EntityRevisionRef(brief.envelope.id, brief.envelope.revision)),
+        "ref": _domain_entity_ref_payload(brief),
         "title": brief.title,
         "objective": brief.objective,
         "audience": brief.audience,
@@ -371,9 +375,7 @@ def _script_plan_payload(script_plan: ScriptPlan | None) -> dict[str, Any] | Non
     if script_plan is None:
         return None
     return {
-        "ref": _entity_ref_payload(
-            EntityRevisionRef(script_plan.envelope.id, script_plan.envelope.revision)
-        ),
+        "ref": _domain_entity_ref_payload(script_plan),
         "brief_ref": _entity_ref_payload(script_plan.brief_ref),
         "sections": [_section_payload(section) for section in script_plan.sections],
     }
@@ -433,14 +435,13 @@ def _requirement_payload(requirement: ShotRequirement) -> dict[str, Any]:
 def _shooting_plan_payload(shooting_plan: ShootingPlan | None) -> dict[str, Any] | None:
     if shooting_plan is None:
         return None
+    requirements = [
+        _requirement_payload(requirement) for requirement in shooting_plan.requirements
+    ]
     return {
-        "ref": _entity_ref_payload(
-            EntityRevisionRef(shooting_plan.envelope.id, shooting_plan.envelope.revision)
-        ),
+        "ref": _domain_entity_ref_payload(shooting_plan),
         "script_plan_ref": _entity_ref_payload(shooting_plan.script_plan_ref),
-        "requirements": [
-            _requirement_payload(requirement) for requirement in shooting_plan.requirements
-        ],
+        "requirements": requirements,
         "constraints": _constraints_payload(shooting_plan.constraints),
         "notes": list(shooting_plan.notes),
     }
@@ -457,12 +458,9 @@ def _script_context(request: ScriptPlanningRequest) -> dict[str, Any]:
 
 
 def _shooting_context(request: ShootingPlanningRequest) -> dict[str, Any]:
+    is_revision = request.current_shooting_plan is not None
     return {
-        "task": (
-            "revise_shooting_plan"
-            if request.current_shooting_plan is not None
-            else "generate_shooting_plan"
-        ),
+        "task": "revise_shooting_plan" if is_revision else "generate_shooting_plan",
         "brief": _brief_payload(request.brief),
         "script_plan": _script_plan_payload(request.script_plan),
         "production_constraints": _constraints_payload(request.constraints),
