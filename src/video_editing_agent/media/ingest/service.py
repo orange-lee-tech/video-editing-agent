@@ -76,6 +76,7 @@ class AssetIngestService:
             provenance=source.provenance,
             imported_at=imported_at,
             duration=metadata.duration,
+            usage_role=source.usage_role,
             width=metadata.width,
             height=metadata.height,
             fps=metadata.fps,

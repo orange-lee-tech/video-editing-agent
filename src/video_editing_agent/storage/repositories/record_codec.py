@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 from video_editing_agent.domain.asset.model import Asset, AssetProvenance
+from video_editing_agent.domain.asset.policy import AssetUsageRole, default_asset_usage_role
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevisionRef, EntityStatus
+from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
 from video_editing_agent.domain.shot.analysis import (
     AnalysisProfile,
     NamedQualityScore,
@@ -16,7 +18,8 @@ from video_editing_agent.domain.shot.analysis import (
 from video_editing_agent.domain.shot.model import Shot
 from video_editing_agent.storage.repositories.sqlite_database import PersistenceError
 
-CODEC_VERSION = 1
+CODEC_VERSION = 2
+_SUPPORTED_CODEC_VERSIONS = frozenset({1, CODEC_VERSION})
 
 
 class PersistenceIntegrityError(PersistenceError):
@@ -65,6 +68,44 @@ def _optional_ref_from_payload(value: dict[str, Any] | None) -> EntityRevisionRe
     return None if value is None else _ref_from_payload(value)
 
 
+def _media_time_payload(value: MediaTime) -> dict[str, int]:
+    return {"value": value.value, "scale": value.scale}
+
+
+def _optional_media_time_payload(value: MediaTime | None) -> dict[str, int] | None:
+    return None if value is None else _media_time_payload(value)
+
+
+def _media_time_from_payload(value: dict[str, Any]) -> MediaTime:
+    return MediaTime(value=int(value["value"]), scale=int(value["scale"]))
+
+
+def _optional_media_time_from_payload(value: object) -> MediaTime | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise PersistenceIntegrityError("MediaTime payload must be an object or null")
+    return _media_time_from_payload(cast(dict[str, Any], value))
+
+
+def _media_time_range_payload(value: MediaTimeRange) -> dict[str, object]:
+    return {
+        "start": _media_time_payload(value.start),
+        "duration": _media_time_payload(value.duration),
+    }
+
+
+def _media_time_range_from_payload(value: dict[str, Any]) -> MediaTimeRange:
+    start = value.get("start")
+    duration = value.get("duration")
+    if not isinstance(start, dict) or not isinstance(duration, dict):
+        raise PersistenceIntegrityError("MediaTimeRange start/duration must be objects")
+    return MediaTimeRange(
+        start=_media_time_from_payload(cast(dict[str, Any], start)),
+        duration=_media_time_from_payload(cast(dict[str, Any], duration)),
+    )
+
+
 def _envelope_payload(value: EntityEnvelope) -> dict[str, object]:
     return {
         "id": value.id,
@@ -92,19 +133,50 @@ def _envelope_from_payload(value: dict[str, Any]) -> EntityEnvelope:
     )
 
 
-def _require_codec(value: dict[str, Any], record_type: str) -> None:
-    if value.get("codec_version") != CODEC_VERSION:
+def _codec_version(value: dict[str, Any], record_type: str) -> int:
+    raw_version = value.get("codec_version")
+    if isinstance(raw_version, bool) or not isinstance(raw_version, int):
         raise PersistenceIntegrityError(
-            f"unsupported {record_type} codec version: {value.get('codec_version')!r}"
+            f"invalid {record_type} codec version: {raw_version!r}"
+        )
+    if raw_version not in _SUPPORTED_CODEC_VERSIONS:
+        raise PersistenceIntegrityError(
+            f"unsupported {record_type} codec version: {raw_version!r}"
         )
     if value.get("record_type") != record_type:
         raise PersistenceIntegrityError(
             f"expected {record_type} payload, found {value.get('record_type')!r}"
         )
+    return raw_version
+
+
+def _provenance_payload(value: AssetProvenance) -> dict[str, object]:
+    return {
+        "origin_type": value.origin_type,
+        "provider": value.provider,
+        "provider_asset_id": value.provider_asset_id,
+        "source_page": value.source_page,
+        "creator": value.creator,
+        "retrieved_at": _optional_datetime_text(value.retrieved_at),
+        "license_information": value.license_information,
+        "attribution": value.attribution,
+    }
+
+
+def _provenance_from_payload(value: dict[str, Any]) -> AssetProvenance:
+    return AssetProvenance(
+        origin_type=str(value["origin_type"]),
+        provider=value.get("provider"),
+        provider_asset_id=value.get("provider_asset_id"),
+        source_page=value.get("source_page"),
+        creator=value.get("creator"),
+        retrieved_at=_optional_parse_datetime(cast(str | None, value.get("retrieved_at"))),
+        license_information=value.get("license_information"),
+        attribution=value.get("attribution"),
+    )
 
 
 def encode_asset(asset: Asset) -> str:
-    provenance = asset.provenance
     return _canonical_json(
         {
             "codec_version": CODEC_VERSION,
@@ -112,21 +184,13 @@ def encode_asset(asset: Asset) -> str:
             "envelope": _envelope_payload(asset.envelope),
             "media_kind": asset.media_kind,
             "origin": asset.origin,
+            "usage_role": asset.usage_role.value,
             "storage_ref": asset.storage_ref,
             "content_hash": asset.content_hash,
             "byte_size": asset.byte_size,
-            "provenance": {
-                "origin_type": provenance.origin_type,
-                "provider": provenance.provider,
-                "provider_asset_id": provenance.provider_asset_id,
-                "source_page": provenance.source_page,
-                "creator": provenance.creator,
-                "retrieved_at": _optional_datetime_text(provenance.retrieved_at),
-                "license_information": provenance.license_information,
-                "attribution": provenance.attribution,
-            },
+            "provenance": _provenance_payload(asset.provenance),
             "imported_at": _datetime_text(asset.imported_at),
-            "duration_ms": asset.duration_ms,
+            "duration": _optional_media_time_payload(asset.duration),
             "width": asset.width,
             "height": asset.height,
             "fps": asset.fps,
@@ -141,35 +205,45 @@ def encode_asset(asset: Asset) -> str:
 
 def decode_asset(payload: str) -> Asset:
     value: dict[str, Any] = json.loads(payload)
-    _require_codec(value, "asset")
-    provenance: dict[str, Any] = value["provenance"]
+    version = _codec_version(value, "asset")
+    provenance_payload = value.get("provenance")
+    if not isinstance(provenance_payload, dict):
+        raise PersistenceIntegrityError("Asset provenance payload must be an object")
+
+    media_kind = str(value["media_kind"])
+    origin = str(value["origin"])
+    if version == 1:
+        duration_ms = value.get("duration_ms")
+        duration = (
+            None if duration_ms is None else MediaTime.from_milliseconds(int(duration_ms))
+        )
+        usage_role = default_asset_usage_role(media_kind=media_kind, origin=origin)
+    else:
+        duration = _optional_media_time_from_payload(value.get("duration"))
+        try:
+            usage_role = AssetUsageRole(str(value["usage_role"]))
+        except (KeyError, ValueError) as exc:
+            raise PersistenceIntegrityError("invalid Asset usage_role in codec v2 payload") from exc
+
     return Asset(
         envelope=_envelope_from_payload(value["envelope"]),
-        media_kind=str(value["media_kind"]),
-        origin=str(value["origin"]),
+        media_kind=media_kind,
+        origin=origin,
+        usage_role=usage_role,
         storage_ref=str(value["storage_ref"]),
         content_hash=str(value["content_hash"]),
         byte_size=int(value["byte_size"]),
-        provenance=AssetProvenance(
-            origin_type=str(provenance["origin_type"]),
-            provider=provenance["provider"],
-            provider_asset_id=provenance["provider_asset_id"],
-            source_page=provenance["source_page"],
-            creator=provenance["creator"],
-            retrieved_at=_optional_parse_datetime(provenance["retrieved_at"]),
-            license_information=provenance["license_information"],
-            attribution=provenance["attribution"],
-        ),
+        provenance=_provenance_from_payload(cast(dict[str, Any], provenance_payload)),
         imported_at=_parse_datetime(str(value["imported_at"])),
-        duration_ms=value["duration_ms"],
-        width=value["width"],
-        height=value["height"],
-        fps=value["fps"],
-        codec=value["codec"],
-        audio_channels=value["audio_channels"],
-        sample_rate_hz=value["sample_rate_hz"],
-        user_labels=tuple(str(item) for item in value["user_labels"]),
-        collection_refs=tuple(str(item) for item in value["collection_refs"]),
+        duration=duration,
+        width=value.get("width"),
+        height=value.get("height"),
+        fps=value.get("fps"),
+        codec=value.get("codec"),
+        audio_channels=value.get("audio_channels"),
+        sample_rate_hz=value.get("sample_rate_hz"),
+        user_labels=tuple(str(item) for item in value.get("user_labels", [])),
+        collection_refs=tuple(str(item) for item in value.get("collection_refs", [])),
     )
 
 
@@ -180,8 +254,7 @@ def encode_shot(shot: Shot) -> str:
             "record_type": "shot",
             "envelope": _envelope_payload(shot.envelope),
             "asset_ref": _ref_payload(shot.asset_ref),
-            "source_start_ms": shot.source_start_ms,
-            "source_end_ms": shot.source_end_ms,
+            "source_range": _media_time_range_payload(shot.source_range),
             "boundary_method": shot.boundary_method,
             "previous_shot_ref": _optional_ref_payload(shot.previous_shot_ref),
             "next_shot_ref": _optional_ref_payload(shot.next_shot_ref),
@@ -192,16 +265,39 @@ def encode_shot(shot: Shot) -> str:
 
 def decode_shot(payload: str) -> Shot:
     value: dict[str, Any] = json.loads(payload)
-    _require_codec(value, "shot")
+    version = _codec_version(value, "shot")
+    envelope = _envelope_from_payload(value["envelope"])
+    asset_ref = _ref_from_payload(value["asset_ref"])
+    boundary_method = str(value["boundary_method"])
+    previous_shot_ref = _optional_ref_from_payload(value.get("previous_shot_ref"))
+    next_shot_ref = _optional_ref_from_payload(value.get("next_shot_ref"))
+    scene_ref = _optional_ref_from_payload(value.get("scene_ref"))
+
+    if version == 1:
+        return Shot(
+            envelope=envelope,
+            asset_ref=asset_ref,
+            source_start_ms=int(value["source_start_ms"]),
+            source_end_ms=int(value["source_end_ms"]),
+            boundary_method=boundary_method,
+            previous_shot_ref=previous_shot_ref,
+            next_shot_ref=next_shot_ref,
+            scene_ref=scene_ref,
+        )
+
+    source_range_payload = value.get("source_range")
+    if not isinstance(source_range_payload, dict):
+        raise PersistenceIntegrityError("Shot source_range payload must be an object")
     return Shot(
-        envelope=_envelope_from_payload(value["envelope"]),
-        asset_ref=_ref_from_payload(value["asset_ref"]),
-        source_start_ms=int(value["source_start_ms"]),
-        source_end_ms=int(value["source_end_ms"]),
-        boundary_method=str(value["boundary_method"]),
-        previous_shot_ref=_optional_ref_from_payload(value["previous_shot_ref"]),
-        next_shot_ref=_optional_ref_from_payload(value["next_shot_ref"]),
-        scene_ref=_optional_ref_from_payload(value["scene_ref"]),
+        envelope=envelope,
+        asset_ref=asset_ref,
+        source_range=_media_time_range_from_payload(
+            cast(dict[str, Any], source_range_payload)
+        ),
+        boundary_method=boundary_method,
+        previous_shot_ref=previous_shot_ref,
+        next_shot_ref=next_shot_ref,
+        scene_ref=scene_ref,
     )
 
 
@@ -242,9 +338,16 @@ def encode_shot_analysis(analysis: ShotAnalysis) -> str:
 
 def decode_shot_analysis(payload: str) -> ShotAnalysis:
     value: dict[str, Any] = json.loads(payload)
-    _require_codec(value, "shot_analysis")
-    visual: dict[str, Any] | None = value["visual"]
-    speech: dict[str, Any] | None = value["speech"]
+    _codec_version(value, "shot_analysis")
+    visual = value.get("visual")
+    speech = value.get("speech")
+    if visual is not None and not isinstance(visual, dict):
+        raise PersistenceIntegrityError("ShotAnalysis visual payload must be an object or null")
+    if speech is not None and not isinstance(speech, dict):
+        raise PersistenceIntegrityError("ShotAnalysis speech payload must be an object or null")
+
+    visual_payload = cast(dict[str, Any] | None, visual)
+    speech_payload = cast(dict[str, Any] | None, speech)
     return ShotAnalysis(
         shot_ref=_ref_from_payload(value["shot_ref"]),
         revision=int(value["revision"]),
@@ -252,22 +355,25 @@ def decode_shot_analysis(payload: str) -> ShotAnalysis:
         analyzed_at=_parse_datetime(str(value["analyzed_at"])),
         technical_quality=tuple(
             NamedQualityScore(name=str(item["name"]), value=float(item["value"]))
-            for item in value["technical_quality"]
+            for item in value.get("technical_quality", [])
         ),
         visual=None
-        if visual is None
+        if visual_payload is None
         else VisualSemantics(
-            summary=visual["summary"],
-            tags=tuple(str(item) for item in visual["tags"]),
-            subjects=tuple(str(item) for item in visual["subjects"]),
-            actions=tuple(str(item) for item in visual["actions"]),
-            environment=visual["environment"],
-            framing=visual["framing"],
-            camera_motion=visual["camera_motion"],
+            summary=visual_payload.get("summary"),
+            tags=tuple(str(item) for item in visual_payload.get("tags", [])),
+            subjects=tuple(str(item) for item in visual_payload.get("subjects", [])),
+            actions=tuple(str(item) for item in visual_payload.get("actions", [])),
+            environment=visual_payload.get("environment"),
+            framing=visual_payload.get("framing"),
+            camera_motion=visual_payload.get("camera_motion"),
         ),
         speech=None
-        if speech is None
-        else SpeechContent(transcript=speech["transcript"], language=speech["language"]),
-        embedding_ref=value["embedding_ref"],
-        artifact_refs=tuple(str(item) for item in value["artifact_refs"]),
+        if speech_payload is None
+        else SpeechContent(
+            transcript=speech_payload.get("transcript"),
+            language=speech_payload.get("language"),
+        ),
+        embedding_ref=value.get("embedding_ref"),
+        artifact_refs=tuple(str(item) for item in value.get("artifact_refs", [])),
     )

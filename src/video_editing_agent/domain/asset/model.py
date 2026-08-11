@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
+from video_editing_agent.domain.asset.policy import AssetUsageRole, default_asset_usage_role
 from video_editing_agent.domain.common.entity import EntityEnvelope
 from video_editing_agent.domain.common.media_time import MediaTime
 
@@ -56,6 +57,7 @@ class Asset:
     envelope: EntityEnvelope
     media_kind: str
     origin: str
+    usage_role: AssetUsageRole
     storage_ref: str
     content_hash: str
     byte_size: int
@@ -92,8 +94,13 @@ class Asset:
         collection_refs: tuple[str, ...] = (),
         *,
         duration: MediaTime | None = None,
+        usage_role: AssetUsageRole | None = None,
     ) -> None:
         resolved_duration = _resolve_duration(duration=duration, duration_ms=duration_ms)
+        resolved_usage_role = usage_role or default_asset_usage_role(
+            media_kind=media_kind,
+            origin=origin,
+        )
 
         for name, value in (
             ("media_kind", media_kind),
@@ -125,6 +132,7 @@ class Asset:
         object.__setattr__(self, "envelope", envelope)
         object.__setattr__(self, "media_kind", media_kind)
         object.__setattr__(self, "origin", origin)
+        object.__setattr__(self, "usage_role", resolved_usage_role)
         object.__setattr__(self, "storage_ref", storage_ref)
         object.__setattr__(self, "content_hash", content_hash)
         object.__setattr__(self, "byte_size", byte_size)

@@ -16,6 +16,7 @@ class AssetUsageRole(StrEnum):
 
     EDITABLE_VISUAL_FOOTAGE = "editable_visual_footage"
     REFERENCE_ANALYSIS_ONLY = "reference_analysis_only"
+    RESTRICTED_LEGACY_VISUAL = "restricted_legacy_visual"
     MUSIC = "music"
     VOICEOVER = "voiceover"
     SOUND_EFFECT = "sound_effect"
@@ -69,6 +70,20 @@ def classify_legacy_visual_origin(origin: str | AssetOrigin) -> LegacyVisualOrig
     if normalized in _GENERATED_VISUAL_ORIGIN_ALIASES:
         return LegacyVisualOriginDisposition.RESTRICTED_GENERATED
     return LegacyVisualOriginDisposition.RESTRICTED_UNKNOWN
+
+
+def default_asset_usage_role(
+    *,
+    media_kind: str,
+    origin: str | AssetOrigin,
+) -> AssetUsageRole:
+    """Fail closed when a legacy Asset lacks an explicit v0.2 usage declaration."""
+
+    if media_kind.strip().casefold() in {"video", "image"}:
+        if classify_legacy_visual_origin(origin) is LegacyVisualOriginDisposition.LOCAL_CANDIDATE:
+            return AssetUsageRole.EDITABLE_VISUAL_FOOTAGE
+        return AssetUsageRole.RESTRICTED_LEGACY_VISUAL
+    return AssetUsageRole.OTHER_LOCAL_MEDIA
 
 
 def is_visual_resolver_eligible(
