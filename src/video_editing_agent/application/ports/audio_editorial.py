@@ -1,0 +1,77 @@
+from __future__ import annotations
+
+import math
+from dataclasses import dataclass
+from enum import StrEnum
+from typing import Protocol
+
+from video_editing_agent.domain.common.entity import EntityRevisionRef
+
+
+class SourceAudioPolicy(StrEnum):
+    PRESERVE = "preserve"
+    DUCK = "duck"
+    MUTE = "mute"
+
+
+class AudioAutomationKind(StrEnum):
+    GAIN = "gain"
+    DUCK = "duck"
+    FADE_IN = "fade_in"
+    FADE_OUT = "fade_out"
+    CROSSFADE = "crossfade"
+
+
+@dataclass(frozen=True, slots=True)
+class AudioAutomationIntent:
+    kind: AudioAutomationKind
+    target_asset_ref: EntityRevisionRef
+    target_slot_ids: tuple[str, ...]
+    gain_db: float | None = None
+    evidence_refs: tuple[str, ...] = ()
+    reason: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.target_slot_ids or any(not value.strip() for value in self.target_slot_ids):
+            raise ValueError("target_slot_ids must contain non-empty slot identifiers")
+        if self.gain_db is not None:
+            if isinstance(self.gain_db, bool) or not isinstance(self.gain_db, (int, float)):
+                raise TypeError("gain_db must be a number or None")
+            if not math.isfinite(float(self.gain_db)):
+                raise ValueError("gain_db must be finite")
+
+
+@dataclass(frozen=True, slots=True)
+class AudioEditorialRequest:
+    edit_plan_ref: EntityRevisionRef
+    music_selection_decision_id: str | None = None
+    source_audio_asset_refs: tuple[EntityRevisionRef, ...] = ()
+    voiceover_asset_refs: tuple[EntityRevisionRef, ...] = ()
+    sound_effect_asset_refs: tuple[EntityRevisionRef, ...] = ()
+    evidence_refs: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class AudioMixDecision:
+    decision_id: str
+    edit_plan_ref: EntityRevisionRef
+    source_audio_policy: SourceAudioPolicy
+    automation_intents: tuple[AudioAutomationIntent, ...] = ()
+    loudness_intent: str | None = None
+    confidence: float = 1.0
+    warnings: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.decision_id.strip():
+            raise ValueError("decision_id must not be empty")
+        if isinstance(self.confidence, bool) or not isinstance(self.confidence, (int, float)):
+            raise TypeError("confidence must be a number")
+        value = float(self.confidence)
+        if not math.isfinite(value) or not 0.0 <= value <= 1.0:
+            raise ValueError("confidence must be finite and between 0 and 1")
+
+
+class AudioEditorialService(Protocol):
+    """Own audio-mix intent; EDLBuilder owns exact timeline automation."""
+
+    def plan(self, request: AudioEditorialRequest) -> AudioMixDecision: ...
