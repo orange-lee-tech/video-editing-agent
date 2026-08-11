@@ -24,6 +24,14 @@ def _require_nonempty(name: str, value: str) -> None:
         raise ValueError(f"{name} must not be empty")
 
 
+def _validate_reference_guidance(values: tuple[ReferenceStyleGuidance, ...]) -> None:
+    reference_refs = tuple(value.reference_asset_ref for value in values)
+    if len(set(reference_refs)) != len(reference_refs):
+        raise ValueError(
+            "reference_guidance must contain at most one item per exact reference Asset"
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class PlanningPolicyGuidance:
     """Neutral, inspectable policy context supplied to a replaceable planning provider."""
@@ -49,6 +57,29 @@ class PlanningPolicyGuidance:
             raise ValueError("guidance must not contain empty values")
         if self.marketing_objective is not None:
             _require_nonempty("marketing_objective", self.marketing_objective)
+
+
+@dataclass(frozen=True, slots=True)
+class ReferenceStyleGuidance:
+    """Provider-neutral abstract technique evidence from a reference-analysis-only Asset."""
+
+    reference_asset_ref: EntityRevisionRef
+    evidence_artifact_id: str
+    observations: tuple[str, ...]
+    unavailable_dimensions: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        _require_nonempty("evidence_artifact_id", self.evidence_artifact_id)
+        if not self.evidence_artifact_id.startswith("art_sha256_"):
+            raise ValueError(
+                "evidence_artifact_id must use the content-addressed art_sha256_* form"
+            )
+        if not self.observations:
+            raise ValueError("reference observations must not be empty")
+        if any(not item.strip() for item in self.observations):
+            raise ValueError("reference observations must not contain empty values")
+        if any(not item.strip() for item in self.unavailable_dimensions):
+            raise ValueError("unavailable reference dimensions must not contain empty values")
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,9 +111,11 @@ class ScriptPlanningRequest:
     current_script: ScriptPlan | None = None
     instruction: str | None = None
     policy_guidance: PlanningPolicyGuidance | None = None
+    reference_guidance: tuple[ReferenceStyleGuidance, ...] = ()
 
     def __post_init__(self) -> None:
         _validate_instruction(self.instruction)
+        _validate_reference_guidance(self.reference_guidance)
         if self.current_script is not None and self.current_script.brief_ref != _entity_ref(
             self.brief
         ):
@@ -134,9 +167,11 @@ class ShootingPlanningRequest:
     current_shooting_plan: ShootingPlan | None = None
     instruction: str | None = None
     policy_guidance: PlanningPolicyGuidance | None = None
+    reference_guidance: tuple[ReferenceStyleGuidance, ...] = ()
 
     def __post_init__(self) -> None:
         _validate_instruction(self.instruction)
+        _validate_reference_guidance(self.reference_guidance)
         brief_ref = _entity_ref(self.brief)
         script_ref = _entity_ref(self.script_plan)
         if self.script_plan.brief_ref != brief_ref:
