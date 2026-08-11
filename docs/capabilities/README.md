@@ -1,7 +1,7 @@
 # Capability Specifications
 
-**Status:** Candidate specification set derived from Survey V2 and Architecture Contract v0.2  
-**Authority:** Below Product Constitution and accepted Architecture Contracts; above implementation/provider details once frozen.
+**Status:** ACTIVE SPECIFICATION SET — accepted with Planning Baseline A0 on 2026-08-11  
+**Authority:** Below Product Constitution and accepted Architecture Contract v0.2; above implementation/provider details.
 
 These files split the product into durable capability boundaries so implementation does not depend on recovering design intent from research notes or chat history.
 
@@ -51,8 +51,8 @@ Every capability must preserve:
 - CPU-capable baseline where practical, GPU optional;
 - real product benchmarks before claiming quality improvement.
 
-## Candidate status
+## Acceptance meaning
 
-This specification set is intentionally written before Roadmap V2.
+Acceptance freezes **capability boundaries and invariants**, not benchmark winners or arbitrary constants.
 
-Exact provider/model/algorithm constants remain ADR/benchmark decisions. Do not turn a candidate implementation named in research into a dependency merely because its capability appears here.
+Exact provider/model/algorithm choices remain governed by ADRs, Upstream Ledger approval and Product/Engineering Probes. A model or library named in research does not become an approved dependency merely because the capability it may implement is now active.
