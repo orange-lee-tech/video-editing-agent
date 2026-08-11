@@ -95,7 +95,6 @@ def analysis(*, revision: int, shot_revision: int = 1) -> ShotAnalysis:
             camera_motion="static",
         ),
         speech=SpeechContent(transcript="hello", language="en"),
-        embedding_ref="emb_sha256_example",
         artifact_refs=("art_sha256_abc", "art_sha256_def"),
     )
 

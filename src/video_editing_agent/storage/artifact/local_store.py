@@ -25,6 +25,14 @@ class LocalArtifactStore:
     def _path_for_digest(self, digest: str) -> pathlib.Path:
         return self._root / "sha256" / digest[:2] / digest
 
+    @staticmethod
+    def _digest_for_ref(ref: StoredArtifactRef) -> str:
+        digest = ref.content_hash.removeprefix("sha256:")
+        expected_artifact_id = f"art_sha256_{digest}"
+        if ref.artifact_id != expected_artifact_id:
+            raise ValueError("artifact_id does not match content_hash")
+        return digest
+
     def put(self, payload: ArtifactPayload) -> StoredArtifactRef:
         digest = _sha256(payload.content)
         ref = StoredArtifactRef(
@@ -63,14 +71,18 @@ class LocalArtifactStore:
         return ref
 
     def get(self, ref: StoredArtifactRef) -> bytes:
-        digest = ref.content_hash.removeprefix("sha256:")
-        expected_artifact_id = f"art_sha256_{digest}"
-        if ref.artifact_id != expected_artifact_id:
-            raise ValueError("artifact_id does not match content_hash")
-
+        digest = self._digest_for_ref(ref)
         path = self._path_for_digest(digest)
         content = path.read_bytes()
         actual_digest = _sha256(content)
         if actual_digest != digest or len(content) != ref.byte_size:
             raise RuntimeError("stored artifact failed integrity verification")
         return content
+
+    def delete(self, ref: StoredArtifactRef) -> bool:
+        digest = self._digest_for_ref(ref)
+        path = self._path_for_digest(digest)
+        if not path.exists():
+            return False
+        path.unlink()
+        return True

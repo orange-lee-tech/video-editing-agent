@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Protocol
 
 from video_editing_agent.domain.common.entity import EntityRevisionRef
@@ -30,6 +31,39 @@ def _resolve_optional_duration(
     if resolved.as_fraction() < 0:
         raise ValueError(f"{name} must be >= 0")
     return resolved
+
+
+class EmbeddingNormalization(StrEnum):
+    NONE = "none"
+    L2 = "l2"
+
+
+@dataclass(frozen=True, slots=True)
+class ShotIndexRepresentationDescriptor:
+    """Rebuildable retrieval representation provenance, never Shot semantic truth."""
+
+    shot_ref: EntityRevisionRef
+    analysis_revision: int
+    representation: str
+    model_id: str
+    model_revision: str
+    dimension: int
+    normalization: EmbeddingNormalization
+
+    def __post_init__(self) -> None:
+        if self.analysis_revision < 1:
+            raise ValueError("analysis_revision must be >= 1")
+        for name, value in (
+            ("representation", self.representation),
+            ("model_id", self.model_id),
+            ("model_revision", self.model_revision),
+        ):
+            if not value.strip():
+                raise ValueError(f"{name} must not be empty")
+        if isinstance(self.dimension, bool) or not isinstance(self.dimension, int):
+            raise TypeError("dimension must be an int")
+        if self.dimension < 1:
+            raise ValueError("dimension must be >= 1")
 
 
 @dataclass(frozen=True, slots=True)

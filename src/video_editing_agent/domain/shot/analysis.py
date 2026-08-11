@@ -73,13 +73,10 @@ class ShotAnalysis:
     technical_quality: tuple[NamedQualityScore, ...] = ()
     visual: VisualSemantics | None = None
     speech: SpeechContent | None = None
-    embedding_ref: str | None = None
     artifact_refs: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         ShotAnalysisRef(self.shot_ref, self.revision)
-        if self.embedding_ref is not None and not self.embedding_ref.strip():
-            raise ValueError("embedding_ref must not be blank")
         if any(not artifact_ref.strip() for artifact_ref in self.artifact_refs):
             raise ValueError("artifact_refs must not contain blank values")
 

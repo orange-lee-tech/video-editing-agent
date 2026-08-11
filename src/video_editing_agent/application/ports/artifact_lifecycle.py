@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import Protocol
 
 
 class ArtifactRetentionClass(StrEnum):
@@ -28,12 +29,22 @@ class ArtifactLifecycleDescriptor:
     source_refs: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        if not self.artifact_id.strip():
-            raise ValueError("artifact_id must not be empty")
+        if not self.artifact_id.startswith("art_sha256_"):
+            raise ValueError("artifact_id must use the art_sha256_* content-addressed form")
         if not self.purpose.strip():
             raise ValueError("purpose must not be empty")
         if any(not value.strip() for value in self.source_refs):
             raise ValueError("source_refs must not contain blank values")
+
+
+class ArtifactLifecycleRepository(Protocol):
+    """Persist references/retention semantics independently of binary content identity."""
+
+    def add(self, descriptor: ArtifactLifecycleDescriptor) -> None: ...
+
+    def list_for_artifact(self, artifact_id: str) -> tuple[ArtifactLifecycleDescriptor, ...]: ...
+
+    def remove_all_for_artifact(self, artifact_id: str) -> None: ...
 
 
 def strongest_retention_class(

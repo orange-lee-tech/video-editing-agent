@@ -322,7 +322,6 @@ def encode_shot_analysis(analysis: ShotAnalysis) -> str:
             "speech": None
             if speech is None
             else {"transcript": speech.transcript, "language": speech.language},
-            "embedding_ref": analysis.embedding_ref,
             "artifact_refs": list(analysis.artifact_refs),
         }
     )
@@ -366,6 +365,5 @@ def decode_shot_analysis(payload: str) -> ShotAnalysis:
             transcript=speech_payload.get("transcript"),
             language=speech_payload.get("language"),
         ),
-        embedding_ref=value.get("embedding_ref"),
         artifact_refs=tuple(str(item) for item in value.get("artifact_refs", [])),
     )
