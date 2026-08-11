@@ -43,6 +43,30 @@ class MediaTime:
             raise ValueError("MediaTime cannot be represented as an exact integer millisecond")
         return quotient
 
+    def to_decimal_seconds_string(self, *, fractional_digits: int = 9) -> str:
+        """Render a deterministic decimal adapter value without binary floating-point conversion."""
+
+        _require_int("fractional_digits", fractional_digits)
+        if fractional_digits < 0:
+            raise ValueError("fractional_digits must be >= 0")
+
+        negative = self.value < 0
+        magnitude = abs(self.value)
+        factor = 10**fractional_digits
+        quotient, remainder = divmod(magnitude * factor, self.scale)
+        if remainder * 2 >= self.scale:
+            quotient += 1
+
+        whole, fractional = divmod(quotient, factor)
+        prefix = "-" if negative and quotient != 0 else ""
+        if fractional_digits == 0:
+            return f"{prefix}{whole}"
+
+        fractional_text = f"{fractional:0{fractional_digits}d}".rstrip("0")
+        minimum_digits = min(3, fractional_digits)
+        fractional_text = fractional_text.ljust(minimum_digits, "0")
+        return f"{prefix}{whole}.{fractional_text}"
+
     def __add__(self, other: MediaTime) -> MediaTime:
         if not isinstance(other, MediaTime):
             raise TypeError("MediaTime can only be added to MediaTime")

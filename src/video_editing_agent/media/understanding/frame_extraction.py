@@ -34,11 +34,6 @@ class FramePlanExtractor(Protocol):
     ) -> tuple[ExtractedFrameSample, ...]: ...
 
 
-def _timestamp_seconds(timestamp_ms: int) -> str:
-    seconds, milliseconds = divmod(timestamp_ms, 1000)
-    return f"{seconds}.{milliseconds:03d}"
-
-
 class FfmpegPngFrameExtractor:
     """Extract one PNG payload for each deterministic source timestamp in a sampling plan."""
 
@@ -48,6 +43,7 @@ class FfmpegPngFrameExtractor:
         self._executable = executable
 
     def _extract_one(self, input_video: pathlib.Path, sample: FrameSampleSpec) -> bytes:
+        timestamp_text = sample.source_timestamp.to_decimal_seconds_string()
         command = [
             self._executable,
             "-hide_banner",
@@ -55,7 +51,7 @@ class FfmpegPngFrameExtractor:
             "error",
             "-nostdin",
             "-ss",
-            _timestamp_seconds(sample.source_timestamp_ms),
+            timestamp_text,
             "-i",
             str(input_video),
             "-map",
@@ -80,13 +76,11 @@ class FfmpegPngFrameExtractor:
         if completed.returncode != 0:
             detail = completed.stderr.decode("utf-8", errors="replace").strip()
             raise RuntimeError(
-                f"FFmpeg frame extraction failed at {sample.source_timestamp_ms} ms: "
+                f"FFmpeg frame extraction failed at source {timestamp_text} s: "
                 f"{detail or 'unknown FFmpeg error'}"
             )
         if not completed.stdout.startswith(PNG_SIGNATURE):
-            raise RuntimeError(
-                f"FFmpeg did not return a PNG frame at {sample.source_timestamp_ms} ms"
-            )
+            raise RuntimeError(f"FFmpeg did not return a PNG frame at source {timestamp_text} s")
         return completed.stdout
 
     def extract(

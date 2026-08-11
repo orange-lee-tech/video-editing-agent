@@ -16,7 +16,7 @@ class StoredFrameSample:
     def __post_init__(self) -> None:
         if self.visual_ref.ordinal != self.sample.ordinal:
             raise ValueError("stored visual frame ordinal must match the sampling plan")
-        if self.visual_ref.source_timestamp_ms != self.sample.source_timestamp_ms:
+        if self.visual_ref.source_timestamp != self.sample.source_timestamp:
             raise ValueError("stored visual frame timestamp must match the sampling plan")
 
 
@@ -38,7 +38,7 @@ def persist_extracted_frame_samples(
                 visual_ref=VisualFrameReference(
                     artifact_ref=artifact_ref,
                     ordinal=extracted.sample.ordinal,
-                    source_timestamp_ms=extracted.sample.source_timestamp_ms,
+                    source_timestamp=extracted.sample.source_timestamp,
                 ),
             )
         )

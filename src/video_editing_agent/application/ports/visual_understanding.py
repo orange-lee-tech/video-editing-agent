@@ -6,6 +6,7 @@ from typing import Protocol
 
 from video_editing_agent.application.ports.artifact_store import StoredArtifactRef
 from video_editing_agent.domain.common.entity import EntityRevisionRef
+from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.domain.shot.analysis import AnalysisProfile
 
 
@@ -21,25 +22,45 @@ class VisualProviderResponseError(VisualProviderError):
     """A non-retryable provider response/schema failure."""
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class VisualFrameReference:
     artifact_ref: StoredArtifactRef
     ordinal: int
-    source_timestamp_ms: int
+    source_timestamp: MediaTime
 
-    def __post_init__(self) -> None:
-        if not self.artifact_ref.media_type.startswith("image/"):
+    def __init__(
+        self,
+        artifact_ref: StoredArtifactRef,
+        ordinal: int,
+        source_timestamp_ms: int | None = None,
+        *,
+        source_timestamp: MediaTime | None = None,
+    ) -> None:
+        if source_timestamp is not None:
+            if source_timestamp_ms is not None:
+                raise ValueError("provide source_timestamp or source_timestamp_ms, not both")
+            resolved_timestamp = source_timestamp
+        else:
+            if source_timestamp_ms is None:
+                raise ValueError("source_timestamp or source_timestamp_ms is required")
+            resolved_timestamp = MediaTime.from_milliseconds(source_timestamp_ms)
+
+        if not artifact_ref.media_type.startswith("image/"):
             raise ValueError("visual frame artifact must use an image/* media type")
-        if isinstance(self.ordinal, bool) or not isinstance(self.ordinal, int):
+        if isinstance(ordinal, bool) or not isinstance(ordinal, int):
             raise TypeError("ordinal must be an int")
-        if self.ordinal < 0:
+        if ordinal < 0:
             raise ValueError("ordinal must be >= 0")
-        if isinstance(self.source_timestamp_ms, bool) or not isinstance(
-            self.source_timestamp_ms, int
-        ):
-            raise TypeError("source_timestamp_ms must be an int")
-        if self.source_timestamp_ms < 0:
-            raise ValueError("source_timestamp_ms must be >= 0")
+        if resolved_timestamp.as_fraction() < 0:
+            raise ValueError("source_timestamp must be >= 0")
+
+        object.__setattr__(self, "artifact_ref", artifact_ref)
+        object.__setattr__(self, "ordinal", ordinal)
+        object.__setattr__(self, "source_timestamp", resolved_timestamp)
+
+    @property
+    def source_timestamp_ms(self) -> int:
+        return self.source_timestamp.to_milliseconds_exact()
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,7 +74,7 @@ class VisualUnderstandingRequest:
             raise ValueError("visual understanding requires at least one frame")
         if tuple(frame.ordinal for frame in self.frames) != tuple(range(len(self.frames))):
             raise ValueError("visual frame ordinals must be contiguous from zero")
-        timestamps = tuple(frame.source_timestamp_ms for frame in self.frames)
+        timestamps = tuple(frame.source_timestamp.as_fraction() for frame in self.frames)
         if timestamps != tuple(sorted(set(timestamps))):
             raise ValueError("visual frame timestamps must be unique and increasing")
 

@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from video_editing_agent.application.ports.shot_detector import ShotBoundaryProposal
 from video_editing_agent.application.ports.shot_repository import ShotPersistenceRepository
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevisionRef, EntityStatus
+from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.domain.shot.model import Shot
 
 SHOT_SCHEMA_VERSION = "0.1.1"
@@ -49,11 +50,11 @@ class ShotCatalog:
             raise ValueError(
                 "all ShotBoundaryProposal values must reference the same Asset revision"
             )
-        if ordered[0].source_start_ms != 0:
+        if ordered[0].source_range.start != MediaTime(0, 1):
             raise ValueError("the first shot boundary must start at source time 0")
 
         for previous, current in zip(ordered, ordered[1:], strict=False):
-            if current.source_start_ms != previous.source_end_ms:
+            if current.source_range.start != previous.source_range.end:
                 raise ValueError("shot boundaries must be ordered, contiguous, and non-overlapping")
 
         shot_ids = tuple(self._shot_id_factory() for _ in ordered)
@@ -80,8 +81,7 @@ class ShotCatalog:
                         created_by=created_by,
                     ),
                     asset_ref=asset_ref,
-                    source_start_ms=proposal.source_start_ms,
-                    source_end_ms=proposal.source_end_ms,
+                    source_range=proposal.source_range,
                     boundary_method=proposal.detection_method,
                     previous_shot_ref=previous_ref,
                     next_shot_ref=next_ref,
