@@ -95,15 +95,13 @@ def plan_uniform_frame_samples(
     except ValueError:
         sample_count = resolved_options.max_frames
         timestamps = tuple(
-            _exact_midpoint_timestamp(shot, index, sample_count)
-            for index in range(sample_count)
+            _exact_midpoint_timestamp(shot, index, sample_count) for index in range(sample_count)
         )
     else:
         sample_count = min(resolved_options.max_frames, duration_ms)
         timestamps = tuple(
             MediaTime.from_milliseconds(
-                source_start_ms
-                + ((2 * index + 1) * duration_ms) // (2 * sample_count)
+                source_start_ms + ((2 * index + 1) * duration_ms) // (2 * sample_count)
             )
             for index in range(sample_count)
         )
