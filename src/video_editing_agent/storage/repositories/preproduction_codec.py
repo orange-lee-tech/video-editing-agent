@@ -309,7 +309,7 @@ def _constraints_from_payload(value: object) -> ProductionConstraints:
         stabilizer=cast(str | None, typed.get("stabilizer")),
         lighting=cast(str | None, typed.get("lighting")),
         microphones=_string_tuple(typed.get("microphones", []), "microphones"),
-        people_count=cast(int | None, people_count),
+        people_count=people_count,
         locations=_string_tuple(typed.get("locations", []), "locations"),
         available_time_notes=cast(str | None, typed.get("available_time_notes")),
         user_skill_level=cast(str | None, typed.get("user_skill_level")),
