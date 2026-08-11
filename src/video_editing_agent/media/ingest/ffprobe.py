@@ -4,8 +4,11 @@ import json
 import math
 import pathlib
 import subprocess
+from decimal import Decimal, InvalidOperation
+from fractions import Fraction
 from typing import cast
 
+from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.media.ingest.probe import MediaTechnicalMetadata
 
 FFPROBE_SHOW_ENTRIES = (
@@ -59,6 +62,27 @@ def _positive_float(value: object) -> float | None:
     return parsed
 
 
+def _positive_media_time(value: object) -> MediaTime | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float, str)):
+        text = str(value).strip()
+    else:
+        return None
+    if not text:
+        return None
+
+    try:
+        decimal_value = Decimal(text)
+    except InvalidOperation:
+        return None
+    if not decimal_value.is_finite() or decimal_value <= 0:
+        return None
+
+    exact = Fraction(decimal_value)
+    return MediaTime(exact.numerator, exact.denominator)
+
+
 def _frame_rate(value: object) -> float | None:
     if not isinstance(value, str):
         return _positive_float(value)
@@ -76,15 +100,12 @@ def _frame_rate(value: object) -> float | None:
     return _positive_float(numerator / denominator)
 
 
-def _duration_ms(format_data: dict[str, object]) -> int | None:
-    seconds = _positive_float(format_data.get("duration"))
-    if seconds is None:
-        return None
-    return max(1, round(seconds * 1000))
+def _duration(format_data: dict[str, object]) -> MediaTime | None:
+    return _positive_media_time(format_data.get("duration"))
 
 
 def parse_ffprobe_metadata(payload: str) -> MediaTechnicalMetadata:
-    """Normalize the ffprobe JSON subset used by AssetIngest."""
+    """Normalize the ffprobe JSON subset used by AssetIngest without float duration loss."""
     try:
         root = json.loads(payload)
     except json.JSONDecodeError as exc:
@@ -122,7 +143,7 @@ def parse_ffprobe_metadata(payload: str) -> MediaTechnicalMetadata:
 
     return MediaTechnicalMetadata(
         media_kind=media_kind,
-        duration_ms=_duration_ms(format_data),
+        duration=_duration(format_data),
         width=_positive_int_field(video_stream, "width") if video_stream is not None else None,
         height=_positive_int_field(video_stream, "height") if video_stream is not None else None,
         fps=fps,

@@ -75,7 +75,7 @@ class AssetIngestService:
             byte_size=path.stat().st_size,
             provenance=source.provenance,
             imported_at=imported_at,
-            duration_ms=metadata.duration_ms,
+            duration=metadata.duration,
             width=metadata.width,
             height=metadata.height,
             fps=metadata.fps,

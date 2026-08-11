@@ -12,6 +12,7 @@ from video_editing_agent.application.ports.shot_index import (
     ShotSearchConstraints,
 )
 from video_editing_agent.domain.common.entity import EntityRevisionRef
+from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.domain.shot.analysis import AnalysisProfile
 
 _TOKEN_RUN_PATTERN = re.compile(r"[a-z0-9_]+|[\u3400-\u4dbf\u4e00-\u9fff]+")
@@ -22,7 +23,7 @@ MAX_TERM_WEIGHT = 5.0
 class _IndexedShot:
     shot_ref: EntityRevisionRef
     asset_ref: EntityRevisionRef
-    duration_ms: int
+    duration: MediaTime
     analysis_revision: int
     profile: AnalysisProfile
     term_weights: dict[str, float]
@@ -93,7 +94,7 @@ def _build_record(source: ShotIndexSource) -> _IndexedShot:
     return _IndexedShot(
         shot_ref=shot_ref,
         asset_ref=source.shot.asset_ref,
-        duration_ms=source.shot.duration_ms,
+        duration=source.shot.source_range.duration,
         analysis_revision=source.analysis.revision,
         profile=source.analysis.profile,
         term_weights=term_weights,
@@ -105,9 +106,16 @@ def _passes_constraints(record: _IndexedShot, constraints: ShotSearchConstraints
         return False
     if constraints.profiles and record.profile not in constraints.profiles:
         return False
-    if constraints.min_duration_ms is not None and record.duration_ms < constraints.min_duration_ms:
+    duration = record.duration.as_fraction()
+    if (
+        constraints.min_duration is not None
+        and duration < constraints.min_duration.as_fraction()
+    ):
         return False
-    if constraints.max_duration_ms is not None and record.duration_ms > constraints.max_duration_ms:
+    if (
+        constraints.max_duration is not None
+        and duration > constraints.max_duration.as_fraction()
+    ):
         return False
     return True
 

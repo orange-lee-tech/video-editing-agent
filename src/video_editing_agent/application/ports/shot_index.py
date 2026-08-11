@@ -5,17 +5,31 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from video_editing_agent.domain.common.entity import EntityRevisionRef
+from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.domain.shot.analysis import AnalysisProfile, ShotAnalysis
 from video_editing_agent.domain.shot.model import Shot
 
 
-def _validate_optional_duration(name: str, value: int | None) -> None:
-    if value is None:
-        return
-    if isinstance(value, bool) or not isinstance(value, int):
-        raise TypeError(f"{name} must be an int or None")
-    if value < 0:
+def _resolve_optional_duration(
+    *,
+    duration: MediaTime | None,
+    duration_ms: int | None,
+    name: str,
+) -> MediaTime | None:
+    if duration is not None:
+        if duration_ms is not None:
+            raise ValueError(f"provide {name} or legacy {name}_ms, not both")
+        resolved = duration
+    elif duration_ms is not None:
+        if isinstance(duration_ms, bool) or not isinstance(duration_ms, int):
+            raise TypeError(f"{name}_ms must be an int or None")
+        resolved = MediaTime.from_milliseconds(duration_ms)
+    else:
+        return None
+
+    if resolved.as_fraction() < 0:
         raise ValueError(f"{name} must be >= 0")
+    return resolved
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,24 +45,58 @@ class ShotIndexSource:
             raise ValueError("ShotAnalysis must reference the exact Shot revision being indexed")
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class ShotSearchConstraints:
     """Retrieval prefilters only; Resolver still owns final eligibility validation."""
 
-    asset_refs: tuple[EntityRevisionRef, ...] = ()
-    profiles: tuple[AnalysisProfile, ...] = ()
-    min_duration_ms: int | None = None
-    max_duration_ms: int | None = None
+    asset_refs: tuple[EntityRevisionRef, ...]
+    profiles: tuple[AnalysisProfile, ...]
+    min_duration: MediaTime | None
+    max_duration: MediaTime | None
 
-    def __post_init__(self) -> None:
-        _validate_optional_duration("min_duration_ms", self.min_duration_ms)
-        _validate_optional_duration("max_duration_ms", self.max_duration_ms)
+    def __init__(
+        self,
+        asset_refs: tuple[EntityRevisionRef, ...] = (),
+        profiles: tuple[AnalysisProfile, ...] = (),
+        min_duration_ms: int | None = None,
+        max_duration_ms: int | None = None,
+        *,
+        min_duration: MediaTime | None = None,
+        max_duration: MediaTime | None = None,
+    ) -> None:
+        resolved_min = _resolve_optional_duration(
+            duration=min_duration,
+            duration_ms=min_duration_ms,
+            name="min_duration",
+        )
+        resolved_max = _resolve_optional_duration(
+            duration=max_duration,
+            duration_ms=max_duration_ms,
+            name="max_duration",
+        )
         if (
-            self.min_duration_ms is not None
-            and self.max_duration_ms is not None
-            and self.min_duration_ms > self.max_duration_ms
+            resolved_min is not None
+            and resolved_max is not None
+            and resolved_min.as_fraction() > resolved_max.as_fraction()
         ):
-            raise ValueError("min_duration_ms cannot exceed max_duration_ms")
+            raise ValueError("min_duration cannot exceed max_duration")
+
+        object.__setattr__(self, "asset_refs", asset_refs)
+        object.__setattr__(self, "profiles", profiles)
+        object.__setattr__(self, "min_duration", resolved_min)
+        object.__setattr__(self, "max_duration", resolved_max)
+
+    @property
+    def min_duration_ms(self) -> int | None:
+        if self.min_duration is None:
+            return None
+        return self.min_duration.to_milliseconds_exact()
+
+    @property
+    def max_duration_ms(self) -> int | None:
+        if self.max_duration is None:
+            return None
+        return self.max_duration.to_milliseconds_exact()
 
 
 @dataclass(frozen=True, slots=True)
