@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import collections.abc
 import dataclasses
 import pathlib
 from collections.abc import Iterable
@@ -46,11 +45,7 @@ def _normalize_cut_points(
     total = total_duration.as_fraction()
     return tuple(
         sorted(
-            {
-                value
-                for value in values
-                if Fraction(0, 1) < value.as_fraction() < total
-            },
+            {value for value in values if Fraction(0, 1) < value.as_fraction() < total},
             key=MediaTime.as_fraction,
         )
     )
