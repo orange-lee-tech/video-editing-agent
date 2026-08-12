@@ -71,11 +71,12 @@ def test_adapter_merges_window_probabilities_into_complete_partition() -> None:
         VoiceActivityState.SPEECH,
         VoiceActivityState.SILENCE,
     ]
-    assert proposal.spans[0].relative_range == MediaTimeRange(MediaTime(0, 1), MediaTime(4, 125))
-    assert proposal.spans[1].relative_range == MediaTimeRange(MediaTime(4, 125), MediaTime(8, 125))
-    assert proposal.spans[2].relative_range == MediaTimeRange(
-        MediaTime(12, 125), MediaTime(4, 125)
+    expected_ranges = (
+        MediaTimeRange(MediaTime(0, 1), MediaTime(4, 125)),
+        MediaTimeRange(MediaTime(4, 125), MediaTime(8, 125)),
+        MediaTimeRange(MediaTime(12, 125), MediaTime(4, 125)),
     )
+    assert tuple(span.relative_range for span in proposal.spans) == expected_ranges
     assert proposal.spans[0].confidence == pytest.approx(0.9)
     assert proposal.spans[1].confidence == pytest.approx(0.85)
     assert proposal.spans[2].confidence == pytest.approx(0.8)
