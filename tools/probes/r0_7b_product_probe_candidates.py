@@ -498,6 +498,7 @@ def _engineering_failure_result(
         "reviewer_thinking_enabled": True,
         "failure_stage": stage,
         "error_category": type(error).__name__,
+        "error_message": " ".join(str(error).split())[:500],
     }
 
 
