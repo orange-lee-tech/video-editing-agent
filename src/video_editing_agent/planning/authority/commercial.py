@@ -56,9 +56,7 @@ class CommercialAuthoritySnapshot:
                 {"fact_id": fact_id, "statement": statement}
                 for fact_id, statement in self.authoritative_facts
             ],
-            "concrete_claim_categories": [
-                item.value for item in CONCRETE_CLAIM_CATEGORIES
-            ],
+            "concrete_claim_categories": [item.value for item in CONCRETE_CLAIM_CATEGORIES],
             "concrete_claim_requires_authoritative_fact": True,
             "successful_demonstration_outcome_requires_authoritative_support": True,
             "unsupported_claim_handling": "unresolved_or_nonclaim_framing",

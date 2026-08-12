@@ -94,8 +94,7 @@ _BASE_SYSTEM_RULES = (
     "never copy wording or distinctive visual expression, and never infer dimensions explicitly "
     "marked unavailable. Never choose source footage or timestamps. Never propose remote/generated "
     "visual fallback. Return one json object only, with no markdown or prose outside the "
-    "json object. "
-    + COMMERCIAL_AUTHORITY_SYSTEM_RULES
+    "json object. " + COMMERCIAL_AUTHORITY_SYSTEM_RULES
 )
 
 _SCRIPT_SYSTEM_PROMPT = (
