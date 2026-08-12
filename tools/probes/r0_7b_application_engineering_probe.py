@@ -78,7 +78,9 @@ def main() -> None:
         assert tuple(shot.source_end_ms for shot in shots) == (1_000, 2_000)
         reopened = ProjectWorkspace.open(root / "project")
         assert reopened.assets.load(asset_ref) == asset
-        persisted_shots = tuple(sorted(reopened.shots.list_all(), key=lambda shot: shot.source_start_ms))
+        persisted_shots = tuple(
+            sorted(reopened.shots.list_all(), key=lambda shot: shot.source_start_ms)
+        )
         assert tuple(
             (shot.envelope.id, shot.envelope.revision, shot.source_range)
             for shot in persisted_shots
