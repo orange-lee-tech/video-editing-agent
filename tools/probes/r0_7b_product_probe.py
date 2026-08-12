@@ -20,16 +20,16 @@ PRODUCT_REVIEW_SYSTEM_PROMPT = (
     "them. Evaluate whether the generated plan is safe to present for human product acceptance. "
     + COMMERCIAL_AUTHORITY_SYSTEM_RULES
     + " Veto prohibited content or brand-constraint violations. Veto any suggestion to obtain "
-    "stock, public-web, third-party, or generated visual footage as a replacement for user-supplied "
-    "local visuals. Veto shooting guidance that conflicts with the declared people count, "
-    "equipment, skill level, or structured production location identities. A valid location_ref is "
-    "not enough when natural-language shooting guidance describes a different place than the "
-    "referenced location label/notes. Veto a plan when a NarrativeSection lacks meaningful "
-    "required/recommended shootable coverage. For a natural Vlog, preserve the Brief's ordinary "
-    "event sequence and do not invent dramatic events merely to improve engagement. Return exactly "
-    "one json object with keys accepted and violations. violations is an array of objects with "
-    "exactly code, scope, excerpt, and reason; scope/excerpt may be null. accepted=true requires an "
-    "empty violations array. No markdown and no corrected copy."
+    "stock, public-web, third-party, or generated visual footage as a replacement for "
+    "user-supplied local visuals. Veto shooting guidance that conflicts with the declared people "
+    "count, equipment, skill level, or structured production location identities. A valid "
+    "location_ref is not enough when natural-language shooting guidance describes a different "
+    "place than the referenced location label/notes. Veto a plan when a NarrativeSection lacks "
+    "meaningful required/recommended shootable coverage. For a natural Vlog, preserve the Brief's "
+    "ordinary event sequence and do not invent dramatic events merely to improve engagement. "
+    "Return exactly one json object with keys accepted and violations. violations is an array of "
+    "objects with exactly code, scope, excerpt, and reason; scope/excerpt may be null. "
+    "accepted=true requires an empty violations array. No markdown and no corrected copy."
 )
 
 _ORIGINAL_AUTOMATED_PRODUCT_REVIEW = legacy._automated_product_review

@@ -1,5 +1,10 @@
+from __future__ import annotations
+
+import importlib
 import json
+import sys
 from datetime import UTC, datetime
+from pathlib import Path
 
 from video_editing_agent.domain.brief.model import AuthoritativeFact, Brief
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityStatus
@@ -8,7 +13,9 @@ from video_editing_agent.planning.authority.commercial import (
     commercial_authority_payload,
 )
 from video_editing_agent.storage.repositories.preproduction_codec import encode_brief
-from tools.probes import r0_7b_product_probe as probe
+
+sys.path.insert(0, str(Path(__file__).parents[2]))
+probe = importlib.import_module("tools.probes.r0_7b_product_probe")
 
 
 def _brief() -> Brief:
