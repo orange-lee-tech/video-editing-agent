@@ -94,7 +94,8 @@ def _default_model_factory(config: FasterWhisperConfig) -> Any:
     except Exception as exc:
         if config.local_files_only:
             raise FasterWhisperUnavailableError(
-                "pinned faster-whisper model is not available locally; implicit download is disabled"
+                "pinned faster-whisper model is not available locally; "
+                "implicit download is disabled"
             ) from exc
         raise
 
@@ -125,10 +126,10 @@ def _word_proposal(word: Any, source_start: MediaTime) -> SpeechWordProposal:
     probability = getattr(word, "probability", None)
     confidence = None if probability is None else float(probability)
     return SpeechWordProposal(
-        text=str(getattr(word, "word")),
+        text=str(word.word),
         relative_range=_relative_range(
-            getattr(word, "start"),
-            getattr(word, "end"),
+            word.start,
+            word.end,
             source_start,
         ),
         confidence=confidence,
@@ -137,16 +138,12 @@ def _word_proposal(word: Any, source_start: MediaTime) -> SpeechWordProposal:
 
 def _segment_proposal(segment: Any, source_start: MediaTime) -> SpeechSegmentProposal:
     raw_words = getattr(segment, "words", None)
-    words = (
-        ()
-        if raw_words is None
-        else tuple(_word_proposal(word, source_start) for word in raw_words)
-    )
+    words = (() if raw_words is None else tuple(_word_proposal(word, source_start) for word in raw_words))
     return SpeechSegmentProposal(
-        text=str(getattr(segment, "text")),
+        text=str(segment.text),
         relative_range=_relative_range(
-            getattr(segment, "start"),
-            getattr(segment, "end"),
+            segment.start,
+            segment.end,
             source_start,
         ),
         words=words,
@@ -154,7 +151,10 @@ def _segment_proposal(segment: Any, source_start: MediaTime) -> SpeechSegmentPro
 
 
 class FasterWhisperSpeechRecognitionPort(SpeechRecognitionPort):
-    """Optional pinned faster-whisper adapter; source-time authority remains with the local owner."""
+    """Pinned optional faster-whisper adapter.
+
+    Source-time authority remains with the local owner.
+    """
 
     def __init__(
         self,
@@ -193,7 +193,7 @@ class FasterWhisperSpeechRecognitionPort(SpeechRecognitionPort):
         )
         raw_segments = list(segments_iter)
         segments = tuple(_segment_proposal(segment, source_start) for segment in raw_segments)
-        text = "".join(str(getattr(segment, "text")) for segment in raw_segments).strip()
+        text = "".join(str(segment.text) for segment in raw_segments).strip()
         detected_language = getattr(info, "language", None)
         language = None if detected_language is None else str(detected_language)
 
