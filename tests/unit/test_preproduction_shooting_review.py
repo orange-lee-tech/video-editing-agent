@@ -62,17 +62,20 @@ class StaticReviewPort:
 
 
 class FakeTransport:
-    def __init__(self, content: dict[str, Any]) -> None:
-        self.content = content
+    def __init__(self, content: dict[str, Any] | str | list[dict[str, Any] | str]) -> None:
+        self.contents = content if isinstance(content, list) else [content]
         self.payloads: list[dict[str, Any]] = []
 
     def create_chat_completion(self, payload: dict[str, Any]) -> dict[str, Any]:
         self.payloads.append(payload)
+        content = self.contents[min(len(self.payloads) - 1, len(self.contents) - 1)]
         return {
             "choices": [
                 {
                     "finish_reason": "stop",
-                    "message": {"content": json.dumps(self.content)},
+                    "message": {
+                        "content": content if isinstance(content, str) else json.dumps(content)
+                    },
                 }
             ]
         }
@@ -348,6 +351,7 @@ def test_deepseek_shooting_reviewer_sees_location_identity_and_conflicting_prose
 
     assert not review.accepted
     assert review.violations[0].code == "location_identity_mismatch"
+    assert len(transport.payloads) == 1
     payload = transport.payloads[0]
     assert payload["thinking"] == {"type": "enabled"}
     assert payload["max_tokens"] == 3_000
@@ -366,3 +370,29 @@ def test_deepseek_shooting_reviewer_sees_location_identity_and_conflicting_prose
     assert requirement["location_ref"] == "loc_entryway"
     assert requirement["environment_description"] == "near the sink"
     assert requirement["capture_instruction"] == "Stand near the sink and rotate the lid once."
+    prompt = payload["messages"][0]["content"]
+    assert "{'accepted'" not in prompt
+    assert '{"accepted":true,"violations":[]}' in prompt
+    assert '"requirement_id"' in prompt
+    assert "Never rewrite the proposal" in prompt
+    assert payload["response_format"] == {"type": "json_object"}
+
+
+def test_shooting_review_recovers_once_from_malformed_json(tmp_path: Path) -> None:
+    transport = FakeTransport(
+        ["{'accepted': True, 'violations': []}", {"accepted": True, "violations": []}]
+    )
+    _, _, _, brief, script, _ = project_chain(tmp_path / "project.sqlite3")
+    adapter = DeepSeekShootingProposalReviewPort(transport=transport)
+
+    review = adapter.review(
+        ShootingProposalReviewRequest(
+            brief=brief,
+            script_plan=script,
+            constraints=constraints(),
+            proposal=safe_proposal(),
+        )
+    )
+
+    assert review.accepted
+    assert len(transport.payloads) == 2

@@ -46,13 +46,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PROBE_OUTCOME: ${{ steps.probe.outcome }}
+          PROBE_CLASSIFICATION: ${{ steps.probe.outputs.classification }}
         run: |
           if [ "$PROBE_OUTCOME" = "success" ]; then
             state="success"
             description="R0.7B reviewable product-probe evidence generated; human acceptance pending"
           else
             state="failure"
-            description="R0.7B product-probe semantic or product constraints failed"
+            if [ "$PROBE_CLASSIFICATION" = "engineering-provider-failure" ]; then
+              description="R0.7B product-probe engineering/provider failure"
+            else
+              description="R0.7B product-probe semantic or product veto"
+            fi
           fi
 
           gh api \

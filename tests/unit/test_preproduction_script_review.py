@@ -25,7 +25,10 @@ from video_editing_agent.planning.script.workflow import (
     ScriptPlanningWorkflow,
     ScriptProposalRejectedError,
 )
-from video_editing_agent.providers.llm.deepseek_chat import DeepSeekChatConfig
+from video_editing_agent.providers.llm.deepseek_chat import (
+    DeepSeekChatConfig,
+    DeepSeekPlanningResponseError,
+)
 from video_editing_agent.providers.llm.deepseek_preproduction_review import (
     DeepSeekScriptProposalReviewPort,
 )
@@ -59,17 +62,20 @@ class StaticReviewPort:
 
 
 class FakeTransport:
-    def __init__(self, content: dict[str, Any]) -> None:
-        self.content = content
+    def __init__(self, content: dict[str, Any] | str | list[dict[str, Any] | str]) -> None:
+        self.contents = content if isinstance(content, list) else [content]
         self.payloads: list[dict[str, Any]] = []
 
     def create_chat_completion(self, payload: dict[str, Any]) -> dict[str, Any]:
         self.payloads.append(payload)
+        content = self.contents[min(len(self.payloads) - 1, len(self.contents) - 1)]
         return {
             "choices": [
                 {
                     "finish_reason": "stop",
-                    "message": {"content": json.dumps(self.content)},
+                    "message": {
+                        "content": content if isinstance(content, str) else json.dumps(content)
+                    },
                 }
             ]
         }
@@ -273,6 +279,7 @@ def test_deepseek_reviewer_detects_structural_feature_does_not_imply_performance
 
     assert not review.accepted
     assert review.violations[0].code == "unsupported_performance_claim"
+    assert len(transport.payloads) == 1
     payload = transport.payloads[0]
     assert payload["thinking"] == {"type": "enabled"}
     assert payload["max_tokens"] == 2_500
@@ -284,6 +291,53 @@ def test_deepseek_reviewer_detects_structural_feature_does_not_imply_performance
         {"fact_id": "fact_lid", "statement": "The bottle has a screw-on lid."}
     ]
     assert context["brief"]["prohibited_content"] == ["Do not claim leak resistance."]
+    prompt = payload["messages"][0]["content"]
+    assert "{'accepted'" not in prompt
+    assert '{"accepted":true,"violations":[]}' in prompt
+    assert '"section_id"' in prompt
+    assert "Never rewrite the proposal" in prompt
+    assert payload["response_format"] == {"type": "json_object"}
+
+
+def test_script_review_recovers_once_from_malformed_json(tmp_path: Path) -> None:
+    transport = FakeTransport(
+        ["{'accepted': True, 'violations': []}", {"accepted": True, "violations": []}]
+    )
+    briefs, _ = repositories(tmp_path / "project.sqlite3")
+    adapter = DeepSeekScriptProposalReviewPort(transport=transport)
+
+    review = adapter.review(
+        ScriptProposalReviewRequest(brief=guarded_brief(briefs), proposal=safe_proposal())
+    )
+
+    assert review.accepted
+    assert len(transport.payloads) == 2
+    assert "previous response did not satisfy" in transport.payloads[1]["messages"][2]["content"]
+
+
+def test_script_review_malformed_twice_fails_closed(tmp_path: Path) -> None:
+    transport = FakeTransport(["{'accepted': True}", "{'accepted': True}"])
+    briefs, _ = repositories(tmp_path / "project.sqlite3")
+    adapter = DeepSeekScriptProposalReviewPort(transport=transport)
+
+    with pytest.raises(DeepSeekPlanningResponseError, match="not valid JSON"):
+        adapter.review(
+            ScriptProposalReviewRequest(brief=guarded_brief(briefs), proposal=safe_proposal())
+        )
+    assert len(transport.payloads) == 2
+
+
+def test_script_review_schema_failure_recovers_once(tmp_path: Path) -> None:
+    transport = FakeTransport([{"accepted": True}, {"accepted": True, "violations": []}])
+    briefs, _ = repositories(tmp_path / "project.sqlite3")
+    adapter = DeepSeekScriptProposalReviewPort(transport=transport)
+
+    review = adapter.review(
+        ScriptProposalReviewRequest(brief=guarded_brief(briefs), proposal=safe_proposal())
+    )
+
+    assert review.accepted
+    assert len(transport.payloads) == 2
 
 
 def test_deepseek_reviewer_respects_explicit_non_thinking_configuration(

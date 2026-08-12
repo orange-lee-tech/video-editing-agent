@@ -487,6 +487,20 @@ def _shooting_semantic_veto_result(
     }
 
 
+def _engineering_failure_result(
+    *, case: ProbeCase, config: DeepSeekChatConfig, stage: str, error: Exception
+) -> dict[str, Any]:
+    return {
+        "case_id": case.case_id,
+        "candidate_status": "engineering_failure",
+        "model": config.model,
+        "generation_thinking_enabled": config.thinking_enabled,
+        "reviewer_thinking_enabled": True,
+        "failure_stage": stage,
+        "error_category": type(error).__name__,
+    }
+
+
 def _run_case(
     case: ProbeCase,
     *,
@@ -564,6 +578,10 @@ def _run_case(
             policy=policy,
             review=exc.review,
         )
+    except (DeepSeekPlanningResponseError, DeepSeekPlanningTransientError) as exc:
+        return _engineering_failure_result(
+            case=case, config=config, stage="script_generation_or_review", error=exc
+        )
     if len(recording_script_review.reviews) != 1 or not recording_script_review.reviews[0].accepted:
         raise AssertionError(f"{case.case_id}: guarded script lacks one accepted semantic review")
     script_review = recording_script_review.reviews[0]
@@ -601,6 +619,10 @@ def _run_case(
             policy=policy,
             script_review=script_review,
             review=exc.review,
+        )
+    except (DeepSeekPlanningResponseError, DeepSeekPlanningTransientError) as exc:
+        return _engineering_failure_result(
+            case=case, config=config, stage="shooting_generation_or_review", error=exc
         )
     if (
         len(recording_shooting_review.reviews) != 1
@@ -649,26 +671,31 @@ def _run_case(
     shooting_payload = json.loads(encode_shooting_plan(shooting_plan))
     script_review_payload = _script_review_payload(script_review)
     shooting_review_payload = _shooting_review_payload(shooting_review)
-    product_review = _automated_product_review(
-        transport=transport,
-        config=product_review_config,
-        context={
-            "case_id": case.case_id,
-            "brief": brief_payload,
-            "commercial_policy": {
-                "platform_profile_id": policy.platform_profile_id,
-                "skill_id": policy.skill_id,
-                "marketing_objective": policy.marketing_objective,
+    try:
+        product_review = _automated_product_review(
+            transport=transport,
+            config=product_review_config,
+            context={
+                "case_id": case.case_id,
+                "brief": brief_payload,
+                "commercial_policy": {
+                    "platform_profile_id": policy.platform_profile_id,
+                    "skill_id": policy.skill_id,
+                    "marketing_objective": policy.marketing_objective,
+                },
+                "script_plan": script_payload,
+                "shooting_plan": shooting_payload,
+                "script_semantic_review": script_review_payload,
+                "shooting_semantic_review": shooting_review_payload,
+                "duration_assessment": duration,
+                "expected_coverage": coverage,
+                "structured_location_assessment": locations,
             },
-            "script_plan": script_payload,
-            "shooting_plan": shooting_payload,
-            "script_semantic_review": script_review_payload,
-            "shooting_semantic_review": shooting_review_payload,
-            "duration_assessment": duration,
-            "expected_coverage": coverage,
-            "structured_location_assessment": locations,
-        },
-    )
+        )
+    except (DeepSeekPlanningResponseError, DeepSeekPlanningTransientError) as exc:
+        return _engineering_failure_result(
+            case=case, config=config, stage="automated_product_review", error=exc
+        )
     if not product_review["accepted"]:
         return {
             "case_id": case.case_id,
@@ -744,9 +771,16 @@ def main() -> None:
         )
 
     ready = all(case["candidate_status"] == "ready_for_human_acceptance" for case in cases)
+    engineering_failed = any(case["candidate_status"] == "engineering_failure" for case in cases)
     report = {
         "probe": "r0.7b-product-probe",
-        "status": "reviewable-evidence-generated" if ready else "automated-gate-vetoed",
+        "status": (
+            "reviewable-evidence-generated"
+            if ready
+            else "engineering-provider-failure"
+            if engineering_failed
+            else "automated-gate-vetoed"
+        ),
         "product_pass": False,
         "human_evaluation_status": "pending",
         "human_evaluation_dimensions": [
@@ -760,8 +794,12 @@ def main() -> None:
     print("R0_7B_PRODUCT_PROBE_BEGIN")
     print(json.dumps(report, ensure_ascii=False, allow_nan=False, sort_keys=True, indent=2))
     print("R0_7B_PRODUCT_PROBE_END")
+    output_path = os.environ.get("GITHUB_OUTPUT")
+    if output_path:
+        with Path(output_path).open("a", encoding="utf-8") as output:
+            output.write(f"classification={report['status']}\n")
     if not ready:
-        raise AssertionError("one or more R0.7B Product Probe cases were vetoed")
+        raise AssertionError(f"R0.7B Product Probe failed: {report['status']}")
 
 
 if __name__ == "__main__":
