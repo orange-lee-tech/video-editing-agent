@@ -535,17 +535,17 @@ def _run_case(
     script_review_config = DeepSeekChatConfig(
         model=config.model,
         thinking_enabled=True,
-        max_tokens=2_500,
+        max_tokens=6_000,
     )
     shooting_review_config = DeepSeekChatConfig(
         model=config.model,
         thinking_enabled=True,
-        max_tokens=3_000,
+        max_tokens=6_000,
     )
     product_review_config = DeepSeekChatConfig(
         model=config.model,
         thinking_enabled=True,
-        max_tokens=3_000,
+        max_tokens=6_000,
     )
 
     recording_script_review = RecordingScriptReviewPort(

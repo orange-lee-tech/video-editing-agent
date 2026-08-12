@@ -120,7 +120,7 @@ class DeepSeekScriptProposalReviewPort(ScriptProposalReviewPort):
         config: DeepSeekChatConfig | None = None,
     ) -> None:
         self._transport = transport
-        self._config = _default_review_config(max_tokens=2_500) if config is None else config
+        self._config = _default_review_config(max_tokens=6_000) if config is None else config
 
     def review(self, request: ScriptProposalReviewRequest) -> ScriptProposalReview:
         return _review_with_one_contract_recovery(
@@ -142,7 +142,7 @@ class DeepSeekShootingProposalReviewPort(ShootingProposalReviewPort):
         config: DeepSeekChatConfig | None = None,
     ) -> None:
         self._transport = transport
-        self._config = _default_review_config(max_tokens=3_000) if config is None else config
+        self._config = _default_review_config(max_tokens=6_000) if config is None else config
 
     def review(self, request: ShootingProposalReviewRequest) -> ShootingProposalReview:
         return _review_with_one_contract_recovery(

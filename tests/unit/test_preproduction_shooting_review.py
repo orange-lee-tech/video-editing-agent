@@ -42,23 +42,23 @@ NOW = datetime(2026, 8, 12, 2, 0, tzinfo=UTC)
 
 
 class CountingPlanningPort:
-    def __init__(self, proposal: ShootingPlanProposal) -> None:
-        self.proposal = proposal
+    def __init__(self, proposal: ShootingPlanProposal | list[ShootingPlanProposal]) -> None:
+        self.proposals = proposal if isinstance(proposal, list) else [proposal]
         self.requests: list[ShootingPlanningRequest] = []
 
     def propose(self, request: ShootingPlanningRequest) -> ShootingPlanProposal:
         self.requests.append(request)
-        return self.proposal
+        return self.proposals[min(len(self.requests) - 1, len(self.proposals) - 1)]
 
 
 class StaticReviewPort:
-    def __init__(self, review: ShootingProposalReview) -> None:
-        self.result = review
+    def __init__(self, review: ShootingProposalReview | list[ShootingProposalReview]) -> None:
+        self.results = review if isinstance(review, list) else [review]
         self.requests: list[ShootingProposalReviewRequest] = []
 
     def review(self, request: ShootingProposalReviewRequest) -> ShootingProposalReview:
         self.requests.append(request)
-        return self.result
+        return self.results[min(len(self.requests) - 1, len(self.results) - 1)]
 
 
 class FakeTransport:
@@ -287,8 +287,8 @@ def test_semantic_veto_rejects_valid_location_id_with_conflicting_description(
         ).generate(EntityRevisionRef(script.envelope.id, 1), constraints())
 
     assert captured.value.review.violations == (violation,)
-    assert len(review_port.requests) == 1
-    assert review_port.requests[0].proposal == planning_port.proposal
+    assert len(review_port.requests) == 2
+    assert len(planning_port.requests) == 2
     with pytest.raises(KeyError):
         shooting.load(EntityRevisionRef("shp_shoot_review", 1))
 
@@ -309,6 +309,38 @@ def test_accepted_shooting_semantic_review_allows_owner_commit(tmp_path: Path) -
 
     assert len(review_port.requests) == 1
     assert shooting.load(EntityRevisionRef(plan.envelope.id, plan.envelope.revision)) == plan
+
+
+def test_shooting_semantic_veto_repairs_once_preserving_constraints(tmp_path: Path) -> None:
+    briefs, scripts, shooting, _, script, planner = project_chain(tmp_path / "project.sqlite3")
+    violation = ShootingProposalViolation(
+        code="location_identity_mismatch",
+        requirement_id="req_demo",
+        excerpt="near the sink",
+        reason="The entryway does not authorize a sink.",
+    )
+    planning_port = CountingPlanningPort([mismatched_location_proposal(), safe_proposal()])
+    review_port = StaticReviewPort(
+        [ShootingProposalReview(False, (violation,)), ShootingProposalReview(True)]
+    )
+
+    plan = workflow(
+        briefs=briefs,
+        scripts=scripts,
+        shooting=shooting,
+        planner=planner,
+        planning_port=planning_port,
+        review_port=review_port,
+    ).generate(EntityRevisionRef(script.envelope.id, 1), constraints())
+
+    assert len(planning_port.requests) == 2
+    assert len(review_port.requests) == 2
+    assert planning_port.requests[1].constraints == constraints()
+    assert plan.constraints == constraints()
+    repair = planning_port.requests[1].instruction or ""
+    assert "code=location_identity_mismatch" in repair
+    assert "requirement_id=req_demo" in repair
+    assert "not an authoritative product fact" in repair
 
 
 def test_shooting_review_result_is_veto_only_and_internally_consistent() -> None:
@@ -354,7 +386,7 @@ def test_deepseek_shooting_reviewer_sees_location_identity_and_conflicting_prose
     assert len(transport.payloads) == 1
     payload = transport.payloads[0]
     assert payload["thinking"] == {"type": "enabled"}
-    assert payload["max_tokens"] == 3_000
+    assert payload["max_tokens"] == 6_000
     assert "valid ID does not excuse" in payload["messages"][0]["content"]
     assert "entryway" in payload["messages"][0]["content"]
     assert "sink" in payload["messages"][0]["content"]

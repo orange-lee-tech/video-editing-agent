@@ -42,23 +42,23 @@ NOW = datetime(2026, 8, 12, 0, 30, tzinfo=UTC)
 
 
 class CountingPlanningPort:
-    def __init__(self, proposal: ScriptPlanProposal) -> None:
-        self.proposal = proposal
+    def __init__(self, proposal: ScriptPlanProposal | list[ScriptPlanProposal]) -> None:
+        self.proposals = proposal if isinstance(proposal, list) else [proposal]
         self.requests: list[ScriptPlanningRequest] = []
 
     def propose(self, request: ScriptPlanningRequest) -> ScriptPlanProposal:
         self.requests.append(request)
-        return self.proposal
+        return self.proposals[min(len(self.requests) - 1, len(self.proposals) - 1)]
 
 
 class StaticReviewPort:
-    def __init__(self, review: ScriptProposalReview) -> None:
-        self.result = review
+    def __init__(self, review: ScriptProposalReview | list[ScriptProposalReview]) -> None:
+        self.results = review if isinstance(review, list) else [review]
         self.requests: list[ScriptProposalReviewRequest] = []
 
     def review(self, request: ScriptProposalReviewRequest) -> ScriptProposalReview:
         self.requests.append(request)
-        return self.result
+        return self.results[min(len(self.requests) - 1, len(self.results) - 1)]
 
 
 class FakeTransport:
@@ -224,8 +224,8 @@ def test_semantic_veto_rejects_implied_leak_resistance_without_owner_commit(
         )
 
     assert captured.value.review.violations == (violation,)
-    assert len(review_port.requests) == 1
-    assert review_port.requests[0].proposal == planning_port.proposal
+    assert len(review_port.requests) == 2
+    assert len(planning_port.requests) == 2
     with pytest.raises(KeyError):
         scripts.load(EntityRevisionRef("scp_semantic_review", 1))
 
@@ -242,6 +242,34 @@ def test_accepted_semantic_review_allows_owner_commit(tmp_path: Path) -> None:
 
     assert len(review_port.requests) == 1
     assert scripts.load(EntityRevisionRef(script.envelope.id, script.envelope.revision)) == script
+
+
+def test_script_semantic_veto_repairs_once_then_commits(tmp_path: Path) -> None:
+    briefs, scripts = repositories(tmp_path / "project.sqlite3")
+    brief = guarded_brief(briefs)
+    violation = ScriptProposalViolation(
+        code="unsupported_claim",
+        section_id="proof",
+        excerpt="will not spill",
+        reason="Leak resistance is not authoritative.",
+    )
+    planning_port = CountingPlanningPort([leak_claim_proposal(), safe_proposal()])
+    review_port = StaticReviewPort(
+        [ScriptProposalReview(False, (violation,)), ScriptProposalReview(True)]
+    )
+
+    script = workflow(briefs, scripts, planning_port, review_port).generate(
+        EntityRevisionRef(brief.envelope.id, 1)
+    )
+
+    assert len(planning_port.requests) == 2
+    assert len(review_port.requests) == 2
+    assert script.sections[0].spoken_content == safe_proposal().sections[0].spoken_content
+    repair = planning_port.requests[1].instruction or ""
+    assert "code=unsupported_claim" in repair
+    assert "section_id=proof" in repair
+    assert "not an authoritative product fact" in repair
+    assert planning_port.requests[1].brief.authoritative_facts == brief.authoritative_facts
 
 
 def test_review_result_is_veto_only_and_internally_consistent() -> None:
@@ -282,7 +310,7 @@ def test_deepseek_reviewer_detects_structural_feature_does_not_imply_performance
     assert len(transport.payloads) == 1
     payload = transport.payloads[0]
     assert payload["thinking"] == {"type": "enabled"}
-    assert payload["max_tokens"] == 2_500
+    assert payload["max_tokens"] == 6_000
     assert "does not imply a performance property" in payload["messages"][0]["content"]
     assert "500 mL does not prove" in payload["messages"][0]["content"]
     assert "screw-on lid does not prove one-hand operation" in payload["messages"][0]["content"]

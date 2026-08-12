@@ -81,6 +81,24 @@ def _review_summary(review: ShootingProposalReview) -> str:
     )
 
 
+def _repair_instruction(review: ShootingProposalReview, original: str | None) -> str:
+    diagnostics = "\n".join(
+        f"- code={violation.code}; requirement_id={violation.requirement_id or 'plan'}; "
+        f"reason={violation.reason}"
+        + (f"; excerpt={violation.excerpt}" if violation.excerpt is not None else "")
+        for violation in review.violations
+    )
+    return (
+        f"Original instruction: {original or 'Create a new proposal.'}\n"
+        "The semantic reviewer feedback below identifies defects only. It is not an "
+        "authoritative product fact and must not be used as support for new claims. Regenerate the "
+        "proposal under the ORIGINAL Brief, ProductionConstraints, authoritative facts, policy, "
+        "reference guidance, and current revision authority. Remove unsupported implications "
+        "rather than inventing replacement facts. Do not change locked or authoritative state.\n"
+        f"Reviewer diagnostics:\n{diagnostics}"
+    )
+
+
 class ShootingProposalRejectedError(ValueError):
     """A semantic reviewer vetoed the proposal before owner commit."""
 
@@ -109,7 +127,7 @@ class ShootingPlanningWorkflow:
         self._planner = planner
         self._review_port = review_port
 
-    def _review_or_raise(
+    def _review(
         self,
         *,
         brief: Brief,
@@ -119,15 +137,15 @@ class ShootingPlanningWorkflow:
         current_shooting_plan: ShootingPlan | None,
         instruction: str | None,
         policy_guidance: PlanningPolicyGuidance | None,
-    ) -> None:
+    ) -> ShootingProposalReview | None:
         if self._review_port is None:
             if _brief_requires_review(brief, constraints):
                 raise RuntimeError(
                     "guarded Shooting proposal requires ShootingProposalReviewPort before model "
                     "proposal commit"
                 )
-            return
-        review = self._review_port.review(
+            return None
+        return self._review_port.review(
             ShootingProposalReviewRequest(
                 brief=brief,
                 script_plan=script_plan,
@@ -138,8 +156,6 @@ class ShootingPlanningWorkflow:
                 policy_guidance=policy_guidance,
             )
         )
-        if not review.accepted:
-            raise ShootingProposalRejectedError(review)
 
     def generate(
         self,
@@ -152,31 +168,40 @@ class ShootingPlanningWorkflow:
     ) -> ShootingPlan:
         script_plan = self._script_plan_repository.load(script_plan_ref)
         brief = self._brief_repository.load(script_plan.brief_ref)
-        proposal = self._planning_port.propose(
-            ShootingPlanningRequest(
-                brief=brief,
-                script_plan=script_plan,
-                constraints=constraints,
-                policy_guidance=policy_guidance,
-                reference_guidance=reference_guidance,
-            )
-        )
-        requirements = _requirements_from_proposal(proposal.requirements)
-        self._planner.validate_create(
-            script_plan_ref,
-            requirements,
-            constraints=constraints,
-            notes=proposal.notes,
-        )
-        self._review_or_raise(
+        request = ShootingPlanningRequest(
             brief=brief,
             script_plan=script_plan,
             constraints=constraints,
-            proposal=proposal,
-            current_shooting_plan=None,
-            instruction=None,
             policy_guidance=policy_guidance,
+            reference_guidance=reference_guidance,
         )
+        for attempt in range(2):
+            proposal = self._planning_port.propose(request)
+            requirements = _requirements_from_proposal(proposal.requirements)
+            self._planner.validate_create(
+                script_plan_ref, requirements, constraints=constraints, notes=proposal.notes
+            )
+            review = self._review(
+                brief=brief,
+                script_plan=script_plan,
+                constraints=constraints,
+                proposal=proposal,
+                current_shooting_plan=None,
+                instruction=request.instruction,
+                policy_guidance=policy_guidance,
+            )
+            if review is None or review.accepted:
+                break
+            if attempt == 1:
+                raise ShootingProposalRejectedError(review)
+            request = ShootingPlanningRequest(
+                brief=brief,
+                script_plan=script_plan,
+                constraints=constraints,
+                instruction=_repair_instruction(review, None),
+                policy_guidance=policy_guidance,
+                reference_guidance=reference_guidance,
+            )
         return self._planner.create(
             script_plan_ref,
             requirements,
@@ -203,34 +228,47 @@ class ShootingPlanningWorkflow:
         script_plan = self._script_plan_repository.load(target_script_ref)
         brief = self._brief_repository.load(script_plan.brief_ref)
         effective_constraints = current.constraints if constraints is None else constraints
-        proposal = self._planning_port.propose(
-            ShootingPlanningRequest(
+        request = ShootingPlanningRequest(
+            brief=brief,
+            script_plan=script_plan,
+            constraints=effective_constraints,
+            current_shooting_plan=current,
+            instruction=instruction,
+            policy_guidance=policy_guidance,
+            reference_guidance=reference_guidance,
+        )
+        for attempt in range(2):
+            proposal = self._planning_port.propose(request)
+            requirements = _requirements_from_proposal(proposal.requirements)
+            self._planner.validate_revision(
+                current_ref,
+                requirements,
+                script_plan_ref=target_script_ref,
+                constraints=effective_constraints,
+                notes=proposal.notes,
+            )
+            review = self._review(
+                brief=brief,
+                script_plan=script_plan,
+                constraints=effective_constraints,
+                proposal=proposal,
+                current_shooting_plan=current,
+                instruction=request.instruction,
+                policy_guidance=policy_guidance,
+            )
+            if review is None or review.accepted:
+                break
+            if attempt == 1:
+                raise ShootingProposalRejectedError(review)
+            request = ShootingPlanningRequest(
                 brief=brief,
                 script_plan=script_plan,
                 constraints=effective_constraints,
                 current_shooting_plan=current,
-                instruction=instruction,
+                instruction=_repair_instruction(review, instruction),
                 policy_guidance=policy_guidance,
                 reference_guidance=reference_guidance,
             )
-        )
-        requirements = _requirements_from_proposal(proposal.requirements)
-        self._planner.validate_revision(
-            current_ref,
-            requirements,
-            script_plan_ref=target_script_ref,
-            constraints=effective_constraints,
-            notes=proposal.notes,
-        )
-        self._review_or_raise(
-            brief=brief,
-            script_plan=script_plan,
-            constraints=effective_constraints,
-            proposal=proposal,
-            current_shooting_plan=current,
-            instruction=instruction,
-            policy_guidance=policy_guidance,
-        )
         return self._planner.revise(
             current_ref,
             requirements,
