@@ -31,6 +31,7 @@ from video_editing_agent.providers.llm.deepseek_chat import (
 )
 from video_editing_agent.providers.llm.deepseek_preproduction_review import (
     DeepSeekScriptProposalReviewPort,
+    DeepSeekShootingProposalReviewPort,
 )
 from video_editing_agent.storage.repositories.preproduction_repositories import (
     SqliteBriefRepository,
@@ -67,7 +68,7 @@ def main() -> None:
                 objective="Create a practical 30-second product advertisement plan.",
                 audience="Everyday commuters who carry a drink in a bag.",
                 platform="generic vertical short-form",
-                core_message="Show a simple bottle that is easy to carry during a commute.",
+                core_message="Show a 500 mL bottle in a simple commute-oriented context.",
                 product_topic="500 mL commuter bottle",
                 target_duration=MediaTime(value=30, scale=1),
                 authoritative_facts=(
@@ -84,6 +85,7 @@ def main() -> None:
                 ),
                 prohibited_content=(
                     "Do not invent certifications or unsupported thermal-performance duration.",
+                    "Do not infer leak resistance, one-hand operation, bag fit, or use-case adequacy.",
                 ),
                 user_notes="Keep the plan feasible for one beginner filming alone at home.",
             ),
@@ -158,6 +160,7 @@ def main() -> None:
             shooting_plan_repository=shooting_plans,
             planning_port=DeepSeekShootingPlanningPort(transport=transport, config=config),
             planner=shooting_planner,
+            review_port=DeepSeekShootingProposalReviewPort(transport=transport),
         )
         shooting_plan = shooting_workflow.generate(
             script_ref,
@@ -220,8 +223,10 @@ def main() -> None:
                     "probe": "r0.7b-deepseek-live",
                     "status": "passed",
                     "model": config.model,
-                    "thinking_enabled": config.thinking_enabled,
-                    "semantic_review_enabled": True,
+                    "generation_thinking_enabled": config.thinking_enabled,
+                    "script_semantic_review_enabled": True,
+                    "shooting_semantic_review_enabled": True,
+                    "reviewer_thinking_enabled": True,
                     "structured_location_identity": True,
                     "schema_version": reopened_database.schema_version(),
                     "script_sections": len(script.sections),

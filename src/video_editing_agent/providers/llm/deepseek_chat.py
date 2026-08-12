@@ -97,7 +97,13 @@ _SCRIPT_SYSTEM_PROMPT = (
     + " Produce only a ScriptPlan proposal. The outer json object may contain only 'sections'. "
     "Each section may use only the fields shown in this example json: "
     + json.dumps(_SCRIPT_EXAMPLE, ensure_ascii=False, separators=(",", ":"))
-    + " Use protected_fact_ids only for fact IDs present in the Brief. When revising, "
+    + " Use protected_fact_ids only for fact IDs present in the Brief. The Brief objective, "
+    "audience, and core_message may guide editorial framing and positioning, but they do not "
+    "establish concrete product properties, performance, fit, adequacy, operability, materials, "
+    "reliability, or outcomes. Concrete product claims must be directly supported by "
+    "authoritative_facts; use the supporting fact IDs in protected_fact_ids. Do not infer that a "
+    "capacity is enough for a use case or that the product fits easily in a bag unless a fact says "
+    "so. Do not infer one-hand operation or leak resistance from a screw-on lid. When revising, "
     "preserve every locked section exactly."
 )
 
@@ -109,11 +115,18 @@ _SHOOTING_SYSTEM_PROMPT = (
     + json.dumps(_SHOOTING_EXAMPLE, ensure_ascii=False, separators=(",", ":"))
     + " When a requirement needs a declared production location, location_ref must be exactly one "
     "location_id from production_constraints.locations. Never invent, combine, or rewrite "
-    "location identities. environment_description may describe the camera position or local setup "
-    "within that referenced location; it is descriptive and never location authority. If declared "
-    "locations exist and you give an environment_description, also give its location_ref. "
-    "Instructions must be practical for the declared user skill/equipment. Missing visual "
-    "coverage must be captured by the user, never replaced with stock or generated footage."
+    "location identities. Every natural-language location cue in purpose, action, "
+    "environment_description, visual_constraints, backup_intent, capture_instruction, and "
+    "alternate_coverage must be semantically compatible with the referenced location's label and "
+    "notes. A valid location_ref does not authorize a different place; for example, an entryway "
+    "reference must not be described as a sink location unless that location's notes explicitly "
+    "allow a sink. environment_description may describe the camera position or local setup within "
+    "that referenced location; it is descriptive and never location authority. If declared "
+    "locations exist and you give an environment_description, also give its location_ref. Do not "
+    "introduce concrete product properties, performance, fit, adequacy, operability, materials, "
+    "reliability, or outcomes that are not directly supported by authoritative_facts or the clean "
+    "ScriptPlan. Instructions must be practical for the declared user skill/equipment. Missing "
+    "visual coverage must be captured by the user, never replaced with stock or generated footage."
 )
 
 _SCRIPT_SECTION_KEYS = frozenset(_SCRIPT_EXAMPLE["sections"][0])
