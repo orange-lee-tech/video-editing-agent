@@ -35,10 +35,10 @@ jobs:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
           uv sync --frozen
-          uv run ruff format --check tools/probes/r0_7b_product_probe_candidates.py
-          uv run ruff check tools/probes/r0_7b_product_probe_candidates.py
-          uv run python -m py_compile tools/probes/r0_7b_product_probe_candidates.py
-          uv run python tools/probes/r0_7b_product_probe_candidates.py
+          uv run ruff format --check tools/probes/r0_7b_product_probe_candidates.py tools/probes/r0_7b_product_probe.py
+          uv run ruff check tools/probes/r0_7b_product_probe_candidates.py tools/probes/r0_7b_product_probe.py
+          uv run python -m py_compile tools/probes/r0_7b_product_probe_candidates.py tools/probes/r0_7b_product_probe.py
+          uv run python tools/probes/r0_7b_product_probe.py
 
       - name: Publish diagnostic commit status
         if: always()
