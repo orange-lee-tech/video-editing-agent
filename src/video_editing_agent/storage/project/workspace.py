@@ -207,6 +207,12 @@ class ProjectWorkspace:
         self.assets.load(ref)
         return ShotCatalog(repository=self.shots).commit_boundaries(detector.detect(ref, options))
 
+    def detect(
+        self, ref: EntityRevisionRef, detector: ShotDetector, options: ShotDetectionOptions
+    ) -> tuple[Shot, ...]:
+        """Execute the existing detector-to-owner commit use case."""
+        return self._detect(ref, detector, options)
+
     def rebuild_index(self) -> int:
         sources = self.index_sources()
         self.shot_index.rebuild(sources)

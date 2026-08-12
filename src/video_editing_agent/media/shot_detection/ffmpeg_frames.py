@@ -126,7 +126,7 @@ def iter_video_rgb24_frames(
 
             return_code = process.wait()
             if return_code != 0:
-                stderr = _read_process_stderr(stderr_file)
+                stderr = _read_process_stderr(typing.cast(typing.BinaryIO, stderr_file))
                 raise RuntimeError(f"FFmpeg RGB24 decode failed for {input_video}:\n{stderr}")
         finally:
             stdout_stream.close()

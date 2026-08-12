@@ -6,11 +6,16 @@ import sys
 from pathlib import Path
 from typing import Any, cast
 
+from video_editing_agent.adapters.cli.media_config import (
+    transnetv2_detector,
+    visual_understanding_port,
+)
 from video_editing_agent.adapters.cli.provider_config import (
     ProviderConfigurationError,
     deepseek_preproduction_ports,
 )
 from video_editing_agent.application.ports.preproduction_planning import PlanningPolicyGuidance
+from video_editing_agent.application.ports.shot_detector import ShotDetectionOptions
 from video_editing_agent.application.ports.shot_index import ShotCandidate
 from video_editing_agent.domain.asset.model import AssetProvenance
 from video_editing_agent.domain.asset.policy import AssetUsageRole
@@ -18,9 +23,14 @@ from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.domain.evidence.temporal import TemporalAnchor, TemporalEvidence
 from video_editing_agent.domain.shooting.model import ProductionConstraints, ProductionLocation
+from video_editing_agent.domain.shot.analysis import AnalysisProfile
 from video_editing_agent.media.ingest.ffprobe import FfprobeMediaProbe
 from video_editing_agent.media.ingest.service import AssetIngestService
 from video_editing_agent.media.ingest.source import LocalMediaSource
+from video_editing_agent.media.understanding.frame_extraction import FfmpegPngFrameExtractor
+from video_editing_agent.media.understanding.service import (
+    ProviderNeutralVisualUnderstandingService,
+)
 from video_editing_agent.planning.brief.service import BriefContent
 from video_editing_agent.planning.coverage.service import CoverageCandidate, CoverageReport
 from video_editing_agent.planning.policy.builtin import (
@@ -30,6 +40,7 @@ from video_editing_agent.planning.policy.builtin import (
 )
 from video_editing_agent.planning.policy.guidance import to_planning_policy_guidance
 from video_editing_agent.planning.policy.model import CommercialPolicySelection, MarketingObjective
+from video_editing_agent.storage.asset.repository_media import RepositoryLocalAssetMediaResolver
 from video_editing_agent.storage.project import ProjectWorkspace
 from video_editing_agent.storage.repositories.preproduction_codec import (
     decode_brief,
@@ -115,12 +126,34 @@ def _parser() -> argparse.ArgumentParser:
     asset_show.add_argument("revision", type=int)
     asset_ingest = asset_sub.add_parser("ingest")
     asset_ingest.add_argument("--json", type=Path, required=True)
-    _entity_command(sub, "shot")
+    shot = sub.add_parser("shot")
+    shot_sub = shot.add_subparsers(dest="action", required=True)
+    shot_show = shot_sub.add_parser("show")
+    shot_show.add_argument("entity_id")
+    shot_show.add_argument("revision", type=int)
+    shot_detect = shot_sub.add_parser("detect")
+    shot_detect.add_argument("asset_id")
+    shot_detect.add_argument("asset_revision", type=int)
+    shot_detect.add_argument("--detector", choices=("transnetv2",), required=True)
+    shot_detect.add_argument("--model", type=Path, required=True)
+    shot_detect.add_argument("--device", choices=("auto", "cpu", "cuda", "mps"), default="cpu")
+    shot_detect.add_argument("--ffmpeg", default="ffmpeg")
+    shot_detect.add_argument("--min-shot-duration-ms", type=int)
+    shot_detect.add_argument("--max-shot-duration-ms", type=int)
     analysis = sub.add_parser("analysis")
     analysis_sub = analysis.add_subparsers(dest="action", required=True)
     analysis_show = analysis_sub.add_parser("show")
     analysis_show.add_argument("shot_id")
     analysis_show.add_argument("shot_revision", type=int)
+    analysis_run = analysis_sub.add_parser("run")
+    analysis_run.add_argument("shot_id")
+    analysis_run.add_argument("shot_revision", type=int)
+    analysis_run.add_argument("--provider", choices=("gemini", "openai"), required=True)
+    analysis_run.add_argument("--model", required=True)
+    analysis_run.add_argument("--ffmpeg", default="ffmpeg")
+    analysis_run.add_argument(
+        "--profile", choices=("semantic", "deep_visual", "editorial"), default="semantic"
+    )
 
     index = sub.add_parser("index")
     index_sub = index.add_subparsers(dest="action", required=True)
@@ -263,6 +296,36 @@ def _constraints(path: Path) -> ProductionConstraints:
 
 def _run(args: argparse.Namespace) -> object:
     workspace = ProjectWorkspace.open(args.project)
+    if args.resource == "shot" and args.action == "detect":
+        ref = EntityRevisionRef(args.asset_id, args.asset_revision)
+        detector = transnetv2_detector(
+            workspace.assets,
+            model_path=args.model,
+            device=args.device,
+            ffmpeg_executable=args.ffmpeg,
+        )
+        shots = workspace.detect(
+            ref,
+            detector,
+            ShotDetectionOptions(args.min_shot_duration_ms, args.max_shot_duration_ms),
+        )
+        return [_json(encode_shot(shot)) for shot in shots]
+    if args.resource == "analysis" and args.action == "run":
+        visual = visual_understanding_port(
+            args.provider, model=args.model, artifacts=workspace.artifacts
+        )
+        service = ProviderNeutralVisualUnderstandingService(
+            shot_repository=workspace.shots,
+            asset_media_resolver=RepositoryLocalAssetMediaResolver(workspace.assets),
+            analysis_repository=workspace.analyses,
+            frame_extractor=FfmpegPngFrameExtractor(args.ffmpeg),
+            artifact_store=workspace.artifacts,
+            visual_port=visual,
+        )
+        analysis_result = service.analyze(
+            EntityRevisionRef(args.shot_id, args.shot_revision), AnalysisProfile(args.profile)
+        )
+        return _json(encode_shot_analysis(analysis_result))
     if args.resource == "asset" and args.action == "ingest":
         value = json.loads(args.json.read_text(encoding="utf-8"))
         source = LocalMediaSource(
@@ -287,14 +350,14 @@ def _run(args: argparse.Namespace) -> object:
             shooting_review=ports.shooting_review,
         )
         ref = EntityRevisionRef(args.entity_id, args.revision)
-        result = (
+        script_result = (
             runtime.preproduction.generate_script(ref, _policy(args.policy_json))
             if args.action == "generate"
             else runtime.preproduction.revise_script(
                 ref, args.instruction, _policy(args.policy_json)
             )
         )
-        return _json(encode_script_plan(result))
+        return _json(encode_script_plan(script_result))
     if args.resource == "shooting" and args.action == "generate":
         ports = deepseek_preproduction_ports(model=args.model)
         runtime = workspace.runtime(
@@ -335,13 +398,13 @@ def _run(args: argparse.Namespace) -> object:
             )
         )
     if args.resource == "script" and args.action in {"lock", "unlock"}:
-        result = workspace.script_planner.set_section_lock(
+        locked_script = workspace.script_planner.set_section_lock(
             EntityRevisionRef(args.entity_id, args.revision),
             args.section_id,
             locked=args.action == "lock",
             created_by="cli",
         )
-        return _json(encode_script_plan(result))
+        return _json(encode_script_plan(locked_script))
     if args.resource == "analysis":
         analysis = workspace.analyses.latest(EntityRevisionRef(args.shot_id, args.shot_revision))
         if analysis is None:
@@ -398,7 +461,15 @@ def _run(args: argparse.Namespace) -> object:
 def main(argv: list[str] | None = None) -> int:
     try:
         result = _run(_parser().parse_args(argv))
-    except (KeyError, ValueError, OSError, json.JSONDecodeError, ProviderConfigurationError) as exc:
+    except (
+        KeyError,
+        TypeError,
+        ValueError,
+        OSError,
+        RuntimeError,
+        json.JSONDecodeError,
+        ProviderConfigurationError,
+    ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
