@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
-from typing import Any, TypeVar, cast
+from typing import Any, cast
 
 from video_editing_agent.application.ports.preproduction_planning import (
     NarrativeSectionProposal,
@@ -104,7 +104,6 @@ _FORMAT_RECOVERY_INSTRUCTION = (
 _ALLOWED_REVIEW_KEYS = frozenset({"accepted", "violations"})
 _SCRIPT_VIOLATION_KEYS = frozenset({"code", "section_id", "excerpt", "reason"})
 _SHOOTING_VIOLATION_KEYS = frozenset({"code", "requirement_id", "excerpt", "reason"})
-_ReviewResult = TypeVar("_ReviewResult", ScriptProposalReview, ShootingProposalReview)
 
 
 def _default_review_config(*, max_tokens: int) -> DeepSeekChatConfig:
@@ -188,14 +187,16 @@ class _ReviewContractError(DeepSeekPlanningResponseError):
     """Strict semantic-review response contract failure eligible for one recovery call."""
 
 
-def _review_with_one_contract_recovery(
+def _review_with_one_contract_recovery[
+    ReviewResult: (ScriptProposalReview, ShootingProposalReview),
+](
     *,
     transport: DeepSeekChatTransport,
     config: DeepSeekChatConfig,
     system_prompt: str,
     context: dict[str, Any],
-    parser: Callable[[dict[str, Any]], _ReviewResult],
-) -> _ReviewResult:
+    parser: Callable[[dict[str, Any]], ReviewResult],
+) -> ReviewResult:
     for attempt in range(2):
         response = transport.create_chat_completion(
             _review_chat_payload(
