@@ -19,6 +19,7 @@ from video_editing_agent.application.ports.preproduction_review import (
 )
 from video_editing_agent.domain.brief.model import AuthoritativeFact
 from video_editing_agent.domain.common.entity import EntityRevisionRef
+from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.domain.script.model import NarrativeSection
 from video_editing_agent.domain.shooting.model import ProductionConstraints, ProductionLocation
 from video_editing_agent.planning.brief.service import BriefContent, BriefService
@@ -176,6 +177,53 @@ def test_shooting_review_length_recovery_is_bounded(tmp_path: Path) -> None:
     assert len(transport.payloads) == 2
     assert transport.payloads[0]["max_tokens"] == REVIEW_INITIAL_MAX_TOKENS
     assert transport.payloads[1]["max_tokens"] == REVIEW_CAPACITY_RECOVERY_MAX_TOKENS
+
+
+def test_shooting_review_receives_complete_committed_script_shape(tmp_path: Path) -> None:
+    briefs, scripts, _, brief, _, _ = project_chain(tmp_path / "shape.sqlite3")
+    script = ScriptPlanner(
+        brief_repository=briefs,
+        script_plan_repository=scripts,
+        script_plan_id_factory=lambda: "scp_shape",
+        clock=lambda: NOW,
+    ).create(
+        EntityRevisionRef(brief.envelope.id, 1),
+        (
+            NarrativeSection(
+                "shape",
+                "proof",
+                "Show exact execution shape.",
+                target_duration=MediaTime(11, 4),
+                emotion="warm",
+                pacing="slow",
+                music_intent="ambient",
+                editing_intent="hold",
+                importance="high",
+                locked=True,
+            ),
+        ),
+    )
+    transport = FakeTransport({"accepted": True, "violations": []})
+
+    DeepSeekShootingProposalReviewPort(transport=transport).review(
+        ShootingProposalReviewRequest(
+            brief=brief,
+            script_plan=script,
+            constraints=constraints(),
+            proposal=mismatched_location_proposal(),
+        )
+    )
+
+    section = json.loads(transport.payloads[0]["messages"][1]["content"])["script_plan"][
+        "sections"
+    ][0]
+    assert section["target_duration"] == {"value": 11, "scale": 4}
+    assert section["emotion"] == "warm"
+    assert section["pacing"] == "slow"
+    assert section["music_intent"] == "ambient"
+    assert section["editing_intent"] == "hold"
+    assert section["importance"] == "high"
+    assert section["locked"] is True
 
 
 def test_shooting_review_length_twice_fails_after_two_calls(tmp_path: Path) -> None:

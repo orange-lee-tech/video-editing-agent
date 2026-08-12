@@ -19,6 +19,7 @@ from video_editing_agent.application.ports.preproduction_review import (
 )
 from video_editing_agent.domain.brief.model import AuthoritativeFact
 from video_editing_agent.domain.common.entity import EntityRevisionRef
+from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.planning.brief.service import BriefContent, BriefService
 from video_editing_agent.planning.script.service import ScriptPlanner
 from video_editing_agent.planning.script.workflow import (
@@ -344,6 +345,46 @@ def test_script_review_recovers_once_from_malformed_json(tmp_path: Path) -> None
     assert review.accepted
     assert len(transport.payloads) == 2
     assert "previous response did not satisfy" in transport.payloads[1]["messages"][2]["content"]
+
+
+def test_script_review_payload_preserves_complete_section_shape(tmp_path: Path) -> None:
+    transport = FakeTransport({"accepted": True, "violations": []})
+    briefs, _ = repositories(tmp_path / "shape.sqlite3")
+    proposal = ScriptPlanProposal(
+        (
+            NarrativeSectionProposal(
+                "shape",
+                "proof",
+                "Show exact execution shape.",
+                target_duration=MediaTime(7, 3),
+                emotion="calm",
+                pacing="measured",
+                music_intent="quiet",
+                editing_intent="single cut",
+                importance="high",
+                locked=True,
+            ),
+        )
+    )
+
+    DeepSeekScriptProposalReviewPort(transport=transport).review(
+        ScriptProposalReviewRequest(guarded_brief(briefs), proposal)
+    )
+
+    section = json.loads(transport.payloads[0]["messages"][1]["content"])["proposal"]["sections"][0]
+    assert section["target_duration"] == {"value": 7, "scale": 3}
+    assert {
+        key: section[key]
+        for key in ("emotion", "pacing", "music_intent", "editing_intent", "importance", "locked")
+    } == {
+        "emotion": "calm",
+        "pacing": "measured",
+        "music_intent": "quiet",
+        "editing_intent": "single cut",
+        "importance": "high",
+        "locked": True,
+    }
+    assert "MediaTime" not in transport.payloads[0]["messages"][1]["content"]
 
 
 class ResponseTransport:

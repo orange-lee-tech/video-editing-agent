@@ -318,8 +318,15 @@ def _script_section_proposal_payload(section: NarrativeSectionProposal) -> dict[
         "information_goal": section.information_goal,
         "spoken_content": section.spoken_content,
         "visual_requirement": section.visual_requirement,
+        "target_duration": _optional_time_payload(section.target_duration),
         "on_screen_text_intent": section.on_screen_text_intent,
+        "emotion": section.emotion,
+        "pacing": section.pacing,
+        "music_intent": section.music_intent,
+        "editing_intent": section.editing_intent,
+        "importance": section.importance,
         "protected_fact_ids": list(section.protected_fact_ids),
+        "locked": section.locked,
     }
 
 
@@ -377,8 +384,15 @@ def _script_section_payload(section: NarrativeSection) -> dict[str, Any]:
         "information_goal": section.information_goal,
         "spoken_content": section.spoken_content,
         "visual_requirement": section.visual_requirement,
+        "target_duration": _optional_time_payload(section.target_duration),
         "on_screen_text_intent": section.on_screen_text_intent,
+        "emotion": section.emotion,
+        "pacing": section.pacing,
+        "music_intent": section.music_intent,
+        "editing_intent": section.editing_intent,
+        "importance": section.importance,
         "protected_fact_ids": list(section.protected_fact_ids),
+        "locked": section.locked,
     }
 
 

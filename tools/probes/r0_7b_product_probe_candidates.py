@@ -691,6 +691,15 @@ def _run_case(
 
     brief_payload = json.loads(encode_brief(brief))
     script_payload = json.loads(encode_script_plan(script))
+    script_generation_shape = {
+        "section_count": len(script.sections),
+        "sections_with_target_duration": sum(
+            section.target_duration is not None for section in script.sections
+        ),
+        "sections_missing_target_duration": [
+            section.section_id for section in script.sections if section.target_duration is None
+        ],
+    }
     shooting_payload = json.loads(encode_shooting_plan(shooting_plan))
     script_review_payload = _script_review_payload(script_review)
     shooting_review_payload = _shooting_review_payload(shooting_review)
@@ -707,6 +716,7 @@ def _run_case(
                     "marketing_objective": policy.marketing_objective,
                 },
                 "script_plan": script_payload,
+                "script_generation_shape": script_generation_shape,
                 "shooting_plan": shooting_payload,
                 "script_semantic_review": script_review_payload,
                 "shooting_semantic_review": shooting_review_payload,
@@ -731,6 +741,7 @@ def _run_case(
             "automated_product_review": product_review,
             "brief": brief_payload,
             "script_plan": script_payload,
+            "script_generation_shape": script_generation_shape,
             "shooting_plan": shooting_payload,
             "duration_assessment": duration,
             "expected_coverage": coverage,
@@ -770,6 +781,7 @@ def _run_case(
         "structured_location_assessment": locations,
         "brief": brief_payload,
         "script_plan": script_payload,
+        "script_generation_shape": script_generation_shape,
         "shooting_plan": shooting_payload,
     }
 
