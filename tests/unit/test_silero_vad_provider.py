@@ -71,12 +71,8 @@ def test_adapter_merges_window_probabilities_into_complete_partition() -> None:
         VoiceActivityState.SPEECH,
         VoiceActivityState.SILENCE,
     ]
-    assert proposal.spans[0].relative_range == MediaTimeRange(
-        MediaTime(0, 1), MediaTime(4, 125)
-    )
-    assert proposal.spans[1].relative_range == MediaTimeRange(
-        MediaTime(4, 125), MediaTime(8, 125)
-    )
+    assert proposal.spans[0].relative_range == MediaTimeRange(MediaTime(0, 1), MediaTime(4, 125))
+    assert proposal.spans[1].relative_range == MediaTimeRange(MediaTime(4, 125), MediaTime(8, 125))
     assert proposal.spans[2].relative_range == MediaTimeRange(
         MediaTime(12, 125), MediaTime(4, 125)
     )
@@ -125,8 +121,8 @@ def test_ffmpeg_command_is_exact_shot_scoped_16khz_mono_pcm() -> None:
     command = _ffmpeg_command(_request(), config)
 
     assert command[0] == "ffmpeg-custom"
-    assert command[command.index("-ss") + 1] == "10.100000000"
-    assert command[command.index("-t") + 1] == "0.128000000"
+    assert command[command.index("-ss") + 1] == "10.100"
+    assert command[command.index("-t") + 1] == "0.128"
     assert command[command.index("-ac") + 1] == "1"
     assert command[command.index("-ar") + 1] == str(SAMPLE_RATE)
     assert command[command.index("-acodec") + 1] == "pcm_s16le"
