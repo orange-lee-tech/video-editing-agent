@@ -176,9 +176,7 @@ def _script_section_proposal_payload(section: NarrativeSectionProposal) -> dict[
 
 def _script_proposal_payload(proposal: ScriptPlanProposal) -> dict[str, Any]:
     return {
-        "sections": [
-            _script_section_proposal_payload(section) for section in proposal.sections
-        ]
+        "sections": [_script_section_proposal_payload(section) for section in proposal.sections]
     }
 
 
@@ -449,8 +447,7 @@ def _parse_script_review(value: dict[str, Any]) -> ScriptProposalReview:
         return ScriptProposalReview(
             accepted=accepted,
             violations=tuple(
-                _parse_script_violation(item, index)
-                for index, item in enumerate(violations)
+                _parse_script_violation(item, index) for index, item in enumerate(violations)
             ),
         )
     except ValueError as exc:
@@ -470,8 +467,7 @@ def _parse_shooting_review(value: dict[str, Any]) -> ShootingProposalReview:
         return ShootingProposalReview(
             accepted=accepted,
             violations=tuple(
-                _parse_shooting_violation(item, index)
-                for index, item in enumerate(violations)
+                _parse_shooting_violation(item, index) for index, item in enumerate(violations)
             ),
         )
     except ValueError as exc:
