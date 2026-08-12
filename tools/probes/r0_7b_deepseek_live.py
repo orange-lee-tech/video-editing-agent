@@ -85,7 +85,10 @@ def main() -> None:
                 ),
                 prohibited_content=(
                     "Do not invent certifications or unsupported thermal-performance duration.",
-                    "Do not infer leak resistance, one-hand operation, bag fit, or use-case adequacy.",
+                    (
+                        "Do not infer leak resistance, one-hand operation, bag fit, "
+                        "or use-case adequacy."
+                    ),
                 ),
                 user_notes="Keep the plan feasible for one beginner filming alone at home.",
             ),

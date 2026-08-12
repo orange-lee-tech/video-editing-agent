@@ -564,10 +564,7 @@ def _run_case(
             policy=policy,
             review=exc.review,
         )
-    if (
-        len(recording_script_review.reviews) != 1
-        or not recording_script_review.reviews[0].accepted
-    ):
+    if len(recording_script_review.reviews) != 1 or not recording_script_review.reviews[0].accepted:
         raise AssertionError(f"{case.case_id}: guarded script lacks one accepted semantic review")
     script_review = recording_script_review.reviews[0]
     script_ref = _ref(script.envelope.id, script.envelope.revision)
