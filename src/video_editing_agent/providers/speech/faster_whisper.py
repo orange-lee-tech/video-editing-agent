@@ -138,6 +138,7 @@ def _word_proposal(word: Any, source_start: MediaTime) -> SpeechWordProposal:
 
 def _segment_proposal(segment: Any, source_start: MediaTime) -> SpeechSegmentProposal:
     raw_words = getattr(segment, "words", None)
+    words: tuple[SpeechWordProposal, ...]
     if raw_words is None:
         words = ()
     else:
