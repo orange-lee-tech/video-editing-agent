@@ -47,44 +47,54 @@ def _decode_time(value: dict[str, Any]) -> MediaTime:
     return MediaTime(value["value"], value["scale"])
 
 
+def _encode_evidence(evidence: TemporalEvidence) -> str:
+    payload = {
+        "evidence_id": evidence.evidence_id,
+        "shot_ref": {
+            "entity_id": evidence.shot_ref.entity_id,
+            "revision": evidence.shot_ref.revision,
+        },
+        "kind": evidence.kind,
+        "method": evidence.method,
+        "producer_version": evidence.producer_version,
+        "confidence": evidence.confidence,
+        "source_range": None
+        if evidence.source_range is None
+        else {
+            "start": _time(evidence.source_range.start),
+            "duration": _time(evidence.source_range.duration),
+        },
+        "artifact_refs": list(evidence.artifact_refs),
+        "source_refs": list(evidence.source_refs),
+    }
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+
 class SqliteTemporalEvidenceRepository:
     def __init__(self, database: SqliteProjectDatabase) -> None:
         self._database = database
 
     def save_evidence(self, evidence: TemporalEvidence) -> None:
-        payload = {
-            "evidence_id": evidence.evidence_id,
-            "shot_ref": {
-                "entity_id": evidence.shot_ref.entity_id,
-                "revision": evidence.shot_ref.revision,
-            },
-            "kind": evidence.kind,
-            "method": evidence.method,
-            "producer_version": evidence.producer_version,
-            "confidence": evidence.confidence,
-            "source_range": None
-            if evidence.source_range is None
-            else {
-                "start": _time(evidence.source_range.start),
-                "duration": _time(evidence.source_range.duration),
-            },
-            "artifact_refs": list(evidence.artifact_refs),
-            "source_refs": list(evidence.source_refs),
-        }
+        self.save_evidence_batch((evidence,))
+
+    def save_evidence_batch(self, evidence: tuple[TemporalEvidence, ...]) -> None:
+        if not evidence:
+            return
         with self._database.write_connection() as connection:
-            encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-            _insert_immutable(
-                connection,
-                table="temporal_evidence",
-                identity=evidence.evidence_id,
-                values=(
-                    evidence.evidence_id,
-                    evidence.shot_ref.entity_id,
-                    evidence.shot_ref.revision,
-                    encoded,
-                ),
-                payload=encoded,
-            )
+            for item in evidence:
+                encoded = _encode_evidence(item)
+                _insert_immutable(
+                    connection,
+                    table="temporal_evidence",
+                    identity=item.evidence_id,
+                    values=(
+                        item.evidence_id,
+                        item.shot_ref.entity_id,
+                        item.shot_ref.revision,
+                        encoded,
+                    ),
+                    payload=encoded,
+                )
 
     def save_anchor(self, anchor: TemporalAnchor) -> None:
         payload = {
