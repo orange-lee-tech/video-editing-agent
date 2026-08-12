@@ -1,12 +1,42 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from typing import Any
 
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
 from video_editing_agent.domain.evidence.temporal import TemporalAnchor, TemporalEvidence
-from video_editing_agent.storage.repositories.sqlite_database import SqliteProjectDatabase
+from video_editing_agent.storage.repositories.sqlite_database import (
+    PersistenceError,
+    SqliteProjectDatabase,
+)
+
+
+class TemporalEvidenceConflictError(PersistenceError):
+    """An immutable temporal identity already exists with different content."""
+
+
+def _insert_immutable(
+    connection: sqlite3.Connection,
+    *,
+    table: str,
+    identity: str,
+    values: tuple[object, ...],
+    payload: str,
+) -> None:
+    try:
+        connection.execute(f"INSERT INTO {table} VALUES (?, ?, ?, ?)", values)
+    except sqlite3.IntegrityError as exc:
+        key = "evidence_id" if table == "temporal_evidence" else "anchor_id"
+        row = connection.execute(
+            f"SELECT payload_json FROM {table} WHERE {key} = ?", (identity,)
+        ).fetchone()
+        if row is not None and str(row["payload_json"]) == payload:
+            return
+        raise TemporalEvidenceConflictError(
+            f"{table} identity already exists with different immutable content: {identity}"
+        ) from exc
 
 
 def _time(value: MediaTime) -> dict[str, int]:
@@ -42,14 +72,18 @@ class SqliteTemporalEvidenceRepository:
             "source_refs": list(evidence.source_refs),
         }
         with self._database.write_connection() as connection:
-            connection.execute(
-                "INSERT INTO temporal_evidence VALUES (?, ?, ?, ?)",
-                (
+            encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+            _insert_immutable(
+                connection,
+                table="temporal_evidence",
+                identity=evidence.evidence_id,
+                values=(
                     evidence.evidence_id,
                     evidence.shot_ref.entity_id,
                     evidence.shot_ref.revision,
-                    json.dumps(payload, sort_keys=True, separators=(",", ":")),
+                    encoded,
                 ),
+                payload=encoded,
             )
 
     def save_anchor(self, anchor: TemporalAnchor) -> None:
@@ -75,14 +109,18 @@ class SqliteTemporalEvidenceRepository:
                 ).fetchone()
                 if row is None:
                     raise ValueError(f"unknown evidence reference for exact Shot: {evidence_ref}")
-            connection.execute(
-                "INSERT INTO temporal_anchors VALUES (?, ?, ?, ?)",
-                (
+            encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+            _insert_immutable(
+                connection,
+                table="temporal_anchors",
+                identity=anchor.anchor_id,
+                values=(
                     anchor.anchor_id,
                     anchor.shot_ref.entity_id,
                     anchor.shot_ref.revision,
-                    json.dumps(payload, sort_keys=True, separators=(",", ":")),
+                    encoded,
                 ),
+                payload=encoded,
             )
 
     def list_evidence(self, shot_ref: EntityRevisionRef) -> tuple[TemporalEvidence, ...]:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
@@ -16,6 +17,7 @@ from video_editing_agent.storage.repositories.sqlite_repositories import (
 )
 from video_editing_agent.storage.repositories.temporal_evidence_repository import (
     SqliteTemporalEvidenceRepository,
+    TemporalEvidenceConflictError,
 )
 
 NOW = datetime(2026, 8, 13, tzinfo=UTC)
@@ -75,11 +77,16 @@ def test_temporal_evidence_and_anchor_round_trip_after_reopen(tmp_path) -> None:
         "hello",
     )
     repository.save_evidence(evidence)
+    repository.save_evidence(evidence)
+    repository.save_anchor(anchor)
     repository.save_anchor(anchor)
 
     reopened = SqliteTemporalEvidenceRepository(SqliteProjectDatabase(path))
     assert reopened.list_evidence(shot_ref) == (evidence,)
     assert reopened.list_anchors(shot_ref) == (anchor,)
+
+    with pytest.raises(TemporalEvidenceConflictError):
+        reopened.save_evidence(replace(evidence, confidence=0.5))
 
 
 def test_anchor_rejects_missing_exact_shot_evidence_without_partial_write(tmp_path) -> None:

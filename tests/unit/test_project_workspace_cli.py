@@ -23,6 +23,15 @@ def test_workspace_open_reopen_and_read_are_deterministic(tmp_path) -> None:
     assert reopened.status() == first.status()
     assert reopened.database.path.stat().st_size == before
     assert (root / "artifacts").is_dir()
+    assert reopened.status()["counts"] == {
+        "assets": 0,
+        "shots": 0,
+        "shot_analyses": 0,
+        "briefs": 1,
+        "script_plans": 0,
+        "shooting_plans": 0,
+    }
+    assert reopened.status()["capabilities"]["external_provider_configured"] is False
 
 
 def test_cli_init_create_show_and_failure_without_mutation(tmp_path, capsys) -> None:

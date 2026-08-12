@@ -6,14 +6,30 @@ import sys
 from pathlib import Path
 from typing import Any, cast
 
+from video_editing_agent.application.ports.shot_index import ShotCandidate
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.planning.brief.service import BriefContent
+from video_editing_agent.planning.coverage.service import CoverageCandidate, CoverageReport
 from video_editing_agent.storage.project import ProjectWorkspace
 from video_editing_agent.storage.repositories.preproduction_codec import (
+    decode_brief,
     encode_brief,
     encode_script_plan,
     encode_shooting_plan,
 )
+from video_editing_agent.storage.repositories.record_codec import (
+    encode_asset,
+    encode_shot,
+    encode_shot_analysis,
+)
+
+
+def _entity_command(parent: argparse._SubParsersAction[Any], name: str) -> None:
+    item = parent.add_parser(name)
+    sub = item.add_subparsers(dest="action", required=True)
+    show = sub.add_parser("show")
+    show.add_argument("entity_id")
+    show.add_argument("revision", type=int)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -26,6 +42,7 @@ def _parser() -> argparse.ArgumentParser:
     project_sub.add_parser("status")
     status = sub.add_parser("status")
     status.set_defaults(action="show")
+
     brief = sub.add_parser("brief")
     brief_sub = brief.add_subparsers(dest="action", required=True)
     create = brief_sub.add_parser("create")
@@ -34,46 +51,171 @@ def _parser() -> argparse.ArgumentParser:
     show = brief_sub.add_parser("show")
     show.add_argument("entity_id")
     show.add_argument("revision", type=int)
-    for name in ("script", "shooting"):
-        item = sub.add_parser(name)
+    revise = brief_sub.add_parser("revise")
+    revise.add_argument("entity_id")
+    revise.add_argument("revision", type=int)
+    revise.add_argument("--json", type=Path, required=True)
+
+    script = sub.add_parser("script")
+    script_sub = script.add_subparsers(dest="action", required=True)
+    script_show = script_sub.add_parser("show")
+    script_show.add_argument("entity_id")
+    script_show.add_argument("revision", type=int)
+    for action in ("lock", "unlock"):
+        lock = script_sub.add_parser(action)
+        lock.add_argument("entity_id")
+        lock.add_argument("revision", type=int)
+        lock.add_argument("section_id")
+
+    _entity_command(sub, "shooting")
+    _entity_command(sub, "asset")
+    _entity_command(sub, "shot")
+    analysis = sub.add_parser("analysis")
+    analysis_sub = analysis.add_subparsers(dest="action", required=True)
+    analysis_show = analysis_sub.add_parser("show")
+    analysis_show.add_argument("shot_id")
+    analysis_show.add_argument("shot_revision", type=int)
+
+    index = sub.add_parser("index")
+    index_sub = index.add_subparsers(dest="action", required=True)
+    query = index_sub.add_parser("query")
+    query.add_argument("query")
+    query.add_argument("--limit", type=int, default=20)
+
+    coverage = sub.add_parser("coverage")
+    coverage_sub = coverage.add_subparsers(dest="action", required=True)
+    coverage_show = coverage_sub.add_parser("show")
+    coverage_show.add_argument("shooting_id")
+    coverage_show.add_argument("revision", type=int)
+
+    for resource in ("evidence", "anchor"):
+        item = sub.add_parser(resource)
         item_sub = item.add_subparsers(dest="action", required=True)
-        command = item_sub.add_parser("show")
-        command.add_argument("entity_id")
-        command.add_argument("revision", type=int)
+        command = item_sub.add_parser("list")
+        command.add_argument("shot_id")
+        command.add_argument("shot_revision", type=int)
     return parser
 
 
-def _run(args: argparse.Namespace) -> dict[str, Any]:
+def _json(value: str) -> dict[str, Any]:
+    return cast(dict[str, Any], json.loads(value))
+
+
+def _candidate(value: ShotCandidate) -> dict[str, Any]:
+    return {
+        "shot_ref": {
+            "entity_id": value.shot_ref.entity_id,
+            "revision": value.shot_ref.revision,
+        },
+        "analysis_revision": value.analysis_revision,
+        "retrieval_score": value.retrieval_score,
+        "matched_terms": list(value.matched_terms),
+    }
+
+
+def _coverage_candidate(value: CoverageCandidate) -> dict[str, Any]:
+    return {
+        **_candidate(
+            ShotCandidate(
+                value.shot_ref,
+                value.analysis_revision,
+                value.retrieval_score,
+                value.matched_terms,
+            )
+        ),
+        "duration": {"value": value.duration.value, "scale": value.duration.scale},
+    }
+
+
+def _coverage(value: CoverageReport) -> dict[str, Any]:
+    return {
+        "shooting_plan_ref": {
+            "entity_id": value.shooting_plan_ref.entity_id,
+            "revision": value.shooting_plan_ref.revision,
+        },
+        "assessments": [
+            {
+                "requirement_id": item.requirement_id,
+                "state": item.state.value,
+                "action": item.action.value,
+                "reason": item.reason,
+                "reshoot_instruction": item.reshoot_instruction,
+                "candidates": [_coverage_candidate(candidate) for candidate in item.candidates],
+            }
+            for item in value.assessments
+        ],
+    }
+
+
+def _run(args: argparse.Namespace) -> object:
     workspace = ProjectWorkspace.open(args.project)
     if args.resource in {"project", "status"}:
         return workspace.status()
     if args.resource == "brief" and args.action == "create":
-        brief = workspace.brief_service.create(
-            BriefContent(
-                title=args.title,
-                objective=args.objective,
-                audience=args.audience,
-                platform=args.platform,
-                core_message=args.core_message,
-            ),
+        return _json(
+            encode_brief(
+                workspace.brief_service.create(
+                    BriefContent(
+                        args.title, args.objective, args.audience, args.platform, args.core_message
+                    ),
+                    created_by="cli",
+                )
+            )
+        )
+    if args.resource == "brief" and args.action == "revise":
+        content = BriefContent.from_brief(decode_brief(args.json.read_text(encoding="utf-8")))
+        return _json(
+            encode_brief(
+                workspace.brief_service.revise(
+                    EntityRevisionRef(args.entity_id, args.revision), content, created_by="cli"
+                )
+            )
+        )
+    if args.resource == "script" and args.action in {"lock", "unlock"}:
+        result = workspace.script_planner.set_section_lock(
+            EntityRevisionRef(args.entity_id, args.revision),
+            args.section_id,
+            locked=args.action == "lock",
             created_by="cli",
         )
-        return cast(dict[str, Any], json.loads(encode_brief(brief)))
+        return _json(encode_script_plan(result))
+    if args.resource == "analysis":
+        analysis = workspace.analyses.latest(EntityRevisionRef(args.shot_id, args.shot_revision))
+        if analysis is None:
+            raise KeyError("Shot has no analysis")
+        return _json(encode_shot_analysis(analysis))
+    if args.resource == "index":
+        return [
+            _candidate(item) for item in workspace.shot_index.search(args.query, limit=args.limit)
+        ]
+    if args.resource == "coverage":
+        plan = workspace.shooting_plans.load(EntityRevisionRef(args.shooting_id, args.revision))
+        return _coverage(workspace.coverage.evaluate(plan))
+    if args.resource in {"evidence", "anchor"}:
+        ref = EntityRevisionRef(args.shot_id, args.shot_revision)
+        values = (
+            workspace.temporal.list_evidence(ref)
+            if args.resource == "evidence"
+            else workspace.temporal.list_anchors(ref)
+        )
+        return [repr(value) for value in values]
+
     ref = EntityRevisionRef(args.entity_id, args.revision)
     if args.resource == "brief":
-        return cast(dict[str, Any], json.loads(encode_brief(workspace.briefs.load(ref))))
+        return _json(encode_brief(workspace.briefs.load(ref)))
     if args.resource == "script":
-        return cast(dict[str, Any], json.loads(encode_script_plan(workspace.scripts.load(ref))))
-    return cast(
-        dict[str, Any],
-        json.loads(encode_shooting_plan(workspace.shooting_plans.load(ref))),
-    )
+        return _json(encode_script_plan(workspace.scripts.load(ref)))
+    if args.resource == "shooting":
+        return _json(encode_shooting_plan(workspace.shooting_plans.load(ref)))
+    if args.resource == "asset":
+        return _json(encode_asset(workspace.assets.load(ref)))
+    return _json(encode_shot(workspace.shots.load(ref)))
 
 
 def main(argv: list[str] | None = None) -> int:
     try:
         result = _run(_parser().parse_args(argv))
-    except (KeyError, ValueError, OSError) as exc:
+    except (KeyError, ValueError, OSError, json.JSONDecodeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))

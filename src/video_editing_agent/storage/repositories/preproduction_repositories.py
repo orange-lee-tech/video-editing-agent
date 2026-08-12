@@ -98,6 +98,10 @@ class SqliteBriefRepository(BriefRepository):
             )
         return brief
 
+    def count(self) -> int:
+        with self._database.read_connection() as connection:
+            return int(connection.execute("SELECT COUNT(*) FROM briefs").fetchone()[0])
+
 
 class SqliteScriptPlanRepository(ScriptPlanRepository):
     def __init__(self, database: SqliteProjectDatabase) -> None:
@@ -143,6 +147,10 @@ class SqliteScriptPlanRepository(ScriptPlanRepository):
                 f"ScriptPlan row identity {script_plan_ref!r} disagrees with payload {actual_ref!r}"
             )
         return script_plan
+
+    def count(self) -> int:
+        with self._database.read_connection() as connection:
+            return int(connection.execute("SELECT COUNT(*) FROM script_plans").fetchone()[0])
 
 
 class SqliteShootingPlanRepository(ShootingPlanRepository):
@@ -202,3 +210,7 @@ class SqliteShootingPlanRepository(ShootingPlanRepository):
                 f"payload {actual_ref!r}"
             )
         return shooting_plan
+
+    def count(self) -> int:
+        with self._database.read_connection() as connection:
+            return int(connection.execute("SELECT COUNT(*) FROM shooting_plans").fetchone()[0])

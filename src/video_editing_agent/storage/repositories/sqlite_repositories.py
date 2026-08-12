@@ -94,6 +94,13 @@ class SqliteAssetRepository(AssetRepository):
             )
         return asset
 
+    def list_all(self) -> tuple[Asset, ...]:
+        with self._database.read_connection() as connection:
+            rows = connection.execute(
+                "SELECT payload_json FROM assets ORDER BY entity_id, revision"
+            ).fetchall()
+        return tuple(decode_asset(str(row["payload_json"])) for row in rows)
+
 
 class SqliteShotRepository(ShotPersistenceRepository):
     def __init__(self, database: SqliteProjectDatabase) -> None:
@@ -153,6 +160,13 @@ class SqliteShotRepository(ShotPersistenceRepository):
             )
         return shot
 
+    def list_all(self) -> tuple[Shot, ...]:
+        with self._database.read_connection() as connection:
+            rows = connection.execute(
+                "SELECT payload_json FROM shots ORDER BY entity_id, revision"
+            ).fetchall()
+        return tuple(decode_shot(str(row["payload_json"])) for row in rows)
+
 
 class SqliteShotAnalysisRepository(ShotAnalysisRepository):
     def __init__(self, database: SqliteProjectDatabase) -> None:
@@ -202,3 +216,18 @@ class SqliteShotAnalysisRepository(ShotAnalysisRepository):
                 f"{analysis.shot_ref!r}"
             )
         return analysis
+
+    def list_latest(self) -> tuple[ShotAnalysis, ...]:
+        with self._database.read_connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT payload_json FROM shot_analyses AS candidate
+                WHERE analysis_revision = (
+                    SELECT MAX(analysis_revision) FROM shot_analyses
+                    WHERE shot_entity_id = candidate.shot_entity_id
+                      AND shot_revision = candidate.shot_revision
+                )
+                ORDER BY shot_entity_id, shot_revision
+                """
+            ).fetchall()
+        return tuple(decode_shot_analysis(str(row["payload_json"])) for row in rows)
