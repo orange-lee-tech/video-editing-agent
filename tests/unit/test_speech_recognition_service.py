@@ -46,9 +46,7 @@ class MemoryTranscriptRepository:
 
     def load(self, shot_ref: EntityRevisionRef, revision: int) -> SpeechTranscript:
         return next(
-            item
-            for item in self.saved
-            if item.shot_ref == shot_ref and item.revision == revision
+            item for item in self.saved if item.shot_ref == shot_ref and item.revision == revision
         )
 
     def latest(self, shot_ref: EntityRevisionRef) -> SpeechTranscript | None:

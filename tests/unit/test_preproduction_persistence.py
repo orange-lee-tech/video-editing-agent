@@ -112,7 +112,7 @@ def test_schema_v3_round_trip_survives_reopen(tmp_path: Path) -> None:
     shooting.save(shooting_plan)
 
     reopened = database(path)
-    assert reopened.schema_version() == 4
+    assert reopened.schema_version() == 5
     assert SqliteBriefRepository(reopened).load(EntityRevisionRef("brf_persist", 1)) == brief
     assert SqliteScriptPlanRepository(reopened).load(EntityRevisionRef("scp_persist", 1)) == script
     assert (
@@ -187,7 +187,7 @@ def test_v2_database_migrates_to_v3_without_touching_existing_tables(tmp_path: P
 
     db = database(path)
 
-    assert db.schema_version() == 4
+    assert db.schema_version() == 5
     with db.read_connection() as reopened:
         migration = reopened.execute(
             """
