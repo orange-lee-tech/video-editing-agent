@@ -1,0 +1,13 @@
+from __future__ import annotations
+
+from typing import Protocol
+
+from video_editing_agent.domain.common.entity import EntityRevisionRef
+from video_editing_agent.domain.evidence.temporal import TemporalAnchor, TemporalEvidence
+
+
+class TemporalEvidenceRepository(Protocol):
+    def save_evidence(self, evidence: TemporalEvidence) -> None: ...
+    def save_anchor(self, anchor: TemporalAnchor) -> None: ...
+    def list_evidence(self, shot_ref: EntityRevisionRef) -> tuple[TemporalEvidence, ...]: ...
+    def list_anchors(self, shot_ref: EntityRevisionRef) -> tuple[TemporalAnchor, ...]: ...

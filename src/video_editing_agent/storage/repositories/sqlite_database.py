@@ -6,8 +6,8 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 
-SCHEMA_VERSION = 3
-_SUPPORTED_SCHEMA_VERSIONS = frozenset({0, 1, 2, SCHEMA_VERSION})
+SCHEMA_VERSION = 4
+_SUPPORTED_SCHEMA_VERSIONS = frozenset({0, 1, 2, 3, SCHEMA_VERSION})
 
 
 class PersistenceError(RuntimeError):
@@ -84,6 +84,23 @@ def _create_v3_tables(connection: sqlite3.Connection) -> None:
         )
         """
     )
+
+
+def _create_v4_tables(connection: sqlite3.Connection) -> None:
+    for table, identity in (
+        ("temporal_evidence", "evidence_id"),
+        ("temporal_anchors", "anchor_id"),
+    ):
+        connection.execute(f"""
+            CREATE TABLE IF NOT EXISTS {table} (
+                {identity} TEXT NOT NULL PRIMARY KEY,
+                shot_entity_id TEXT NOT NULL,
+                shot_revision INTEGER NOT NULL CHECK (shot_revision >= 1),
+                payload_json TEXT NOT NULL,
+                FOREIGN KEY (shot_entity_id, shot_revision)
+                    REFERENCES shots (entity_id, revision) ON DELETE RESTRICT
+            )
+        """)
     connection.execute(
         """
         CREATE TABLE IF NOT EXISTS script_plans (
@@ -168,16 +185,23 @@ class SqliteProjectDatabase:
                 else:
                     _create_v2_tables(connection)
 
-                if current_version < SCHEMA_VERSION:
+                if current_version < 3:
                     _create_v3_tables(connection)
                     _record_migration(
                         connection,
                         from_version=current_version,
-                        to_version=SCHEMA_VERSION,
+                        to_version=3,
                     )
-                    connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+                    connection.execute("PRAGMA user_version = 3")
+                    current_version = 3
                 else:
                     _create_v3_tables(connection)
+                if current_version < 4:
+                    _create_v4_tables(connection)
+                    _record_migration(connection, from_version=current_version, to_version=4)
+                    connection.execute("PRAGMA user_version = 4")
+                else:
+                    _create_v4_tables(connection)
                 connection.execute("COMMIT")
             except BaseException:
                 if connection.in_transaction:
