@@ -1,16 +1,10 @@
 name: R0.7B Application Engineering Probe
 
+# R0.7B is closed. Keep this deterministic end-to-end probe available for explicit
+# regression investigation without making later Roadmap phases pay a permanent
+# phase-specific runner cost on every application/storage change.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "src/video_editing_agent/application/**"
-      - "src/video_editing_agent/adapters/cli/**"
-      - "src/video_editing_agent/storage/project/**"
-      - "src/video_editing_agent/storage/repositories/**"
-      - "tools/probes/r0_7b_application_engineering_probe.py"
-      - "tests/integration/test_r0_7b_preproduction_path.py"
 
 permissions:
   contents: read
