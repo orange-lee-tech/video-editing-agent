@@ -33,6 +33,7 @@ from video_editing_agent.providers.llm.deepseek_preproduction_review import (
     REVIEW_CAPACITY_RECOVERY_MAX_TOKENS,
     REVIEW_INITIAL_MAX_TOKENS,
     DeepSeekReviewCapacityError,
+    DeepSeekReviewEmptyResponseError,
     DeepSeekShootingProposalReviewPort,
 )
 from video_editing_agent.storage.repositories.preproduction_repositories import (
@@ -98,6 +99,26 @@ class LengthThenStopTransport:
                 {
                     "finish_reason": finish,
                     "message": {"content": json.dumps({"accepted": True, "violations": []})},
+                }
+            ]
+        }
+
+
+class EmptyThenStopTransport:
+    def __init__(self, *, empty_twice: bool = False) -> None:
+        self.empty_twice = empty_twice
+        self.payloads: list[dict[str, Any]] = []
+
+    def create_chat_completion(self, payload: dict[str, Any]) -> dict[str, Any]:
+        self.payloads.append(payload)
+        empty = len(self.payloads) == 1 or self.empty_twice
+        return {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "message": {
+                        "content": "" if empty else json.dumps({"accepted": True, "violations": []})
+                    },
                 }
             ]
         }
@@ -177,6 +198,39 @@ def test_shooting_review_length_recovery_is_bounded(tmp_path: Path) -> None:
     assert len(transport.payloads) == 2
     assert transport.payloads[0]["max_tokens"] == REVIEW_INITIAL_MAX_TOKENS
     assert transport.payloads[1]["max_tokens"] == REVIEW_CAPACITY_RECOVERY_MAX_TOKENS
+
+
+def test_shooting_review_empty_content_recovers_once(tmp_path: Path) -> None:
+    _, _, _, brief, script, _ = project_chain(tmp_path / "empty.sqlite3")
+    transport = EmptyThenStopTransport()
+
+    review = DeepSeekShootingProposalReviewPort(transport=transport).review(
+        ShootingProposalReviewRequest(
+            brief=brief,
+            script_plan=script,
+            constraints=constraints(),
+            proposal=mismatched_location_proposal(),
+        )
+    )
+
+    assert review.accepted
+    assert len(transport.payloads) == 2
+
+
+def test_shooting_review_empty_twice_fails_after_two_calls(tmp_path: Path) -> None:
+    _, _, _, brief, script, _ = project_chain(tmp_path / "empty-twice.sqlite3")
+    transport = EmptyThenStopTransport(empty_twice=True)
+
+    with pytest.raises(DeepSeekReviewEmptyResponseError):
+        DeepSeekShootingProposalReviewPort(transport=transport).review(
+            ShootingProposalReviewRequest(
+                brief=brief,
+                script_plan=script,
+                constraints=constraints(),
+                proposal=mismatched_location_proposal(),
+            )
+        )
+    assert len(transport.payloads) == 2
 
 
 def test_shooting_review_receives_complete_committed_script_shape(tmp_path: Path) -> None:

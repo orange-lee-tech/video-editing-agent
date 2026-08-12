@@ -34,6 +34,7 @@ from video_editing_agent.providers.llm.deepseek_preproduction_review import (
     REVIEW_CAPACITY_RECOVERY_MAX_TOKENS,
     REVIEW_INITIAL_MAX_TOKENS,
     DeepSeekReviewCapacityError,
+    DeepSeekReviewEmptyResponseError,
     DeepSeekScriptProposalReviewPort,
 )
 from video_editing_agent.storage.repositories.preproduction_repositories import (
@@ -273,6 +274,9 @@ def test_script_semantic_veto_repairs_once_then_commits(tmp_path: Path) -> None:
     assert "code=unsupported_claim" in repair
     assert "section_id=proof" in repair
     assert "not an authoritative product fact" in repair
+    assert "remove the unsupported semantic property itself" in repair
+    assert "replace it with a synonym" in repair
+    assert "retaining the same implication" in repair
     assert planning_port.requests[1].brief.authoritative_facts == brief.authoritative_facts
 
 
@@ -411,6 +415,78 @@ def response(finish_reason: str, content: dict[str, Any], *, reasoning: str = "p
             "completion_tokens_details": {"reasoning_tokens": 199},
         },
     }
+
+
+def empty_response(*, reasoning: str = "private") -> dict[str, Any]:
+    value = response("stop", {"accepted": True, "violations": []}, reasoning=reasoning)
+    value["choices"][0]["message"]["content"] = ""
+    return value
+
+
+@pytest.mark.parametrize(
+    "decision",
+    [
+        {"accepted": True, "violations": []},
+        {
+            "accepted": False,
+            "violations": [
+                {
+                    "code": "unsupported",
+                    "section_id": "demo",
+                    "excerpt": None,
+                    "reason": "unsupported",
+                }
+            ],
+        },
+    ],
+)
+def test_script_review_recovers_once_from_empty_content(tmp_path: Path, decision) -> None:
+    transport = ResponseTransport([empty_response(), response("stop", decision)])
+    briefs, _ = repositories(tmp_path / "empty.sqlite3")
+
+    review = DeepSeekScriptProposalReviewPort(transport=transport).review(
+        ScriptProposalReviewRequest(guarded_brief(briefs), safe_proposal())
+    )
+
+    assert review.accepted is decision["accepted"]
+    assert len(transport.payloads) == 2
+    assert len(transport.payloads[1]["messages"]) == 2
+
+
+def test_script_review_empty_twice_has_safe_diagnostics(tmp_path: Path) -> None:
+    transport = ResponseTransport([empty_response(), empty_response()])
+    briefs, _ = repositories(tmp_path / "empty-twice.sqlite3")
+
+    with pytest.raises(DeepSeekReviewEmptyResponseError) as captured:
+        DeepSeekScriptProposalReviewPort(transport=transport).review(
+            ScriptProposalReviewRequest(guarded_brief(briefs), safe_proposal())
+        )
+
+    assert len(transport.payloads) == 2
+    assert captured.value.diagnostics.transient_recovery_attempted
+    assert captured.value.diagnostics.reasoning_tokens == 199
+    assert "private" not in str(captured.value)
+
+
+@pytest.mark.parametrize("second", ["malformed", "length"])
+def test_script_review_empty_then_invalid_second_call_fails_closed(
+    tmp_path: Path, second: str
+) -> None:
+    final = (
+        response("stop", {"accepted": True, "violations": []})
+        if second == "malformed"
+        else response("length", {"accepted": True, "violations": []})
+    )
+    if second == "malformed":
+        final["choices"][0]["message"]["content"] = "not-json"
+    transport = ResponseTransport([empty_response(), final])
+    briefs, _ = repositories(tmp_path / f"empty-{second}.sqlite3")
+
+    with pytest.raises(DeepSeekPlanningResponseError):
+        DeepSeekScriptProposalReviewPort(transport=transport).review(
+            ScriptProposalReviewRequest(guarded_brief(briefs), safe_proposal())
+        )
+    assert len(transport.payloads) == 2
 
 
 @pytest.mark.parametrize(

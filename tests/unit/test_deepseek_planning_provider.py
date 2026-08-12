@@ -163,6 +163,12 @@ def test_script_adapter_uses_json_mode_and_preserves_authority_context() -> None
         )
     )
 
+    prompt = transport.payloads[0]["messages"][0]["content"]
+    assert "structural or mechanical feature" in prompt
+    assert "ease of use" in prompt
+    assert "convenience" in prompt
+    assert "easy, simple, or convenient opening or closing" in prompt
+
     assert proposal.sections[0].section_id == "hook"
     assert proposal.sections[0].target_duration == MediaTime(3, 1)
     assert proposal.sections[0].protected_fact_ids == ("fact_price",)

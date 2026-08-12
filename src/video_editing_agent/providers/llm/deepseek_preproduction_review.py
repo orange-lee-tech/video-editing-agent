@@ -121,6 +121,7 @@ class DeepSeekReviewDiagnostics:
     completion_tokens: int | None = None
     reasoning_tokens: int | None = None
     capacity_recovery_attempted: bool = False
+    transient_recovery_attempted: bool = False
 
 
 class DeepSeekReviewCapacityError(DeepSeekPlanningResponseError):
@@ -130,6 +131,18 @@ class DeepSeekReviewCapacityError(DeepSeekPlanningResponseError):
         self.diagnostics = diagnostics
         super().__init__(
             "DeepSeek review exhausted output capacity "
+            f"(finish_reason={diagnostics.finish_reason!r}, "
+            f"configured_max_tokens={diagnostics.configured_max_tokens})"
+        )
+
+
+class DeepSeekReviewEmptyResponseError(DeepSeekPlanningTransientError):
+    """A review returned no final JSON content after its bounded execution attempts."""
+
+    def __init__(self, diagnostics: DeepSeekReviewDiagnostics) -> None:
+        self.diagnostics = diagnostics
+        super().__init__(
+            "DeepSeek review returned empty JSON content "
             f"(finish_reason={diagnostics.finish_reason!r}, "
             f"configured_max_tokens={diagnostics.configured_max_tokens})"
         )
@@ -258,6 +271,17 @@ def _capacity_config(config: DeepSeekChatConfig) -> DeepSeekChatConfig:
     )
 
 
+def _has_empty_final_content(response: dict[str, Any]) -> bool:
+    choices = response.get("choices")
+    if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+        return False
+    message = choices[0].get("message")
+    if not isinstance(message, dict):
+        return False
+    content = message.get("content")
+    return not isinstance(content, str) or not content.strip()
+
+
 def _review_with_one_contract_recovery[
     ReviewResult: (ScriptProposalReview, ShootingProposalReview),
 ](
@@ -288,6 +312,20 @@ def _review_with_one_contract_recovery[
             if attempt == 1:
                 raise DeepSeekReviewCapacityError(diagnostics)
             recovery_kind = "capacity"
+            continue
+        if diagnostics.finish_reason == "stop" and _has_empty_final_content(response):
+            empty_diagnostics = DeepSeekReviewDiagnostics(
+                finish_reason=diagnostics.finish_reason,
+                configured_max_tokens=diagnostics.configured_max_tokens,
+                prompt_tokens=diagnostics.prompt_tokens,
+                completion_tokens=diagnostics.completion_tokens,
+                reasoning_tokens=diagnostics.reasoning_tokens,
+                capacity_recovery_attempted=False,
+                transient_recovery_attempted=attempt == 1,
+            )
+            if attempt == 1:
+                raise DeepSeekReviewEmptyResponseError(empty_diagnostics)
+            recovery_kind = "transient"
             continue
         try:
             value = _response_json_object(response)

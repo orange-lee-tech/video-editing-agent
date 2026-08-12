@@ -84,6 +84,7 @@ def test_product_probe_reports_safe_review_capacity_diagnostics() -> None:
         "completion_tokens": 32_000,
         "reasoning_tokens": 31_990,
         "capacity_recovery_attempted": True,
+        "transient_recovery_attempted": False,
     }
     assert "reasoning_content" not in str(result)
 

@@ -72,8 +72,11 @@ def _repair_instruction(review: ScriptProposalReview, original: str | None) -> s
         "The semantic reviewer feedback below identifies defects only. It is not an "
         "authoritative product fact and must not be used as support for new claims. Regenerate the "
         "proposal under the ORIGINAL Brief, authoritative facts, constraints, policy, reference "
-        "guidance, and current revision authority. Remove unsupported implications rather than "
-        "inventing replacement facts. Do not change locked or authoritative state.\n"
+        "guidance, and current revision authority. For every unsupported-claim violation, remove "
+        "the unsupported semantic property itself. Do not paraphrase it, replace it with a "
+        "synonym, or soften its wording while retaining the same implication. Reviewer diagnostics "
+        "are non-authoritative and cannot support replacement facts. Do not change locked or "
+        "authoritative state.\n"
         f"Reviewer diagnostics:\n{diagnostics}"
     )
 

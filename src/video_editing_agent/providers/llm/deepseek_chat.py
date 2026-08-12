@@ -103,7 +103,10 @@ _SCRIPT_SYSTEM_PROMPT = (
     "reliability, or outcomes. Concrete product claims must be directly supported by "
     "authoritative_facts; use the supporting fact IDs in protected_fact_ids. Do not infer that a "
     "capacity is enough for a use case or that the product fits easily in a bag unless a fact says "
-    "so. Do not infer one-hand operation or leak resistance from a screw-on lid. When revising, "
+    "so. A structural or mechanical feature establishes only its stated structure or mechanism; "
+    "it does not establish ease of use, convenience, performance, reliability, or outcomes. A "
+    "screw-on lid does not establish easy, simple, or convenient opening or closing; it also does "
+    "not establish one-hand operation or leak resistance. When revising, "
     "preserve every locked section exactly."
 )
 
@@ -125,7 +128,9 @@ _SHOOTING_SYSTEM_PROMPT = (
     "locations exist and you give an environment_description, also give its location_ref. Do not "
     "introduce concrete product properties, performance, fit, adequacy, operability, materials, "
     "reliability, or outcomes that are not directly supported by authoritative_facts or the clean "
-    "ScriptPlan. Instructions must be practical for the declared user skill/equipment. Missing "
+    "ScriptPlan. A structural or mechanical feature establishes only its stated structure or "
+    "mechanism, not ease, convenience, performance, reliability, or outcomes. Instructions must "
+    "be practical for the declared user skill/equipment. Missing "
     "visual coverage must be captured by the user, never replaced with stock or generated footage."
 )
 

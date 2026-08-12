@@ -56,6 +56,7 @@ from video_editing_agent.providers.llm.deepseek_chat import (
 from video_editing_agent.providers.llm.deepseek_preproduction_review import (
     REVIEW_INITIAL_MAX_TOKENS,
     DeepSeekReviewCapacityError,
+    DeepSeekReviewEmptyResponseError,
     DeepSeekScriptProposalReviewPort,
     DeepSeekShootingProposalReviewPort,
 )
@@ -514,7 +515,7 @@ def _engineering_failure_result(
         "error_category": type(error).__name__,
         "error_message": " ".join(str(error).split())[:500],
     }
-    if isinstance(error, DeepSeekReviewCapacityError):
+    if isinstance(error, (DeepSeekReviewCapacityError, DeepSeekReviewEmptyResponseError)):
         diagnostics = error.diagnostics
         result["review_capacity"] = {
             "finish_reason": diagnostics.finish_reason,
@@ -523,6 +524,7 @@ def _engineering_failure_result(
             "completion_tokens": diagnostics.completion_tokens,
             "reasoning_tokens": diagnostics.reasoning_tokens,
             "capacity_recovery_attempted": diagnostics.capacity_recovery_attempted,
+            "transient_recovery_attempted": diagnostics.transient_recovery_attempted,
         }
     return result
 
