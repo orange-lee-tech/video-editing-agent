@@ -76,7 +76,9 @@ def _evidence_id(
     return f"tev_vad_{digest}"
 
 
-def _normalize_proposal(proposal: VoiceActivityProposal, shot: Shot) -> tuple[TemporalEvidence, ...]:
+def _normalize_proposal(
+    proposal: VoiceActivityProposal, shot: Shot
+) -> tuple[TemporalEvidence, ...]:
     provider_id = proposal.provider_id.strip()
     provider_revision = proposal.provider_revision.strip()
     if not provider_id:

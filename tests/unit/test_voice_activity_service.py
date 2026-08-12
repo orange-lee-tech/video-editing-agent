@@ -15,9 +15,9 @@ from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRan
 from video_editing_agent.domain.evidence.temporal import TemporalEvidence
 from video_editing_agent.domain.shot.model import Shot
 from video_editing_agent.media.speech.voice_activity import (
-    ProviderNeutralVoiceActivityService,
     SILENCE_KIND,
     SPEECH_ACTIVITY_KIND,
+    ProviderNeutralVoiceActivityService,
 )
 
 NOW = datetime(2026, 8, 12, 17, 10, tzinfo=UTC)
