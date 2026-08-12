@@ -125,6 +125,18 @@ class RecordingShootingReviewPort:
         return review
 
 
+def _final_accepted_review[
+    Review: (ScriptProposalReview, ShootingProposalReview),
+](reviews: list[Review], *, label: str) -> Review:
+    if not 1 <= len(reviews) <= 2:
+        raise AssertionError(f"{label} requires one direct review or one bounded repair")
+    if not reviews[-1].accepted:
+        raise AssertionError(f"{label} final semantic review was not accepted")
+    if len(reviews) == 2 and reviews[0].accepted:
+        raise AssertionError(f"{label} bounded repair must begin with a semantic veto")
+    return reviews[-1]
+
+
 def _ref(entity_id: str, revision: int) -> EntityRevisionRef:
     return EntityRevisionRef(entity_id=entity_id, revision=revision)
 
@@ -583,9 +595,10 @@ def _run_case(
         return _engineering_failure_result(
             case=case, config=config, stage="script_generation_or_review", error=exc
         )
-    if len(recording_script_review.reviews) != 1 or not recording_script_review.reviews[0].accepted:
-        raise AssertionError(f"{case.case_id}: guarded script lacks one accepted semantic review")
-    script_review = recording_script_review.reviews[0]
+    script_review = _final_accepted_review(
+        recording_script_review.reviews,
+        label=f"{case.case_id}: guarded script",
+    )
     script_ref = _ref(script.envelope.id, script.envelope.revision)
 
     recording_shooting_review = RecordingShootingReviewPort(
@@ -625,14 +638,10 @@ def _run_case(
         return _engineering_failure_result(
             case=case, config=config, stage="shooting_generation_or_review", error=exc
         )
-    if (
-        len(recording_shooting_review.reviews) != 1
-        or not recording_shooting_review.reviews[0].accepted
-    ):
-        raise AssertionError(
-            f"{case.case_id}: guarded ShootingPlan lacks one accepted semantic review"
-        )
-    shooting_review = recording_shooting_review.reviews[0]
+    shooting_review = _final_accepted_review(
+        recording_shooting_review.reviews,
+        label=f"{case.case_id}: guarded ShootingPlan",
+    )
 
     if briefs.load(brief_ref).authoritative_facts != original_facts:
         raise AssertionError(f"{case.case_id}: authoritative Brief facts changed")
