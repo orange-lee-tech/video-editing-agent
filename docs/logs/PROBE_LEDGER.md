@@ -51,3 +51,53 @@ Freeze paid Product Probe execution until:
 - the next paid run can distinguish structural semantic-gate failure from product-quality failure.
 
 No run #15 is authorized merely to test another prompt wording.
+
+### R0.7B Product Probe run #15 — 31608957718
+
+- Date: 2026-08-12
+- Baseline: `186813be1b4d950266fbebe5edbeb9b82a5f0774`
+- Result: `automated-gate-vetoed`
+- Natural Vlog: `ready_for_human_acceptance`
+- Product Ad: Script semantic veto only
+- Veto excerpt: `拧紧就好`
+- Reviewer classification: unsupported operability/ease-of-use implication from a screw-on-lid fact.
+
+#### Information gained
+
+The shared commercial-authority refactor was materially working: the earlier fit/commute contradiction disappeared and Natural Vlog stayed green. The remaining failure isolated a narrower invariant: a structural/mechanical fact must be rendered as a neutral observable mechanism/action/state, without evaluative or sufficiency semantics such as ease, convenience, simplicity, `just do X`, or `X is enough`.
+
+#### Decision after run #15
+
+Do not weaken the reviewer. Tighten the shared authority contract and fixture toward neutral observable mechanics, cover it with deterministic regressions, require free CI green, then allow one more Product Probe.
+
+### R0.7B Product Probe run #16 — 31610613082
+
+- Date: 2026-08-12
+- Baseline: `48ecafcf45a299ced4d9abafd5501e2b9031f4a3`
+- Workflow: `R0.7B Product Probe Evidence`
+- Result: `reviewable-evidence-generated`
+- Workflow conclusion: success
+- Product Ad: `ready_for_human_acceptance`
+- Natural Vlog: `ready_for_human_acceptance`
+- Script semantic review: accepted for both cases
+- Shooting semantic review: accepted for both cases
+- Automated Product Review: accepted for both cases
+- All required/recommended coverage present: true for both cases
+- Structured location references authorized: true for both cases
+- Material provider invoked: false for both cases
+- Product Ad duration: target 30 s, estimated 23 s, delta -7 s
+- Natural Vlog duration: target 45 s, estimated 45 s, delta 0 s
+- Human evaluation status: pending
+
+#### Information gained
+
+The unified Authority + neutral-observation rule can now carry both distinct R0.7B policies through real provider generation, semantic review, shooting planning, and final automated Product Review without the previous unsupported fit/ease claims. The remaining question is no longer an automated semantic-gate question; it is the explicit Human Gate over usefulness, shooting executability, factual fidelity, and expected coverage.
+
+The Product Ad 23/30-second duration result is retained as a human product-quality note. The Roadmap does not define exact duration equality as the R0.7B Product Probe exit criterion, so this is not silently converted into an engineering failure or another paid probe trigger.
+
+#### Decision after run #16
+
+- No more paid Product Probe is justified before Human Gate feedback.
+- Do not tune prompts merely to remove the 7-second duration delta.
+- If Human Gate accepts both plans as practical, write formal R0.7B closure evidence and synchronize authoritative/current-state docs.
+- If Human Gate rejects a material product property, classify that product-quality defect first and fix the shared mechanism rather than the observed sentence.
