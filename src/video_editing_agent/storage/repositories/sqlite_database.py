@@ -6,8 +6,8 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 
-SCHEMA_VERSION = 4
-_SUPPORTED_SCHEMA_VERSIONS = frozenset({0, 1, 2, 3, SCHEMA_VERSION})
+SCHEMA_VERSION = 5
+_SUPPORTED_SCHEMA_VERSIONS = frozenset({0, 1, 2, 3, 4, SCHEMA_VERSION})
 
 
 class PersistenceError(RuntimeError):
@@ -133,6 +133,23 @@ def _create_v4_tables(connection: sqlite3.Connection) -> None:
     )
 
 
+def _create_v5_tables(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS speech_transcripts (
+            shot_entity_id TEXT NOT NULL,
+            shot_revision INTEGER NOT NULL CHECK (shot_revision >= 1),
+            transcript_revision INTEGER NOT NULL CHECK (transcript_revision >= 1),
+            payload_json TEXT NOT NULL,
+            PRIMARY KEY (shot_entity_id, shot_revision, transcript_revision),
+            FOREIGN KEY (shot_entity_id, shot_revision)
+                REFERENCES shots (entity_id, revision)
+                ON DELETE RESTRICT
+        )
+        """
+    )
+
+
 def _record_migration(
     connection: sqlite3.Connection,
     *,
@@ -196,12 +213,21 @@ class SqliteProjectDatabase:
                     current_version = 3
                 else:
                     _create_v3_tables(connection)
+
                 if current_version < 4:
                     _create_v4_tables(connection)
                     _record_migration(connection, from_version=current_version, to_version=4)
                     connection.execute("PRAGMA user_version = 4")
+                    current_version = 4
                 else:
                     _create_v4_tables(connection)
+
+                if current_version < 5:
+                    _create_v5_tables(connection)
+                    _record_migration(connection, from_version=current_version, to_version=5)
+                    connection.execute("PRAGMA user_version = 5")
+                else:
+                    _create_v5_tables(connection)
                 connection.execute("COMMIT")
             except BaseException:
                 if connection.in_transaction:

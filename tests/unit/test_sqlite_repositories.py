@@ -110,7 +110,7 @@ def test_schema_bootstrap_sets_version_and_creates_parent(tmp_path: Path) -> Non
     db = database(path)
 
     assert path.is_file()
-    assert db.schema_version() == 4
+    assert db.schema_version() == 5
 
 
 def test_rejects_unknown_existing_schema_version(tmp_path: Path) -> None:

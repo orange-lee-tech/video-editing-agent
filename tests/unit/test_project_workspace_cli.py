@@ -38,7 +38,7 @@ def test_cli_init_create_show_and_failure_without_mutation(tmp_path, capsys) -> 
     root = tmp_path / "cli-project"
     assert main(["--project", str(root), "project", "init"]) == 0
     status = json.loads(capsys.readouterr().out)
-    assert status["schema_version"] == 4
+    assert status["schema_version"] == 5
 
     args = [
         "--project",
