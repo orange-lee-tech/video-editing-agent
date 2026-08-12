@@ -8,6 +8,8 @@ from typing import Any, cast
 
 from video_editing_agent.application.ports.shot_index import ShotCandidate
 from video_editing_agent.domain.common.entity import EntityRevisionRef
+from video_editing_agent.domain.common.media_time import MediaTime
+from video_editing_agent.domain.evidence.temporal import TemporalAnchor, TemporalEvidence
 from video_editing_agent.planning.brief.service import BriefContent
 from video_editing_agent.planning.coverage.service import CoverageCandidate, CoverageReport
 from video_editing_agent.storage.project import ProjectWorkspace
@@ -147,6 +149,42 @@ def _coverage(value: CoverageReport) -> dict[str, Any]:
     }
 
 
+def _time(value: MediaTime) -> dict[str, int]:
+    return {"value": value.value, "scale": value.scale}
+
+
+def _temporal_evidence(value: TemporalEvidence) -> dict[str, Any]:
+    return {
+        "evidence_id": value.evidence_id,
+        "shot_ref": {"entity_id": value.shot_ref.entity_id, "revision": value.shot_ref.revision},
+        "kind": value.kind,
+        "method": value.method,
+        "producer_version": value.producer_version,
+        "confidence": value.confidence,
+        "source_range": None
+        if value.source_range is None
+        else {
+            "start": _time(value.source_range.start),
+            "duration": _time(value.source_range.duration),
+        },
+        "artifact_refs": list(value.artifact_refs),
+        "source_refs": list(value.source_refs),
+    }
+
+
+def _temporal_anchor(value: TemporalAnchor) -> dict[str, Any]:
+    return {
+        "anchor_id": value.anchor_id,
+        "shot_ref": {"entity_id": value.shot_ref.entity_id, "revision": value.shot_ref.revision},
+        "kind": value.kind,
+        "source_time": _time(value.source_time),
+        "confidence": value.confidence,
+        "evidence_refs": list(value.evidence_refs),
+        "method": value.method,
+        "semantic_label": value.semantic_label,
+    }
+
+
 def _run(args: argparse.Namespace) -> object:
     workspace = ProjectWorkspace.open(args.project)
     if args.resource in {"project", "status"}:
@@ -198,7 +236,12 @@ def _run(args: argparse.Namespace) -> object:
             if args.resource == "evidence"
             else workspace.temporal.list_anchors(ref)
         )
-        return [repr(value) for value in values]
+        return [
+            _temporal_evidence(value)
+            if isinstance(value, TemporalEvidence)
+            else _temporal_anchor(value)
+            for value in values
+        ]
 
     ref = EntityRevisionRef(args.entity_id, args.revision)
     if args.resource == "brief":

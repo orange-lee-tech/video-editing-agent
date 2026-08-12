@@ -3,13 +3,31 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from video_editing_agent.application.ports.preproduction_planning import (
+    ScriptPlanningPort,
+    ShootingPlanningPort,
+)
+from video_editing_agent.application.ports.preproduction_review import (
+    ScriptProposalReviewPort,
+    ShootingProposalReviewPort,
+)
+from video_editing_agent.application.ports.shot_detector import ShotDetectionOptions, ShotDetector
 from video_editing_agent.application.ports.shot_index import ShotIndexSource
+from video_editing_agent.application.use_cases.runtime import (
+    ApplicationRuntime,
+    MediaOperations,
+    PreproductionOperations,
+)
 from video_editing_agent.domain.common.entity import EntityRevisionRef
+from video_editing_agent.domain.shot.model import Shot
 from video_editing_agent.media.indexing.lexical import LexicalShotIndex
+from video_editing_agent.media.shot_detection.catalog import ShotCatalog
 from video_editing_agent.planning.brief.service import BriefService
 from video_editing_agent.planning.coverage.service import CoverageService
 from video_editing_agent.planning.script.service import ScriptPlanner
+from video_editing_agent.planning.script.workflow import ScriptPlanningWorkflow
 from video_editing_agent.planning.shooting.service import ShootingPlanner
+from video_editing_agent.planning.shooting.workflow import ShootingPlanningWorkflow
 from video_editing_agent.storage.artifact.local_store import LocalArtifactStore
 from video_editing_agent.storage.repositories.preproduction_repositories import (
     SqliteBriefRepository,
@@ -114,3 +132,67 @@ class ProjectWorkspace:
                 "external_provider_configured": False,
             },
         }
+
+    def index_sources(self) -> tuple[ShotIndexSource, ...]:
+        shot_by_ref = {
+            EntityRevisionRef(shot.envelope.id, shot.envelope.revision): shot
+            for shot in self.shots.list_all()
+        }
+        return tuple(
+            ShotIndexSource(shot=shot_by_ref[analysis.shot_ref], analysis=analysis)
+            for analysis in self.analyses.list_latest()
+            if analysis.shot_ref in shot_by_ref
+        )
+
+    def runtime(
+        self,
+        *,
+        script_planning: ScriptPlanningPort,
+        script_review: ScriptProposalReviewPort,
+        shooting_planning: ShootingPlanningPort,
+        shooting_review: ShootingProposalReviewPort,
+    ) -> ApplicationRuntime:
+        script_workflow = ScriptPlanningWorkflow(
+            brief_repository=self.briefs,
+            script_plan_repository=self.scripts,
+            planning_port=script_planning,
+            planner=self.script_planner,
+            review_port=script_review,
+        )
+        shooting_workflow = ShootingPlanningWorkflow(
+            brief_repository=self.briefs,
+            script_plan_repository=self.scripts,
+            shooting_plan_repository=self.shooting_plans,
+            planning_port=shooting_planning,
+            planner=self.shooting_planner,
+            review_port=shooting_review,
+        )
+        return ApplicationRuntime(
+            preproduction=PreproductionOperations(
+                lambda ref, policy: script_workflow.generate(ref, policy_guidance=policy),
+                lambda ref, instruction, policy: script_workflow.revise(
+                    ref, instruction, policy_guidance=policy
+                ),
+                lambda ref, constraints, policy: shooting_workflow.generate(
+                    ref, constraints, policy_guidance=policy
+                ),
+            ),
+            media=MediaOperations(
+                lambda ref, detector, options: self._detect(ref, detector, options),
+                lambda ref, profile: (_ for _ in ()).throw(
+                    RuntimeError("understanding service must be explicitly injected")
+                ),
+                self.rebuild_index,
+            ),
+        )
+
+    def _detect(
+        self, ref: EntityRevisionRef, detector: ShotDetector, options: ShotDetectionOptions
+    ) -> tuple[Shot, ...]:
+        self.assets.load(ref)
+        return ShotCatalog(repository=self.shots).commit_boundaries(detector.detect(ref, options))
+
+    def rebuild_index(self) -> int:
+        sources = self.index_sources()
+        self.shot_index.rebuild(sources)
+        return len(sources)

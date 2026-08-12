@@ -1,46 +1,47 @@
 from __future__ import annotations
 
 import json
-import tempfile
-from pathlib import Path
-
-from video_editing_agent.domain.common.entity import EntityRevisionRef
-from video_editing_agent.planning.brief.service import BriefContent
-from video_editing_agent.storage.project import ProjectWorkspace
+import subprocess
+import sys
 
 
 def main() -> None:
-    with tempfile.TemporaryDirectory(prefix="r0.7b-application-") as directory:
-        root = Path(directory)
-        workspace = ProjectWorkspace.open(root)
-        brief = workspace.brief_service.create(
-            BriefContent(
-                "Engineering probe",
-                "Verify offline application assembly.",
-                "engineering",
-                "local",
-                "No provider call is required.",
-            ),
-            created_by="engineering-probe",
-        )
-        reopened = ProjectWorkspace.open(root)
-        brief_ref = EntityRevisionRef(brief.envelope.id, brief.envelope.revision)
-        assert reopened.briefs.load(brief_ref) == brief
-        status = reopened.status()
-        assert status["schema_version"] == 4
-        assert status["counts"]["briefs"] == 1  # type: ignore[index]
-        evidence = {
-            "probe": "r0.7b-application-engineering",
-            "classification": "engineering_complete",
-            "workspace_schema": status["schema_version"],
-            "workspace_reopen": True,
-            "brief_revision_persistence": True,
-            "offline_only": True,
-            "external_provider_invoked": False,
-            "visual_fallback": "reshoot_only",
-            "capabilities": status["capabilities"],
-        }
+    targets = (
+        "tests/integration/test_r0_7b_preproduction_path.py",
+        "tests/unit/test_project_workspace_cli.py",
+        "tests/unit/test_temporal_evidence_persistence.py",
+        "tests/unit/test_coverage_service.py",
+        "tests/unit/test_sqlite_repositories.py",
+    )
+    completed = subprocess.run(
+        [sys.executable, "-m", "pytest", "-q", *targets],
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    evidence = {
+        "probe": "r0.7b-application-engineering",
+        "classification": (
+            "engineering_complete" if completed.returncode == 0 else "engineering_failure"
+        ),
+        "exit_code": completed.returncode,
+        "test_targets": list(targets),
+        "preproduction_lifecycle": completed.returncode == 0,
+        "bounded_semantic_repair": completed.returncode == 0,
+        "revision_lock_persistence": completed.returncode == 0,
+        "media_repository_lifecycle": completed.returncode == 0,
+        "coverage_reshoot": completed.returncode == 0,
+        "temporal_persistence": completed.returncode == 0,
+        "external_provider_invoked": False,
+        "visual_fallback": "reshoot_only",
+        "test_summary": completed.stdout.strip().splitlines()[-1] if completed.stdout else "",
+    }
     print(json.dumps(evidence, ensure_ascii=False, sort_keys=True))
+    if completed.returncode != 0:
+        print(completed.stdout, file=sys.stderr)
+        print(completed.stderr, file=sys.stderr)
+        raise SystemExit(completed.returncode)
 
 
 if __name__ == "__main__":
