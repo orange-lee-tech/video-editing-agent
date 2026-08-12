@@ -86,3 +86,14 @@ def test_product_probe_reports_safe_review_capacity_diagnostics() -> None:
         "capacity_recovery_attempted": True,
     }
     assert "reasoning_content" not in str(result)
+
+
+@pytest.mark.parametrize("case_factory", [_probe._product_ad_case, _probe._natural_vlog_case])
+def test_product_probe_fixtures_allow_chinese_or_english(case_factory) -> None:
+    criteria = case_factory().brief_content.success_criteria
+
+    assert "脚本与拍摄指导可使用中文或英文。" in criteria
+    assert "脚本与拍摄指导使用中文。" not in criteria
+    language_criterion = next(item for item in criteria if "脚本与拍摄指导" in item)
+    assert "中文" in language_criterion
+    assert "英文" in language_criterion

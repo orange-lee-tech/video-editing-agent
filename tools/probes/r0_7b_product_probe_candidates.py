@@ -372,7 +372,7 @@ def _product_ad_case() -> ProbeCase:
             ),
             style_emotion=("清楚", "自然", "可信"),
             success_criteria=(
-                "脚本与拍摄指导使用中文。",
+                "脚本与拍摄指导可使用中文或英文。",
                 "每个 NarrativeSection 都给出明确 target_duration。",
                 "画面必须能由一个初学者用普通手机独立完成。",
                 "优先展示真实使用动作，不使用无法验证的宣传结论。",
@@ -421,7 +421,7 @@ def _natural_vlog_case() -> ProbeCase:
             authoritative_facts=(),
             style_emotion=("自然", "安静", "轻松"),
             success_criteria=(
-                "脚本与拍摄指导使用中文。",
+                "脚本与拍摄指导可使用中文或英文。",
                 "每个 NarrativeSection 都给出明确 target_duration。",
                 "保持煮面、收拾、阅读的大体时间顺序。",
                 "允许自然停顿和环境声，不为了节奏强迫每个画面都很短。",
