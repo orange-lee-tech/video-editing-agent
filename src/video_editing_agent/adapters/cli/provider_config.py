@@ -12,6 +12,7 @@ from video_editing_agent.application.ports.preproduction_review import (
     ShootingProposalReviewPort,
 )
 from video_editing_agent.providers.llm.deepseek_chat import (
+    PLANNING_TEMPERATURE,
     DeepSeekChatConfig,
     DeepSeekChatTransport,
     DeepSeekScriptPlanningPort,
@@ -47,9 +48,17 @@ def deepseek_preproduction_ports(
         if not api_key.strip():
             raise ProviderConfigurationError("DEEPSEEK_API_KEY is required for provider=deepseek")
         transport = UrllibDeepSeekChatTransport(api_key=api_key)
-    generation = DeepSeekChatConfig(model=model, thinking_enabled=False, max_tokens=6_000)
+    generation = DeepSeekChatConfig(
+        model=model,
+        thinking_enabled=False,
+        max_tokens=6_000,
+        temperature=PLANNING_TEMPERATURE,
+    )
     review = DeepSeekChatConfig(
-        model=model, thinking_enabled=True, max_tokens=REVIEW_INITIAL_MAX_TOKENS
+        model=model,
+        thinking_enabled=True,
+        max_tokens=REVIEW_INITIAL_MAX_TOKENS,
+        temperature=None,
     )
     return PreproductionPorts(
         DeepSeekScriptPlanningPort(transport=transport, config=generation),

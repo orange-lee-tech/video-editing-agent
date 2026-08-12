@@ -545,6 +545,7 @@ def test_deepseek_shooting_reviewer_sees_location_identity_and_conflicting_prose
     assert len(transport.payloads) == 1
     payload = transport.payloads[0]
     assert payload["thinking"] == {"type": "enabled"}
+    assert "temperature" not in payload
     assert payload["max_tokens"] == REVIEW_INITIAL_MAX_TOKENS
     assert "valid ID does not excuse" in payload["messages"][0]["content"]
     assert "entryway" in payload["messages"][0]["content"]

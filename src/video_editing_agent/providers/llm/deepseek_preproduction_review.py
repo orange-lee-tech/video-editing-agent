@@ -149,7 +149,7 @@ class DeepSeekReviewEmptyResponseError(DeepSeekPlanningTransientError):
 
 
 def _default_review_config(*, max_tokens: int) -> DeepSeekChatConfig:
-    return DeepSeekChatConfig(thinking_enabled=True, max_tokens=max_tokens)
+    return DeepSeekChatConfig(thinking_enabled=True, max_tokens=max_tokens, temperature=None)
 
 
 class DeepSeekScriptProposalReviewPort(ScriptProposalReviewPort):
@@ -268,6 +268,7 @@ def _capacity_config(config: DeepSeekChatConfig) -> DeepSeekChatConfig:
         model=config.model,
         thinking_enabled=config.thinking_enabled,
         max_tokens=max(config.max_tokens, REVIEW_CAPACITY_RECOVERY_MAX_TOKENS),
+        temperature=None,
     )
 
 

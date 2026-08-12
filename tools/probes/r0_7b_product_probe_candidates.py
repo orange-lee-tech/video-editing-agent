@@ -45,6 +45,7 @@ from video_editing_agent.planning.shooting.workflow import (
     ShootingProposalRejectedError,
 )
 from video_editing_agent.providers.llm.deepseek_chat import (
+    PLANNING_TEMPERATURE,
     DeepSeekChatConfig,
     DeepSeekChatTransport,
     DeepSeekPlanningResponseError,
@@ -464,6 +465,7 @@ def _script_semantic_veto_result(
         "candidate_status": "script_semantic_veto",
         "model": config.model,
         "generation_thinking_enabled": config.thinking_enabled,
+        "generation_temperature": config.temperature,
         "reviewer_thinking_enabled": True,
         "commercial_policy": {
             "platform_profile_id": policy.platform_profile_id,
@@ -489,6 +491,7 @@ def _shooting_semantic_veto_result(
         "candidate_status": "shooting_semantic_veto",
         "model": config.model,
         "generation_thinking_enabled": config.thinking_enabled,
+        "generation_temperature": config.temperature,
         "reviewer_thinking_enabled": True,
         "commercial_policy": {
             "platform_profile_id": policy.platform_profile_id,
@@ -510,6 +513,7 @@ def _engineering_failure_result(
         "candidate_status": "engineering_failure",
         "model": config.model,
         "generation_thinking_enabled": config.thinking_enabled,
+        "generation_temperature": config.temperature,
         "reviewer_thinking_enabled": True,
         "failure_stage": stage,
         "error_category": type(error).__name__,
@@ -755,6 +759,7 @@ def _run_case(
         "candidate_status": "ready_for_human_acceptance",
         "model": config.model,
         "generation_thinking_enabled": config.thinking_enabled,
+        "generation_temperature": config.temperature,
         "reviewer_thinking_enabled": True,
         "commercial_policy": {
             "platform_profile_id": policy.platform_profile_id,
@@ -798,6 +803,7 @@ def main() -> None:
         model="deepseek-v4-flash",
         thinking_enabled=False,
         max_tokens=5_000,
+        temperature=PLANNING_TEMPERATURE,
     )
 
     with tempfile.TemporaryDirectory(prefix="video-editing-agent-r0.7b-product-") as directory:

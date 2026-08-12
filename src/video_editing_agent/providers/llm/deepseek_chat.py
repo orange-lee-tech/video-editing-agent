@@ -29,6 +29,7 @@ from video_editing_agent.domain.shooting.model import (
 )
 
 DEEPSEEK_CHAT_COMPLETIONS_ENDPOINT = "https://api.deepseek.com/chat/completions"
+PLANNING_TEMPERATURE = 0.2
 _RETIRED_MODEL_ALIASES = frozenset({"deepseek-chat", "deepseek-reasoner"})
 _RETRYABLE_HTTP_CODES = frozenset({408, 409, 429})
 
@@ -165,6 +166,7 @@ class DeepSeekChatConfig:
     model: str = "deepseek-v4-flash"
     thinking_enabled: bool = False
     max_tokens: int = 6_000
+    temperature: float | None = PLANNING_TEMPERATURE
 
     def __post_init__(self) -> None:
         if not self.model.strip():
@@ -177,6 +179,11 @@ class DeepSeekChatConfig:
             raise TypeError("max_tokens must be an int")
         if self.max_tokens < 1:
             raise ValueError("max_tokens must be >= 1")
+        if self.temperature is not None:
+            if isinstance(self.temperature, bool) or not isinstance(self.temperature, (int, float)):
+                raise TypeError("temperature must be a number or None")
+            if not 0.0 <= float(self.temperature) <= 2.0:
+                raise ValueError("temperature must be between 0 and 2")
 
 
 class UrllibDeepSeekChatTransport(DeepSeekChatTransport):
@@ -281,7 +288,7 @@ def _chat_payload(
     system_prompt: str,
     context: dict[str, Any],
 ) -> dict[str, Any]:
-    return {
+    payload: dict[str, Any] = {
         "model": config.model,
         "messages": [
             {"role": "system", "content": system_prompt},
@@ -295,6 +302,9 @@ def _chat_payload(
         "max_tokens": config.max_tokens,
         "stream": False,
     }
+    if not config.thinking_enabled and config.temperature is not None:
+        payload["temperature"] = float(config.temperature)
+    return payload
 
 
 def _response_json_object(response: dict[str, Any]) -> dict[str, Any]:

@@ -18,6 +18,7 @@ from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.domain.script.model import NarrativeSection, ScriptPlan
 from video_editing_agent.domain.shooting.model import ProductionConstraints, ProductionLocation
 from video_editing_agent.providers.llm.deepseek_chat import (
+    PLANNING_TEMPERATURE,
     DeepSeekChatConfig,
     DeepSeekPlanningResponseError,
     DeepSeekPlanningTransientError,
@@ -143,6 +144,7 @@ def test_config_defaults_to_current_cost_focused_flash_model_and_non_thinking() 
     assert config.model == "deepseek-v4-flash"
     assert config.thinking_enabled is False
     assert config.max_tokens == 6_000
+    assert config.temperature == PLANNING_TEMPERATURE
 
 
 @pytest.mark.parametrize("retired", ["deepseek-chat", "deepseek-reasoner"])
@@ -164,11 +166,12 @@ def test_script_adapter_uses_json_mode_and_preserves_authority_context() -> None
     )
 
     prompt = transport.payloads[0]["messages"][0]["content"]
+    assert transport.payloads[0]["temperature"] == PLANNING_TEMPERATURE
+    assert transport.payloads[0]["thinking"] == {"type": "disabled"}
     assert "structural or mechanical feature" in prompt
     assert "ease of use" in prompt
     assert "convenience" in prompt
     assert "easy, simple, or convenient opening or closing" in prompt
-
     assert proposal.sections[0].section_id == "hook"
     assert proposal.sections[0].target_duration == MediaTime(3, 1)
     assert proposal.sections[0].protected_fact_ids == ("fact_price",)
@@ -183,6 +186,18 @@ def test_script_adapter_uses_json_mode_and_preserves_authority_context() -> None
     assert context["brief"]["authoritative_facts"][0]["fact_id"] == "fact_price"
     assert context["policy_guidance"]["skill_id"] == "skill_performance_product_ad"
     assert context["instruction"] == "Make the opening clearer."
+
+
+def test_generation_temperature_override_is_respected() -> None:
+    transport = FakeTransport(completed(script_content()))
+    adapter = DeepSeekScriptPlanningPort(
+        transport=transport,
+        config=DeepSeekChatConfig(temperature=0.7),
+    )
+
+    adapter.propose(ScriptPlanningRequest(brief=brief()))
+
+    assert transport.payloads[0]["temperature"] == 0.7
 
 
 def test_script_revision_serializes_locked_current_section_as_untrusted_data() -> None:
@@ -246,6 +261,9 @@ def test_shooting_adapter_receives_structured_locations_but_cannot_output_constr
             policy_guidance=policy(),
         )
     )
+
+    assert transport.payloads[0]["thinking"] == {"type": "disabled"}
+    assert transport.payloads[0]["temperature"] == PLANNING_TEMPERATURE
 
     assert proposal.requirements[0].priority == "required"
     assert proposal.requirements[0].target_duration == MediaTime(4, 1)

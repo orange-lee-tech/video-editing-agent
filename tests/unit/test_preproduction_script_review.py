@@ -318,6 +318,7 @@ def test_deepseek_reviewer_detects_structural_feature_does_not_imply_performance
     assert len(transport.payloads) == 1
     payload = transport.payloads[0]
     assert payload["thinking"] == {"type": "enabled"}
+    assert "temperature" not in payload
     assert payload["max_tokens"] == REVIEW_INITIAL_MAX_TOKENS
     assert "does not imply a performance property" in payload["messages"][0]["content"]
     assert "500 mL does not prove" in payload["messages"][0]["content"]
