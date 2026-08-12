@@ -138,7 +138,10 @@ def _word_proposal(word: Any, source_start: MediaTime) -> SpeechWordProposal:
 
 def _segment_proposal(segment: Any, source_start: MediaTime) -> SpeechSegmentProposal:
     raw_words = getattr(segment, "words", None)
-    words = (() if raw_words is None else tuple(_word_proposal(word, source_start) for word in raw_words))
+    if raw_words is None:
+        words = ()
+    else:
+        words = tuple(_word_proposal(word, source_start) for word in raw_words)
     return SpeechSegmentProposal(
         text=str(segment.text),
         relative_range=_relative_range(
