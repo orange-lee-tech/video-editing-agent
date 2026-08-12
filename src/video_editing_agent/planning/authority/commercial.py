@@ -33,11 +33,16 @@ COMMERCIAL_AUTHORITY_SYSTEM_RULES = (
     "screw-on lid does not prove one-hand operation or leak resistance. A structural or "
     "mechanical feature establishes only its stated structure or mechanism; it does not establish "
     "ease of use, convenience, performance, reliability, or outcomes. A screw-on lid does not "
-    "establish easy, simple, or convenient opening or closing. A planned successful visual "
-    "demonstration can itself imply a concrete claim, including fit or adequacy, and therefore "
-    "follows the same support rule. When concrete support is absent, keep the claim unresolved or "
-    "use non-claim framing; never convert positioning intent, reviewer diagnostics, or a desired "
-    "demonstration into fact."
+    "establish easy, simple, or convenient opening or closing. When an authoritative fact supports "
+    "only a visible mechanism, action, or state, describe only that observable mechanism, action, "
+    "or state. Do not add evaluative or sufficiency meaning such as ease, convenience, simplicity, "
+    "'just/only do X', 'X is enough', or a resulting benefit unless separate authoritative facts "
+    "support it. This neutral-observation rule applies to spoken copy, on-screen text, information "
+    "goals, visual requirements, demonstrations, and shooting instructions. A planned successful "
+    "visual demonstration can itself imply a concrete claim, including fit or adequacy, and "
+    "therefore follows the same support rule. When concrete support is absent, keep the claim "
+    "unresolved or use non-claim framing; never convert positioning intent, reviewer diagnostics, "
+    "or a desired demonstration into fact."
 )
 
 
@@ -58,6 +63,14 @@ class CommercialAuthoritySnapshot:
             ],
             "concrete_claim_categories": [item.value for item in CONCRETE_CLAIM_CATEGORIES],
             "concrete_claim_requires_authoritative_fact": True,
+            "supported_mechanism_description_mode": "neutral_observable_action_or_state",
+            "mechanism_fact_does_not_authorize": [
+                "ease",
+                "convenience",
+                "simplicity",
+                "sufficiency",
+                "result",
+            ],
             "successful_demonstration_outcome_requires_authoritative_support": True,
             "unsupported_claim_handling": "unresolved_or_nonclaim_framing",
             "prohibited_content": list(self.prohibited_content),

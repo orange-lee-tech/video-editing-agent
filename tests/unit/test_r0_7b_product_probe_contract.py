@@ -46,11 +46,19 @@ def test_product_ad_fixture_uses_commute_as_framing_not_fit_authority() -> None:
 
     assert case.brief_content.product_topic == "500 mL 水杯"
     assert "方便日常通勤携带" not in case.brief_content.core_message
+    assert "真实、直接可观察的演示" in case.brief_content.core_message
     assert "500 mL 容量和旋拧式杯盖" in case.brief_content.core_message
     assert (
         "通勤场景只作为叙事定位，不构成具体的携带适配性或产品性能事实。"
         in case.brief_content.success_criteria
     )
+    neutral_lid_criterion = next(
+        criterion
+        for criterion in case.brief_content.success_criteria
+        if "描述旋拧式杯盖时" in criterion
+    )
+    assert "只陈述可观察的旋拧动作或开合状态" in neutral_lid_criterion
+    assert "简单、方便、足够" in neutral_lid_criterion
     assert [fact.statement for fact in case.brief_content.authoritative_facts] == [
         "水杯容量为 500 mL。",
         "水杯使用旋拧式杯盖。",
@@ -60,6 +68,7 @@ def test_product_ad_fixture_uses_commute_as_framing_not_fit_authority() -> None:
 def test_product_review_prompt_reuses_shared_commercial_authority_contract() -> None:
     assert COMMERCIAL_AUTHORITY_SYSTEM_RULES in probe.PRODUCT_REVIEW_SYSTEM_PROMPT
     assert "planned successful visual demonstration" in probe.PRODUCT_REVIEW_SYSTEM_PROMPT
+    assert "observable mechanism, action, or state" in probe.PRODUCT_REVIEW_SYSTEM_PROMPT
 
 
 def test_product_review_context_receives_structured_commercial_authority() -> None:
@@ -73,3 +82,6 @@ def test_product_review_context_receives_structured_commercial_authority() -> No
     assert patched["brief"] is not context["brief"]
     assert authority == commercial_authority_payload(brief)
     assert authority["positioning_intent_is_factual_authority"] is False
+    assert authority["supported_mechanism_description_mode"] == (
+        "neutral_observable_action_or_state"
+    )

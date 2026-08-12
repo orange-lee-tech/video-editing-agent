@@ -5,6 +5,7 @@ from video_editing_agent.application.ports.preproduction_review import ScriptPro
 from video_editing_agent.domain.brief.model import AuthoritativeFact, Brief
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityStatus
 from video_editing_agent.planning.authority.commercial import (
+    COMMERCIAL_AUTHORITY_SYSTEM_RULES,
     CONCRETE_CLAIM_CATEGORIES,
     commercial_authority_payload,
 )
@@ -43,6 +44,14 @@ def test_commercial_authority_separates_positioning_from_factual_support() -> No
     assert payload["positioning_intent"] == "Show the bottle in a commute-preparation context."
     assert payload["positioning_intent_is_factual_authority"] is False
     assert payload["concrete_claim_requires_authoritative_fact"] is True
+    assert payload["supported_mechanism_description_mode"] == "neutral_observable_action_or_state"
+    assert payload["mechanism_fact_does_not_authorize"] == [
+        "ease",
+        "convenience",
+        "simplicity",
+        "sufficiency",
+        "result",
+    ]
     assert payload["successful_demonstration_outcome_requires_authoritative_support"] is True
     assert payload["unsupported_claim_handling"] == "unresolved_or_nonclaim_framing"
     assert payload["concrete_claim_categories"] == [
@@ -52,6 +61,14 @@ def test_commercial_authority_separates_positioning_from_factual_support() -> No
         {"fact_id": "fact_capacity", "statement": "Bottle capacity is 500 mL."},
         {"fact_id": "fact_lid", "statement": "Bottle has a screw-on lid."},
     ]
+
+
+def test_shared_rules_require_neutral_observable_mechanical_description() -> None:
+    assert "observable mechanism, action, or state" in COMMERCIAL_AUTHORITY_SYSTEM_RULES
+    assert "evaluative or sufficiency meaning" in COMMERCIAL_AUTHORITY_SYSTEM_RULES
+    assert "'just/only do X'" in COMMERCIAL_AUTHORITY_SYSTEM_RULES
+    assert "spoken copy" in COMMERCIAL_AUTHORITY_SYSTEM_RULES
+    assert "shooting instructions" in COMMERCIAL_AUTHORITY_SYSTEM_RULES
 
 
 def test_generation_and_semantic_review_share_the_exact_brief_projection() -> None:
