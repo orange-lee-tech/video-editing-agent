@@ -27,6 +27,10 @@ from video_editing_agent.domain.shooting.model import (
     ShootingPlan,
     ShotRequirement,
 )
+from video_editing_agent.planning.authority.commercial import (
+    COMMERCIAL_AUTHORITY_SYSTEM_RULES,
+    commercial_authority_payload,
+)
 
 DEEPSEEK_CHAT_COMPLETIONS_ENDPOINT = "https://api.deepseek.com/chat/completions"
 PLANNING_TEMPERATURE = 0.2
@@ -90,7 +94,8 @@ _BASE_SYSTEM_RULES = (
     "never copy wording or distinctive visual expression, and never infer dimensions explicitly "
     "marked unavailable. Never choose source footage or timestamps. Never propose remote/generated "
     "visual fallback. Return one json object only, with no markdown or prose outside the "
-    "json object."
+    "json object. "
+    + COMMERCIAL_AUTHORITY_SYSTEM_RULES
 )
 
 _SCRIPT_SYSTEM_PROMPT = (
@@ -98,17 +103,9 @@ _SCRIPT_SYSTEM_PROMPT = (
     + " Produce only a ScriptPlan proposal. The outer json object may contain only 'sections'. "
     "Each section may use only the fields shown in this example json: "
     + json.dumps(_SCRIPT_EXAMPLE, ensure_ascii=False, separators=(",", ":"))
-    + " Use protected_fact_ids only for fact IDs present in the Brief. The Brief objective, "
-    "audience, and core_message may guide editorial framing and positioning, but they do not "
-    "establish concrete product properties, performance, fit, adequacy, operability, materials, "
-    "reliability, or outcomes. Concrete product claims must be directly supported by "
-    "authoritative_facts; use the supporting fact IDs in protected_fact_ids. Do not infer that a "
-    "capacity is enough for a use case or that the product fits easily in a bag unless a fact says "
-    "so. A structural or mechanical feature establishes only its stated structure or mechanism; "
-    "it does not establish ease of use, convenience, performance, reliability, or outcomes. A "
-    "screw-on lid does not establish easy, simple, or convenient opening or closing; it also does "
-    "not establish one-hand operation or leak resistance. When revising, "
-    "preserve every locked section exactly."
+    + " Use protected_fact_ids only for fact IDs present in brief.commercial_authority."
+    "authoritative_facts and only when the section's concrete claim is actually supported by "
+    "those facts. When revising, preserve every locked section exactly."
 )
 
 _SHOOTING_SYSTEM_PROMPT = (
@@ -126,13 +123,9 @@ _SHOOTING_SYSTEM_PROMPT = (
     "reference must not be described as a sink location unless that location's notes explicitly "
     "allow a sink. environment_description may describe the camera position or local setup within "
     "that referenced location; it is descriptive and never location authority. If declared "
-    "locations exist and you give an environment_description, also give its location_ref. Do not "
-    "introduce concrete product properties, performance, fit, adequacy, operability, materials, "
-    "reliability, or outcomes that are not directly supported by authoritative_facts or the clean "
-    "ScriptPlan. A structural or mechanical feature establishes only its stated structure or "
-    "mechanism, not ease, convenience, performance, reliability, or outcomes. Instructions must "
-    "be practical for the declared user skill/equipment. Missing "
-    "visual coverage must be captured by the user, never replaced with stock or generated footage."
+    "locations exist and you give an environment_description, also give its location_ref. "
+    "Instructions must be practical for the declared user skill/equipment. Missing visual "
+    "coverage must be captured by the user, never replaced with stock or generated footage."
 )
 
 _SCRIPT_SECTION_KEYS = frozenset(_SCRIPT_EXAMPLE["sections"][0])
@@ -361,13 +354,10 @@ def _brief_payload(brief: Brief) -> dict[str, Any]:
         "product_topic": brief.product_topic,
         "target_duration": _optional_time_payload(brief.target_duration),
         "authoritative_facts": [
-            {
-                "fact_id": fact.fact_id,
-                "statement": fact.statement,
-                "source_note": fact.source_note,
-            }
+            {"fact_id": fact.fact_id, "statement": fact.statement}
             for fact in brief.authoritative_facts
         ],
+        "commercial_authority": commercial_authority_payload(brief),
         "style_emotion": list(brief.style_emotion),
         "success_criteria": list(brief.success_criteria),
         "prohibited_content": list(brief.prohibited_content),
