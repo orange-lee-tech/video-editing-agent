@@ -11,7 +11,10 @@ from video_editing_agent.application.ports.preproduction_planning import (
     ShootingPlanProposal,
     ShotRequirementProposal,
 )
-from video_editing_agent.application.ports.preproduction_review import ScriptProposalReview
+from video_editing_agent.application.ports.preproduction_review import (
+    ScriptProposalReview,
+    ShootingProposalReview,
+)
 from video_editing_agent.domain.brief.model import AuthoritativeFact
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTime
@@ -56,6 +59,12 @@ class StaticShootingPlanningPort:
     def propose(self, request: ShootingPlanningRequest) -> ShootingPlanProposal:
         self.requests.append(request)
         return self.proposal
+
+
+class AcceptingShootingReviewPort:
+    def review(self, request) -> ShootingProposalReview:
+        del request
+        return ShootingProposalReview(accepted=True)
 
 
 def repositories(path: Path):
@@ -233,6 +242,7 @@ def shooting_workflow(
         shooting_plan_repository=shooting_plans,
         planning_port=port,
         planner=planner,
+        review_port=AcceptingShootingReviewPort(),
     )
 
 

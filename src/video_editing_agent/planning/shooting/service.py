@@ -60,6 +60,11 @@ def _validate_requirement_locations(
             )
 
 
+def _validate_notes(notes: tuple[str, ...]) -> None:
+    if any(not note.strip() for note in notes):
+        raise ValueError("notes must not contain empty values")
+
+
 def _validate_requirements(
     script_plan: ScriptPlan,
     constraints: ProductionConstraints,
@@ -94,6 +99,43 @@ class ShootingPlanner:
         self._shooting_plan_id_factory = shooting_plan_id_factory
         self._clock = clock
 
+    def validate_create(
+        self,
+        script_plan_ref: EntityRevisionRef,
+        requirements: tuple[ShotRequirement, ...],
+        *,
+        constraints: ProductionConstraints | None = None,
+        notes: tuple[str, ...] = (),
+    ) -> None:
+        """Run owner invariants without creating or saving a ShootingPlan revision."""
+
+        script_plan = self._script_plan_repository.load(script_plan_ref)
+        effective_constraints = ProductionConstraints() if constraints is None else constraints
+        _validate_requirements(script_plan, effective_constraints, requirements)
+        _validate_notes(notes)
+
+    def validate_revision(
+        self,
+        current_ref: EntityRevisionRef,
+        requirements: tuple[ShotRequirement, ...],
+        *,
+        script_plan_ref: EntityRevisionRef | None = None,
+        constraints: ProductionConstraints | None = None,
+        notes: tuple[str, ...] | None = None,
+    ) -> None:
+        """Run revision owner invariants without creating or saving a revision."""
+
+        current = self._shooting_plan_repository.load(current_ref)
+        actual_ref = EntityRevisionRef(current.envelope.id, current.envelope.revision)
+        if actual_ref != current_ref:
+            raise RuntimeError("ShootingPlanRepository returned a different exact revision")
+        target_script_ref = script_plan_ref or current.script_plan_ref
+        script_plan = self._script_plan_repository.load(target_script_ref)
+        effective_constraints = current.constraints if constraints is None else constraints
+        effective_notes = current.notes if notes is None else notes
+        _validate_requirements(script_plan, effective_constraints, requirements)
+        _validate_notes(effective_notes)
+
     def create(
         self,
         script_plan_ref: EntityRevisionRef,
@@ -103,9 +145,13 @@ class ShootingPlanner:
         notes: tuple[str, ...] = (),
         created_by: str = "system",
     ) -> ShootingPlan:
-        script_plan = self._script_plan_repository.load(script_plan_ref)
+        self.validate_create(
+            script_plan_ref,
+            requirements,
+            constraints=constraints,
+            notes=notes,
+        )
         effective_constraints = ProductionConstraints() if constraints is None else constraints
-        _validate_requirements(script_plan, effective_constraints, requirements)
         shooting_plan_id = self._shooting_plan_id_factory()
         if not shooting_plan_id.startswith("shp_"):
             raise ValueError("shooting_plan_id_factory must return an shp_* identifier")
@@ -137,14 +183,16 @@ class ShootingPlanner:
         notes: tuple[str, ...] | None = None,
         created_by: str = "system",
     ) -> ShootingPlan:
+        self.validate_revision(
+            current_ref,
+            requirements,
+            script_plan_ref=script_plan_ref,
+            constraints=constraints,
+            notes=notes,
+        )
         current = self._shooting_plan_repository.load(current_ref)
-        actual_ref = EntityRevisionRef(current.envelope.id, current.envelope.revision)
-        if actual_ref != current_ref:
-            raise RuntimeError("ShootingPlanRepository returned a different exact revision")
         target_script_ref = script_plan_ref or current.script_plan_ref
-        script_plan = self._script_plan_repository.load(target_script_ref)
         effective_constraints = current.constraints if constraints is None else constraints
-        _validate_requirements(script_plan, effective_constraints, requirements)
         revised = ShootingPlan(
             envelope=EntityEnvelope(
                 id=current.envelope.id,

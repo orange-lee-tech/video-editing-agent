@@ -6,9 +6,11 @@ from typing import Protocol
 from video_editing_agent.application.ports.preproduction_planning import (
     PlanningPolicyGuidance,
     ScriptPlanProposal,
+    ShootingPlanProposal,
 )
 from video_editing_agent.domain.brief.model import Brief
 from video_editing_agent.domain.script.model import ScriptPlan
+from video_editing_agent.domain.shooting.model import ProductionConstraints, ShootingPlan
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,3 +56,52 @@ class ScriptProposalReviewPort(Protocol):
     """Replaceable semantic reviewer that may veto but never mutate a Script proposal."""
 
     def review(self, request: ScriptProposalReviewRequest) -> ScriptProposalReview: ...
+
+
+@dataclass(frozen=True, slots=True)
+class ShootingProposalViolation:
+    code: str
+    reason: str
+    requirement_id: str | None = None
+    excerpt: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.code.strip():
+            raise ValueError("violation code must not be empty")
+        if not self.reason.strip():
+            raise ValueError("violation reason must not be empty")
+        if self.requirement_id is not None and not self.requirement_id.strip():
+            raise ValueError("violation requirement_id must not be empty when provided")
+        if self.excerpt is not None and not self.excerpt.strip():
+            raise ValueError("violation excerpt must not be empty when provided")
+
+
+@dataclass(frozen=True, slots=True)
+class ShootingProposalReview:
+    accepted: bool
+    violations: tuple[ShootingProposalViolation, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.accepted and self.violations:
+            raise ValueError("accepted Shooting proposal review cannot contain violations")
+        if not self.accepted and not self.violations:
+            raise ValueError(
+                "rejected Shooting proposal review must contain at least one violation"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class ShootingProposalReviewRequest:
+    brief: Brief
+    script_plan: ScriptPlan
+    constraints: ProductionConstraints
+    proposal: ShootingPlanProposal
+    current_shooting_plan: ShootingPlan | None = None
+    instruction: str | None = None
+    policy_guidance: PlanningPolicyGuidance | None = None
+
+
+class ShootingProposalReviewPort(Protocol):
+    """Replaceable semantic reviewer that may veto but never mutate a Shooting proposal."""
+
+    def review(self, request: ShootingProposalReviewRequest) -> ShootingProposalReview: ...

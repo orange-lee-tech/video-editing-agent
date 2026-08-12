@@ -274,9 +274,11 @@ def test_deepseek_reviewer_detects_structural_feature_does_not_imply_performance
     assert not review.accepted
     assert review.violations[0].code == "unsupported_performance_claim"
     payload = transport.payloads[0]
-    assert payload["thinking"] == {"type": "disabled"}
-    assert payload["max_tokens"] == 2_000
+    assert payload["thinking"] == {"type": "enabled"}
+    assert payload["max_tokens"] == 2_500
     assert "does not imply a performance property" in payload["messages"][0]["content"]
+    assert "500 mL does not prove" in payload["messages"][0]["content"]
+    assert "screw-on lid does not prove one-hand operation" in payload["messages"][0]["content"]
     context = json.loads(payload["messages"][1]["content"])
     assert context["brief"]["authoritative_facts"] == [
         {"fact_id": "fact_lid", "statement": "The bottle has a screw-on lid."}
@@ -284,17 +286,19 @@ def test_deepseek_reviewer_detects_structural_feature_does_not_imply_performance
     assert context["brief"]["prohibited_content"] == ["Do not claim leak resistance."]
 
 
-def test_deepseek_reviewer_respects_explicit_thinking_configuration(tmp_path: Path) -> None:
+def test_deepseek_reviewer_respects_explicit_non_thinking_configuration(
+    tmp_path: Path,
+) -> None:
     transport = FakeTransport({"accepted": True, "violations": []})
     briefs, _ = repositories(tmp_path / "project.sqlite3")
     brief = guarded_brief(briefs)
     adapter = DeepSeekScriptProposalReviewPort(
         transport=transport,
-        config=DeepSeekChatConfig(thinking_enabled=True, max_tokens=1_000),
+        config=DeepSeekChatConfig(thinking_enabled=False, max_tokens=1_000),
     )
 
     review = adapter.review(ScriptProposalReviewRequest(brief=brief, proposal=safe_proposal()))
 
     assert review.accepted
-    assert transport.payloads[0]["thinking"] == {"type": "enabled"}
+    assert transport.payloads[0]["thinking"] == {"type": "disabled"}
     assert transport.payloads[0]["max_tokens"] == 1_000

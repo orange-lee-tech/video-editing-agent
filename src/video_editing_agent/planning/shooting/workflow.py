@@ -6,11 +6,19 @@ from video_editing_agent.application.ports.preproduction_planning import (
     ReferenceStyleGuidance,
     ShootingPlanningPort,
     ShootingPlanningRequest,
+    ShootingPlanProposal,
     ShotRequirementProposal,
+)
+from video_editing_agent.application.ports.preproduction_review import (
+    ShootingProposalReview,
+    ShootingProposalReviewPort,
+    ShootingProposalReviewRequest,
 )
 from video_editing_agent.application.ports.script_plan_repository import ScriptPlanRepository
 from video_editing_agent.application.ports.shooting_plan_repository import ShootingPlanRepository
+from video_editing_agent.domain.brief.model import Brief
 from video_editing_agent.domain.common.entity import EntityRevisionRef
+from video_editing_agent.domain.script.model import ScriptPlan
 from video_editing_agent.domain.shooting.model import (
     CoveragePriority,
     ProductionConstraints,
@@ -57,8 +65,32 @@ def _requirements_from_proposal(
     return tuple(_requirement_from_proposal(proposal) for proposal in proposals)
 
 
+def _brief_requires_review(brief: Brief, constraints: ProductionConstraints) -> bool:
+    return bool(
+        brief.authoritative_facts
+        or brief.prohibited_content
+        or brief.brand_constraints
+        or constraints.locations
+    )
+
+
+def _review_summary(review: ShootingProposalReview) -> str:
+    return "; ".join(
+        f"{violation.code}@{violation.requirement_id or 'plan'}: {violation.reason}"
+        for violation in review.violations
+    )
+
+
+class ShootingProposalRejectedError(ValueError):
+    """A semantic reviewer vetoed the proposal before owner commit."""
+
+    def __init__(self, review: ShootingProposalReview) -> None:
+        self.review = review
+        super().__init__(f"Shooting proposal rejected: {_review_summary(review)}")
+
+
 class ShootingPlanningWorkflow:
-    """Proposal -> deterministic validation -> ShootingPlanner owner commit."""
+    """Proposal -> deterministic preflight -> semantic review -> owner commit."""
 
     def __init__(
         self,
@@ -68,12 +100,46 @@ class ShootingPlanningWorkflow:
         shooting_plan_repository: ShootingPlanRepository,
         planning_port: ShootingPlanningPort,
         planner: ShootingPlanner,
+        review_port: ShootingProposalReviewPort | None = None,
     ) -> None:
         self._brief_repository = brief_repository
         self._script_plan_repository = script_plan_repository
         self._shooting_plan_repository = shooting_plan_repository
         self._planning_port = planning_port
         self._planner = planner
+        self._review_port = review_port
+
+    def _review_or_raise(
+        self,
+        *,
+        brief: Brief,
+        script_plan: ScriptPlan,
+        constraints: ProductionConstraints,
+        proposal: ShootingPlanProposal,
+        current_shooting_plan: ShootingPlan | None,
+        instruction: str | None,
+        policy_guidance: PlanningPolicyGuidance | None,
+    ) -> None:
+        if self._review_port is None:
+            if _brief_requires_review(brief, constraints):
+                raise RuntimeError(
+                    "guarded Shooting proposal requires ShootingProposalReviewPort before model "
+                    "proposal commit"
+                )
+            return
+        review = self._review_port.review(
+            ShootingProposalReviewRequest(
+                brief=brief,
+                script_plan=script_plan,
+                constraints=constraints,
+                proposal=proposal,
+                current_shooting_plan=current_shooting_plan,
+                instruction=instruction,
+                policy_guidance=policy_guidance,
+            )
+        )
+        if not review.accepted:
+            raise ShootingProposalRejectedError(review)
 
     def generate(
         self,
@@ -96,6 +162,21 @@ class ShootingPlanningWorkflow:
             )
         )
         requirements = _requirements_from_proposal(proposal.requirements)
+        self._planner.validate_create(
+            script_plan_ref,
+            requirements,
+            constraints=constraints,
+            notes=proposal.notes,
+        )
+        self._review_or_raise(
+            brief=brief,
+            script_plan=script_plan,
+            constraints=constraints,
+            proposal=proposal,
+            current_shooting_plan=None,
+            instruction=None,
+            policy_guidance=policy_guidance,
+        )
         return self._planner.create(
             script_plan_ref,
             requirements,
@@ -134,6 +215,22 @@ class ShootingPlanningWorkflow:
             )
         )
         requirements = _requirements_from_proposal(proposal.requirements)
+        self._planner.validate_revision(
+            current_ref,
+            requirements,
+            script_plan_ref=target_script_ref,
+            constraints=effective_constraints,
+            notes=proposal.notes,
+        )
+        self._review_or_raise(
+            brief=brief,
+            script_plan=script_plan,
+            constraints=effective_constraints,
+            proposal=proposal,
+            current_shooting_plan=current,
+            instruction=instruction,
+            policy_guidance=policy_guidance,
+        )
         return self._planner.revise(
             current_ref,
             requirements,
