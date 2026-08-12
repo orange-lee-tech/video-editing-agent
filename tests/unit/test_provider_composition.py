@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from video_editing_agent.adapters.cli.provider_config import (
@@ -7,6 +9,15 @@ from video_editing_agent.adapters.cli.provider_config import (
     deepseek_preproduction_ports,
 )
 from video_editing_agent.storage.project import ProjectWorkspace
+
+
+class RecordingTransport:
+    def __init__(self) -> None:
+        self.payloads: list[dict[str, Any]] = []
+
+    def create_chat_completion(self, payload: dict[str, Any]) -> dict[str, Any]:
+        self.payloads.append(payload)
+        return {"choices": [{"message": {"content": '{"sections": []}'}}]}
 
 
 def test_missing_deepseek_key_fails_before_workspace_mutation(tmp_path, monkeypatch) -> None:
@@ -30,3 +41,13 @@ def test_deepseek_composition_does_not_persist_or_print_secret(tmp_path, monkeyp
     assert ports.script_planning is not None
     assert secret not in str(workspace.status())
     assert secret.encode() not in workspace.database.path.read_bytes()
+
+
+def test_deepseek_composition_accepts_injected_transport_without_key(monkeypatch) -> None:
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    transport = RecordingTransport()
+
+    ports = deepseek_preproduction_ports(model="deepseek-v4-flash", transport=transport)
+
+    assert ports.script_planning is not None
+    assert ports.script_review is not None

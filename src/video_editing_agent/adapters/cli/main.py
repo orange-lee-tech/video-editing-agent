@@ -6,12 +6,30 @@ import sys
 from pathlib import Path
 from typing import Any, cast
 
+from video_editing_agent.adapters.cli.provider_config import (
+    ProviderConfigurationError,
+    deepseek_preproduction_ports,
+)
+from video_editing_agent.application.ports.preproduction_planning import PlanningPolicyGuidance
 from video_editing_agent.application.ports.shot_index import ShotCandidate
+from video_editing_agent.domain.asset.model import AssetProvenance
+from video_editing_agent.domain.asset.policy import AssetUsageRole
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.domain.evidence.temporal import TemporalAnchor, TemporalEvidence
+from video_editing_agent.domain.shooting.model import ProductionConstraints, ProductionLocation
+from video_editing_agent.media.ingest.ffprobe import FfprobeMediaProbe
+from video_editing_agent.media.ingest.service import AssetIngestService
+from video_editing_agent.media.ingest.source import LocalMediaSource
 from video_editing_agent.planning.brief.service import BriefContent
 from video_editing_agent.planning.coverage.service import CoverageCandidate, CoverageReport
+from video_editing_agent.planning.policy.builtin import (
+    GENERIC_VERTICAL_SHORT_FORM_V1,
+    NATURAL_VLOG_V1,
+    PERFORMANCE_PRODUCT_AD_V1,
+)
+from video_editing_agent.planning.policy.guidance import to_planning_policy_guidance
+from video_editing_agent.planning.policy.model import CommercialPolicySelection, MarketingObjective
 from video_editing_agent.storage.project import ProjectWorkspace
 from video_editing_agent.storage.repositories.preproduction_codec import (
     decode_brief,
@@ -68,9 +86,35 @@ def _parser() -> argparse.ArgumentParser:
         lock.add_argument("entity_id")
         lock.add_argument("revision", type=int)
         lock.add_argument("section_id")
+    for action in ("generate", "revise"):
+        command = script_sub.add_parser(action)
+        command.add_argument("entity_id")
+        command.add_argument("revision", type=int)
+        command.add_argument("--provider", choices=("deepseek",), required=True)
+        command.add_argument("--model", default="deepseek-v4-flash")
+        command.add_argument("--policy-json", type=Path, required=True)
+        if action == "revise":
+            command.add_argument("--instruction", required=True)
 
-    _entity_command(sub, "shooting")
-    _entity_command(sub, "asset")
+    shooting = sub.add_parser("shooting")
+    shooting_sub = shooting.add_subparsers(dest="action", required=True)
+    shooting_show = shooting_sub.add_parser("show")
+    shooting_show.add_argument("entity_id")
+    shooting_show.add_argument("revision", type=int)
+    shooting_generate = shooting_sub.add_parser("generate")
+    shooting_generate.add_argument("entity_id")
+    shooting_generate.add_argument("revision", type=int)
+    shooting_generate.add_argument("--provider", choices=("deepseek",), required=True)
+    shooting_generate.add_argument("--model", default="deepseek-v4-flash")
+    shooting_generate.add_argument("--policy-json", type=Path, required=True)
+    shooting_generate.add_argument("--constraints-json", type=Path, required=True)
+    asset = sub.add_parser("asset")
+    asset_sub = asset.add_subparsers(dest="action", required=True)
+    asset_show = asset_sub.add_parser("show")
+    asset_show.add_argument("entity_id")
+    asset_show.add_argument("revision", type=int)
+    asset_ingest = asset_sub.add_parser("ingest")
+    asset_ingest.add_argument("--json", type=Path, required=True)
     _entity_command(sub, "shot")
     analysis = sub.add_parser("analysis")
     analysis_sub = analysis.add_subparsers(dest="action", required=True)
@@ -83,6 +127,7 @@ def _parser() -> argparse.ArgumentParser:
     query = index_sub.add_parser("query")
     query.add_argument("query")
     query.add_argument("--limit", type=int, default=20)
+    index_sub.add_parser("rebuild")
 
     coverage = sub.add_parser("coverage")
     coverage_sub = coverage.add_subparsers(dest="action", required=True)
@@ -185,8 +230,88 @@ def _temporal_anchor(value: TemporalAnchor) -> dict[str, Any]:
     }
 
 
+def _policy(path: Path) -> PlanningPolicyGuidance:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    skills = {
+        PERFORMANCE_PRODUCT_AD_V1.skill_id: PERFORMANCE_PRODUCT_AD_V1,
+        NATURAL_VLOG_V1.skill_id: NATURAL_VLOG_V1,
+    }
+    objective = value.get("marketing_objective")
+    return to_planning_policy_guidance(
+        CommercialPolicySelection(
+            GENERIC_VERTICAL_SHORT_FORM_V1,
+            skills[value["skill_id"]],
+            None if objective is None else MarketingObjective(objective),
+        )
+    )
+
+
+def _constraints(path: Path) -> ProductionConstraints:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    return ProductionConstraints(
+        camera_or_phone=value["camera_or_phone"],
+        stabilizer=value.get("stabilizer"),
+        lighting=value.get("lighting"),
+        microphones=tuple(value.get("microphones", [])),
+        people_count=value.get("people_count", 1),
+        locations=tuple(ProductionLocation(**item) for item in value.get("locations", [])),
+        available_time_notes=value.get("available_time_notes"),
+        user_skill_level=value.get("user_skill_level"),
+        notes=tuple(value.get("notes", [])),
+    )
+
+
 def _run(args: argparse.Namespace) -> object:
     workspace = ProjectWorkspace.open(args.project)
+    if args.resource == "asset" and args.action == "ingest":
+        value = json.loads(args.json.read_text(encoding="utf-8"))
+        source = LocalMediaSource(
+            Path(value["path"]),
+            value["origin"],
+            AssetProvenance(**value["provenance"]),
+            None if value.get("usage_role") is None else AssetUsageRole(value["usage_role"]),
+        )
+        return _json(
+            encode_asset(
+                AssetIngestService(FfprobeMediaProbe(), repository=workspace.assets).ingest(
+                    source, created_by="cli"
+                )
+            )
+        )
+    if args.resource == "script" and args.action in {"generate", "revise"}:
+        ports = deepseek_preproduction_ports(model=args.model)
+        runtime = workspace.runtime(
+            script_planning=ports.script_planning,
+            script_review=ports.script_review,
+            shooting_planning=ports.shooting_planning,
+            shooting_review=ports.shooting_review,
+        )
+        ref = EntityRevisionRef(args.entity_id, args.revision)
+        result = (
+            runtime.preproduction.generate_script(ref, _policy(args.policy_json))
+            if args.action == "generate"
+            else runtime.preproduction.revise_script(
+                ref, args.instruction, _policy(args.policy_json)
+            )
+        )
+        return _json(encode_script_plan(result))
+    if args.resource == "shooting" and args.action == "generate":
+        ports = deepseek_preproduction_ports(model=args.model)
+        runtime = workspace.runtime(
+            script_planning=ports.script_planning,
+            script_review=ports.script_review,
+            shooting_planning=ports.shooting_planning,
+            shooting_review=ports.shooting_review,
+        )
+        return _json(
+            encode_shooting_plan(
+                runtime.preproduction.generate_shooting(
+                    EntityRevisionRef(args.entity_id, args.revision),
+                    _constraints(args.constraints_json),
+                    _policy(args.policy_json),
+                )
+            )
+        )
     if args.resource in {"project", "status"}:
         return workspace.status()
     if args.resource == "brief" and args.action == "create":
@@ -223,6 +348,21 @@ def _run(args: argparse.Namespace) -> object:
             raise KeyError("Shot has no analysis")
         return _json(encode_shot_analysis(analysis))
     if args.resource == "index":
+        if args.action == "rebuild":
+            count = workspace.rebuild_index()
+            return {
+                "indexed_source_count": count,
+                "sources": [
+                    {
+                        "shot_ref": {
+                            "entity_id": item.shot.envelope.id,
+                            "revision": item.shot.envelope.revision,
+                        },
+                        "analysis_revision": item.analysis.revision,
+                    }
+                    for item in workspace.index_sources()
+                ],
+            }
         return [
             _candidate(item) for item in workspace.shot_index.search(args.query, limit=args.limit)
         ]
@@ -258,7 +398,7 @@ def _run(args: argparse.Namespace) -> object:
 def main(argv: list[str] | None = None) -> int:
     try:
         result = _run(_parser().parse_args(argv))
-    except (KeyError, ValueError, OSError, json.JSONDecodeError) as exc:
+    except (KeyError, ValueError, OSError, json.JSONDecodeError, ProviderConfigurationError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))

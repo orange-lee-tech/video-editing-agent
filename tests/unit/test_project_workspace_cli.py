@@ -66,3 +66,13 @@ def test_cli_init_create_show_and_failure_without_mutation(tmp_path, capsys) -> 
     assert "error:" in capsys.readouterr().err
     reopened = ProjectWorkspace.open(root)
     assert reopened.briefs.load(EntityRevisionRef(entity_id, 1)).title == "Ad"
+
+
+def test_cli_bad_asset_json_has_no_mutation(tmp_path, capsys) -> None:
+    root = tmp_path / "cli-project"
+    bad = tmp_path / "bad.json"
+    bad.write_text("{", encoding="utf-8")
+
+    assert main(["--project", str(root), "asset", "ingest", "--json", str(bad)]) == 2
+    assert "error:" in capsys.readouterr().err
+    assert ProjectWorkspace.open(root).status()["counts"]["assets"] == 0

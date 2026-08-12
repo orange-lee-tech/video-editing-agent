@@ -13,14 +13,19 @@ from video_editing_agent.application.ports.preproduction_review import (
 )
 from video_editing_agent.application.ports.shot_detector import ShotDetectionOptions, ShotDetector
 from video_editing_agent.application.ports.shot_index import ShotIndexSource
+from video_editing_agent.application.ports.understanding import UnderstandingService
 from video_editing_agent.application.use_cases.runtime import (
     ApplicationRuntime,
+    CoverageResult,
     MediaOperations,
     PreproductionOperations,
 )
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.shot.model import Shot
 from video_editing_agent.media.indexing.lexical import LexicalShotIndex
+from video_editing_agent.media.ingest.probe import MediaProbe
+from video_editing_agent.media.ingest.service import AssetIngestService
+from video_editing_agent.media.ingest.source import LocalMediaSource
 from video_editing_agent.media.shot_detection.catalog import ShotCatalog
 from video_editing_agent.planning.brief.service import BriefService
 from video_editing_agent.planning.coverage.service import CoverageService
@@ -151,6 +156,8 @@ class ProjectWorkspace:
         script_review: ScriptProposalReviewPort,
         shooting_planning: ShootingPlanningPort,
         shooting_review: ShootingProposalReviewPort,
+        media_probe: MediaProbe | None = None,
+        understanding: UnderstandingService | None = None,
     ) -> ApplicationRuntime:
         script_workflow = ScriptPlanningWorkflow(
             brief_repository=self.briefs,
@@ -177,12 +184,20 @@ class ProjectWorkspace:
                     ref, constraints, policy_guidance=policy
                 ),
             ),
-            media=MediaOperations(
-                lambda ref, detector, options: self._detect(ref, detector, options),
-                lambda ref, profile: (_ for _ in ()).throw(
-                    RuntimeError("understanding service must be explicitly injected")
+            media=None
+            if media_probe is None or understanding is None
+            else MediaOperations(
+                lambda request: AssetIngestService(media_probe, repository=self.assets).ingest(
+                    LocalMediaSource(
+                        request.path, request.origin, request.provenance, request.usage_role
+                    ),
+                    created_by="application",
                 ),
+                lambda ref, detector, options: self._detect(ref, detector, options),
+                understanding.analyze,
                 self.rebuild_index,
+                lambda query, limit: self.shot_index.search(query, limit=limit),
+                lambda ref: self._coverage_result(ref),
             ),
         )
 
@@ -196,3 +211,22 @@ class ProjectWorkspace:
         sources = self.index_sources()
         self.shot_index.rebuild(sources)
         return len(sources)
+
+    def _coverage_result(self, ref: EntityRevisionRef) -> CoverageResult:
+        report = self.coverage.evaluate(self.shooting_plans.load(ref))
+        return CoverageResult(
+            report.shooting_plan_ref,
+            {
+                "unresolved_required_ids": list(report.unresolved_required_ids),
+                "assessments": [
+                    {
+                        "requirement_id": item.requirement_id,
+                        "state": item.state.value,
+                        "action": item.action.value,
+                        "reason": item.reason,
+                        "reshoot_instruction": item.reshoot_instruction,
+                    }
+                    for item in report.assessments
+                ],
+            },
+        )

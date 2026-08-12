@@ -13,6 +13,7 @@ from video_editing_agent.application.ports.preproduction_review import (
 )
 from video_editing_agent.providers.llm.deepseek_chat import (
     DeepSeekChatConfig,
+    DeepSeekChatTransport,
     DeepSeekScriptPlanningPort,
     DeepSeekShootingPlanningPort,
     UrllibDeepSeekChatTransport,
@@ -35,11 +36,16 @@ class PreproductionPorts:
     shooting_review: ShootingProposalReviewPort
 
 
-def deepseek_preproduction_ports(*, model: str = "deepseek-v4-flash") -> PreproductionPorts:
-    api_key = os.environ.get("DEEPSEEK_API_KEY", "")
-    if not api_key.strip():
-        raise ProviderConfigurationError("DEEPSEEK_API_KEY is required for provider=deepseek")
-    transport = UrllibDeepSeekChatTransport(api_key=api_key)
+def deepseek_preproduction_ports(
+    *,
+    model: str = "deepseek-v4-flash",
+    transport: DeepSeekChatTransport | None = None,
+) -> PreproductionPorts:
+    if transport is None:
+        api_key = os.environ.get("DEEPSEEK_API_KEY", "")
+        if not api_key.strip():
+            raise ProviderConfigurationError("DEEPSEEK_API_KEY is required for provider=deepseek")
+        transport = UrllibDeepSeekChatTransport(api_key=api_key)
     generation = DeepSeekChatConfig(model=model, thinking_enabled=False, max_tokens=6_000)
     review = DeepSeekChatConfig(model=model, thinking_enabled=True, max_tokens=6_000)
     return PreproductionPorts(
