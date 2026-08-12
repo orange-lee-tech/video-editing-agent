@@ -29,6 +29,9 @@ from video_editing_agent.planning.shooting.workflow import (
     ShootingProposalRejectedError,
 )
 from video_editing_agent.providers.llm.deepseek_preproduction_review import (
+    REVIEW_CAPACITY_RECOVERY_MAX_TOKENS,
+    REVIEW_INITIAL_MAX_TOKENS,
+    DeepSeekReviewCapacityError,
     DeepSeekShootingProposalReviewPort,
 )
 from video_editing_agent.storage.repositories.preproduction_repositories import (
@@ -76,6 +79,24 @@ class FakeTransport:
                     "message": {
                         "content": content if isinstance(content, str) else json.dumps(content)
                     },
+                }
+            ]
+        }
+
+
+class LengthThenStopTransport:
+    def __init__(self, *, second_finish: str = "stop") -> None:
+        self.second_finish = second_finish
+        self.payloads: list[dict[str, Any]] = []
+
+    def create_chat_completion(self, payload: dict[str, Any]) -> dict[str, Any]:
+        self.payloads.append(payload)
+        finish = "length" if len(self.payloads) == 1 else self.second_finish
+        return {
+            "choices": [
+                {
+                    "finish_reason": finish,
+                    "message": {"content": json.dumps({"accepted": True, "violations": []})},
                 }
             ]
         }
@@ -136,6 +157,42 @@ def project_chain(path: Path):
         clock=lambda: NOW,
     )
     return briefs, scripts, shooting, brief, script, planner
+
+
+def test_shooting_review_length_recovery_is_bounded(tmp_path: Path) -> None:
+    _, _, _, brief, script, _ = project_chain(tmp_path / "capacity.sqlite3")
+    transport = LengthThenStopTransport()
+
+    review = DeepSeekShootingProposalReviewPort(transport=transport).review(
+        ShootingProposalReviewRequest(
+            brief=brief,
+            script_plan=script,
+            constraints=constraints(),
+            proposal=mismatched_location_proposal(),
+        )
+    )
+
+    assert review.accepted
+    assert len(transport.payloads) == 2
+    assert transport.payloads[0]["max_tokens"] == REVIEW_INITIAL_MAX_TOKENS
+    assert transport.payloads[1]["max_tokens"] == REVIEW_CAPACITY_RECOVERY_MAX_TOKENS
+
+
+def test_shooting_review_length_twice_fails_after_two_calls(tmp_path: Path) -> None:
+    _, _, _, brief, script, _ = project_chain(tmp_path / "capacity-fail.sqlite3")
+    transport = LengthThenStopTransport(second_finish="length")
+
+    with pytest.raises(DeepSeekReviewCapacityError):
+        DeepSeekShootingProposalReviewPort(transport=transport).review(
+            ShootingProposalReviewRequest(
+                brief=brief,
+                script_plan=script,
+                constraints=constraints(),
+                proposal=mismatched_location_proposal(),
+            )
+        )
+
+    assert len(transport.payloads) == 2
 
 
 def constraints() -> ProductionConstraints:
@@ -386,7 +443,7 @@ def test_deepseek_shooting_reviewer_sees_location_identity_and_conflicting_prose
     assert len(transport.payloads) == 1
     payload = transport.payloads[0]
     assert payload["thinking"] == {"type": "enabled"}
-    assert payload["max_tokens"] == 6_000
+    assert payload["max_tokens"] == REVIEW_INITIAL_MAX_TOKENS
     assert "valid ID does not excuse" in payload["messages"][0]["content"]
     assert "entryway" in payload["messages"][0]["content"]
     assert "sink" in payload["messages"][0]["content"]

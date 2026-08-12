@@ -30,6 +30,9 @@ from video_editing_agent.providers.llm.deepseek_chat import (
     DeepSeekPlanningResponseError,
 )
 from video_editing_agent.providers.llm.deepseek_preproduction_review import (
+    REVIEW_CAPACITY_RECOVERY_MAX_TOKENS,
+    REVIEW_INITIAL_MAX_TOKENS,
+    DeepSeekReviewCapacityError,
     DeepSeekScriptProposalReviewPort,
 )
 from video_editing_agent.storage.repositories.preproduction_repositories import (
@@ -310,7 +313,7 @@ def test_deepseek_reviewer_detects_structural_feature_does_not_imply_performance
     assert len(transport.payloads) == 1
     payload = transport.payloads[0]
     assert payload["thinking"] == {"type": "enabled"}
-    assert payload["max_tokens"] == 6_000
+    assert payload["max_tokens"] == REVIEW_INITIAL_MAX_TOKENS
     assert "does not imply a performance property" in payload["messages"][0]["content"]
     assert "500 mL does not prove" in payload["messages"][0]["content"]
     assert "screw-on lid does not prove one-hand operation" in payload["messages"][0]["content"]
@@ -341,6 +344,80 @@ def test_script_review_recovers_once_from_malformed_json(tmp_path: Path) -> None
     assert review.accepted
     assert len(transport.payloads) == 2
     assert "previous response did not satisfy" in transport.payloads[1]["messages"][2]["content"]
+
+
+class ResponseTransport:
+    def __init__(self, responses: list[dict[str, Any]]) -> None:
+        self.responses = responses
+        self.payloads: list[dict[str, Any]] = []
+
+    def create_chat_completion(self, payload: dict[str, Any]) -> dict[str, Any]:
+        self.payloads.append(payload)
+        return self.responses[len(self.payloads) - 1]
+
+
+def response(finish_reason: str, content: dict[str, Any], *, reasoning: str = "private"):
+    return {
+        "choices": [
+            {
+                "finish_reason": finish_reason,
+                "message": {"content": json.dumps(content), "reasoning_content": reasoning},
+            }
+        ],
+        "usage": {
+            "prompt_tokens": 101,
+            "completion_tokens": 202,
+            "completion_tokens_details": {"reasoning_tokens": 199},
+        },
+    }
+
+
+@pytest.mark.parametrize(
+    "decision",
+    [
+        {"accepted": True, "violations": []},
+        {
+            "accepted": False,
+            "violations": [
+                {
+                    "code": "unsupported",
+                    "section_id": "demo",
+                    "excerpt": None,
+                    "reason": "unsupported",
+                }
+            ],
+        },
+    ],
+)
+def test_script_review_recovers_once_from_length(tmp_path: Path, decision) -> None:
+    transport = ResponseTransport([response("length", decision), response("stop", decision)])
+    briefs, _ = repositories(tmp_path / "project.sqlite3")
+
+    review = DeepSeekScriptProposalReviewPort(transport=transport).review(
+        ScriptProposalReviewRequest(guarded_brief(briefs), safe_proposal())
+    )
+
+    assert review.accepted is decision["accepted"]
+    assert len(transport.payloads) == 2
+    assert transport.payloads[0]["max_tokens"] == REVIEW_INITIAL_MAX_TOKENS
+    assert transport.payloads[1]["max_tokens"] == REVIEW_CAPACITY_RECOVERY_MAX_TOKENS
+    assert len(transport.payloads[1]["messages"]) == 2
+
+
+def test_script_review_length_twice_raises_safe_capacity_error(tmp_path: Path) -> None:
+    decision = {"accepted": True, "violations": []}
+    transport = ResponseTransport([response("length", decision), response("length", decision)])
+    briefs, _ = repositories(tmp_path / "project.sqlite3")
+
+    with pytest.raises(DeepSeekReviewCapacityError) as captured:
+        DeepSeekScriptProposalReviewPort(transport=transport).review(
+            ScriptProposalReviewRequest(guarded_brief(briefs), safe_proposal())
+        )
+
+    assert len(transport.payloads) == 2
+    assert captured.value.diagnostics.reasoning_tokens == 199
+    assert captured.value.diagnostics.capacity_recovery_attempted
+    assert "private" not in str(captured.value)
 
 
 def test_script_review_malformed_twice_fails_closed(tmp_path: Path) -> None:

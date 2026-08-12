@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any, cast
 
 from video_editing_agent.application.ports.preproduction_planning import (
@@ -105,6 +106,34 @@ _ALLOWED_REVIEW_KEYS = frozenset({"accepted", "violations"})
 _SCRIPT_VIOLATION_KEYS = frozenset({"code", "section_id", "excerpt", "reason"})
 _SHOOTING_VIOLATION_KEYS = frozenset({"code", "requirement_id", "excerpt", "reason"})
 
+# Thinking consumes the same bounded output allowance as the minimal JSON answer. These
+# conservative tiers leave headroom for reasoning without defaulting every review to the
+# provider maximum; generation retains its separate 6,000-token non-thinking budget.
+REVIEW_INITIAL_MAX_TOKENS = 16_000
+REVIEW_CAPACITY_RECOVERY_MAX_TOKENS = 32_000
+
+
+@dataclass(frozen=True, slots=True)
+class DeepSeekReviewDiagnostics:
+    finish_reason: str | None
+    configured_max_tokens: int
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    reasoning_tokens: int | None = None
+    capacity_recovery_attempted: bool = False
+
+
+class DeepSeekReviewCapacityError(DeepSeekPlanningResponseError):
+    """A thinking review exhausted its bounded output capacity."""
+
+    def __init__(self, diagnostics: DeepSeekReviewDiagnostics) -> None:
+        self.diagnostics = diagnostics
+        super().__init__(
+            "DeepSeek review exhausted output capacity "
+            f"(finish_reason={diagnostics.finish_reason!r}, "
+            f"configured_max_tokens={diagnostics.configured_max_tokens})"
+        )
+
 
 def _default_review_config(*, max_tokens: int) -> DeepSeekChatConfig:
     return DeepSeekChatConfig(thinking_enabled=True, max_tokens=max_tokens)
@@ -120,7 +149,11 @@ class DeepSeekScriptProposalReviewPort(ScriptProposalReviewPort):
         config: DeepSeekChatConfig | None = None,
     ) -> None:
         self._transport = transport
-        self._config = _default_review_config(max_tokens=6_000) if config is None else config
+        self._config = (
+            _default_review_config(max_tokens=REVIEW_INITIAL_MAX_TOKENS)
+            if config is None
+            else config
+        )
 
     def review(self, request: ScriptProposalReviewRequest) -> ScriptProposalReview:
         return _review_with_one_contract_recovery(
@@ -142,7 +175,11 @@ class DeepSeekShootingProposalReviewPort(ShootingProposalReviewPort):
         config: DeepSeekChatConfig | None = None,
     ) -> None:
         self._transport = transport
-        self._config = _default_review_config(max_tokens=6_000) if config is None else config
+        self._config = (
+            _default_review_config(max_tokens=REVIEW_INITIAL_MAX_TOKENS)
+            if config is None
+            else config
+        )
 
     def review(self, request: ShootingProposalReviewRequest) -> ShootingProposalReview:
         return _review_with_one_contract_recovery(
@@ -187,6 +224,40 @@ class _ReviewContractError(DeepSeekPlanningResponseError):
     """Strict semantic-review response contract failure eligible for one recovery call."""
 
 
+def _usage_int(value: object) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def _review_diagnostics(
+    response: dict[str, Any], *, configured_max_tokens: int, capacity_recovery_attempted: bool
+) -> DeepSeekReviewDiagnostics:
+    choices = response.get("choices")
+    choice = (
+        choices[0] if isinstance(choices, list) and choices and isinstance(choices[0], dict) else {}
+    )
+    usage = response.get("usage")
+    usage = usage if isinstance(usage, dict) else {}
+    completion_details = usage.get("completion_tokens_details")
+    completion_details = completion_details if isinstance(completion_details, dict) else {}
+    finish_reason = choice.get("finish_reason")
+    return DeepSeekReviewDiagnostics(
+        finish_reason=finish_reason if isinstance(finish_reason, str) else None,
+        configured_max_tokens=configured_max_tokens,
+        prompt_tokens=_usage_int(usage.get("prompt_tokens")),
+        completion_tokens=_usage_int(usage.get("completion_tokens")),
+        reasoning_tokens=_usage_int(completion_details.get("reasoning_tokens")),
+        capacity_recovery_attempted=capacity_recovery_attempted,
+    )
+
+
+def _capacity_config(config: DeepSeekChatConfig) -> DeepSeekChatConfig:
+    return DeepSeekChatConfig(
+        model=config.model,
+        thinking_enabled=config.thinking_enabled,
+        max_tokens=max(config.max_tokens, REVIEW_CAPACITY_RECOVERY_MAX_TOKENS),
+    )
+
+
 def _review_with_one_contract_recovery[
     ReviewResult: (ScriptProposalReview, ShootingProposalReview),
 ](
@@ -197,26 +268,40 @@ def _review_with_one_contract_recovery[
     context: dict[str, Any],
     parser: Callable[[dict[str, Any]], ReviewResult],
 ) -> ReviewResult:
+    recovery_kind: str | None = None
     for attempt in range(2):
+        active_config = _capacity_config(config) if recovery_kind == "capacity" else config
         response = transport.create_chat_completion(
             _review_chat_payload(
-                config=config,
+                config=active_config,
                 system_prompt=system_prompt,
                 context=context,
-                recovery=attempt == 1,
+                recovery=recovery_kind == "contract",
             )
         )
+        diagnostics = _review_diagnostics(
+            response,
+            configured_max_tokens=active_config.max_tokens,
+            capacity_recovery_attempted=recovery_kind == "capacity",
+        )
+        if diagnostics.finish_reason == "length":
+            if attempt == 1:
+                raise DeepSeekReviewCapacityError(diagnostics)
+            recovery_kind = "capacity"
+            continue
         try:
             value = _response_json_object(response)
         except _ReviewContractError:
             if attempt == 1:
                 raise
+            recovery_kind = "contract"
             continue
         try:
             return parser(value)
         except DeepSeekPlanningResponseError as exc:
             if attempt == 1:
                 raise _ReviewContractError(str(exc)) from exc
+            recovery_kind = "contract"
     raise AssertionError("unreachable")
 
 

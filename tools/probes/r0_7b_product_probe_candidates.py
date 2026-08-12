@@ -54,6 +54,8 @@ from video_editing_agent.providers.llm.deepseek_chat import (
     UrllibDeepSeekChatTransport,
 )
 from video_editing_agent.providers.llm.deepseek_preproduction_review import (
+    REVIEW_INITIAL_MAX_TOKENS,
+    DeepSeekReviewCapacityError,
     DeepSeekScriptProposalReviewPort,
     DeepSeekShootingProposalReviewPort,
 )
@@ -502,7 +504,7 @@ def _shooting_semantic_veto_result(
 def _engineering_failure_result(
     *, case: ProbeCase, config: DeepSeekChatConfig, stage: str, error: Exception
 ) -> dict[str, Any]:
-    return {
+    result = {
         "case_id": case.case_id,
         "candidate_status": "engineering_failure",
         "model": config.model,
@@ -512,6 +514,17 @@ def _engineering_failure_result(
         "error_category": type(error).__name__,
         "error_message": " ".join(str(error).split())[:500],
     }
+    if isinstance(error, DeepSeekReviewCapacityError):
+        diagnostics = error.diagnostics
+        result["review_capacity"] = {
+            "finish_reason": diagnostics.finish_reason,
+            "configured_max_tokens": diagnostics.configured_max_tokens,
+            "prompt_tokens": diagnostics.prompt_tokens,
+            "completion_tokens": diagnostics.completion_tokens,
+            "reasoning_tokens": diagnostics.reasoning_tokens,
+            "capacity_recovery_attempted": diagnostics.capacity_recovery_attempted,
+        }
+    return result
 
 
 def _run_case(
@@ -548,17 +561,17 @@ def _run_case(
     script_review_config = DeepSeekChatConfig(
         model=config.model,
         thinking_enabled=True,
-        max_tokens=6_000,
+        max_tokens=REVIEW_INITIAL_MAX_TOKENS,
     )
     shooting_review_config = DeepSeekChatConfig(
         model=config.model,
         thinking_enabled=True,
-        max_tokens=6_000,
+        max_tokens=REVIEW_INITIAL_MAX_TOKENS,
     )
     product_review_config = DeepSeekChatConfig(
         model=config.model,
         thinking_enabled=True,
-        max_tokens=6_000,
+        max_tokens=REVIEW_INITIAL_MAX_TOKENS,
     )
 
     recording_script_review = RecordingScriptReviewPort(

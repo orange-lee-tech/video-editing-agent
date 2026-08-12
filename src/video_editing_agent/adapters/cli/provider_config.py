@@ -19,6 +19,7 @@ from video_editing_agent.providers.llm.deepseek_chat import (
     UrllibDeepSeekChatTransport,
 )
 from video_editing_agent.providers.llm.deepseek_preproduction_review import (
+    REVIEW_INITIAL_MAX_TOKENS,
     DeepSeekScriptProposalReviewPort,
     DeepSeekShootingProposalReviewPort,
 )
@@ -47,7 +48,9 @@ def deepseek_preproduction_ports(
             raise ProviderConfigurationError("DEEPSEEK_API_KEY is required for provider=deepseek")
         transport = UrllibDeepSeekChatTransport(api_key=api_key)
     generation = DeepSeekChatConfig(model=model, thinking_enabled=False, max_tokens=6_000)
-    review = DeepSeekChatConfig(model=model, thinking_enabled=True, max_tokens=6_000)
+    review = DeepSeekChatConfig(
+        model=model, thinking_enabled=True, max_tokens=REVIEW_INITIAL_MAX_TOKENS
+    )
     return PreproductionPorts(
         DeepSeekScriptPlanningPort(transport=transport, config=generation),
         DeepSeekScriptProposalReviewPort(transport=transport, config=review),
