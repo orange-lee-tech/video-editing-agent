@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import importlib
 import importlib.metadata
+import itertools
 import math
-from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
@@ -30,6 +30,19 @@ class OpenCvMotionConfig:
     width: int = 320
     height: int = 180
 
+    def __post_init__(self) -> None:
+        if not self.ffmpeg_executable.strip():
+            raise ValueError("ffmpeg_executable must not be empty")
+        for name, value in (
+            ("frames_per_second", self.frames_per_second),
+            ("width", self.width),
+            ("height", self.height),
+        ):
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise TypeError(f"{name} must be an int")
+            if value <= 0:
+                raise ValueError(f"{name} must be > 0")
+
 
 class OpenCvVisualMotionPort(VisualMotionPort):
     def __init__(self, config: OpenCvMotionConfig | None = None) -> None:
@@ -54,7 +67,7 @@ class OpenCvVisualMotionPort(VisualMotionPort):
     def measure(self, request: VisualMotionRequest) -> VisualMotionProposal:
         cv2, np = self._runtime()
         config = self._config
-        frames: Iterable[bytes] = iter_video_rgb24_frames(
+        frames = iter_video_rgb24_frames(
             request.local_media_path,
             ffmpeg_executable=config.ffmpeg_executable,
             frames_per_second=config.frames_per_second,
@@ -62,16 +75,18 @@ class OpenCvVisualMotionPort(VisualMotionPort):
             target_height=config.height,
             source_range=request.source_range,
         )
-        grays = [
+        grays = (
             cv2.cvtColor(
-                np.frombuffer(frame, dtype=np.uint8).reshape(config.height, config.width, 3),
+                np.frombuffer(frame, dtype=np.uint8).reshape(
+                    config.height, config.width, 3
+                ),
                 cv2.COLOR_RGB2GRAY,
             )
             for frame in frames
-        ]
+        )
         measurements = tuple(
             self._pair(cv2, np, left, right, index)
-            for index, (left, right) in enumerate(zip(grays, grays[1:], strict=False))
+            for index, (left, right) in enumerate(itertools.pairwise(grays))
         )
         return VisualMotionProposal(
             request.shot_ref,
