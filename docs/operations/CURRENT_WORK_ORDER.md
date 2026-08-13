@@ -2,164 +2,96 @@
 
 **Status:** ACTIVE
 
-**Phase:** R0.9A — Edit Intent → Hybrid Retrieval → Grounded CandidateWindows
+**Phase:** R0.9B — Canonical Edit Contracts → Resolver → Deterministic Optimizer
 
-**Goal:** build the first inspectable automatic-editing decision boundary: structured EditSlot intent must retrieve eligible real Shots and produce bounded source-time CandidateWindows with explainable provenance, then export local diagnostic previews for human inspection.
+**Goal:** converge R0.9A onto existing canonical Domain contracts, then implement the first deterministic grounded source-selection/sequence decision and a local resolved-sequence diagnostic preview.
 
 ## Entry
 
 1. Read `docs/operations/CODEX_EXECUTION_ENTRY.md`.
 2. Read `docs/roadmap/CURRENT_PHASE_STATUS.md`.
 3. Read this file.
-4. Read `docs/capabilities/CAP-04_RETRIEVAL_DIRECTOR_RESOLVER.md` sections 1–10 and 17–20.
-5. Read `docs/adr/ADR-003_LOCAL_HYBRID_RETRIEVAL_BASELINE.md`.
-6. Inspect only the current planning/ShotIndex/temporal-evidence contracts and the empty `editing/director` / `editing/resolver` seams needed for this batch.
+4. Read `docs/capabilities/CAP-04_RETRIEVAL_DIRECTOR_RESOLVER.md` sections 11–20.
+5. Read `docs/adr/ADR-004_LAYERED_BEAM_SEARCH_OPTIMIZER_BASELINE.md`.
+6. Inspect the R0.9A implementation plus existing `domain/edit/model.py` and `domain/edit/resolution.py`.
 
-Do not reread unrelated historical material and do not implement R0.10+ capabilities.
+Do not restart retrieval/model research and do not enter R0.10.
 
-## 1. Edit intent ownership
+## Mandatory preflight — canonical convergence
 
-Implement provider-neutral canonical `EditPlan` / `EditSlot` value/domain contracts sufficient for R0.9 retrieval.
+Before adding Resolver code:
 
-An EditSlot may express story/edit intent such as:
+- evolve/reuse canonical `domain/edit/model.py::EditPlan/EditSlot`; remove or reduce the R0.9A Director duplicate to a non-authoritative import/re-export if needed;
+- evolve/reuse canonical `domain/edit/resolution.py::CandidateWindow`; the generator must output that type rather than a competing definition;
+- introduce an explicit rational min/max duration-constraint value using `MediaTime` semantics; do not overload `MediaTimeRange`, whose meaning remains exact media interval `[start,end)`;
+- migrate R0.9A tests/probe without changing its proven retrieval/window behavior;
+- add regressions preventing future duplicate authorities and duration-range misuse.
 
-- stable slot identity and order;
-- narrative role / purpose;
-- desired subject/action/semantic query;
-- target duration range using rational MediaTime;
-- pacing / continuity hints;
-- reuse policy;
-- importance/intelligence budget.
+Routine naming/file-placement choices are autonomous. Do not stop after preflight; continue through the full R0.9B boundary if green.
 
-It must not contain or accept authoritative source file paths, Shot IDs selected by a model, or source timestamps invented by a model.
+## Resolver baseline
 
-Keep this boundary compatible with future Director model proposals but do not require a paid/live LLM call to prove R0.9A.
+Use only eligible grounded CandidateWindows. Never invent Shot IDs or source timestamps.
 
-## 2. Hard eligibility
+Implement a deterministic, versioned resolver strategy with explainable contributions. At minimum support:
 
-Before ranking, remove candidates that are definitely illegal for the Slot using already-authoritative project facts where available. At minimum enforce exact current Shot/source-range validity and existing usage-role/source eligibility semantics. Add narrow hooks/contracts for other hard constraints without inventing unavailable facts.
+- unary suitability features available from current evidence/intent;
+- pairwise transition/reuse compatibility available from current evidence;
+- bounded global sequence features such as slot coverage, duration and reuse;
+- hard feasibility before scoring;
+- score and confidence stored separately;
+- reasons / feature contributions / warnings / alternatives / evidence refs;
+- explicit unresolved result when no legal/useful candidate exists;
+- existing one-Slot → multiple `ResolvedSelection` Domain capability.
 
-Ineligible candidates leave the search space; they are not merely assigned a low score.
+Do not pretend unavailable features are measured. Missing evidence should reduce confidence or remain neutral, not be fabricated.
 
-## 3. Hybrid retrieval
+## Deterministic sequence optimizer
 
-Reuse the existing lexical/CJK index and R0.8 dense representations. Do not create competing Shot authorities.
+Implement the ADR-004 first baseline as a small layered beam-search / DAG-style optimizer over ordered EditSlots and their bounded CandidateWindows.
 
-Implement deterministic RRF-like rank fusion over lexical and dense candidate ranks. Requirements:
+Requirements:
 
-- lexical and dense raw scores are not treated as directly comparable;
-- deterministic tie ordering;
-- representation provenance remains rebuildable/non-authoritative;
-- structured hard eligibility happens before final candidate exposure;
-- retrieval output remains high-recall candidates only;
-- fusion parameters are versioned strategy/configuration, not Domain truth.
+- deterministic for identical evidence + strategy version;
+- hard constraints always dominate score;
+- obey slot order and reuse policy;
+- support bounded Top-K/beam width as versioned strategy parameters;
+- preserve enough state/reasons to explain why the chosen sequence beat alternatives;
+- no EDL timeline authority and no arbitrary millisecond search.
 
-No vector database/ANN server.
+## Probe and visible result
 
-## 4. CandidateWindow generation
+Reuse the gitignored `example/` real-media corpus and R0.9A outputs where valid. Create/extend one R0.9B local probe that exercises multiple ordered slots and proves at least:
 
-For each plausible Shot, generate a small bounded set of legal source windows from authoritative evidence rather than enumerating arbitrary timestamp pairs.
+1. canonical contract convergence;
+2. hard-ineligible candidate cannot win;
+3. higher editorial suitability can beat a merely higher retrieval rank;
+4. deterministic repeat produces identical decisions;
+5. reuse policy is enforced;
+6. no-candidate case becomes `UNRESOLVED`;
+7. score/confidence/reasons/alternatives remain inspectable;
+8. one Slot can resolve to multiple selections when the fixture explicitly requires it;
+9. selected ranges are exact existing CandidateWindows and remain inside Shot bounds;
+10. optimizer produces a legal ordered sequence.
 
-Inputs may use:
+Write local-only artifacts under:
 
-- exact Shot begin/end;
-- speech phrase boundaries and VAD/silence;
-- coarse/fine temporal anchors;
-- action onset/peak/settle;
-- target Slot duration;
-- explicit user/source locks when already represented.
+`example/probe-output/r0_9b/`
 
-CandidateWindow must preserve at least:
+At minimum:
 
-- exact `shot_ref`;
-- exact rational source range;
-- Slot reference;
-- anchor/evidence refs that justify IN/OUT/window;
-- duration;
-- confidence/evidence quality summary;
-- stable deterministic identity/provenance.
+- `resolution_decisions.json`;
+- `resolved_sequence_preview.mp4` built only by concatenating/copying/transcoding the already-selected grounded source ranges in optimizer order for human inspection.
 
-Rules:
+The preview is diagnostic only, not EDL/final-render authority.
 
-- every window must lie wholly inside the authoritative Shot source range;
-- no free-form timestamp generation from LLM text;
-- no cross-Shot window;
-- no invalid/negative/zero duration;
-- avoid combinatorial millisecond enumeration;
-- deterministic evidence + policy must reproduce the same windows.
+## Regression / Quality
 
-## 5. Explainability
+Run focused tests, the R0.9A regression probe where relevant, the new R0.9B live probe and the complete repository Quality Gate.
 
-For each surfaced candidate, retain enough information to answer:
+If all green:
 
-- why this Shot was retrieved;
-- which retrieval channels contributed;
-- why this IN/OUT window exists;
-- which evidence/anchors constrain it;
-- what was filtered by hard eligibility.
-
-Do not collapse everything into one opaque score.
-
-## 6. Local real-media Engineering/Product bridge probe
-
-Reuse the gitignored `example/` corpus and its tracked manifest. Reuse R0.8 runtimes/caches; no model reinstall or new paid API.
-
-Create one reusable R0.9A probe under `tools/probes/` that constructs a small deterministic EditPlan/EditSlot set against the existing product footage and demonstrates:
-
-1. lexical-only candidates;
-2. dense-only candidates;
-3. hybrid RRF candidates;
-4. an ineligible candidate is excluded before ranking exposure;
-5. stable deterministic rank/tie behavior;
-6. CandidateWindows remain inside exact Shot/source boundaries;
-7. at least one local-action Slot receives a window near real R0.8 temporal action evidence;
-8. a low-motion/negative case does not fabricate an action window;
-9. restart/reopen or deterministic rebuild preserves provenance;
-10. no model/provider can inject arbitrary Shot IDs or timestamps.
-
-Report candidate counts, broad Top-K, per-channel ranks, window ranges/durations, evidence refs and CPU latency.
-
-## 7. Human-inspectable local preview artifacts
-
-The user must be able to inspect what R0.9A thinks is worth cutting.
-
-For the probe only, export diagnostic preview clips for the top CandidateWindows under:
-
-`example/probe-output/r0_9a/`
-
-Also write a local JSON report in that directory mapping:
-
-`EditSlot → Shot → CandidateWindow → preview filename → evidence/retrieval reasons`.
-
-Rules:
-
-- these files remain gitignored/local-only;
-- use FFmpeg only to trim/mux/copy or safely transcode the already-grounded source window;
-- preview generation has zero creative authority;
-- do not introduce EDL timeline placement, transitions, music, spatial composition or final-render semantics;
-- failure to create a preview must not mutate candidate authority.
-
-## Regression / Quality gates
-
-Add deterministic tests for the domain and failure boundaries, including:
-
-- EditSlot cannot carry authoritative invented source timestamps/IDs;
-- hard eligibility dominates ranking;
-- RRF fusion deterministic and stable under tie;
-- lexical/CJK baseline unchanged;
-- dense provenance semantics unchanged;
-- CandidateWindow cannot leave Shot bounds or cross Shot identity;
-- unsupported/missing evidence fails closed or yields fewer windows rather than guessed timestamps;
-- exact evidence + policy reproduces identical CandidateWindow identities.
-
-Run the complete repository Quality Gate plus the R0.9A live probe.
-
-## Completion
-
-If all gates pass:
-
-- make one coherent code/test/probe commit on `main` and push;
-- keep diagnostic media/report local and gitignored;
-- report starting/ending HEAD, changed files, named gates, candidate/window metrics, preview output directory and major-stage wall-clock time;
+- coherent commit + push `main`;
+- report starting/ending HEAD, canonical repairs, named probe gates, selected ranges/sequence, preview path and major-stage wall-clock;
 - classify `ENGINEERING BASELINE ADEQUATE`, `MATERIAL DEFECT` or `BLOCKED`;
-- stop at R0.9A. Do not begin Resolver/optimizer implementation in this batch.
+- stop at R0.9B. Do not begin the R0.9 phase-closure Product Probe or R0.10 in this batch.
