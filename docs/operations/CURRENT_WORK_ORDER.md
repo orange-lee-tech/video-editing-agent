@@ -1,120 +1,123 @@
 # Current Work Order
 
 **Status:** ACTIVE  
-**Phase:** R0.8G — Retrieval Representation Hardening  
-**Goal:** close the bounded provenance/invalidation defects found in post-implementation review of `ed3a08d`, rerun the existing Windows Engineering Probe, and stop at the true R0.8G boundary.
+**Phase:** R0.8H — Real-Footage Product Probe + Phase Closure  
+**Goal:** prove or falsify R0.8 usefulness on private real footage and, if the gate passes, close R0.8 in this same work order.
 
 ## Entry
 
 1. Read `docs/operations/CODEX_EXECUTION_ENTRY.md`.
 2. Read `docs/roadmap/CURRENT_PHASE_STATUS.md`.
 3. Read this file.
-4. Inspect only the current dense retrieval implementation/tests/probe plus the existing ShotIndex representation ownership contract as needed.
+4. Read Roadmap V2 section `R0.8 — Media Evidence Foundation` and only the R0.8 implementations/probes needed for the closure run.
 
-Do not restart model research and do not reread unrelated historical material.
+Do not reread unrelated historical material and do not start R0.9 implementation.
 
-## Efficiency constraint
+## Private-media contract
 
-The prior R0.8G run already paid the first-time environment/model setup cost.
+Use `C:\Users\yulia\Desktop\video-editing-agent\.private\r0_8h\` as the default local-only probe root. `/.private/` is gitignored.
 
-- Reuse the existing isolated Windows sentence-transformers/PyTorch runtime, local `intfloat/multilingual-e5-small` snapshot and repository-local uv/cache state if present and healthy.
-- Do not reinstall PyTorch / sentence-transformers or redownload the model merely to rerun tests/probes.
-- Recreate runtime/model files only if missing or demonstrably corrupt, and report that as exceptional setup cost.
-- Keep sentence-transformers optional; do not add it or PyTorch to production dependencies.
+Never commit:
 
-## Defect 1 — preserve analysis revision semantics
+- private media;
+- absolute media paths;
+- raw private transcripts;
+- extracted private frames/audio;
+- secrets or user-identifying content.
 
-`ShotIndexRepresentationDescriptor.analysis_revision` and `ShotCandidate.analysis_revision` must continue to mean ShotAnalysis revision. Do not overload them with speech transcript revision.
+Committed closure evidence must use anonymized clip IDs and aggregate/derived metrics only.
 
-Represent dense source provenance with separate facts sufficient to bind:
+A single real clip may cover multiple categories. The real-footage set must collectively cover:
 
-- exact Shot revision;
-- current ShotAnalysis revision used by retrieval candidate ownership;
-- representation kind;
-- representation source kind (`shot_analysis` / `speech_transcript` or equivalent provider-neutral identity);
-- representation source revision;
-- model id;
-- model revision;
-- dimension;
-- normalization.
+- talking head;
+- handheld product demo;
+- camera pan;
+- hand/product interaction;
+- low motion;
+- noisy/blurred footage.
 
-For `visual_semantic_text`, analysis revision and representation-source revision may be equal because ShotAnalysis is the source.
+Prefer a small set of short clips over a large corpus. This is a phase closure probe, not a benchmark campaign.
 
-For `speech_text`, candidate `analysis_revision` must remain the current ShotAnalysis revision while transcript revision is recorded separately as the speech representation source revision.
+## Ground-truth / manifest
 
-If the dense Artifact schema must change, write a new schema version and either retain safe backward read of `r0.8g-dense-v1` or fail explicitly with a documented reason; do not silently reinterpret old speech provenance.
+Prefer `.private/r0_8h/manifest.json` when present. It may contain local-relative filenames, anonymous clip IDs/categories, a few expected speech phrase ranges and/or coarse motion-event ranges/negative controls needed to score the probe.
 
-## Defect 2 — selective maintenance / invalidation
+Do not require frame-perfect annotation. Coarse human-known event windows are enough to test whether grounded evidence is useful.
 
-Add a narrow rebuildable maintenance seam so a single exact `(shot_ref, representation)` can be refreshed or invalidated without rebuilding unrelated representations.
+If real footage exists but the manifest is absent, inspect only this private probe directory, create a minimal local-only manifest/template from the available filenames and run every gate that can be scored honestly. Do not invent human ground truth.
 
-Required behavior:
+If no usable real footage exists, stop with classification `NEEDS_REAL_FOOTAGE` and report the smallest missing set. Do not substitute synthetic fixtures and do not create another engineering subphase.
 
-- changing only one ShotAnalysis revision rebuilds only that Shot's affected visual representation;
-- changing only one speech transcript revision rebuilds only that Shot's `speech_text` representation;
-- unrelated representation records/artifact identities remain unchanged;
-- model id/revision change invalidates stale query/document compatibility and requires/rebuilds the applicable dense representation set;
-- missing source text can remove/invalidate the affected representation cleanly;
-- duplicate exact `(shot_ref, representation)` input fails closed before silently overwriting another record.
+## Closure probe
 
-This remains rebuildable retrieval infrastructure, not Domain truth.
+Create or extend one reusable probe under `tools/probes/` for R0.8H. Reuse existing R0.8 services/providers and previously validated local runtimes/caches; do not reinstall models or redo model selection unless the environment is missing/corrupt.
 
-## Defect 3 — trustworthy provider identity
+For the private clips, exercise the relevant chain end-to-end as far as practical:
 
-The sentence-transformers adapter must not report a hard-coded E5 model id independent of configured model identity.
+- Asset/Shot source-time identity;
+- ASR transcript timestamps;
+- VAD/silence and phrase/time mapping;
+- camera/global and residual motion;
+- coarse event regions/anchors;
+- fine temporal refinement where applicable;
+- seeded tracking on at least one explicit product/subject seed where the manifest provides one;
+- visual-semantic/speech dense representation and exact local retrieval sanity where representation inputs are available;
+- persistence/reopen with provenance.
 
-Make model id explicit in provider configuration (or use an equally trustworthy mechanism) and validate non-empty model id/revision plus positive dimension. The probe candidate remains:
+Do not introduce Director, Resolver, CandidateWindow, RRF production fusion, music or R0.9 authority.
 
-- runtime `sentence-transformers==5.6.0`;
-- model `intfloat/multilingual-e5-small`;
-- resolved model revision `614241f622f53c4eeff9890bdc4f31cfecc418b3` unless the existing local snapshot proves a different exact revision.
+## Product acceptance gates
 
-The adapter must continue using query/document intent correctly and local/offline inference for the Engineering Probe.
+Report independent PASS/FAIL/NOT_APPLICABLE gates and enough metrics to judge usefulness, including:
 
-## Regression gates
+1. `REAL_FOOTAGE_SOURCE_TIME` — evidence stays within exact Shot/source ranges and survives reopen;
+2. `SPEECH_TIMESTAMP_USEFULNESS` — expected spoken phrases map to plausible source ranges;
+3. `SPEECH_CUT_QUALITY` — phrase boundaries plus VAD/silence provide usable cut boundaries for annotated speech examples;
+4. `PAN_FALSE_LOCAL_ACTION` — camera pan does not create material false residual-action evidence;
+5. `LOCAL_ACTION_RECALL` — annotated hand/product or local-motion events receive nearby residual region/anchor candidates;
+6. `LOW_MOTION_FALSE_POSITIVE` — low-motion real footage does not produce excessive event anchors;
+7. `NOISY_BLURRED_FAIL_SAFE` — weak footage lowers/loses evidence cleanly rather than inventing confident events/tracks;
+8. `TRACKING_REAL_FOOTAGE` — seeded track remains useful when visible and reports explicit loss/exit when not supportable;
+9. `RETRIEVAL_REAL_PROJECT_SANITY` — available speech/visual semantic representation retrieves the intended clip for a small set of local semantic queries without changing ShotAnalysis authority;
+10. `R0_8_RESTART_PROVENANCE` — persisted evidence/representations reopen with exact revisions/provenance.
 
-Add deterministic tests proving at least:
+Use tolerances derived from the evidence mechanism and human-known coarse windows. Do not weaken a gate merely to pass it. Record false positives and misses explicitly.
 
-1. visual representation candidate carries the correct ShotAnalysis revision;
-2. speech representation candidate carries the correct ShotAnalysis revision while separately preserving transcript revision;
-3. refreshing speech revision changes only speech representation identity/provenance;
-4. refreshing visual analysis revision changes only the affected visual representation;
-5. stale model id/revision fails closed at search;
-6. configured model identity is what provider output reports;
-7. duplicate representation identity fails closed;
-8. restore/reopen preserves all revised provenance;
-9. lexical/CJK index behavior remains unchanged;
-10. R0.8F hardening regressions remain green.
+The Roadmap exit question is binary:
 
-## Windows Engineering Probe
+> Can the system produce a useful grounded candidate-time set for real footage without a high-end GPU?
 
-Extend `tools/probes/r0_8g_retrieval_representation_live.py`; do not create another competing probe.
+## Repair policy
 
-It must independently report PASS/FAIL for:
+If a gate fails because of a bounded defect in an existing R0.8 mechanism:
 
-- English query → relevant Chinese document;
-- Chinese query → relevant English document;
-- deterministic exact-scan/tie ordering;
-- visual analysis provenance;
-- speech transcript provenance without corrupting candidate analysis revision;
-- selective visual-source refresh;
-- selective speech-source refresh;
-- model-provenance mismatch rejection;
-- restart/restore equality;
-- offline inference.
+- diagnose mechanism, not symptom;
+- repair the shared invariant;
+- add deterministic regression coverage;
+- rerun the affected Engineering Probe and the same real-footage Product Probe;
+- continue toward closure in this same work order when practical.
 
-Also report corpus size, indexing time and query latency. Report process memory if it is easy/reliable in the existing environment; absence of memory telemetry alone is not a blocker.
+Do not create R0.8I/R0.8J merely for routine repair.
 
-Do not count dependency/model installation time as inference latency. If no reinstall/redownload was needed, say so explicitly in the final report.
+Stop only for a material architectural defect, missing real-footage/ground-truth needed for an honest Product Probe, unavailable required local runtime, or a failure that would require crossing into R0.9 authority.
 
-## Completion
+## Quality and closure
 
-Run the complete repository Quality Gate and the updated Windows Engineering Probe.
+Run the complete repository Quality Gate after any code changes. A probe-only closure with no code change still requires confirming current CI/quality baseline remains green and running the relevant local checks.
 
-If all gates pass:
+If the real-footage acceptance is adequate:
 
-- make one coherent code commit on `main` and push;
-- report starting/ending HEAD, files changed, named gates, actual repair, Quality Gate, probe timing and whether any environment/model setup was repeated;
-- report coarse wall-clock time by stage when observable (`code/repair`, focused tests, live probe, full Quality Gate, environment/model setup) so future unit-time efficiency can be compared;
-- classify only `ENGINEERING BASELINE ADEQUATE`, `MATERIAL DEFECT`, or `BLOCKED`;
-- stop at R0.8G. Do not start R0.8H or R0.9.
+1. create `docs/validation/R0.8_FINAL_CLOSURE.md` with anonymized corpus description, environment, named gates, metrics, known limitations and accepted baseline commit(s);
+2. update `docs/roadmap/CURRENT_PHASE_STATUS.md` to mark R0.8 CLOSED and R0.9 ACTIVE;
+3. replace this file with a short `R0.8 CLOSED — awaiting R0.9 work order` state;
+4. commit/push all non-private code/docs changes coherently;
+5. stop before R0.9 implementation.
+
+Final classification must be one of:
+
+- `R0.8 CLOSED`;
+- `MATERIAL R0.8 DEFECT`;
+- `NEEDS_REAL_FOOTAGE`;
+- `BLOCKED`.
+
+Report wall-clock by major stage when observable, but optimize for useful progress per unit time rather than minimum elapsed time.
