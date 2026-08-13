@@ -23,6 +23,13 @@ class AudioAutomationKind(StrEnum):
     CROSSFADE = "crossfade"
 
 
+class AudioTrackRole(StrEnum):
+    SOURCE = "source"
+    BGM = "bgm"
+    VOICEOVER = "voiceover"
+    SFX = "sfx"
+
+
 @dataclass(frozen=True, slots=True)
 class AudioAutomationIntent:
     kind: AudioAutomationKind
@@ -33,10 +40,15 @@ class AudioAutomationIntent:
     reason: str | None = None
     start: MediaTime | None = None
     end: MediaTime | None = None
+    target_role: AudioTrackRole | None = None
 
     def __post_init__(self) -> None:
-        if not self.target_slot_ids or any(not value.strip() for value in self.target_slot_ids):
+        if any(not value.strip() for value in self.target_slot_ids):
             raise ValueError("target_slot_ids must contain non-empty slot identifiers")
+        if not self.target_slot_ids and self.target_role is None:
+            raise ValueError("automation requires a track role or real EditSlot IDs")
+        if self.target_slot_ids and self.target_role is not None:
+            raise ValueError("track role and EditSlot targets are mutually exclusive")
         if self.gain_db is not None:
             if isinstance(self.gain_db, bool) or not isinstance(self.gain_db, (int, float)):
                 raise TypeError("gain_db must be a number or None")

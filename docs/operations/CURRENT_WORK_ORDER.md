@@ -1,10 +1,15 @@
 # Current Work Order
 
-**Status:** ACTIVE
+**Status:** ENGINEERING BASELINE ADEQUATE
 
 **Phase:** R0.10B — Beat Structure → Music-Window Rerank → Natural Mix Quality
 
 **Goal:** turn the R0.10A audible foundation into a quality-bearing deterministic local audio path suitable for the later R0.10 Product Probe.
+
+**Technical result:** PASS on 2026-08-13. `audioop` was removed, automation track roles
+were separated from EditSlot identities, and the deterministic local path passed measured
+BeatMap confidence, feature-ranked windows, bounded looping, natural duck ramps, PCM QC and
+audible A/B gates. Product Probe/R0.11 work was not started.
 
 ## Entry
 

@@ -4,7 +4,7 @@
 
 **Current phase:** R0.10 — Music Selection + BeatMap + Audio Editorial
 
-**Active boundary:** R0.10B — Beat Structure → Music-Window Rerank → Natural Mix Quality
+**Active boundary:** R0.10B ENGINEERING BASELINE ADEQUATE
 
 **Date:** 2026-08-13
 
@@ -21,12 +21,16 @@
 
 R0.10A proves the owned path works, but it does not yet prove music-moment or mix quality.
 
-## Active — R0.10B
+## Completed engineering boundary — R0.10B
 
 Harden BeatMap/music-window ranking and speech-aware mixing before the R0.10 Product Probe.
 Mandatory preflight also fixes Python-support compatibility in the BeatMap implementation and removes audio role/EditSlot identity ambiguity.
 
 After R0.10B, proceed to the real-audio R0.10 Product Probe if green. Do not begin R0.11.
+
+R0.10B now passes Python-support/automation-target preflight, signal-derived BeatMap
+confidence, feature-ranked music windows, bounded structural looping, ramped speech ducking,
+PCM QC and audible A/B engineering gates. The later R0.10 Product Probe remains unstarted.
 
 ## Operational control
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import audioop
 import hashlib
+import math
 import wave
 from datetime import UTC, datetime
 
@@ -28,8 +28,10 @@ class WaveEnergyBeatAnalysisService:
             raw = stream.readframes(frame_count)
         hop = max(1, rate // 20)
         stride = hop * width * channels
+        if width != 2:
+            raise ValueError("wave-energy baseline supports 16-bit PCM WAV only")
         energies = [
-            audioop.rms(raw[offset : offset + stride], width)
+            _pcm16_rms(raw[offset : offset + stride])
             for offset in range(0, len(raw), stride)
             if len(raw[offset : offset + stride]) == stride
         ]
@@ -45,9 +47,29 @@ class WaveEnergyBeatAnalysisService:
         for index in peaks:
             if not separated or index - separated[-1] >= 5:
                 separated.append(index)
+        intervals_index = [
+            right - left for left, right in zip(separated, separated[1:], strict=False)
+        ]
+        median_interval = (
+            sorted(intervals_index)[len(intervals_index) // 2] if intervals_index else 0
+        )
+        periodicity = (
+            0.0
+            if not intervals_index or median_interval == 0
+            else max(
+                0.0,
+                1.0
+                - sum(abs(item - median_interval) for item in intervals_index)
+                / (len(intervals_index) * median_interval),
+            )
+        )
+        contrast = 0.0 if maximum == 0 else (maximum - min(energies, default=0)) / maximum
+        confidence = min(1.0, periodicity * contrast)
         beats = tuple(
             BeatPoint(
-                source_range.start + MediaTime(index * hop, rate), energies[index] / maximum, 0.8
+                source_range.start + MediaTime(index * hop, rate),
+                energies[index] / maximum,
+                confidence,
             )
             for index in separated
         )
@@ -71,5 +93,26 @@ class WaveEnergyBeatAnalysisService:
             beats,
             tempo,
             "local:wave-energy",
-            "r0.10a-v1",
+            "r0.10b-v1",
+            confidence,
+            tuple(
+                BeatPoint(
+                    source_range.start + MediaTime(index * hop, rate),
+                    energy / maximum,
+                    confidence,
+                )
+                for index, energy in enumerate(energies)
+            ),
         )
+
+
+def _pcm16_rms(raw: bytes) -> int:
+    if len(raw) % 2:
+        raise ValueError("PCM16 payload must contain complete samples")
+    samples = (
+        int.from_bytes(raw[index : index + 2], "little", signed=True)
+        for index in range(0, len(raw), 2)
+    )
+    total = sum(sample * sample for sample in samples)
+    count = len(raw) // 2
+    return 0 if count == 0 else math.isqrt(total // count)

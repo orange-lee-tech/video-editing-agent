@@ -28,12 +28,16 @@ class BeatMap:
     tempo_bpm: float | None
     provider_id: str
     provider_revision: str
+    confidence: float = 0.0
+    energy_envelope: tuple[BeatPoint, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.provider_id.strip() or not self.provider_revision.strip():
             raise ValueError("BeatMap provider identity must not be empty")
         if self.tempo_bpm is not None and self.tempo_bpm <= 0:
             raise ValueError("tempo_bpm must be > 0")
+        if not 0.0 <= self.confidence <= 1.0:
+            raise ValueError("BeatMap confidence must be between 0 and 1")
         if tuple(x.source_time.as_fraction() for x in self.beats) != tuple(
             sorted(x.source_time.as_fraction() for x in self.beats)
         ):
@@ -44,3 +48,9 @@ class BeatMap:
             for beat in self.beats
         ):
             raise ValueError("beats must stay inside analyzed source range")
+        if any(
+            point.source_time.as_fraction() < self.analyzed_source_range.start.as_fraction()
+            or point.source_time.as_fraction() >= self.analyzed_source_range.end.as_fraction()
+            for point in self.energy_envelope
+        ):
+            raise ValueError("energy envelope must stay inside analyzed source range")

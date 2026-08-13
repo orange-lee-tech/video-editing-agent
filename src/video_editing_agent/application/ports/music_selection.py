@@ -64,6 +64,8 @@ class CandidateMusicWindow:
     strategy_version: str
     score: float
     confidence: float
+    feature_contributions: tuple[tuple[str, float], ...] = ()
+    reasons: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.candidate_id.strip() or not self.strategy_version.strip():
@@ -72,6 +74,8 @@ class CandidateMusicWindow:
             raise ValueError("music window requires rights provenance")
         _confidence(self.score)
         _confidence(self.confidence)
+        if not self.feature_contributions or not self.reasons:
+            raise ValueError("music window scoring must be inspectable")
 
 
 @dataclass(frozen=True, slots=True)
