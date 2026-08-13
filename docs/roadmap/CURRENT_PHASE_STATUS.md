@@ -4,7 +4,7 @@
 
 **Current phase:** R0.10 — Music Selection + BeatMap + Audio Editorial
 
-**Active boundary:** R0.10B ENGINEERING BASELINE ADEQUATE
+**Active boundary:** R0.10B — execution-evidence bridge repair
 
 **Date:** 2026-08-13
 
@@ -15,22 +15,23 @@
 - R0.8 — Media Evidence Foundation.
 - R0.9 — Director → Retrieval → Resolver → Deterministic Optimizer.
 
-## Accepted baseline
+## Accepted R0.10 baseline
 
 `7d4dcc0afb26556f9a161b73ca408946f6f417d7` — R0.10A local rights-aware audible music foundation.
 
-R0.10A proves the owned path works, but it does not yet prove music-moment or mix quality.
+## R0.10B candidate requiring repair
 
-## Completed engineering boundary — R0.10B
+`d893d4c6fb67f1218416a302c7c6775c22bde088` established the intended BeatMap confidence, feature-ranked music windows, bounded loop planning, track-role semantics and ramped AudioMixDecision model. CI is green.
 
-Harden BeatMap/music-window ranking and speech-aware mixing before the R0.10 Product Probe.
-Mandatory preflight also fixes Python-support compatibility in the BeatMap implementation and removes audio role/EditSlot identity ambiguity.
+Post-review found the R0.10B live probe does not yet satisfy its own execution-evidence acceptance boundary:
 
-After R0.10B, proceed to the real-audio R0.10 Product Probe if green. Do not begin R0.11.
+- the selected MusicSelectionDecision uses a `[9,12)` source window / loop plan, while the diagnostic FFmpeg renderer independently trims music at `0:6`;
+- the structured renderer independently hardcodes duck ranges instead of compiling the canonical AudioMixDecision;
+- reported PCM QC measures the input music fixture rather than the rendered mixed output.
 
-R0.10B now passes Python-support/automation-target preflight, signal-derived BeatMap
-confidence, feature-ranked music windows, bounded structural looping, ramped speech ducking,
-PCM QC and audible A/B engineering gates. The later R0.10 Product Probe remains unstarted.
+Therefore R0.10B is not yet accepted as complete. This is a bounded executor/probe bridge defect, not a reason to reopen R0.10A or redesign BeatMap/window ranking.
+
+Repair the same R0.10B boundary, rerun its live evidence and Quality Gate, then proceed to the R0.10 Product Probe if green. Do not begin R0.11.
 
 ## Operational control
 
