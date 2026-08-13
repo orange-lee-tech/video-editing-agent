@@ -31,3 +31,17 @@ def test_local_store_detects_tampered_content(tmp_path: Path) -> None:
 
     with pytest.raises(RuntimeError, match="integrity"):
         store.get(ref)
+
+
+def test_get_by_id_rehydrates_and_validates_identity_and_integrity(tmp_path: Path) -> None:
+    store = LocalArtifactStore(tmp_path)
+    ref = store.put(ArtifactPayload("application/json", b'{"motion":true}'))
+    assert store.get_by_id(ref.artifact_id) == b'{"motion":true}'
+    with pytest.raises(ValueError, match="content-addressed"):
+        store.get_by_id("bad")
+    with pytest.raises(FileNotFoundError):
+        store.get_by_id("art_sha256_" + "0" * 64)
+    digest = ref.artifact_id.removeprefix("art_sha256_")
+    (tmp_path / "sha256" / digest[:2] / digest).write_bytes(b"corrupt")
+    with pytest.raises(RuntimeError, match="integrity"):
+        store.get_by_id(ref.artifact_id)

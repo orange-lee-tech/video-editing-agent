@@ -79,6 +79,18 @@ class LocalArtifactStore:
             raise RuntimeError("stored artifact failed integrity verification")
         return content
 
+    def get_by_id(self, artifact_id: str) -> bytes:
+        prefix = "art_sha256_"
+        if not artifact_id.startswith(prefix):
+            raise ValueError("artifact_id must use the art_sha256_* content-addressed form")
+        digest = artifact_id.removeprefix(prefix)
+        if len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest):
+            raise ValueError("artifact_id must contain a lowercase SHA-256 digest")
+        content = self._path_for_digest(digest).read_bytes()
+        if _sha256(content) != digest:
+            raise RuntimeError("stored artifact failed integrity verification")
+        return content
+
     def delete(self, ref: StoredArtifactRef) -> bool:
         digest = self._digest_for_ref(ref)
         path = self._path_for_digest(digest)

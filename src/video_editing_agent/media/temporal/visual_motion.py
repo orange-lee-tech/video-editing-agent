@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import math
 from dataclasses import asdict
 
+from video_editing_agent.application.ports.artifact_lifecycle import (
+    ArtifactLifecycleDescriptor,
+    ArtifactLifecycleRepository,
+    ArtifactRetentionClass,
+)
 from video_editing_agent.application.ports.artifact_store import ArtifactPayload, ArtifactStore
 from video_editing_agent.application.ports.asset_media import AssetMediaResolver
 from video_editing_agent.application.ports.shot_repository import ShotRepository
@@ -14,24 +18,14 @@ from video_editing_agent.application.ports.temporal_evidence_repository import (
 from video_editing_agent.application.ports.visual_motion import (
     VisualMotionMeasurement,
     VisualMotionPort,
-    VisualMotionProposal,
     VisualMotionRequest,
 )
 from video_editing_agent.domain.common.entity import EntityRevisionRef
-from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
+from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.domain.evidence.temporal import TemporalEvidence
+from video_editing_agent.media.temporal.visual_motion_codec import encode_visual_motion
 
-CAMERA_MOTION_KIND = "camera_motion_measurement"
-RESIDUAL_MOTION_KIND = "residual_motion_measurement"
-
-
-def _canonical_payload(proposal: VisualMotionProposal) -> bytes:
-    return json.dumps(
-        {"schema_version": "r0.8c-visual-motion-v1", "proposal": asdict(proposal)},
-        sort_keys=True,
-        separators=(",", ":"),
-        allow_nan=False,
-    ).encode()
+VISUAL_MOTION_MEASUREMENT_SET_KIND = "visual_motion_measurement_set"
 
 
 def _validate(measurement: VisualMotionMeasurement, duration: MediaTime) -> None:
@@ -64,12 +58,14 @@ class VisualMotionEvidenceService:
         asset_media_resolver: AssetMediaResolver,
         temporal_evidence_repository: TemporalEvidenceRepository,
         artifact_store: ArtifactStore,
+        artifact_lifecycle_repository: ArtifactLifecycleRepository,
         motion_port: VisualMotionPort,
     ) -> None:
         self._shots = shot_repository
         self._media = asset_media_resolver
         self._evidence = temporal_evidence_repository
         self._artifacts = artifact_store
+        self._lifecycle = artifact_lifecycle_repository
         self._port = motion_port
 
     def measure(self, shot_ref: EntityRevisionRef) -> tuple[TemporalEvidence, ...]:
@@ -90,32 +86,33 @@ class VisualMotionEvidenceService:
             if previous_end is not None and start < previous_end:
                 raise ValueError("visual motion measurements must be ordered and non-overlapping")
             previous_end = measurement.relative_range.end.as_fraction()
-        payload = _canonical_payload(proposal)
+        payload = encode_visual_motion(proposal)
         artifact = self._artifacts.put(ArtifactPayload("application/json", payload))
-        evidence = []
-        for index, measurement in enumerate(proposal.measurements):
-            if measurement.status != "available":
-                continue
-            absolute = MediaTimeRange(
-                shot.source_range.start + measurement.relative_range.start,
-                measurement.relative_range.duration,
+        source_ref = f"shot:{shot_ref.entity_id}@{shot_ref.revision}"
+        self._lifecycle.add(
+            ArtifactLifecycleDescriptor(
+                artifact.artifact_id,
+                ArtifactRetentionClass.DURABLE_DERIVED_EVIDENCE,
+                "visual_motion_measurement",
+                (source_ref,),
             )
-            for kind in (CAMERA_MOTION_KIND, RESIDUAL_MOTION_KIND):
-                digest = hashlib.sha256(
-                    f"{shot_ref.entity_id}:{shot_ref.revision}:{index}:{kind}:{artifact.artifact_id}".encode()
-                ).hexdigest()
-                evidence.append(
-                    TemporalEvidence(
-                        f"tev_motion_{digest}",
-                        shot_ref,
-                        kind,
-                        proposal.provider_id,
-                        proposal.provider_revision,
-                        measurement.inlier_ratio,
-                        absolute,
-                        (artifact.artifact_id,),
-                    )
-                )
-        result = tuple(evidence)
+        )
+        available = sum(item.status == "available" for item in proposal.measurements)
+        completeness = available / len(proposal.measurements) if proposal.measurements else 0.0
+        digest = hashlib.sha256(
+            f"{shot_ref.entity_id}:{shot_ref.revision}:{artifact.artifact_id}".encode()
+        ).hexdigest()
+        result = (
+            TemporalEvidence(
+                f"tev_motion_set_{digest}",
+                shot_ref,
+                VISUAL_MOTION_MEASUREMENT_SET_KIND,
+                proposal.provider_id,
+                proposal.provider_revision,
+                completeness,
+                shot.source_range,
+                (artifact.artifact_id,),
+            ),
+        )
         self._evidence.save_evidence_batch(result)
         return result

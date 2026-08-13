@@ -70,6 +70,26 @@ def _encode_evidence(evidence: TemporalEvidence) -> str:
     return json.dumps(payload, sort_keys=True, separators=(",", ":"))
 
 
+def _encode_anchor(anchor: TemporalAnchor) -> str:
+    return json.dumps(
+        {
+            "anchor_id": anchor.anchor_id,
+            "shot_ref": {
+                "entity_id": anchor.shot_ref.entity_id,
+                "revision": anchor.shot_ref.revision,
+            },
+            "kind": anchor.kind,
+            "source_time": _time(anchor.source_time),
+            "confidence": anchor.confidence,
+            "evidence_refs": list(anchor.evidence_refs),
+            "method": anchor.method,
+            "semantic_label": anchor.semantic_label,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+
 class SqliteTemporalEvidenceRepository:
     def __init__(self, database: SqliteProjectDatabase) -> None:
         self._database = database
@@ -97,41 +117,50 @@ class SqliteTemporalEvidenceRepository:
                 )
 
     def save_anchor(self, anchor: TemporalAnchor) -> None:
-        payload = {
-            "anchor_id": anchor.anchor_id,
-            "shot_ref": {
-                "entity_id": anchor.shot_ref.entity_id,
-                "revision": anchor.shot_ref.revision,
-            },
-            "kind": anchor.kind,
-            "source_time": _time(anchor.source_time),
-            "confidence": anchor.confidence,
-            "evidence_refs": list(anchor.evidence_refs),
-            "method": anchor.method,
-            "semantic_label": anchor.semantic_label,
-        }
+        self.save_evidence_and_anchors((), (anchor,))
+
+    def save_evidence_and_anchors(
+        self, evidence: tuple[TemporalEvidence, ...], anchors: tuple[TemporalAnchor, ...]
+    ) -> None:
         with self._database.write_connection() as connection:
-            for evidence_ref in anchor.evidence_refs:
-                row = connection.execute(
-                    "SELECT 1 FROM temporal_evidence WHERE evidence_id = ? "
-                    "AND shot_entity_id = ? AND shot_revision = ?",
-                    (evidence_ref, anchor.shot_ref.entity_id, anchor.shot_ref.revision),
-                ).fetchone()
-                if row is None:
-                    raise ValueError(f"unknown evidence reference for exact Shot: {evidence_ref}")
-            encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-            _insert_immutable(
-                connection,
-                table="temporal_anchors",
-                identity=anchor.anchor_id,
-                values=(
-                    anchor.anchor_id,
-                    anchor.shot_ref.entity_id,
-                    anchor.shot_ref.revision,
-                    encoded,
-                ),
-                payload=encoded,
-            )
+            for item in evidence:
+                encoded = _encode_evidence(item)
+                _insert_immutable(
+                    connection,
+                    table="temporal_evidence",
+                    identity=item.evidence_id,
+                    values=(
+                        item.evidence_id,
+                        item.shot_ref.entity_id,
+                        item.shot_ref.revision,
+                        encoded,
+                    ),
+                    payload=encoded,
+                )
+            for anchor in anchors:
+                for evidence_ref in anchor.evidence_refs:
+                    row = connection.execute(
+                        "SELECT 1 FROM temporal_evidence WHERE evidence_id = ? "
+                        "AND shot_entity_id = ? AND shot_revision = ?",
+                        (evidence_ref, anchor.shot_ref.entity_id, anchor.shot_ref.revision),
+                    ).fetchone()
+                    if row is None:
+                        raise ValueError(
+                            f"unknown evidence reference for exact Shot: {evidence_ref}"
+                        )
+                encoded = _encode_anchor(anchor)
+                _insert_immutable(
+                    connection,
+                    table="temporal_anchors",
+                    identity=anchor.anchor_id,
+                    values=(
+                        anchor.anchor_id,
+                        anchor.shot_ref.entity_id,
+                        anchor.shot_ref.revision,
+                        encoded,
+                    ),
+                    payload=encoded,
+                )
 
     def list_evidence(self, shot_ref: EntityRevisionRef) -> tuple[TemporalEvidence, ...]:
         with self._database.read_connection() as connection:

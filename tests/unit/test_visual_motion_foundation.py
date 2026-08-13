@@ -16,6 +16,9 @@ from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevis
 from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
 from video_editing_agent.domain.shot.model import Shot
 from video_editing_agent.media.temporal.visual_motion import VisualMotionEvidenceService
+from video_editing_agent.storage.artifact.lifecycle_repository import (
+    LocalArtifactLifecycleRepository,
+)
 from video_editing_agent.storage.artifact.local_store import LocalArtifactStore
 from video_editing_agent.storage.repositories.sqlite_database import SqliteProjectDatabase
 from video_editing_agent.storage.repositories.sqlite_repositories import (
@@ -110,6 +113,7 @@ def _service(tmp_path: Path, proposal: VisualMotionProposal | None = None):
         asset_media_resolver=Resolver(media),
         temporal_evidence_repository=SqliteTemporalEvidenceRepository(db),
         artifact_store=store,
+        artifact_lifecycle_repository=LocalArtifactLifecycleRepository(tmp_path / "artifacts"),
         motion_port=Port(proposal),
     )
     return service, db_path, store
@@ -118,15 +122,11 @@ def _service(tmp_path: Path, proposal: VisualMotionProposal | None = None):
 def test_owner_maps_offset_persists_and_canonical_artifact_is_stable(tmp_path: Path) -> None:
     service, db_path, store = _service(tmp_path)
     evidence = service.measure(SHOT)
-    assert {item.kind for item in evidence} == {
-        "camera_motion_measurement",
-        "residual_motion_measurement",
-    }
+    assert {item.kind for item in evidence} == {"visual_motion_measurement_set"}
     assert all(item.source_range.start == MediaTime(3, 1) for item in evidence if item.source_range)
     loaded = SqliteTemporalEvidenceRepository(SqliteProjectDatabase(db_path)).list_evidence(SHOT)
     assert loaded == tuple(sorted(evidence, key=lambda item: item.evidence_id))
     artifact_id = evidence[0].artifact_refs[0]
-    assert artifact_id == evidence[1].artifact_refs[0]
     assert (
         b'"schema_version":"r0.8c-visual-motion-v1"'
         in next(

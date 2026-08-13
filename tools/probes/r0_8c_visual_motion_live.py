@@ -20,6 +20,9 @@ from video_editing_agent.providers.vision.opencv_motion import (
     OpenCvMotionConfig,
     OpenCvVisualMotionPort,
 )
+from video_editing_agent.storage.artifact.lifecycle_repository import (
+    LocalArtifactLifecycleRepository,
+)
 from video_editing_agent.storage.artifact.local_store import LocalArtifactStore
 from video_editing_agent.storage.repositories.sqlite_database import SqliteProjectDatabase
 from video_editing_agent.storage.repositories.sqlite_repositories import (
@@ -181,6 +184,7 @@ def main() -> int:
         asset_media_resolver=Resolver(live_path),
         temporal_evidence_repository=SqliteTemporalEvidenceRepository(database),
         artifact_store=LocalArtifactStore(artifact_root),
+        artifact_lifecycle_repository=LocalArtifactLifecycleRepository(artifact_root),
         motion_port=OpenCvVisualMotionPort(OpenCvMotionConfig(ffmpeg_executable=args.ffmpeg)),
     ).measure(shot_ref)
     reopened = SqliteTemporalEvidenceRepository(SqliteProjectDatabase(database_path)).list_evidence(

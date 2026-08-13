@@ -7,7 +7,7 @@ import pytest
 from video_editing_agent.domain.asset.model import Asset, AssetProvenance
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevisionRef, EntityStatus
 from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
-from video_editing_agent.domain.evidence.temporal import TemporalEvidence
+from video_editing_agent.domain.evidence.temporal import TemporalAnchor, TemporalEvidence
 from video_editing_agent.domain.shot.model import Shot
 from video_editing_agent.storage.repositories.sqlite_database import SqliteProjectDatabase
 from video_editing_agent.storage.repositories.sqlite_repositories import (
@@ -102,3 +102,38 @@ def test_batch_conflict_rolls_back_earlier_new_rows(tmp_path: Path) -> None:
         repository.save_evidence_batch((new, conflict))
 
     assert repository.list_evidence(shot_ref) == (original,)
+
+
+def test_region_and_anchor_batch_rolls_back_on_late_invalid_anchor(tmp_path: Path) -> None:
+    repository, shot_ref = _repository(tmp_path / "atomic.sqlite3")
+    region = TemporalEvidence(
+        "tev_region",
+        shot_ref,
+        "residual_motion_region",
+        "reducer",
+        "v1",
+        0.9,
+        MediaTimeRange(MediaTime(1, 1), MediaTime(1, 1)),
+    )
+    valid = TemporalAnchor(
+        "tan_valid",
+        shot_ref,
+        "residual_motion_onset",
+        MediaTime(1, 1),
+        0.9,
+        (region.evidence_id,),
+        "reducer",
+    )
+    invalid = TemporalAnchor(
+        "tan_invalid",
+        shot_ref,
+        "residual_motion_peak",
+        MediaTime(3, 2),
+        0.9,
+        ("missing",),
+        "reducer",
+    )
+    with pytest.raises(ValueError, match="unknown evidence"):
+        repository.save_evidence_and_anchors((region,), (valid, invalid))
+    assert repository.list_evidence(shot_ref) == ()
+    assert repository.list_anchors(shot_ref) == ()
