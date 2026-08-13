@@ -57,11 +57,19 @@ def _measurement(start: int = 0) -> VisualMotionMeasurement:
 
 
 class Port:
-    def __init__(self, proposal: VisualMotionProposal):
+    def __init__(
+        self,
+        proposal: VisualMotionProposal,
+        reported_range: MediaTimeRange | None = None,
+    ) -> None:
         self.proposal = proposal
+        self.reported_range = reported_range
 
     def measure(self, request):
-        return replace(self.proposal, analyzed_source_range=request.source_range)
+        return replace(
+            self.proposal,
+            analyzed_source_range=self.reported_range or request.source_range,
+        )
 
 
 class Resolver:
@@ -72,7 +80,11 @@ class Resolver:
         return ResolvedLocalAssetMedia(asset_ref, self.path)
 
 
-def _service(tmp_path: Path, proposal: VisualMotionProposal | None = None):
+def _service(
+    tmp_path: Path,
+    proposal: VisualMotionProposal | None = None,
+    reported_range: MediaTimeRange | None = None,
+):
     db_path = tmp_path / "project.sqlite3"
     db = SqliteProjectDatabase(db_path)
     db.initialize()
@@ -114,7 +126,7 @@ def _service(tmp_path: Path, proposal: VisualMotionProposal | None = None):
         temporal_evidence_repository=SqliteTemporalEvidenceRepository(db),
         artifact_store=store,
         artifact_lifecycle_repository=LocalArtifactLifecycleRepository(tmp_path / "artifacts"),
-        motion_port=Port(proposal),
+        motion_port=Port(proposal, reported_range),
     )
     return service, db_path, store
 
@@ -150,6 +162,14 @@ def test_owner_rejects_invalid_proposals(tmp_path: Path, change, message: str) -
     service, _, _ = _service(tmp_path, proposal)
     with pytest.raises(ValueError, match=message):
         service.measure(SHOT)
+
+
+def test_owner_rejects_provider_analyzed_range_mismatch(tmp_path: Path) -> None:
+    requested = MediaTimeRange(MediaTime(7, 2), MediaTime(1, 1))
+    reported = MediaTimeRange(MediaTime(3, 1), MediaTime(1, 1))
+    service, _, _ = _service(tmp_path, reported_range=reported)
+    with pytest.raises(ValueError, match="analyzed range disagrees"):
+        service.measure(SHOT, requested)
 
 
 def test_unavailable_is_not_zero_and_nan_is_rejected(tmp_path: Path) -> None:

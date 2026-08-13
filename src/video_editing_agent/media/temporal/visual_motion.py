@@ -87,6 +87,8 @@ class VisualMotionEvidenceService:
             raise ValueError("visual motion proposal returned a different Shot revision")
         if not proposal.provider_id.strip() or not proposal.provider_revision.strip():
             raise ValueError("visual motion provider identity must not be empty")
+        if proposal.analyzed_source_range != analysis_range:
+            raise ValueError("visual motion proposal analyzed range disagrees with request")
         previous_end = None
         for measurement in proposal.measurements:
             _validate(measurement, analysis_range.duration)
@@ -124,5 +126,3 @@ class VisualMotionEvidenceService:
         )
         self._evidence.save_evidence_batch(result)
         return result
-        if proposal.analyzed_source_range != analysis_range:
-            raise ValueError("visual motion proposal analyzed range disagrees with request")
