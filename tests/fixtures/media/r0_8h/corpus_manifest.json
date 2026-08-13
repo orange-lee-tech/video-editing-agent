@@ -1,0 +1,199 @@
+{
+  "clips": [
+    {
+      "clip_id": "clip_544d9e1d1405",
+      "coverage": [
+        "camera_pan",
+        "handheld_product_demo",
+        "low_motion",
+        "noisy_blurred"
+      ],
+      "duration_seconds": 10.09125,
+      "sha256": "544d9e1d1405d996854d7ecc3f2b7056c359bf423a9377428a7b9e00d4be1048",
+      "size_bytes": 1629315,
+      "streams": [
+        {
+          "avg_frame_rate": "30/1",
+          "codec_name": "hevc",
+          "codec_type": "video",
+          "height": 960,
+          "width": 540
+        },
+        {
+          "avg_frame_rate": "0/0",
+          "channels": 1,
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "sample_rate": "48000"
+        }
+      ]
+    },
+    {
+      "clip_id": "clip_830dff4d6f74",
+      "coverage": [
+        "camera_pan",
+        "handheld_product_demo",
+        "low_motion",
+        "noisy_blurred"
+      ],
+      "duration_seconds": 10.066667,
+      "sha256": "830dff4d6f74536183c4513fdfa4b76060815593c5290ee4b7455f203f345f4b",
+      "size_bytes": 5219712,
+      "streams": [
+        {
+          "avg_frame_rate": "30/1",
+          "codec_name": "h264",
+          "codec_type": "video",
+          "height": 960,
+          "width": 540
+        },
+        {
+          "avg_frame_rate": "0/0",
+          "channels": 1,
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "sample_rate": "44100"
+        }
+      ]
+    },
+    {
+      "clip_id": "clip_a081be122efb",
+      "coverage": [
+        "hand_object_interaction",
+        "handheld_product_demo",
+        "noisy_blurred"
+      ],
+      "duration_seconds": 9.6,
+      "sha256": "a081be122efbc301fe3a4860be3bd4834e8efc0f29eca8a42a89a97c22b8c027",
+      "size_bytes": 3599693,
+      "streams": [
+        {
+          "avg_frame_rate": "30/1",
+          "codec_name": "h264",
+          "codec_type": "video",
+          "height": 960,
+          "width": 540
+        },
+        {
+          "avg_frame_rate": "0/0",
+          "channels": 1,
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "sample_rate": "44100"
+        }
+      ]
+    },
+    {
+      "clip_id": "clip_a884f51b6c2b",
+      "coverage": [
+        "camera_pan",
+        "hand_object_interaction",
+        "handheld_product_demo",
+        "low_motion",
+        "noisy_blurred"
+      ],
+      "duration_seconds": 26.766667,
+      "sha256": "a884f51b6c2bd1e2783f94b6f7b1a3b6aeab84688e2e4966740795cf071a7be8",
+      "size_bytes": 3300443,
+      "streams": [
+        {
+          "avg_frame_rate": "30/1",
+          "codec_name": "hevc",
+          "codec_type": "video",
+          "height": 960,
+          "width": 540
+        },
+        {
+          "avg_frame_rate": "0/0",
+          "channels": 1,
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "sample_rate": "44100"
+        }
+      ]
+    },
+    {
+      "clip_id": "clip_af31cafd6aa8",
+      "coverage": [
+        "camera_pan",
+        "handheld_product_demo",
+        "low_motion",
+        "noisy_blurred"
+      ],
+      "duration_seconds": 7.211083,
+      "sha256": "af31cafd6aa89885129ef520b7a87950b59df4c94bda3385b370a69306548f4d",
+      "size_bytes": 618313,
+      "streams": [
+        {
+          "avg_frame_rate": "30/1",
+          "codec_name": "hevc",
+          "codec_type": "video",
+          "height": 1280,
+          "width": 720
+        },
+        {
+          "avg_frame_rate": "0/0",
+          "channels": 1,
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "sample_rate": "48000"
+        }
+      ]
+    },
+    {
+      "clip_id": "clip_d9a7c565c694",
+      "coverage": [
+        "hand_object_interaction",
+        "handheld_product_demo",
+        "noisy_blurred"
+      ],
+      "duration_seconds": 9.566667,
+      "sha256": "d9a7c565c6942faaad2eb25d3299b21869744f1bd76c01a3a9117cbcda9bde46",
+      "size_bytes": 1471326,
+      "streams": [
+        {
+          "avg_frame_rate": "30/1",
+          "codec_name": "hevc",
+          "codec_type": "video",
+          "height": 1280,
+          "width": 720
+        },
+        {
+          "avg_frame_rate": "0/0",
+          "channels": 1,
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "sample_rate": "48000"
+        }
+      ]
+    },
+    {
+      "clip_id": "clip_f9d84dc0dd4a",
+      "coverage": [
+        "camera_pan",
+        "handheld_product_demo",
+        "low_motion"
+      ],
+      "duration_seconds": 7.133333,
+      "sha256": "f9d84dc0dd4ad2d5c926982bd5a8beab20f040ec21c562568368d600e48e6dea",
+      "size_bytes": 1883512,
+      "streams": [
+        {
+          "avg_frame_rate": "30/1",
+          "codec_name": "h264",
+          "codec_type": "video",
+          "height": 960,
+          "width": 540
+        },
+        {
+          "avg_frame_rate": "0/0",
+          "channels": 1,
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "sample_rate": "44100"
+        }
+      ]
+    }
+  ],
+  "schema_version": "r0.8h-local-corpus-v1"
+}
