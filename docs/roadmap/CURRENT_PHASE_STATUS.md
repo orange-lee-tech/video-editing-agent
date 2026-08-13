@@ -2,45 +2,54 @@
 
 **Roadmap V2:** ACTIVE  
 **Current phase:** R0.8 — Media Evidence Foundation  
-**Active boundary:** R0.8G — Retrieval Representation Hardening  
+**Active boundary:** R0.8H — Real-Footage Product Probe + Phase Closure  
 **Date:** 2026-08-13
 
-## Completed
+## Completed engineering baselines
 
 - R0.7A — Architecture v0.2 Migration Foundation: CLOSED.
 - R0.7B — Pre-production Planning + Commercial Skill Foundation: CLOSED.
-- R0.8 Speech: CPU ASR, word/segment timestamps, VAD/silence, transcript persistence and deterministic phrase/time mapping.
-- R0.8 Visual temporal evidence: camera/global motion, camera-compensated residual motion, event regions, coarse anchors, fine temporal refinement and seeded subject/product tracking Engineering baselines.
-- R0.8F tracking boundary hardening: partial target exit now terminates explicitly; owner fails closed on malformed provider identity/sample/support output.
+- R0.8 Speech: CPU ASR, timestamps, VAD/silence, transcript persistence, phrase/time mapping.
+- R0.8 Visual temporal evidence: camera/global motion, compensated residual motion, event regions, coarse/fine anchors, seeded tracking.
+- R0.8 Retrieval representation: multilingual local embedding prototype, explicit provenance, rebuildable dense Artifacts, selective refresh/invalidation and deterministic project-local exact vector scan.
 
-R0.8G implementation candidate:
+R0.8G accepted implementation baseline:
 
-`ed3a08dcd15d12dd7e7698f5b27fee32e2a8d8ee` — `feat: add dense retrieval representation`
+`ae67be32c3f8726399fecfc20173a7effa06ef34` — `fix: harden dense retrieval provenance`
 
-The candidate establishes the intended local multilingual embedding mechanism, rebuildable dense Artifacts, exact project-local vector scan, stable tie ordering, offline Windows CPU inference and restart/restore behavior. Repository CI is green.
+Post-review authority defects are closed: ShotAnalysis revision is separate from representation-source revision; speech transcript provenance no longer corrupts candidate analysis revision; selective representation maintenance is explicit; provider model identity is configured and validated; v1 ambiguous dense provenance is rejected rather than silently reinterpreted. Windows Engineering Probe reports 10/10 gates PASS and repository CI is green.
 
-## Active — R0.8G Retrieval Representation Hardening
+## Active — R0.8H Closure Sprint
 
-R0.8G is not yet accepted as complete because post-implementation review found remaining authority/provenance gaps:
+No new R0.8 feature module is planned.
 
-1. `ShotIndexRepresentationDescriptor.analysis_revision` is currently overloaded with generic source revision. For `speech_text`, transcript revision therefore leaks into a field whose established meaning is ShotAnalysis revision, and dense `ShotCandidate.analysis_revision` can become semantically wrong.
-2. Dense maintenance currently exposes full `rebuild()` but no explicit per-representation upsert/invalidate seam. The required behavior “changing only the relevant ShotAnalysis/transcript revision rebuilds only the affected representation” is therefore not yet proven.
-3. The Windows Engineering Probe does not currently exercise source/model revision invalidation/rebuild despite the active work order requiring that gate.
-4. Sentence-transformers provider provenance hard-codes `MODEL_ID=intfloat/multilingual-e5-small`; an arbitrary configured model path could therefore be reported under the wrong model identity.
+The remaining Roadmap V2 requirement is the phase-level Product Probe on private real footage. It must cover, collectively:
 
-These are bounded R0.8G defects. Do not restart model selection or repeat the initial environment installation.
+- talking head;
+- handheld product demo;
+- camera pan;
+- hand/product interaction;
+- low motion;
+- noisy/blurred footage.
 
-## Efficiency rule for the hardening pass
+The probe must evaluate the usefulness of grounded temporal evidence on real footage, including anchor recall/false positives and speech-cut quality, and must confirm the existing retrieval representation remains usable on the probe project.
 
-Reuse the already validated local Windows runtime, model snapshot and repository-local caches when they are still present and healthy. Do not reinstall PyTorch / sentence-transformers or redownload the embedding model merely to rerun R0.8G. Recreate them only if the existing environment is missing or demonstrably corrupt.
+Synthetic fixtures may support diagnostics but cannot satisfy this closure gate.
 
-The first R0.8G run paid a legitimate one-time environment/model setup cost; subsequent work should pay only incremental code/test/probe cost.
+## Closure rule
 
-## After R0.8G
+Treat R0.8H as one closure sprint, not a chain of new subphases.
 
-R0.8H remains the phase-level real-footage Product Probe / closure gate using talking-head, handheld product-demo, camera-pan, hand/product interaction, low-motion and noisy/blurred footage. It must measure grounded temporal usefulness and retrieval behavior before R0.8 can close.
+If the real-footage probe exposes a bounded defect in an already-owned R0.8 mechanism, repair it, rerun the affected deterministic tests and the same Product Probe, and continue toward closure in the same work order when practical.
 
-Do not implement R0.9 Director/Resolver authority or CandidateWindow generation until R0.8H closes.
+If all R0.8H acceptance gates pass:
+
+1. write `docs/validation/R0.8_FINAL_CLOSURE.md` with anonymized evidence/metrics only;
+2. mark R0.8 CLOSED;
+3. set the roadmap active phase to R0.9 — Director → Retrieval → Resolver → Deterministic Optimizer;
+4. stop before R0.9 implementation so the next work order starts from a verified phase boundary.
+
+Do not commit private media, absolute local media paths, private transcripts or other sensitive source content.
 
 ## Operational control
 
@@ -50,4 +59,4 @@ Codex reads, in order:
 2. this file
 3. `docs/operations/CURRENT_WORK_ORDER.md`
 
-`CURRENT_WORK_ORDER.md` is the single active implementation boundary. Historical validation/logs are consulted only when that work order points to them.
+`CURRENT_WORK_ORDER.md` is the single active implementation/probe boundary.
