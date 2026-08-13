@@ -115,5 +115,6 @@ If all gates pass:
 
 - make one coherent code commit on `main` and push;
 - report starting/ending HEAD, files changed, named gates, actual repair, Quality Gate, probe timing and whether any environment/model setup was repeated;
+- report coarse wall-clock time by stage when observable (`code/repair`, focused tests, live probe, full Quality Gate, environment/model setup) so future unit-time efficiency can be compared;
 - classify only `ENGINEERING BASELINE ADEQUATE`, `MATERIAL DEFECT`, or `BLOCKED`;
 - stop at R0.8G. Do not start R0.8H or R0.9.
