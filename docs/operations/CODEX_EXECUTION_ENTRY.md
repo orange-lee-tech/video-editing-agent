@@ -6,25 +6,25 @@
 
 Before coding, read only what is needed in this order:
 
-1. `docs/roadmap/CURRENT_PHASE_STATUS.md` — current phase and active boundary.
-2. `docs/operations/CODEX_EXECUTION_ENTRY.md` — execution behavior.
-3. The capability/validation files explicitly named by the current work order.
-4. Relevant implementation/tests discovered from the task.
+1. `docs/operations/CODEX_EXECUTION_ENTRY.md` — execution behavior.
+2. `docs/roadmap/CURRENT_PHASE_STATUS.md` — current phase and completed/remaining boundaries.
+3. `docs/operations/CURRENT_WORK_ORDER.md` — the single active implementation boundary and acceptance gates.
+4. Only the capability/implementation/tests referenced by the current work order.
 
-Do not reread the entire repository or historical validation archive unless the task requires it.
+Do not reread the entire repository or historical validation archive unless the active work order requires it.
 
 ## Execution behavior
 
 - Reobserve local/remote state first: clean tree, `main`, fetch, fast-forward only.
 - Treat current `origin/main` as implementation truth.
-- Work toward the full current work-order boundary, not the smallest imaginable subtask.
+- Work toward the **full current work-order boundary**, not the smallest imaginable subtask.
 - Make routine local engineering decisions independently when they preserve frozen architecture and acceptance criteria.
 - Do not stop for naming, file placement, obvious test construction, small refactors, deterministic threshold plumbing, or other reversible low-risk choices. Choose the most consistent existing pattern and continue.
 - Stop only for a material architecture conflict, destructive/data-loss risk, unavailable required external dependency/runtime, paid action not already authorized, or evidence that the requested mechanism is invalid.
 - When a mechanism fails, diagnose and repair the mechanism before weakening the acceptance gate.
 - Keep providers behind ports/owners; model/provider proposals never gain Domain/editorial authority.
 - Exact source time remains rational `MediaTime` / `MediaTimeRange`.
-- Do not leap beyond the current Roadmap phase.
+- Do not leap beyond the current Roadmap phase or beyond the active work-order completion boundary.
 
 ## Verification and commit
 
@@ -41,7 +41,7 @@ uv build
 git diff --check
 ```
 
-Run the capability-specific live Engineering Probe when required.
+Run the capability-specific live Engineering Probe when required by `CURRENT_WORK_ORDER.md`.
 
 If all required gates pass, make one coherent commit on `main` and push. If commit/push approval is the only blocker, preserve the verified working tree/staging and report it; do not redo the implementation.
 
@@ -60,4 +60,4 @@ Do not repeat architecture background already present in repository docs.
 
 ## Dynamic maintenance
 
-This file is operational policy, not product/architecture authority. ChatGPT may update it as collaboration practice improves. Product Constitution, Architecture Contract, capability specs and Roadmap remain higher authority.
+This file and `CURRENT_WORK_ORDER.md` are operational policy/state, not product/architecture authority. ChatGPT may update them as collaboration practice and active work change. Product Constitution, Architecture Contract, capability specs and Roadmap remain higher authority.
