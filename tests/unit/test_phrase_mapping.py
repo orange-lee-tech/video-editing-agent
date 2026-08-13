@@ -63,9 +63,7 @@ def _vad(
 
 
 def test_english_normalization_and_multiple_words_preserve_asset_time() -> None:
-    transcript = _transcript(
-        ("Hello,   WORLD!", ((" Hello,", 11, 12), (" WORLD!", 12, 14)))
-    )
+    transcript = _transcript(("Hello,   WORLD!", ((" Hello,", 11, 12), (" WORLD!", 12, 14))))
     match = map_phrase_to_time(transcript, "  hELLo world ")[0]
     assert match.source_range == _range(11, 14)
     assert (match.first_word_index, match.last_word_index) == (0, 1)
@@ -73,9 +71,7 @@ def test_english_normalization_and_multiple_words_preserve_asset_time() -> None:
 
 
 def test_chinese_without_spaces_crosses_whisper_word_boundaries() -> None:
-    transcript = _transcript(
-        ("今天 天气很好", (("今天", 5, 6), (" 天气", 6, 7), ("很好。", 7, 8)))
-    )
+    transcript = _transcript(("今天 天气很好", (("今天", 5, 6), (" 天气", 6, 7), ("很好。", 7, 8))))
     match = map_phrase_to_time(transcript, "今天天气很好")[0]
     assert match.source_range == _range(5, 8)
 

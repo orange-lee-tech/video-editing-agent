@@ -77,7 +77,8 @@ def _check(condition: bool, message: str) -> None:
 def _require_fresh_database_path(database_path: pathlib.Path) -> None:
     if database_path.exists():
         raise FileExistsError(
-            f"probe database already exists; choose a fresh path instead of overwriting: {database_path}"
+            "probe database already exists; choose a fresh path instead of overwriting: "
+            f"{database_path}"
         )
 
 
