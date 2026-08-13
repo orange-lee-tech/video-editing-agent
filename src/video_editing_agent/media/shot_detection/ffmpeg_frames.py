@@ -7,6 +7,8 @@ import subprocess
 import tempfile
 import typing
 
+from video_editing_agent.domain.common.media_time import MediaTimeRange
+
 RGB24_CHANNELS = 3
 
 
@@ -61,6 +63,7 @@ def iter_video_rgb24_frames(
     frames_per_second: int,
     target_width: int,
     target_height: int,
+    source_range: MediaTimeRange | None = None,
 ) -> collections.abc.Iterator[bytes]:
     """Stream complete fixed-rate RGB24 frames from FFmpeg.
 
@@ -84,17 +87,30 @@ def iter_video_rgb24_frames(
         "-loglevel",
         "error",
         "-nostdin",
-        "-i",
-        str(input_video),
-        "-an",
-        "-vf",
-        video_filter,
-        "-pix_fmt",
-        "rgb24",
-        "-f",
-        "rawvideo",
-        "pipe:1",
     ]
+    if source_range is not None:
+        command.extend(
+            [
+                "-ss",
+                source_range.start.to_decimal_seconds_string(fractional_digits=9),
+                "-t",
+                source_range.duration.to_decimal_seconds_string(fractional_digits=9),
+            ]
+        )
+    command.extend(
+        [
+            "-i",
+            str(input_video),
+            "-an",
+            "-vf",
+            video_filter,
+            "-pix_fmt",
+            "rgb24",
+            "-f",
+            "rawvideo",
+            "pipe:1",
+        ]
+    )
 
     with tempfile.TemporaryFile() as stderr_file:
         try:

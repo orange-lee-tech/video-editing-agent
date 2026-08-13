@@ -5,6 +5,7 @@ from typing import BinaryIO
 
 import pytest
 
+from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
 from video_editing_agent.media.shot_detection.ffmpeg_frames import (
     RGB24_CHANNELS,
     Rgb24FrameSpec,
@@ -191,3 +192,28 @@ def test_closing_stream_early_kills_unfinished_ffmpeg(monkeypatch: pytest.Monkey
     frames.close()
 
     assert processes[0].killed is True
+
+
+def test_shot_scoped_decode_uses_exact_start_and_duration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    recorded: list[str] = []
+
+    def fake_popen(command: list[str], *, stdout: int, stderr: BinaryIO) -> FakeProcess:
+        del stdout, stderr
+        recorded.extend(command)
+        return FakeProcess(b"")
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+    list(
+        iter_video_rgb24_frames(
+            Path("input.mp4"),
+            frames_per_second=10,
+            target_width=2,
+            target_height=2,
+            source_range=MediaTimeRange(MediaTime(3, 2), MediaTime(7, 4)),
+        )
+    )
+    assert recorded[recorded.index("-ss") + 1] == "1.500"
+    assert recorded[recorded.index("-t") + 1] == "1.750"
+    assert recorded.index("-ss") < recorded.index("-i")
