@@ -4,7 +4,11 @@ import pytest
 
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
-from video_editing_agent.domain.evidence.speech import SpeechSegment, SpeechTranscript, SpeechWord
+from video_editing_agent.domain.evidence.speech import (
+    SpeechSegment,
+    SpeechTranscript,
+    SpeechWord,
+)
 from video_editing_agent.domain.evidence.temporal import TemporalEvidence
 from video_editing_agent.media.speech.phrase_mapping import map_phrase_to_time
 
@@ -37,12 +41,31 @@ def _transcript(*segments: tuple[str, tuple[tuple[str, int, int], ...]]) -> Spee
     )
 
 
-def _vad(evidence_id: str, kind: str, start: int, end: int, *, shot_ref=SHOT_REF):
-    return TemporalEvidence(evidence_id, shot_ref, kind, "vad", "r1", 0.9, _range(start, end))
+def _vad(
+    evidence_id: str,
+    kind: str,
+    start: int,
+    end: int,
+    *,
+    shot_ref: EntityRevisionRef = SHOT_REF,
+    method: str = "vad",
+    version: str = "r1",
+) -> TemporalEvidence:
+    return TemporalEvidence(
+        evidence_id,
+        shot_ref,
+        kind,
+        method,
+        version,
+        0.9,
+        _range(start, end),
+    )
 
 
 def test_english_normalization_and_multiple_words_preserve_asset_time() -> None:
-    transcript = _transcript(("Hello,   WORLD!", ((" Hello,", 11, 12), (" WORLD!", 12, 14))))
+    transcript = _transcript(
+        ("Hello,   WORLD!", ((" Hello,", 11, 12), (" WORLD!", 12, 14)))
+    )
     match = map_phrase_to_time(transcript, "  hELLo world ")[0]
     assert match.source_range == _range(11, 14)
     assert (match.first_word_index, match.last_word_index) == (0, 1)
@@ -50,7 +73,9 @@ def test_english_normalization_and_multiple_words_preserve_asset_time() -> None:
 
 
 def test_chinese_without_spaces_crosses_whisper_word_boundaries() -> None:
-    transcript = _transcript(("今天 天气很好", (("今天", 5, 6), (" 天气", 6, 7), ("很好。", 7, 8))))
+    transcript = _transcript(
+        ("今天 天气很好", (("今天", 5, 6), (" 天气", 6, 7), ("很好。", 7, 8)))
+    )
     match = map_phrase_to_time(transcript, "今天天气很好")[0]
     assert match.source_range == _range(5, 8)
 
@@ -91,6 +116,11 @@ def test_match_can_span_segment_boundary_when_timed_words_are_contiguous() -> No
     assert map_phrase_to_time(transcript, "one two")[0].source_range == _range(3, 5)
 
 
+def test_match_does_not_cross_discontinuous_segment_boundary() -> None:
+    transcript = _transcript(("one", (("one", 3, 4),)), ("two", (("two", 8, 9),)))
+    assert map_phrase_to_time(transcript, "one two") == ()
+
+
 def test_vad_context_is_distinct_from_phrase_range() -> None:
     transcript = _transcript(("hello world", (("hello", 3, 4), ("world", 4, 5))))
     evidence = (
@@ -106,15 +136,54 @@ def test_vad_context_is_distinct_from_phrase_range() -> None:
     assert match.source_range == _range(3, 5)
 
 
-def test_wrong_shot_vad_and_empty_normalized_phrase_are_rejected() -> None:
+def test_vad_pause_context_uses_enclosing_speech_span_boundaries() -> None:
+    transcript = _transcript(("say hello now", (("say", 3, 4), ("hello", 4, 5), ("now", 5, 6))))
+    evidence = (
+        _vad("silence-before", "silence", 2, 3),
+        _vad("speech", "speech_activity", 3, 6),
+        _vad("silence-after", "silence", 6, 7),
+    )
+    match = map_phrase_to_time(transcript, "hello", vad_evidence=evidence)[0]
+    assert match.source_range == _range(4, 5)
+    assert match.enclosing_speech_evidence_id == "speech"
+    assert match.preceding_silence_evidence_id == "silence-before"
+    assert match.following_silence_evidence_id == "silence-after"
+
+
+def test_wrong_shot_non_vad_and_mixed_vad_provenance_are_rejected() -> None:
     transcript = _transcript(("hello", (("hello", 3, 4),)))
     with pytest.raises(ValueError, match="exact Shot revision"):
         map_phrase_to_time(
             transcript,
             "hello",
             vad_evidence=(
-                _vad("wrong", "speech_activity", 3, 4, shot_ref=EntityRevisionRef("sht_phrase", 1)),
+                _vad(
+                    "wrong",
+                    "speech_activity",
+                    3,
+                    4,
+                    shot_ref=EntityRevisionRef("sht_phrase", 1),
+                ),
             ),
         )
+    with pytest.raises(ValueError, match="only timed speech_activity/silence"):
+        map_phrase_to_time(
+            transcript,
+            "hello",
+            vad_evidence=(_vad("motion", "motion", 3, 4),),
+        )
+    with pytest.raises(ValueError, match="one producer revision"):
+        map_phrase_to_time(
+            transcript,
+            "hello",
+            vad_evidence=(
+                _vad("speech-r1", "speech_activity", 3, 4, version="r1"),
+                _vad("speech-r2", "speech_activity", 3, 4, version="r2"),
+            ),
+        )
+
+
+def test_empty_normalized_phrase_is_rejected() -> None:
+    transcript = _transcript(("hello", (("hello", 3, 4),)))
     with pytest.raises(ValueError, match="letter or number"):
         map_phrase_to_time(transcript, " ... !!! ")

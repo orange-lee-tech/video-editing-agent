@@ -74,6 +74,13 @@ def _check(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
+def _require_fresh_database_path(database_path: pathlib.Path) -> None:
+    if database_path.exists():
+        raise FileExistsError(
+            f"probe database already exists; choose a fresh path instead of overwriting: {database_path}"
+        )
+
+
 def run(args: argparse.Namespace) -> dict[str, object]:
     media = args.media.expanduser().resolve(strict=True)
     asr_model = args.asr_model.expanduser().resolve(strict=True)
@@ -84,9 +91,8 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     source_range = MediaTimeRange(start, end - start)
     _check(start.as_fraction() > 0, "probe Shot start must be non-zero")
     _check(asr_model.is_dir(), "ASR model path must be a local directory")
+    _require_fresh_database_path(database_path)
 
-    if database_path.exists():
-        database_path.unlink()
     database = SqliteProjectDatabase(database_path)
     database.initialize()
     assets = SqliteAssetRepository(database)

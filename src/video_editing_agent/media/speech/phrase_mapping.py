@@ -12,6 +12,8 @@ from video_editing_agent.media.speech.voice_activity import (
     SPEECH_ACTIVITY_KIND,
 )
 
+_VAD_KINDS = frozenset({SPEECH_ACTIVITY_KIND, SILENCE_KIND})
+
 
 @dataclass(frozen=True, slots=True)
 class PhraseMatchCandidate:
@@ -37,8 +39,12 @@ def _normalized_units(text: str) -> tuple[str, ...]:
     return tuple(character for character in normalized if character.isalnum())
 
 
-def _timed_words(transcript: SpeechTranscript) -> tuple[SpeechWord, ...]:
-    return tuple(word for segment in transcript.segments for word in segment.words)
+def _timed_words(transcript: SpeechTranscript) -> tuple[tuple[SpeechWord, int], ...]:
+    return tuple(
+        (word, segment_index)
+        for segment_index, segment in enumerate(transcript.segments)
+        for word in segment.words
+    )
 
 
 def _overlaps(left: MediaTimeRange, right: MediaTimeRange) -> bool:
@@ -48,19 +54,41 @@ def _overlaps(left: MediaTimeRange, right: MediaTimeRange) -> bool:
     )
 
 
+def _validate_vad_evidence(
+    transcript: SpeechTranscript,
+    evidence: tuple[TemporalEvidence, ...],
+) -> None:
+    if any(item.shot_ref != transcript.shot_ref for item in evidence):
+        raise ValueError("VAD evidence must belong to the transcript's exact Shot revision")
+    if any(item.kind not in _VAD_KINDS or item.source_range is None for item in evidence):
+        raise ValueError("VAD evidence must contain only timed speech_activity/silence evidence")
+    producer_revisions = {(item.method, item.producer_version) for item in evidence}
+    if len(producer_revisions) > 1:
+        raise ValueError("VAD evidence must come from one producer revision")
+
+
 def _vad_context(
     phrase_range: MediaTimeRange,
     evidence: tuple[TemporalEvidence, ...],
 ) -> tuple[tuple[str, ...], str | None, str | None, str | None]:
-    ranged = tuple(item for item in evidence if item.source_range is not None)
+    ranged = tuple(
+        sorted(
+            evidence,
+            key=lambda item: (
+                item.source_range.start.as_fraction() if item.source_range is not None else 0,
+                item.source_range.end.as_fraction() if item.source_range is not None else 0,
+                item.evidence_id,
+            ),
+        )
+    )
     relevant = tuple(
         item.evidence_id
         for item in ranged
         if item.source_range is not None and _overlaps(item.source_range, phrase_range)
     )
-    enclosing = next(
+    enclosing_item = next(
         (
-            item.evidence_id
+            item
             for item in ranged
             if item.kind == SPEECH_ACTIVITY_KIND
             and item.source_range is not None
@@ -69,13 +97,23 @@ def _vad_context(
         ),
         None,
     )
+    context_start = (
+        enclosing_item.source_range.start
+        if enclosing_item is not None and enclosing_item.source_range is not None
+        else phrase_range.start
+    )
+    context_end = (
+        enclosing_item.source_range.end
+        if enclosing_item is not None and enclosing_item.source_range is not None
+        else phrase_range.end
+    )
     preceding = next(
         (
             item.evidence_id
             for item in reversed(ranged)
             if item.kind == SILENCE_KIND
             and item.source_range is not None
-            and item.source_range.end == phrase_range.start
+            and item.source_range.end == context_start
         ),
         None,
     )
@@ -85,11 +123,30 @@ def _vad_context(
             for item in ranged
             if item.kind == SILENCE_KIND
             and item.source_range is not None
-            and item.source_range.start == phrase_range.end
+            and item.source_range.start == context_end
         ),
         None,
     )
-    return relevant, enclosing, preceding, following
+    return (
+        relevant,
+        None if enclosing_item is None else enclosing_item.evidence_id,
+        preceding,
+        following,
+    )
+
+
+def _crosses_discontinuous_segment_boundary(
+    words: tuple[SpeechWord, ...],
+    segment_by_word: tuple[int, ...],
+    first_index: int,
+    last_index: int,
+) -> bool:
+    for index in range(first_index, last_index):
+        if segment_by_word[index] == segment_by_word[index + 1]:
+            continue
+        if words[index].source_range.end != words[index + 1].source_range.start:
+            return True
+    return False
 
 
 def map_phrase_to_time(
@@ -103,10 +160,11 @@ def map_phrase_to_time(
     requested = _normalized_units(desired_phrase)
     if not requested:
         raise ValueError("desired phrase must contain a letter or number after normalization")
-    if any(item.shot_ref != transcript.shot_ref for item in vad_evidence):
-        raise ValueError("VAD evidence must belong to the transcript's exact Shot revision")
+    _validate_vad_evidence(transcript, vad_evidence)
 
-    words = _timed_words(transcript)
+    timed_words = _timed_words(transcript)
+    words = tuple(word for word, _ in timed_words)
+    segment_by_word = tuple(segment_index for _, segment_index in timed_words)
     stream: list[str] = []
     word_by_unit: list[int] = []
     for word_index, word in enumerate(words):
@@ -118,12 +176,24 @@ def map_phrase_to_time(
         return ()
 
     candidates: list[PhraseMatchCandidate] = []
+    seen_word_ranges: set[tuple[int, int]] = set()
     width = len(requested)
     for start in range(len(stream) - width + 1):
         if tuple(stream[start : start + width]) != requested:
             continue
         first_index = word_by_unit[start]
         last_index = word_by_unit[start + width - 1]
+        word_range = (first_index, last_index)
+        if word_range in seen_word_ranges:
+            continue
+        if _crosses_discontinuous_segment_boundary(
+            words,
+            segment_by_word,
+            first_index,
+            last_index,
+        ):
+            continue
+        seen_word_ranges.add(word_range)
         first_word = words[first_index]
         last_word = words[last_index]
         source_range = MediaTimeRange(
