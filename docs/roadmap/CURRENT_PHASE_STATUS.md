@@ -4,7 +4,7 @@
 
 **Current phase:** R0.10 — Music Selection + BeatMap + Audio Editorial
 
-**Active boundary:** R0.10B ENGINEERING BASELINE ADEQUATE
+**Active boundary:** R0.10 Product Probe + Phase Closure
 
 **Date:** 2026-08-13
 
@@ -15,25 +15,18 @@
 - R0.8 — Media Evidence Foundation.
 - R0.9 — Director → Retrieval → Resolver → Deterministic Optimizer.
 
-## Accepted R0.10 baseline
+## Accepted R0.10 engineering baselines
 
-`7d4dcc0afb26556f9a161b73ca408946f6f417d7` — R0.10A local rights-aware audible music foundation.
+- `7d4dcc0afb26556f9a161b73ca408946f6f417d7` — R0.10A local rights-aware audible music foundation.
+- `81afb604b96486587a308f6f4c69d89f1450f46e` — R0.10B feature-ranked music windows, natural mix intent, canonical decision→execution bridge and post-mix QC.
 
-## Repaired engineering boundary — R0.10B
+R0.10B is accepted as `ENGINEERING BASELINE ADEQUATE`.
 
-`d893d4c6fb67f1218416a302c7c6775c22bde088` established the intended BeatMap confidence, feature-ranked music windows, bounded loop planning, track-role semantics and ramped AudioMixDecision model. CI is green.
+## Active — R0.10 Product Probe
 
-Post-review found the R0.10B live probe does not yet satisfy its own execution-evidence acceptance boundary:
+Use real rights-attested music and a real short-form project for the final R0.10 product comparison. Synthetic rhythmic fixtures remain Engineering-Probe-only.
 
-- the selected MusicSelectionDecision uses a `[9,12)` source window / loop plan, while the diagnostic FFmpeg renderer independently trims music at `0:6`;
-- the structured renderer independently hardcodes duck ranges instead of compiling the canonical AudioMixDecision;
-- reported PCM QC measures the input music fixture rather than the rendered mixed output.
-
-The bounded execution-evidence defect is repaired: structured diagnostics now compile the
-canonical MusicSelectionDecision source segments and AudioMixDecision automation into an
-inspectable non-authoritative FFmpeg execution plan, and QC measures post-mix decoded PCM.
-
-R0.10B is `ENGINEERING BASELINE ADEQUATE`. The R0.10 Product Probe and R0.11 remain unstarted.
+If technical evidence passes, stop at `READY_FOR_HUMAN_ACCEPTANCE`. Human acceptance closes R0.10 and activates R0.11. Do not begin R0.11 before closure.
 
 ## Operational control
 
