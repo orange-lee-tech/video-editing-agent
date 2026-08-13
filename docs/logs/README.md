@@ -1,63 +1,49 @@
 # Engineering Logs
 
-Status: non-authoritative engineering memory
+**Status:** non-authoritative engineering memory
 
-This directory is a compact, repository-local memory layer for debugging, handoff, probe history, and repeated failure analysis. It is deliberately **not** a sixth authority pack.
+This directory stores only durable debugging/probe information that is expensive to rediscover. It is not an authority pack and it is not the active project-state surface.
 
-## Authority boundary
+## Authority / live-state boundary
 
-When sources disagree, use this order:
+When facts conflict:
 
-1. current GitHub `main` implementation and CI/probe evidence for live implementation facts;
-2. the five external authority-pack documents `00`–`04` for project governance and accepted architecture;
-3. accepted repository architecture/roadmap/validation documents;
-4. files in `docs/logs/` only as working memory and investigation history.
+1. current GitHub `main` + current CI/probe evidence for live implementation facts;
+2. accepted product/architecture/capability/Roadmap documents;
+3. `docs/logs/` only as historical engineering memory.
 
-A log entry must never silently redefine Domain authority, Roadmap scope, product constitution, or phase closure.
+Active state belongs in:
+
+- `docs/roadmap/CURRENT_PHASE_STATUS.md`
+- `docs/operations/CURRENT_WORK_ORDER.md`
+
+Do not create phase-specific working-cache files when those two dynamic files can carry the current state.
 
 ## Files
 
-- `INCIDENT_LEDGER.md` — durable symptom → mechanism → subsystem → invariant → fix/evidence history.
-- `PROBE_LEDGER.md` — paid and material engineering/product probe history, including what new information each run produced.
-- `R0.7B_WORKING_CACHE.md` — compact current-state cache for an active investigation; expected to be replaced as the investigation advances.
+- `INCIDENT_LEDGER.md` — durable symptom → mechanism → invariant → fix/evidence history.
+- `PROBE_LEDGER.md` — material Engineering/Product Probe history and information gained.
 
-## Logging rules
+## What deserves a log entry
 
-Record only information that is expensive to rediscover or useful for discriminating future root causes. Prefer links/SHAs/run IDs over copied logs.
-
-For bugs, use the chain:
+Record only information likely to prevent future rediscovery, such as:
 
 ```text
-symptom
-→ mechanism
-→ subsystem
-→ shared invariant
-→ affected surfaces
-→ systematic fix
-→ verification evidence
+symptom → mechanism → subsystem → shared invariant → fix → verification
 ```
 
-For probes, record before execution:
+or a material probe that established provider viability, product quality, a negative control, or a phase gate.
 
-```text
-question
-candidate root causes it can distinguish
-expected new evidence
-cost class
-```
+Do not log ordinary green CI runs, repeated command output, routine formatter fixes, or every local experiment.
 
-Then record the observed result after execution. A paid Product Probe must not be run when a red result would fail to distinguish at least two plausible root causes.
+## Probe rule
 
-## What not to commit
+Before a paid Product Probe, record the question, competing hypotheses it can distinguish, evidence needed, why deterministic tests are insufficient, and expected cost. No paid run is justified merely to obtain another wording example.
 
-Do not commit:
+## Never commit
 
-- API keys, tokens, secrets, private user footage, local absolute paths, or sensitive raw provider payloads;
-- giant CI logs that are already retained by GitHub Actions;
-- hidden model reasoning / chain-of-thought;
-- repeated test output with no new diagnosis;
-- speculative conclusions presented as fact.
+Secrets, private footage, machine-specific absolute paths, giant CI logs already retained by Actions, hidden model reasoning/chain-of-thought, or speculative conclusions presented as fact.
 
 ## Retention
 
-`INCIDENT_LEDGER.md` and `PROBE_LEDGER.md` are append-oriented durable history. `R0.7B_WORKING_CACHE.md` is replaceable working state and may be rewritten when its investigation closes. Phase closure evidence belongs in `docs/validation/`, not here.
+Ledgers are append/curate-oriented durable memory and may be compacted when details are duplicated by formal closure evidence. Formal phase closure belongs in `docs/validation/`; active instructions belong in `docs/operations/`.

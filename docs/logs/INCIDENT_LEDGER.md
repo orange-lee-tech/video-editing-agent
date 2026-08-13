@@ -1,50 +1,51 @@
 # Incident Ledger
 
-Non-authoritative debugging history. See `docs/logs/README.md`.
+Non-authoritative durable debugging history. See `docs/logs/README.md`.
 
-## R0.7B pre-production stabilization cluster — 2026-08-11 to 2026-08-12
+## R0.7B commercial semantic-authority cluster — CLOSED
 
-### Shared root-cause assessment
+**Period:** 2026-08-11 to 2026-08-12
 
-The recent sequence was not one bug repeatedly surviving. It was a mixture of provider/infrastructure failures and a deeper commercial-semantic authority problem. Infrastructure failures were valid to fix at their own layer; unsupported-claim failures increasingly exposed that authority semantics were being interpreted independently by natural-language generation/reviewer passes instead of being represented by one shared semantic contract.
+### Mechanism
 
-| Symptom | Mechanism / subsystem | Classification | Durable conclusion |
-|---|---|---|---|
-| reviewer `finish_reason=length` | thinking review output-capacity exhaustion | NECESSARY_INFRASTRUCTURE_FIX | bounded capacity recovery is valid; do not treat capacity as semantic failure |
-| 16k → bounded 32k recovery | reviewer execution envelope | NECESSARY_INFRASTRUCTURE_FIX | keep bounded; no unbounded retry loop |
-| reviewer empty final JSON | provider transient completion failure | NECESSARY_INFRASTRUCTURE_FIX | one bounded transient retry is valid |
-| reviewer capacity/transient diagnostics | probe/provider observability | OBSERVABILITY_FIX | preserve safe token/finish diagnostics without reasoning content |
-| Script reviewer lost section fields such as `target_duration` | hand-built reviewer projection drift | SYSTEMIC_FIX | adjacent reviewer projections must be audited together when one loses execution-relevant shape |
-| Shooting reviewer needed complete committed Script shape | reviewer projection drift | SYSTEMIC_FIX | review surfaces must inspect the same committed meaning used downstream |
-| Chinese-only Product Probe criterion | fixture constrained language without product need | TEST_FIXTURE_FIX | Product Probe should measure product usefulness, not arbitrary fixture language |
-| free-text production location ambiguity | authority identity mixed with descriptive prose | SYSTEMIC_FIX | structured `ProductionLocation` identity is the durable authority; prose is descriptive |
-| structural fact → ease/convenience claim | semantic inference from mechanism to adequacy | SYSTEMIC_FIX | structural/mechanical authority now explicitly permits only neutral observable mechanism/action/state unless separate facts support evaluative meaning |
-| `500 mL` → enough-for-use-case / easy-fit claim | semantic inference from property to adequacy/fit | SYSTEMIC_FIX | concrete fit/adequacy requires explicit support, not marketing framing |
-| bounded repair paraphrased the same unsupported property | generate → veto → regenerate retained semantic defect | SYSTEMIC_ORCHESTRATION_FIX | reviewer diagnostics are non-authoritative and repair must remove the semantic property, not synonymize it |
-| generation temperature reduced to 0.2 | generation variance | RELIABILITY_CONFIG_FIX | lower variance can improve reproducibility but cannot make an invalid authority model correct |
-| Product Ad Script/Shooting accepted while Product Review vetoed `适合日常携带` | independent LLM passes interpreted the same authority differently | SYSTEMIC_FIX | one shared Commercial Authority projection/rule now feeds generation and review surfaces |
-| ShootingPlan accepted `placing bottle into backpack side pocket` | visual demonstration implicitly asserts fit outcome | SYSTEMIC_FIX | planned successful demonstrations are treated as concrete claims requiring authority/conditional treatment |
-| Product Ad Script reviewer vetoed `拧紧就好` after shared-authority refactor | neutral mechanism description still carried sufficiency/ease semantics | SYSTEMIC_FIX | neutral-observation invariant must cover spoken copy, on-screen text, information goals, visuals, demonstrations, and shooting instructions |
+Generation, Script review, Shooting review and Product review initially interpreted commercial authority independently. Mechanical facts such as a screw-on lid or 500 mL capacity could drift into unsupported convenience, fit, sufficiency or ease claims. Free-text production-location identity and reviewer projection drift created adjacent symptoms.
 
-### Resolved shared invariant
+### Durable invariant
 
-`objective`, `audience`, and `core_message` may define narrative context and positioning intent. They do not establish concrete product property/performance/fit/adequacy/operability/material/reliability/outcome facts. Concrete product assertions or successful demonstrations require explicit authoritative support; unsupported desired claims remain unresolved rather than becoming facts through generation or review.
+`objective`, `audience` and `core_message` may define narrative context/positioning but do not establish concrete product property, performance, fit, adequacy, operability, reliability or outcome facts. Concrete assertions and successful demonstrations require explicit authoritative support.
 
-When authority establishes only a visible mechanism, action, or state, model-visible planning surfaces must describe only that neutral observable mechanism/action/state. Ease, convenience, simplicity, sufficiency, or resulting benefit require separate authoritative support.
+When authority establishes only a visible mechanism/action/state, generation and review surfaces may describe that neutral observation only. Ease, convenience, simplicity, sufficiency and resulting benefit require separate authority.
 
-### Affected surfaces audited together
+### Systemic fix
 
-- Brief commercial semantics;
-- Script generation context;
-- Script semantic review;
-- Shooting generation context;
-- Shooting semantic review;
-- Product Probe full-plan evaluation;
-- repair instructions;
-- fixture design and offline regressions.
+- shared Commercial Authority projection across generation/review;
+- structured ProductionLocation identity;
+- veto-only reviewer semantics;
+- bounded repair that removes unsupported semantic properties rather than paraphrasing them;
+- deterministic regressions across spoken, on-screen, visual and shooting-instruction surfaces.
 
-### Closure evidence for this incident cluster
+### Closure evidence
 
-Product Probe run #16 (`31610613082`) on baseline `48ecafcf45a299ced4d9abafd5501e2b9031f4a3` reached `ready_for_human_acceptance` for both Product Ad and Natural Vlog. Both Script semantic reviews, both Shooting semantic reviews, and both automated Product Reviews accepted. This closes the automated semantic-authority incident cluster; R0.7B itself still awaits the separate Human Gate.
+Product Probe run `31610613082` on baseline `48ecafcf45a299ced4d9abafd5501e2b9031f4a3` passed automated gates for Product Ad and Natural Vlog. Human Gate subsequently accepted usefulness, shooting executability, factual fidelity and expected coverage. Formal closure: `docs/validation/R0.7B_FINAL_CLOSURE.md`.
 
-Do not reopen this incident cluster for isolated wording unless new evidence demonstrates a shared invariant failure.
+Do not reopen this cluster for isolated wording unless new evidence demonstrates a shared invariant failure.
+
+## R0.8E analyzed-source-range owner guard — CLOSED
+
+**Date:** 2026-08-13
+
+### Symptom
+
+R0.8E introduced `analyzed_source_range` provenance and tests/Windows probe passed, but code review found the owner check that provider-reported range equals the requested analysis range placed after `return result`, making the validation unreachable.
+
+### Mechanism / subsystem
+
+Owner-boundary validation existed textually but not in the executable control flow. A faulty provider could therefore report a mismatched analysis window and still reach Artifact/evidence persistence.
+
+### Shared invariant
+
+Provider-reported exact analysis identity/range must be validated by the owner **before** any durable Artifact or evidence commit. A guard after persistence/return is not a guard.
+
+### Fix / verification
+
+Commit `220f6c3d912319cf5e66f2ddf989bdff0d41302d` moves the range-equality check before measurement validation/persistence and adds an explicit provider-range-mismatch regression. GitHub Actions run `31666637333` completed successfully.

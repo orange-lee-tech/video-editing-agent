@@ -1,126 +1,63 @@
 # Current Roadmap Phase Status
 
-**Planning baseline:** ACCEPTED / FROZEN  
-**Roadmap V2 operational status:** ACTIVE  
-**R0.7A:** CLOSED  
-**R0.7B:** CLOSED  
+**Roadmap:** V2 ACTIVE  
 **Current phase:** R0.8 — Media Evidence Foundation  
-**Date:** 2026-08-12
+**Updated:** 2026-08-13
 
 ## Authority
-
-The active planning order remains:
 
 ```text
 Product Constitution v1.0
 → Architecture Contract v0.2
-→ Capability Specs CAP-01 ... CAP-10
-→ ADRs
-→ Upstream Ledger / Policy V2
+→ Capability Specs / ADRs
 → Roadmap V2
-→ implementation
+→ current implementation
 ```
 
-A0 was explicitly accepted by the user before R0.7A implementation began.
+For live implementation facts, always reobserve current `origin/main`; do not treat a recorded SHA in historical evidence as current HEAD.
 
-## R0.7A closure retained
+## Closed phases
 
-R0.7A — Architecture v0.2 Migration Foundation remains closed after canonical rational media-time migration, persistence/evidence ownership migration, exact-time TransNetV2 validation, full Engineering Quality Gates, Windows probes, and a private real-phone-footage Product Probe.
+- R0.7A — Architecture v0.2 Migration Foundation: CLOSED. See `docs/validation/R0.7A_FINAL_CLOSURE.md`.
+- R0.7B — Pre-production Planning + Commercial Skill Foundation: CLOSED. See `docs/validation/R0.7B_FINAL_CLOSURE.md`.
 
-The retained real-footage quality guard is that correct Shot count is not sufficient by itself: temporal boundary error must remain visible and future changes must not silently regress beyond the measured baseline without explicit evidence.
-
-See:
-
-```text
-docs/validation/R0.7A_FINAL_CLOSURE.md
-```
-
-## R0.7B closure
-
-R0.7B — Pre-production Planning + Commercial Skill Foundation is closed after implementing and validating the executable product pillar:
-
-```text
-Brief → ScriptPlan → ShootingPlan
-```
-
-Closure evidence includes:
-
-- structured Brief/Script/Shooting models and revision ownership;
-- Script duration assessment and section locks;
-- production constraints and structured ProductionLocation identity;
-- required/recommended/optional/backup coverage and reshoot routing;
-- `Performance Product Ad` and `Natural Vlog` CommercialSkill paths;
-- provider-neutral DeepSeek planning/review seams;
-- shared Commercial Authority across generation and review;
-- veto-only semantic review without Domain ownership;
-- deterministic Quality Gate success on `48ecafcf45a299ced4d9abafd5501e2b9031f4a3`;
-- Product Probe run `31610613082` (#16) with both cases `ready_for_human_acceptance` and all automated semantic/product gates accepted;
-- Human Gate acceptance on usefulness, shooting-plan executability, factual fidelity, and expected shooting coverage.
-
-The Product Ad result estimated 23 seconds against a 30-second Brief target. This is retained as a non-blocking quality note rather than hidden or converted into a false engineering failure.
-
-See:
-
-```text
-docs/validation/R0.7B_FINAL_CLOSURE.md
-```
-
-## Active next phase — R0.8
-
-R0.8 builds the grounded media evidence required by later Resolver/Director work.
-
-Primary scope from Roadmap V2:
+## R0.8 completed engineering foundations
 
 ### Speech
 
-- CPU-capable ASR provider baseline;
+- CPU Faster-Whisper baseline;
 - word/segment timestamps;
-- VAD/silence evidence;
-- transcript persistence;
-- phrase/time mapping.
+- Silero VAD / silence evidence;
+- transcript persistence and reopen;
+- deterministic phrase/time mapping.
 
 ### Visual temporal evidence
 
-- camera/global motion estimation;
+- exact Shot-scoped camera/global motion measurement;
 - camera-compensated residual motion;
-- coarse-to-fine event regions;
-- motion onset/peak/settle anchors;
-- seeded subject/product tracking baseline;
-- provider-neutral TemporalEvidence/Anchor storage.
+- bounded-memory streaming frame-pair processing;
+- durable motion Artifact + low-density measurement-set evidence;
+- deterministic event-region reduction;
+- coarse onset / peak / settle anchors;
+- bounded high-rate refinement with exact analyzed-source-range provenance;
+- v1 motion Artifact backward read + v2 range-aware write;
+- persistence/restart and rational original-Asset time mapping.
 
-### Retrieval representation
+The latest owner invariant requires provider-reported `analyzed_source_range` to equal the requested analysis range before any Artifact/evidence commit.
 
-- derived visual-semantic/speech embedding representations;
-- local multilingual embedding provider prototype;
-- index provenance/version;
-- exact project-local vector scan.
+## R0.8 remaining planned work
 
-R0.8 must not leapfrog into R0.9 Director/Resolver authority, R0.10 music editorial, R0.11 Auto Reframe, or R0.12 renderer productization.
+1. **R0.8F — Seeded subject/product tracking baseline** — active next boundary.
+2. **R0.8G — Retrieval representation** — multilingual dense representation + provenance + exact local vector scan.
+3. **R0.8H — Real-footage Product Probe and phase closure** — talking head, handheld product demo, camera pan, hand/product interaction, low motion, noisy/blurred footage.
 
-## R0.8 exit direction
+R0.8 must not leap into R0.9 Director / Resolver authority before these foundations and the real-footage evidence gate are complete.
 
-The phase must prove that real user footage can produce a useful grounded candidate-time evidence set without requiring a high-end GPU.
+## Operational entrypoints
 
-Engineering/Product evidence must include timestamp provenance, Shot-boundary isolation, camera-motion compensation behavior, persistence/rebuild semantics, and real-footage quality observations.
+- Codex behavior: `docs/operations/CODEX_EXECUTION_ENTRY.md`
+- Active implementation boundary: `docs/operations/CURRENT_WORK_ORDER.md`
+- Probe history: `docs/logs/PROBE_LEDGER.md`
+- Incident/root-cause history: `docs/logs/INCIDENT_LEDGER.md`
 
-## Development gate
-
-The discipline remains:
-
-```text
-observe current state
-→ audit
-→ plan one coherent batch
-→ implement behind existing ownership seams
-→ deterministic/local verification
-→ atomic commit to main
-→ free Quality Gate
-→ Engineering Probe
-→ Product Probe only when usefulness is genuinely being claimed
-→ evidence/docs
-→ next batch
-```
-
-If `main` becomes red, feature work freezes until repaired.
-
-Before Codex, first decide whether the work genuinely requires complex cross-file construction/exploration. Before a paid Product Probe, state what new information the run can discriminate and why deterministic verification cannot answer it.
+The phase-status file is intentionally concise and may be rewritten as work advances. Historical detail belongs in validation/log documents, not here.
