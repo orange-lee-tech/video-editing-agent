@@ -1,89 +1,83 @@
 # Current Work Order
 
-**Status:** READY_FOR_HUMAN_ACCEPTANCE
+**Status:** ACTIVE
 
-**Phase:** R0.9 Product Probe + Phase Closure
+**Phase:** R0.9 Product Probe evidence hardening + Phase Closure
 
-**Goal:** prove or falsify R0.9 on the existing local real-media corpus by comparing retrieval/selection baselines, then stop for a real Human Gate before phase closure.
-
-**Technical result:** PASS on 2026-08-13. Local review artifacts are in the gitignored
-`example/probe-output/r0_9_product/` directory. R0.9 remains open pending a real human
-sequence/cut-quality verdict.
+**Goal:** repair the Product Probe evidence chain so the R0.9 Human Gate is based on actual end-to-end retrieval/window/resolution behavior over the local real-media corpus, not probe-preselected answers.
 
 ## Entry
 
 1. Read `docs/operations/CODEX_EXECUTION_ENTRY.md`.
 2. Read `docs/roadmap/CURRENT_PHASE_STATUS.md`.
 3. Read this file.
-4. Read Roadmap V2 R0.9 Product Probe/Exit Gate and only the R0.9A/R0.9B implementation needed for the comparison.
+4. Inspect only the current R0.8 evidence/retrieval persistence plus R0.9A/R0.9B pipeline/probes needed for this rerun.
 
-Do not restart model research, add a new R0.9 feature module, or begin R0.10.
+Do not add a new R0.9 feature module and do not begin R0.10.
 
-## Product Probe
+## Mandatory repair
 
-Reuse the gitignored `example/` real-media corpus, existing manifest, R0.8 evidence, R0.9A retrieval/window pipeline and R0.9B Resolver/optimizer. Reuse local runtimes/caches.
+Replace the current product comparison's preconstructed decision inputs with the real implementation path.
 
-Run one deterministic comparison over the same EditPlan/eligible media/evidence:
+The Product Probe may fix:
 
-1. lexical-only baseline;
-2. hybrid lexical+dense retrieval baseline;
-3. hybrid + grounded Resolver/sequence optimizer.
+- EditPlan/EditSlot intent;
+- separate human-known expected semantic/event labels or coarse scoring windows;
+- deterministic strategy/configuration.
 
-Hard eligibility and authoritative Shot/source-time rules are identical across variants. No variant may invent Shot IDs or timestamps.
+It must **not** feed the answer into the system by hardcoding:
 
-Measure/report at least:
+- winning `ShotCandidate` identities/ranks;
+- final `CandidateWindow` identities;
+- selected source ranges used as pipeline input.
 
-- eligible/retrieved Shot and CandidateWindow counts;
-- intended-slot/candidate recall where the existing human-confirmed corpus evidence permits honest scoring;
-- selected exact source ranges and trim-window differences;
-- lexical vs hybrid rank changes;
-- Resolver score/confidence/reasons/alternatives/evidence refs;
-- sequence legality, reuse and unresolved behavior;
-- deterministic rerun equality;
-- CPU wall-clock for each variant.
+Candidates/ranks must come from the actual lexical and dense retrieval/index path over local project data. CandidateWindows must come from actual persisted/generated R0.8 speech/temporal evidence and anchors through the canonical R0.9 CandidateWindow generator. Resolver/optimizer must consume only those generated windows.
 
-Do not fabricate unavailable human ground truth. The current real product corpus is sufficient to test the R0.9 exit question; broader style/corpus diversity remains a documented limitation rather than a reason to create another engineering phase.
+Use the existing gitignored `example/` corpus and existing local runtimes/caches. Reuse persisted evidence when trustworthy; regenerate through existing owners when needed. Do not fabricate ShotAnalysis or temporal evidence merely to force the expected result. Human-confirmed corpus coverage may be used as scoring ground truth, not as source-selection authority.
 
-## Human-inspectable outputs
+## Comparison
 
-Write local-only artifacts under:
+Run the same three variants over the same legal real-media search space:
+
+1. lexical-only;
+2. hybrid lexical+dense;
+3. hybrid + grounded Resolver/optimizer.
+
+Report actual retrieved Shot IDs/ranks, actual generated CandidateWindows, selected exact source ranges, recall where honestly scoreable, unresolved behavior, provenance and deterministic rerun equality.
+
+Do not require hybrid to beat lexical by construction. Report an honest tie/regression/improvement from the real corpus.
+
+## Local review artifacts
+
+Replace/regenerate the local-only artifacts under:
 
 `example/probe-output/r0_9_product/`
 
-At minimum produce:
+including:
 
 - `lexical_only_preview.mp4`;
 - `hybrid_retrieval_preview.mp4`;
 - `grounded_resolver_preview.mp4`;
-- `comparison.json` mapping EditSlots, candidates, source ranges, ranks, decisions and preview segments;
-- a short local `HUMAN_REVIEW.md` telling the user exactly what to judge: candidate relevance/recall, trim quality/completeness and sequence preference.
+- `comparison.json`;
+- `HUMAN_REVIEW.md`.
 
-These are diagnostic previews only; no EDL/final-render authority is introduced.
+The previews must be rendered only from source ranges produced by the repaired real pipeline.
 
-## Technical acceptance
+## Acceptance
 
-The technical Product Probe is adequate only if:
+Technical acceptance requires:
 
-- all three variants use the same legal grounded search space;
-- hybrid retrieval does not regress required candidate recall relative to lexical-only on the scored fixture;
-- Resolver selections are exact existing CandidateWindows;
-- hard constraints dominate all scores;
-- optimizer output is deterministic and legal;
-- unresolved remains explicit where evidence is insufficient;
-- comparison/provenance is inspectable and restart/rebuild safe;
-- R0.9A and R0.9B regressions plus repository Quality Gate stay green.
+- no preselected candidate/window/source-range answers in probe inputs;
+- real lexical+dense retrieval execution;
+- real evidence/anchor → CandidateWindow execution;
+- Resolver selections are exact generated CandidateWindows;
+- hard constraints dominate;
+- explicit unresolved where unsupported;
+- deterministic repeat/provenance;
+- R0.9A/R0.9B regressions and full Quality Gate green.
 
-If a bounded R0.9 defect appears, repair the shared mechanism, add regression coverage and rerun this same Product Probe in the same work order when practical. Do not create R0.9C/R0.9D.
+If a bounded mechanism defect is exposed, repair it with regression coverage and rerun this same Product Probe in this work order.
 
-## Completion boundary
+If technical acceptance passes, commit/push non-private changes and classify `READY_FOR_HUMAN_ACCEPTANCE`; stop before R0.9 closure/R0.10. If the real local corpus genuinely cannot supply an honest scored path, classify the smallest concrete evidence/corpus gap rather than substituting scripted answers.
 
-If technical acceptance passes:
-
-- commit/push all non-private code/test/probe/doc changes coherently;
-- keep media/previews local and gitignored;
-- classify `READY_FOR_HUMAN_ACCEPTANCE`;
-- stop before marking R0.9 CLOSED and before R0.10 implementation.
-
-If the technical probe fails materially, classify `MATERIAL R0.9 DEFECT`; if an actual external/runtime blocker exists, classify `BLOCKED`.
-
-Final report must include HEAD, three-variant metrics/source ranges, preview directory/files, Quality Gate and major-stage wall-clock time.
+Final report: HEAD, actual pipeline stages exercised, real retrieved IDs/ranks, real CandidateWindows/source ranges, three preview files, named gates, Quality Gate and major-stage wall-clock.
