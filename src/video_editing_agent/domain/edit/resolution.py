@@ -77,6 +77,8 @@ class ResolutionDecision:
     reasons: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
     evidence_refs: tuple[str, ...] = ()
+    feature_contributions: tuple[tuple[str, float], ...] = ()
+    alternative_candidate_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.decision_id.strip():

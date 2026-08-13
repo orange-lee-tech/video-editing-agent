@@ -5,20 +5,16 @@ from dataclasses import dataclass
 
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTimeRange
+from video_editing_agent.domain.edit.model import EditSlot
+from video_editing_agent.domain.edit.resolution import CandidateWindow
 from video_editing_agent.domain.evidence.temporal import TemporalAnchor, TemporalEvidence
 from video_editing_agent.domain.shot.model import Shot
-from video_editing_agent.editing.director.model import EditSlot
 
 
 @dataclass(frozen=True, slots=True)
-class CandidateWindow:
-    window_id: str
+class SlotCandidateWindow:
     slot_id: str
-    shot_ref: EntityRevisionRef
-    source_range: MediaTimeRange
-    anchor_refs: tuple[str, ...]
-    evidence_refs: tuple[str, ...]
-    confidence: float
+    window: CandidateWindow
     policy_version: str
 
 
@@ -27,13 +23,15 @@ def generate_candidate_windows(
     shot: Shot,
     anchors: tuple[TemporalAnchor, ...],
     evidence: tuple[TemporalEvidence, ...],
-) -> tuple[CandidateWindow, ...]:
+) -> tuple[SlotCandidateWindow, ...]:
     shot_ref = EntityRevisionRef(shot.envelope.id, shot.envelope.revision)
     if any(x.shot_ref != shot_ref for x in anchors) or any(
         x.shot_ref != shot_ref for x in evidence
     ):
         raise ValueError("candidate evidence must belong to exact Shot")
-    duration = slot.maximum_duration
+    if slot.target_duration is None:
+        return ()
+    duration = slot.target_duration.maximum
     found = []
     for anchor in sorted(anchors, key=lambda x: (x.source_time.as_fraction(), x.anchor_id)):
         start = anchor.source_time
@@ -49,14 +47,18 @@ def generate_candidate_windows(
             f"{slot.slot_id}:{shot_ref}:{source_range}:{anchor.anchor_id}:r0.9a-v1".encode()
         ).hexdigest()
         found.append(
-            CandidateWindow(
-                f"cwin_{digest}",
+            SlotCandidateWindow(
                 slot.slot_id,
-                shot_ref,
-                source_range,
-                (anchor.anchor_id,),
-                refs,
-                anchor.confidence,
+                CandidateWindow(
+                    f"cwin_{digest}",
+                    shot_ref,
+                    source_range,
+                    anchor.confidence,
+                    anchor.anchor_id,
+                    None,
+                    (),
+                    refs,
+                ),
                 "r0.9a-v1",
             )
         )

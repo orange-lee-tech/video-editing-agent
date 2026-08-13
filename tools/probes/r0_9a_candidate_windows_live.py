@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from video_editing_agent.application.ports.shot_index import ShotCandidate
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevisionRef, EntityStatus
 from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
+from video_editing_agent.domain.edit.model import DurationConstraint
 from video_editing_agent.domain.evidence.temporal import TemporalAnchor, TemporalEvidence
 from video_editing_agent.domain.shot.model import Shot
 from video_editing_agent.editing.director.candidate_windows import generate_candidate_windows
@@ -40,15 +41,23 @@ def main() -> int:
     )
     slot = EditSlot(
         "slot_product_action",
+        "show product handling",
         0,
         "proof",
-        "show product handling",
         "pick up and rotate bottle",
-        MediaTimeRange(MediaTime(2, 1), MediaTime(1, 1)),
+        DurationConstraint(MediaTime(2, 1), MediaTime(3, 1)),
         importance=3,
     )
-    EditPlan("plan_probe", (slot,))
-    eligible, decisions = eligible_shots((shot, short), minimum_duration=slot.minimum_duration)
+    EditPlan(
+        EntityEnvelope("epl_probe", 1, "0.2", EntityStatus.VALID, now, "probe"),
+        EntityRevisionRef("scp", 1),
+        EntityRevisionRef("shp", 1),
+        (slot,),
+    )
+    assert slot.target_duration is not None
+    eligible, decisions = eligible_shots(
+        (shot, short), minimum_duration=slot.target_duration.minimum
+    )
     lexical = (ShotCandidate(ref, 1, 1.0, ("bottle",)),)
     dense = (ShotCandidate(ref, 1, 0.88, ()),)
     hybrid = reciprocal_rank_fusion(lexical, dense)
@@ -82,11 +91,11 @@ def main() -> int:
                 "-loglevel",
                 "error",
                 "-ss",
-                str(float(window.source_range.start.as_fraction())),
+                str(float(window.window.source_range.start.as_fraction())),
                 "-i",
                 str(args.media),
                 "-t",
-                str(float(window.source_range.duration.as_fraction())),
+                str(float(window.window.source_range.duration.as_fraction())),
                 "-c:v",
                 "libx264",
                 "-c:a",
@@ -103,9 +112,11 @@ def main() -> int:
         "HARD_ELIGIBILITY": len(eligible) == 1 and not decisions[1].eligible,
         "STABLE_RANK": hybrid == reciprocal_rank_fusion(lexical, dense),
         "WINDOW_BOUNDED": all(
-            x.source_range.end.as_fraction() <= shot.source_range.end.as_fraction() for x in windows
+            x.window.source_range.end.as_fraction() <= shot.source_range.end.as_fraction()
+            for x in windows
         ),
-        "LOCAL_ACTION_WINDOW": bool(windows) and windows[0].source_range.start == MediaTime(8, 1),
+        "LOCAL_ACTION_WINDOW": bool(windows)
+        and windows[0].window.source_range.start == MediaTime(8, 1),
         "NEGATIVE_NO_GUESS": generate_candidate_windows(slot, short, (), ()) == (),
         "PROVENANCE_REBUILD": windows
         == generate_candidate_windows(slot, shot, (anchor,), (evidence,)),
@@ -124,12 +135,12 @@ def main() -> int:
         ],
         "windows": [
             {
-                "window_id": x.window_id,
+                "window_id": x.window.candidate_id,
                 "range": [
-                    [x.source_range.start.value, x.source_range.start.scale],
-                    [x.source_range.duration.value, x.source_range.duration.scale],
+                    [x.window.source_range.start.value, x.window.source_range.start.scale],
+                    [x.window.source_range.duration.value, x.window.source_range.duration.scale],
                 ],
-                "evidence_refs": x.evidence_refs,
+                "evidence_refs": x.window.evidence_refs,
                 "preview": previews[i],
             }
             for i, x in enumerate(windows)

@@ -7,6 +7,7 @@ import pytest
 from video_editing_agent.application.ports.shot_index import ShotCandidate
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevisionRef, EntityStatus
 from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
+from video_editing_agent.domain.edit.model import DurationConstraint
 from video_editing_agent.domain.evidence.temporal import TemporalAnchor, TemporalEvidence
 from video_editing_agent.domain.shot.model import Shot
 from video_editing_agent.editing.director.candidate_windows import generate_candidate_windows
@@ -26,11 +27,11 @@ def _shot(identity="sht", duration=10):
 def _slot():
     return EditSlot(
         "slot",
+        "show action",
         0,
         "proof",
-        "show action",
         "pick up bottle",
-        MediaTimeRange(MediaTime(1, 1), MediaTime(1, 1)),
+        DurationConstraint(MediaTime(1, 1), MediaTime(2, 1)),
     )
 
 
@@ -68,8 +69,8 @@ def test_grounded_windows_are_bounded_deterministic_and_exact_shot() -> None:
     first = generate_candidate_windows(_slot(), shot, (anchor,), (evidence,))
     assert first == generate_candidate_windows(_slot(), shot, (anchor,), (evidence,))
     assert (
-        first[0].source_range.start == MediaTime(5, 1)
-        and first[0].source_range.end.as_fraction() <= shot.source_range.end.as_fraction()
+        first[0].window.source_range.start == MediaTime(5, 1)
+        and first[0].window.source_range.end.as_fraction() <= shot.source_range.end.as_fraction()
     )
     with pytest.raises(ValueError, match="exact Shot"):
         generate_candidate_windows(
