@@ -101,3 +101,46 @@ def test_lost_sample_cannot_hallucinate_geometry(tmp_path) -> None:
     service, _, _ = _tracking_service(tmp_path, _proposal((invalid,)))
     with pytest.raises(ValueError, match="must not contain geometry"):
         service.track(SHOT, MediaTimeRange(MediaTime(3, 1), MediaTime(1, 1)), "seed", seed)
+
+
+@pytest.mark.parametrize(
+    "change,match",
+    [
+        ({"provider_id": ""}, "provider identity"),
+        ({"frames_per_second": 0}, "positive"),
+        ({"width": 0}, "positive"),
+        ({"samples": ()}, "non-empty"),
+    ],
+)
+def test_tracking_owner_rejects_malformed_provider_metadata(tmp_path, change, match) -> None:
+    seed = NormalizedRectangle(0.2, 0.3, 0.2, 0.2)
+    sample = TrackingSample(MediaTime(0, 30), "available", None, seed, 1, 1.0)
+    proposal = replace(_proposal((sample,)), **change)
+    service, _, _ = _tracking_service(tmp_path, proposal)
+    with pytest.raises(ValueError, match=match):
+        service.track(SHOT, MediaTimeRange(MediaTime(3, 1), MediaTime(1, 1)), "seed", seed)
+
+
+@pytest.mark.parametrize(
+    "sample,match",
+    [
+        (
+            TrackingSample(
+                MediaTime(1, 30), "available", None, NormalizedRectangle(0.2, 0.3, 0.2, 0.2), 1, 1.0
+            ),
+            "relative zero",
+        ),
+        (TrackingSample(MediaTime(0, 30), "bad", None, None, 0, 0.0), "status"),
+        (TrackingSample(MediaTime(0, 30), "lost", "bad", None, 0, 0.0), "supported reason"),
+        (TrackingSample(MediaTime(0, 30), "lost", "target_exit", None, -1, 0.0), "support_count"),
+        (
+            TrackingSample(MediaTime(0, 30), "lost", "target_exit", None, 0, float("nan")),
+            "support_ratio",
+        ),
+    ],
+)
+def test_tracking_owner_rejects_malformed_samples(tmp_path, sample, match) -> None:
+    service, _, _ = _tracking_service(tmp_path, _proposal((sample,)))
+    seed = NormalizedRectangle(0.2, 0.3, 0.2, 0.2)
+    with pytest.raises(ValueError, match=match):
+        service.track(SHOT, MediaTimeRange(MediaTime(3, 1), MediaTime(1, 1)), "seed", seed)

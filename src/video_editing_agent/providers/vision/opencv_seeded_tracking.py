@@ -180,7 +180,7 @@ class OpenCvSeededTrackingPort(SeededTrackingPort):
                 delta = np.median(target - source, axis=0)
                 x += float(delta[0])
                 y += float(delta[1])
-                if x + w <= 0 or y + h <= 0 or x >= config.width or y >= config.height:
+                if x < 0 or y < 0 or x + w > config.width or y + h > config.height:
                     samples.append(
                         TrackingSample(
                             MediaTime(index, config.frames_per_second),

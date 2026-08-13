@@ -27,6 +27,18 @@ from video_editing_agent.domain.common.media_time import MediaTimeRange
 from video_editing_agent.domain.evidence.temporal import TemporalEvidence
 
 TRACKING_MEASUREMENT_SET_KIND = "seeded_tracking_measurement_set"
+_STATUSES = frozenset({"available", "lost"})
+_LOSS_REASONS = frozenset(
+    {
+        "insufficient_features",
+        "tracking_failure",
+        "round_trip_failure",
+        "insufficient_support",
+        "insufficient_target_support",
+        "occlusion",
+        "target_exit",
+    }
+)
 
 
 def _validate_rectangle(rectangle: NormalizedRectangle) -> None:
@@ -99,6 +111,17 @@ class SeededTrackingEvidenceService:
             or proposal.seed_rectangle != seed_rectangle
         ):
             raise ValueError("tracking proposal provenance disagrees with request")
+        if not proposal.provider_id.strip() or not proposal.provider_revision.strip():
+            raise ValueError("tracking provider identity must not be empty")
+        for name, value in (
+            ("frames_per_second", proposal.frames_per_second),
+            ("width", proposal.width),
+            ("height", proposal.height),
+        ):
+            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                raise ValueError(f"tracking {name} must be a positive int")
+        if not proposal.samples or proposal.samples[0].relative_time.as_fraction() != 0:
+            raise ValueError("tracking samples must be non-empty and begin at relative zero")
         previous = None
         for sample in proposal.samples:
             if (
@@ -109,12 +132,32 @@ class SeededTrackingEvidenceService:
             if previous is not None and sample.relative_time.as_fraction() <= previous:
                 raise ValueError("tracking samples must be strictly ordered")
             previous = sample.relative_time.as_fraction()
+            if sample.status not in _STATUSES:
+                raise ValueError("unsupported tracking sample status")
+            if (
+                isinstance(sample.support_count, bool)
+                or not isinstance(sample.support_count, int)
+                or sample.support_count < 0
+            ):
+                raise ValueError("tracking support_count must be a non-negative int")
+            if (
+                isinstance(sample.support_ratio, bool)
+                or not isinstance(sample.support_ratio, (int, float))
+                or not math.isfinite(float(sample.support_ratio))
+                or not 0 <= float(sample.support_ratio) <= 1
+            ):
+                raise ValueError("tracking support_ratio must be finite and between 0 and 1")
             if sample.status == "available":
+                if sample.reason is not None:
+                    raise ValueError("available tracking sample must not have a loss reason")
                 if sample.rectangle is None:
                     raise ValueError("available tracking sample requires rectangle")
                 _validate_rectangle(sample.rectangle)
-            elif sample.rectangle is not None:
-                raise ValueError("unavailable tracking sample must not contain geometry")
+            else:
+                if sample.reason not in _LOSS_REASONS:
+                    raise ValueError("lost tracking sample requires a supported reason")
+                if sample.rectangle is not None:
+                    raise ValueError("unavailable tracking sample must not contain geometry")
         payload = encode_seeded_tracking(proposal)
         artifact = self._artifacts.put(ArtifactPayload("application/json", payload))
         source_ref = f"shot:{shot_ref.entity_id}@{shot_ref.revision}"
