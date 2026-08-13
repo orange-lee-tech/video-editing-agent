@@ -11,4 +11,5 @@ wheels/
 
 # Local development tools and private media samples
 /.tools/
+/.private/
 /example/
