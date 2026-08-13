@@ -46,6 +46,7 @@ class VisualMotionProposal:
     width: int
     height: int
     measurements: tuple[VisualMotionMeasurement, ...]
+    analyzed_source_range: MediaTimeRange | None = None
 
 
 class VisualMotionPort(Protocol):

@@ -94,6 +94,7 @@ class OpenCvVisualMotionPort(VisualMotionPort):
             config.width,
             config.height,
             measurements,
+            request.source_range,
         )
 
     def _pair(

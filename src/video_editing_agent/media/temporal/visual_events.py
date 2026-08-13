@@ -123,11 +123,17 @@ class VisualMotionEventService:
         ):
             raise ValueError("motion Artifact provenance disagrees with selected evidence")
         diagonal = math.hypot(proposal.width, proposal.height)
+        analysis_range = proposal.analyzed_source_range or shot.source_range
+        if (
+            analysis_range.start.as_fraction() < shot.source_range.start.as_fraction()
+            or analysis_range.end.as_fraction() > shot.source_range.end.as_fraction()
+        ):
+            raise ValueError("motion Artifact analyzed range escapes exact Shot")
         camera: list[_Sample] = []
         residual: list[_Sample] = []
         for item in proposal.measurements:
             absolute = MediaTimeRange(
-                shot.source_range.start + item.relative_range.start, item.relative_range.duration
+                analysis_range.start + item.relative_range.start, item.relative_range.duration
             )
             seconds = float(item.relative_range.duration.as_fraction())
             available = item.status == "available"

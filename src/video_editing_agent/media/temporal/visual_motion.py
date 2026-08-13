@@ -21,7 +21,7 @@ from video_editing_agent.application.ports.visual_motion import (
     VisualMotionRequest,
 )
 from video_editing_agent.domain.common.entity import EntityRevisionRef
-from video_editing_agent.domain.common.media_time import MediaTime
+from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
 from video_editing_agent.domain.evidence.temporal import TemporalEvidence
 from video_editing_agent.media.temporal.visual_motion_codec import encode_visual_motion
 
@@ -68,20 +68,28 @@ class VisualMotionEvidenceService:
         self._lifecycle = artifact_lifecycle_repository
         self._port = motion_port
 
-    def measure(self, shot_ref: EntityRevisionRef) -> tuple[TemporalEvidence, ...]:
+    def measure(
+        self, shot_ref: EntityRevisionRef, analyzed_source_range: MediaTimeRange | None = None
+    ) -> tuple[TemporalEvidence, ...]:
         shot = self._shots.load(shot_ref)
         actual = EntityRevisionRef(shot.envelope.id, shot.envelope.revision)
         if actual != shot_ref:
             raise RuntimeError("ShotRepository returned a different Shot revision")
         media = self._media.resolve_local(shot.asset_ref)
-        proposal = self._port.measure(VisualMotionRequest(shot_ref, media.path, shot.source_range))
+        analysis_range = analyzed_source_range or shot.source_range
+        if (
+            analysis_range.start.as_fraction() < shot.source_range.start.as_fraction()
+            or analysis_range.end.as_fraction() > shot.source_range.end.as_fraction()
+        ):
+            raise ValueError("analyzed source range must stay inside exact Shot")
+        proposal = self._port.measure(VisualMotionRequest(shot_ref, media.path, analysis_range))
         if proposal.shot_ref != shot_ref:
             raise ValueError("visual motion proposal returned a different Shot revision")
         if not proposal.provider_id.strip() or not proposal.provider_revision.strip():
             raise ValueError("visual motion provider identity must not be empty")
         previous_end = None
         for measurement in proposal.measurements:
-            _validate(measurement, shot.source_range.duration)
+            _validate(measurement, analysis_range.duration)
             start = measurement.relative_range.start.as_fraction()
             if previous_end is not None and start < previous_end:
                 raise ValueError("visual motion measurements must be ordered and non-overlapping")
@@ -110,9 +118,11 @@ class VisualMotionEvidenceService:
                 proposal.provider_id,
                 proposal.provider_revision,
                 completeness,
-                shot.source_range,
+                analysis_range,
                 (artifact.artifact_id,),
             ),
         )
         self._evidence.save_evidence_batch(result)
         return result
+        if proposal.analyzed_source_range != analysis_range:
+            raise ValueError("visual motion proposal analyzed range disagrees with request")

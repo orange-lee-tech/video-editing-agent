@@ -61,7 +61,7 @@ class Port:
         self.proposal = proposal
 
     def measure(self, request):
-        return self.proposal
+        return replace(self.proposal, analyzed_source_range=request.source_range)
 
 
 class Resolver:
@@ -128,7 +128,7 @@ def test_owner_maps_offset_persists_and_canonical_artifact_is_stable(tmp_path: P
     assert loaded == tuple(sorted(evidence, key=lambda item: item.evidence_id))
     artifact_id = evidence[0].artifact_refs[0]
     assert (
-        b'"schema_version":"r0.8c-visual-motion-v1"'
+        b'"schema_version":"r0.8e-visual-motion-v2"'
         in next(
             (tmp_path / "artifacts").rglob(artifact_id.removeprefix("art_sha256_"))
         ).read_bytes()
