@@ -4,7 +4,7 @@
 
 **Current phase:** R0.9 — Director → Retrieval → Resolver → Deterministic Optimizer
 
-**Active boundary:** R0.9A — Edit Intent → Hybrid Retrieval → Grounded CandidateWindows
+**Active boundary:** R0.9B — Canonical Edit Contracts → Resolver → Deterministic Optimizer
 
 **Date:** 2026-08-13
 
@@ -14,32 +14,25 @@
 - R0.7B — Pre-production Planning + Commercial Skill Foundation.
 - R0.8 — Media Evidence Foundation.
 
-R0.8 closure baseline:
+## R0.9A candidate
 
-`6257586310e266ef271ea67f8eda1cc5434e6df1` — `test: close r0.8 media evidence phase`
+`ef6efa1f047201c96caeb2c56d7c895af00549a1` — `feat: add grounded hybrid candidate windows`
 
-R0.8H passed all ten named Product Probe gates on the anonymous local real-media corpus plus a deterministic local TTS speech fixture mixed with captured ambient audio. Closure evidence and limitations are recorded in `docs/validation/R0.8_FINAL_CLOSURE.md`.
+The R0.9A live probe passed and produced an inspectable real-media CandidateWindow preview. Post-review found three bounded contract issues that must be converged before Resolver work expands:
 
-## Active — R0.9A
+1. canonical `EditPlan` / `EditSlot` already exist in `domain/edit/model.py`; do not keep a competing Director definition;
+2. canonical `CandidateWindow` already exists in `domain/edit/resolution.py`; do not keep a competing Director definition;
+3. `MediaTimeRange` means an exact media interval and must not be reused as a min/max duration constraint.
 
-R0.9 begins the core automatic-editing brain. The first construction boundary must convert structured editorial intent into grounded, inspectable candidate source windows without allowing an LLM to invent media IDs or timestamps.
+These are structural hardening items, not a failed retrieval/window mechanism. R0.9B must fix them first and continue in the same batch into Resolver + deterministic sequence optimization.
 
-R0.9A covers in one coherent batch:
+## Active — R0.9B
 
-- canonical `EditPlan` / `EditSlot` intent contracts owned by Director-side Domain/Application code;
-- hard eligibility before ranking;
-- existing lexical/CJK + dense representation retrieval combined through deterministic RRF-like rank fusion;
-- bounded `CandidateWindow` generation from authoritative Shot/source ranges and persisted temporal evidence/anchors;
-- stable provenance/explainability for every candidate;
-- local diagnostic preview clips for human inspection of CandidateWindows.
+Build the first deterministic grounded source-selection decision using the existing `ResolutionDecision` / `ResolvedSelection` contract. Preserve explainable feature contributions, score/confidence separation, alternatives, evidence provenance, hard-feasibility dominance and deterministic sequence optimization over bounded CandidateWindows.
 
-The preview clips are non-authoritative probe artifacts only. They may trim/copy already-grounded source windows for inspection but must not introduce EDL, timeline placement, creative rendering decisions or R0.10+ authority.
+The local probe should also export a non-authoritative resolved-sequence diagnostic preview for human inspection.
 
-## After R0.9A
-
-The next boundary is Resolver + deterministic sequence optimizer: unary/pairwise/global scoring, uncertainty, alternatives and one-slot-to-multiple-selection `ResolutionDecision` support.
-
-R0.9 closes only after the real-footage phase Product Probe demonstrates a grounded exact source-selection plan. Do not enter R0.10 before that closure.
+After R0.9B, run the real-footage R0.9 Product Probe / phase closure before entering R0.10.
 
 ## Operational control
 
