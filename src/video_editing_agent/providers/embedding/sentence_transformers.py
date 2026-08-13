@@ -14,7 +14,6 @@ from video_editing_agent.application.ports.text_embedding import (
 )
 
 RUNTIME_VERSION = "5.6.0"
-MODEL_ID = "intfloat/multilingual-e5-small"
 
 
 class SentenceTransformersUnavailableError(RuntimeError):
@@ -24,8 +23,21 @@ class SentenceTransformersUnavailableError(RuntimeError):
 @dataclass(frozen=True, slots=True)
 class SentenceTransformersConfig:
     model_path: str
+    model_id: str
     model_revision: str
     dimension: int = 384
+
+    def __post_init__(self) -> None:
+        if (
+            not self.model_path.strip()
+            or not self.model_id.strip()
+            or not self.model_revision.strip()
+        ):
+            raise ValueError("model path/id/revision must not be empty")
+        if isinstance(self.dimension, bool) or not isinstance(self.dimension, int):
+            raise TypeError("dimension must be an int")
+        if self.dimension < 1:
+            raise ValueError("dimension must be positive")
 
 
 class SentenceTransformersTextEmbeddingPort(TextEmbeddingPort):
@@ -73,5 +85,8 @@ class SentenceTransformersTextEmbeddingPort(TextEmbeddingPort):
         if any(len(x) != self._config.dimension for x in normalized):
             raise ValueError("sentence-transformers output dimension mismatch")
         return TextEmbeddingResult(
-            MODEL_ID, self._config.model_revision, self._config.dimension, normalized
+            self._config.model_id,
+            self._config.model_revision,
+            self._config.dimension,
+            normalized,
         )

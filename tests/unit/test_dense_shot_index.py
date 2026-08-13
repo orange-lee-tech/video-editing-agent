@@ -32,14 +32,13 @@ from video_editing_agent.storage.artifact.local_store import LocalArtifactStore
 
 
 class Embeddings:
-    def __init__(self, revision: str = "r1") -> None:
+    def __init__(self, model_id: str = "fake", revision: str = "r1") -> None:
+        self.model_id = model_id
         self.revision = revision
-        self.intents: list[EmbeddingIntent] = []
 
     def embed(self, request: TextEmbeddingRequest) -> TextEmbeddingResult:
-        self.intents.append(request.intent)
         vectors = tuple((1.0, 0.0) if "match" in text else (0.0, 1.0) for text in request.texts)
-        return TextEmbeddingResult("fake", self.revision, 2, vectors)
+        return TextEmbeddingResult(self.model_id, self.revision, 2, vectors)
 
 
 def _index(tmp_path, port):
@@ -51,58 +50,95 @@ def _index(tmp_path, port):
     )
 
 
-def test_projection_uses_current_visual_and_persisted_speech_revisions() -> None:
+def _source(shot: str, analysis: int, kind: str, source: int, text: str = "match"):
+    source_kind = "shot_analysis" if kind == "visual_semantic_text" else "speech_transcript"
+    return DenseRepresentationSource(
+        EntityRevisionRef(shot, 1), analysis, kind, source_kind, source, text
+    )
+
+
+def test_projection_separates_analysis_and_transcript_revisions() -> None:
     ref = EntityRevisionRef("sht_1", 3)
     analysis = ShotAnalysis(
         ref,
         4,
         AnalysisProfile.SEMANTIC,
         datetime.now(UTC),
-        visual=VisualSemantics(summary="summary", tags=("tag",), actions=("action",)),
+        visual=VisualSemantics(summary="summary"),
     )
     segment = SpeechSegment("spoken", MediaTimeRange(MediaTime(1, 1), MediaTime(1, 1)))
     transcript = SpeechTranscript(
         ref, 7, datetime.now(UTC), "provider", "r1", "spoken", segments=(segment,)
     )
     assert visual_semantic_source(analysis) == DenseRepresentationSource(
-        ref, "visual_semantic_text", 4, "summary\ntag\naction"
+        ref, 4, "visual_semantic_text", "shot_analysis", 4, "summary"
     )
-    assert speech_text_source(transcript) == DenseRepresentationSource(
-        ref, "speech_text", 7, "spoken"
+    assert speech_text_source(analysis, transcript) == DenseRepresentationSource(
+        ref, 4, "speech_text", "speech_transcript", 7, "spoken"
     )
 
 
-def test_dense_index_persists_restores_and_orders_ties(tmp_path) -> None:
+def test_candidates_keep_analysis_revision_and_restore_all_provenance(tmp_path) -> None:
     port = Embeddings()
     index = _index(tmp_path, port)
     records = index.rebuild(
-        tuple(
-            DenseRepresentationSource(
-                EntityRevisionRef(shot, 1), "visual_semantic_text", 2, "match"
-            )
-            for shot in ("sht_b", "sht_a")
-        )
+        (_source("sht_b", 2, "visual_semantic_text", 2), _source("sht_a", 3, "speech_text", 8))
     )
-    assert [
-        x.shot_ref.entity_id for x in index.search("match", representation="visual_semantic_text")
-    ] == ["sht_a", "sht_b"]
-    assert port.intents == [EmbeddingIntent.DOCUMENT, EmbeddingIntent.QUERY]
+    speech = index.search("match", representation="speech_text")[0]
+    assert speech.analysis_revision == 3
+    assert (
+        next(x for x in records if x.descriptor.representation == "speech_text").source_revision
+        == 8
+    )
     reopened = _index(tmp_path, port)
     assert reopened.restore(tuple(x.artifact_id for x in records)) == records
-    assert reopened.search("match", representation="visual_semantic_text") == index.search(
-        "match", representation="visual_semantic_text"
+
+
+def test_selective_refresh_and_invalidation_preserve_unrelated_artifacts(tmp_path) -> None:
+    index = _index(tmp_path, Embeddings())
+    original = index.rebuild(
+        (_source("sht", 2, "visual_semantic_text", 2), _source("sht", 2, "speech_text", 7))
     )
+    by_kind = {x.descriptor.representation: x for x in original}
+    refreshed_speech = index.upsert(_source("sht", 2, "speech_text", 8, "new match"))
+    assert refreshed_speech.artifact_id != by_kind["speech_text"].artifact_id
+    assert (
+        index._records[(EntityRevisionRef("sht", 1), "visual_semantic_text")].artifact_id
+        == by_kind["visual_semantic_text"].artifact_id
+    )
+    refreshed_visual = index.upsert(_source("sht", 3, "visual_semantic_text", 3, "visual match"))
+    assert refreshed_visual.descriptor.analysis_revision == 3
+    assert (
+        index._records[(EntityRevisionRef("sht", 1), "speech_text")].artifact_id
+        == refreshed_speech.artifact_id
+    )
+    assert index.invalidate(EntityRevisionRef("sht", 1), "speech_text")
+    assert index.search("match", representation="speech_text") == ()
 
 
-def test_model_revision_mismatch_fails_closed(tmp_path) -> None:
+def test_duplicate_identity_and_stale_model_fail_closed(tmp_path) -> None:
     port = Embeddings()
     index = _index(tmp_path, port)
-    index.rebuild(
-        (DenseRepresentationSource(EntityRevisionRef("sht", 1), "speech_text", 2, "match"),)
-    )
-    port.revision = "r2"
+    source = _source("sht", 1, "visual_semantic_text", 1)
+    with pytest.raises(ValueError, match="duplicate"):
+        index.rebuild((source, source))
+    index.rebuild((source,))
+    port.model_id = "other"
     with pytest.raises(ValueError, match="provenance mismatch"):
-        index.search("match", representation="speech_text")
+        index.search("match", representation="visual_semantic_text")
+
+
+def test_provider_reports_configured_identity() -> None:
+    class Model:
+        def encode(self, texts, **kwargs):
+            return ((1.0, 0.0),) * len(texts)
+
+    port = SentenceTransformersTextEmbeddingPort(
+        SentenceTransformersConfig("path", "configured/model", "revision", 2),
+        model_factory=Model,
+    )
+    result = port.embed(TextEmbeddingRequest(("text",), EmbeddingIntent.DOCUMENT))
+    assert (result.model_id, result.model_revision) == ("configured/model", "revision")
 
 
 def test_optional_embedding_runtime_absence_is_clean(monkeypatch) -> None:
@@ -110,6 +146,8 @@ def test_optional_embedding_runtime_absence_is_clean(monkeypatch) -> None:
         raise importlib.metadata.PackageNotFoundError(package)
 
     monkeypatch.setattr(importlib.metadata, "version", missing)
-    port = SentenceTransformersTextEmbeddingPort(SentenceTransformersConfig("unused", "revision"))
+    port = SentenceTransformersTextEmbeddingPort(
+        SentenceTransformersConfig("unused", "model", "revision")
+    )
     with pytest.raises(SentenceTransformersUnavailableError, match="unavailable"):
         port.embed(TextEmbeddingRequest(("text",), EmbeddingIntent.DOCUMENT))

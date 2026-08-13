@@ -38,32 +38,52 @@ def main() -> int:
         store = LocalArtifactStore(workspace / "artifacts")
         lifecycle = LocalArtifactLifecycleRepository(workspace / "artifacts")
         port = SentenceTransformersTextEmbeddingPort(
-            SentenceTransformersConfig(str(args.model_path.resolve()), args.model_revision)
+            SentenceTransformersConfig(
+                str(args.model_path.resolve()),
+                "intfloat/multilingual-e5-small",
+                args.model_revision,
+            )
         )
         sources = (
             DenseRepresentationSource(
                 EntityRevisionRef("sht_zh_wood", 1),
+                3,
                 "visual_semantic_text",
+                "shot_analysis",
                 3,
                 "一名木匠正在工作台旁用砂纸打磨木桌。",
             ),
             DenseRepresentationSource(
                 EntityRevisionRef("sht_en_bike", 1),
+                2,
                 "visual_semantic_text",
+                "shot_analysis",
                 2,
                 "An astronaut plays a guitar while floating in outer space.",
             ),
             DenseRepresentationSource(
                 EntityRevisionRef("sht_speech", 1),
+                4,
                 "speech_text",
+                "speech_transcript",
                 5,
                 "Please tighten the camera tripod before filming.",
             ),
             DenseRepresentationSource(
-                EntityRevisionRef("sht_tie_b", 1), "visual_semantic_text", 1, "quiet ocean"
+                EntityRevisionRef("sht_tie_b", 1),
+                1,
+                "visual_semantic_text",
+                "shot_analysis",
+                1,
+                "quiet ocean",
             ),
             DenseRepresentationSource(
-                EntityRevisionRef("sht_tie_a", 1), "visual_semantic_text", 1, "quiet ocean"
+                EntityRevisionRef("sht_tie_a", 1),
+                1,
+                "visual_semantic_text",
+                "shot_analysis",
+                1,
+                "quiet ocean",
             ),
         )
         index = DenseShotIndex(
@@ -97,14 +117,72 @@ def main() -> int:
             for item in ties
             if item.shot_ref.entity_id.startswith("sht_tie")
         ]
+        original = {
+            (record.descriptor.shot_ref, record.descriptor.representation): record
+            for record in records
+        }
+        speech_refreshed = index.upsert(
+            DenseRepresentationSource(
+                EntityRevisionRef("sht_speech", 1),
+                4,
+                "speech_text",
+                "speech_transcript",
+                6,
+                "Please secure the camera tripod before recording.",
+            )
+        )
+        selective_speech = (
+            speech_refreshed.source_revision == 6
+            and speech_refreshed.descriptor.analysis_revision == 4
+            and index._records[
+                (EntityRevisionRef("sht_zh_wood", 1), "visual_semantic_text")
+            ].artifact_id
+            == original[(EntityRevisionRef("sht_zh_wood", 1), "visual_semantic_text")].artifact_id
+        )
+        visual_refreshed = index.upsert(
+            DenseRepresentationSource(
+                EntityRevisionRef("sht_zh_wood", 1),
+                4,
+                "visual_semantic_text",
+                "shot_analysis",
+                4,
+                "一位木匠在工作台旁打磨木桌。",
+            )
+        )
+        selective_visual = (
+            visual_refreshed.descriptor.analysis_revision == 4
+            and index._records[
+                (EntityRevisionRef("sht_en_bike", 1), "visual_semantic_text")
+            ].artifact_id
+            == original[(EntityRevisionRef("sht_en_bike", 1), "visual_semantic_text")].artifact_id
+        )
+        port._config = SentenceTransformersConfig(
+            str(args.model_path.resolve()), "wrong/model", args.model_revision
+        )
+        try:
+            index.search("woodworker", representation="visual_semantic_text")
+        except ValueError as exc:
+            model_mismatch = "provenance mismatch" in str(exc)
+        else:
+            model_mismatch = False
         gates = {
             "english_to_chinese": english[0].shot_ref.entity_id == "sht_zh_wood",
             "chinese_to_english": chinese[0].shot_ref.entity_id == "sht_en_bike",
             "stable_tie": tie_order == ["sht_tie_a", "sht_tie_b"],
-            "visual_and_speech_provenance": {
-                (x.descriptor.representation, x.source_revision) for x in records
-            }
-            >= {("visual_semantic_text", 3), ("speech_text", 5)},
+            "visual_analysis_provenance": any(
+                x.source_kind == "shot_analysis"
+                and x.source_revision == x.descriptor.analysis_revision == 3
+                for x in records
+            ),
+            "speech_transcript_provenance": any(
+                x.source_kind == "speech_transcript"
+                and x.source_revision == 5
+                and x.descriptor.analysis_revision == 4
+                for x in records
+            ),
+            "selective_visual_source_refresh": selective_visual,
+            "selective_speech_source_refresh": selective_speech,
+            "model_provenance_mismatch_rejected": model_mismatch,
             "restart_equal": restart_equal and restored == records,
             "offline_inference": os.environ["HF_HUB_OFFLINE"] == "1",
         }

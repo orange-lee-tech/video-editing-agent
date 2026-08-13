@@ -28,7 +28,9 @@ from video_editing_agent.domain.shot.analysis import ShotAnalysis
 @dataclass(frozen=True, slots=True)
 class DenseRepresentationSource:
     shot_ref: EntityRevisionRef
+    analysis_revision: int
     representation: str
+    source_kind: str
     source_revision: int
     text: str
 
@@ -36,6 +38,7 @@ class DenseRepresentationSource:
 @dataclass(frozen=True, slots=True)
 class DenseRepresentation:
     descriptor: ShotIndexRepresentationDescriptor
+    source_kind: str
     source_revision: int
     artifact_id: str
     vector: tuple[float, ...]
@@ -59,17 +62,31 @@ def visual_semantic_source(analysis: ShotAnalysis) -> DenseRepresentationSource 
         None
         if not text
         else DenseRepresentationSource(
-            analysis.shot_ref, "visual_semantic_text", analysis.revision, text
+            analysis.shot_ref,
+            analysis.revision,
+            "visual_semantic_text",
+            "shot_analysis",
+            analysis.revision,
+            text,
         )
     )
 
 
-def speech_text_source(transcript: SpeechTranscript) -> DenseRepresentationSource | None:
+def speech_text_source(
+    analysis: ShotAnalysis, transcript: SpeechTranscript
+) -> DenseRepresentationSource | None:
+    if transcript.shot_ref != analysis.shot_ref:
+        raise ValueError("speech transcript must reference the exact analyzed Shot")
     return (
         None
         if not transcript.text.strip()
         else DenseRepresentationSource(
-            transcript.shot_ref, "speech_text", transcript.revision, transcript.text.strip()
+            transcript.shot_ref,
+            analysis.revision,
+            "speech_text",
+            "speech_transcript",
+            transcript.revision,
+            transcript.text.strip(),
         )
     )
 
@@ -99,18 +116,59 @@ class DenseShotIndex:
     def rebuild(
         self, sources: tuple[DenseRepresentationSource, ...]
     ) -> tuple[DenseRepresentation, ...]:
+        identities = tuple((x.shot_ref, x.representation) for x in sources)
+        if len(set(identities)) != len(identities):
+            raise ValueError("duplicate dense representation identity")
+        if not sources:
+            self._records = {}
+            return ()
+        rebuilt = self._embed_sources(sources)
+        self._records = {
+            (record.descriptor.shot_ref, record.descriptor.representation): record
+            for record in rebuilt
+        }
+        return self._ordered_records()
+
+    def upsert(self, source: DenseRepresentationSource) -> DenseRepresentation:
+        record = self._embed_sources((source,))[0]
+        self._records[(source.shot_ref, source.representation)] = record
+        return record
+
+    def invalidate(self, shot_ref: EntityRevisionRef, representation: str) -> bool:
+        if not representation.strip():
+            raise ValueError("representation must not be empty")
+        return self._records.pop((shot_ref, representation), None) is not None
+
+    def _ordered_records(self) -> tuple[DenseRepresentation, ...]:
+        return tuple(
+            sorted(
+                self._records.values(),
+                key=lambda x: (x.descriptor.shot_ref.entity_id, x.descriptor.representation),
+            )
+        )
+
+    def _embed_sources(
+        self, sources: tuple[DenseRepresentationSource, ...]
+    ) -> tuple[DenseRepresentation, ...]:
+        for source in sources:
+            if source.analysis_revision < 1 or source.source_revision < 1:
+                raise ValueError("dense source revisions must be >= 1")
+            if not source.source_kind.strip() or not source.representation.strip():
+                raise ValueError("dense source identity must not be empty")
+            if not source.text.strip():
+                raise ValueError("dense source text must not be empty")
         texts = tuple(x.text for x in sources)
         result = self._port.embed(TextEmbeddingRequest(texts, EmbeddingIntent.DOCUMENT))
         if len(result.vectors) != len(sources) or result.dimension < 1:
             raise ValueError("embedding provider returned incompatible batch/dimension")
-        rebuilt = {}
+        rebuilt = []
         for source, raw in zip(sources, result.vectors, strict=True):
             if len(raw) != result.dimension:
                 raise ValueError("embedding dimension mismatch")
             vector = _normalize(raw)
             descriptor = ShotIndexRepresentationDescriptor(
                 source.shot_ref,
-                source.source_revision,
+                source.analysis_revision,
                 source.representation,
                 result.model_id,
                 result.model_revision,
@@ -119,12 +177,14 @@ class DenseShotIndex:
             )
             payload = json.dumps(
                 {
-                    "schema_version": "r0.8g-dense-v1",
+                    "schema_version": "r0.8g-dense-v2",
                     "descriptor": {
                         "shot_ref": {
                             "entity_id": source.shot_ref.entity_id,
                             "revision": source.shot_ref.revision,
                         },
+                        "analysis_revision": source.analysis_revision,
+                        "source_kind": source.source_kind,
                         "source_revision": source.source_revision,
                         "representation": source.representation,
                         "model_id": result.model_id,
@@ -146,35 +206,37 @@ class DenseShotIndex:
                     "shot_dense_representation",
                     (
                         f"shot:{source.shot_ref.entity_id}@{source.shot_ref.revision}",
-                        f"{source.representation}:{source.source_revision}",
+                        f"analysis:{source.analysis_revision}",
+                        f"{source.source_kind}:{source.source_revision}",
                     ),
                 )
             )
             record = DenseRepresentation(
-                descriptor, source.source_revision, artifact.artifact_id, vector
+                descriptor,
+                source.source_kind,
+                source.source_revision,
+                artifact.artifact_id,
+                vector,
             )
-            rebuilt[(source.shot_ref, source.representation)] = record
-        self._records = rebuilt
-        return tuple(
-            sorted(
-                rebuilt.values(),
-                key=lambda x: (x.descriptor.shot_ref.entity_id, x.descriptor.representation),
-            )
-        )
+            rebuilt.append(record)
+        return tuple(rebuilt)
 
     def restore(self, artifact_ids: tuple[str, ...]) -> tuple[DenseRepresentation, ...]:
         restored: dict[tuple[EntityRevisionRef, str], DenseRepresentation] = {}
         for artifact_id in artifact_ids:
             try:
                 root = json.loads(self._artifacts.get_by_id(artifact_id))
-                if root.get("schema_version") != "r0.8g-dense-v1":
+                schema = root.get("schema_version")
+                if schema == "r0.8g-dense-v1":
+                    raise ValueError("dense v1 lacks unambiguous source provenance")
+                if schema != "r0.8g-dense-v2":
                     raise ValueError("unknown dense representation schema")
                 value = root["descriptor"]
                 shot = value["shot_ref"]
                 vector = tuple(float(x) for x in root["vector"])
                 descriptor = ShotIndexRepresentationDescriptor(
                     EntityRevisionRef(str(shot["entity_id"]), int(shot["revision"])),
-                    int(value["source_revision"]),
+                    int(value["analysis_revision"]),
                     str(value["representation"]),
                     str(value["model_id"]),
                     str(value["model_revision"]),
@@ -190,19 +252,18 @@ class DenseShotIndex:
             ):
                 raise ValueError("dense representation dimension mismatch")
             record = DenseRepresentation(
-                descriptor, descriptor.analysis_revision, artifact_id, vector
+                descriptor,
+                str(value["source_kind"]),
+                int(value["source_revision"]),
+                artifact_id,
+                vector,
             )
             key = (descriptor.shot_ref, descriptor.representation)
             if key in restored:
                 raise ValueError("duplicate dense representation identity")
             restored[key] = record
         self._records = restored
-        return tuple(
-            sorted(
-                restored.values(),
-                key=lambda x: (x.descriptor.shot_ref.entity_id, x.descriptor.representation),
-            )
-        )
+        return self._ordered_records()
 
     def search(
         self, query: str, *, representation: str, limit: int = 20
