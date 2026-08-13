@@ -4,7 +4,7 @@
 
 **Current phase:** R0.10 — Music Selection + BeatMap + Audio Editorial
 
-**Active boundary:** R0.10B — execution-evidence bridge repair
+**Active boundary:** R0.10B ENGINEERING BASELINE ADEQUATE
 
 **Date:** 2026-08-13
 
@@ -19,7 +19,7 @@
 
 `7d4dcc0afb26556f9a161b73ca408946f6f417d7` — R0.10A local rights-aware audible music foundation.
 
-## R0.10B candidate requiring repair
+## Repaired engineering boundary — R0.10B
 
 `d893d4c6fb67f1218416a302c7c6775c22bde088` established the intended BeatMap confidence, feature-ranked music windows, bounded loop planning, track-role semantics and ramped AudioMixDecision model. CI is green.
 
@@ -29,9 +29,11 @@ Post-review found the R0.10B live probe does not yet satisfy its own execution-e
 - the structured renderer independently hardcodes duck ranges instead of compiling the canonical AudioMixDecision;
 - reported PCM QC measures the input music fixture rather than the rendered mixed output.
 
-Therefore R0.10B is not yet accepted as complete. This is a bounded executor/probe bridge defect, not a reason to reopen R0.10A or redesign BeatMap/window ranking.
+The bounded execution-evidence defect is repaired: structured diagnostics now compile the
+canonical MusicSelectionDecision source segments and AudioMixDecision automation into an
+inspectable non-authoritative FFmpeg execution plan, and QC measures post-mix decoded PCM.
 
-Repair the same R0.10B boundary, rerun its live evidence and Quality Gate, then proceed to the R0.10 Product Probe if green. Do not begin R0.11.
+R0.10B is `ENGINEERING BASELINE ADEQUATE`. The R0.10 Product Probe and R0.11 remain unstarted.
 
 ## Operational control
 

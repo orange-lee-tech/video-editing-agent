@@ -1,10 +1,15 @@
 # Current Work Order
 
-**Status:** ACTIVE
+**Status:** ENGINEERING BASELINE ADEQUATE
 
 **Phase:** R0.10B — execution-evidence bridge repair
 
 **Goal:** make the R0.10B diagnostic execution consume the canonical music-selection and audio-mix decisions, then measure the actual rendered mix before Product Probe.
+
+**Technical result:** PASS on 2026-08-13. The structured diagnostic executes canonical
+source segments and compiled mix automation, then extracts post-mix PCM for peak/RMS/silence/
+clipping QC. Decision-mutation, executed-range and clipped-control regressions pass. Product
+Probe/R0.11 work was not started.
 
 ## Entry
 

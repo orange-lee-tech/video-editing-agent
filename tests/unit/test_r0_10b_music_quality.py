@@ -12,6 +12,7 @@ from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevis
 from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
 from video_editing_agent.domain.music.model import BeatMap, BeatPoint
 from video_editing_agent.music.audio_editorial import plan_basic_mix
+from video_editing_agent.music.execution import compile_audio_execution
 from video_editing_agent.music.selection.service import (
     WindowScoringPolicy,
     generate_music_windows,
@@ -74,3 +75,35 @@ def test_loop_and_duck_ramps_are_bounded() -> None:
     mix = plan_basic_mix(EntityRevisionRef("plan", 1), REF, MediaTime(5, 1), speech)
     ducks = [item for item in mix.automation_intents if item.kind is AudioAutomationKind.DUCK]
     assert len(ducks) == 1 and ducks[0].start == MediaTime(0, 1) and ducks[0].end.as_fraction() <= 4
+    plan = compile_audio_execution(decision, mix)
+    assert plan.source_segments == tuple(item.source_range for item in decision.source_segments)
+    assert (
+        "atrim=start="
+        + decision.source_segments[0].source_range.start.to_decimal_seconds_string(
+            fractional_digits=6
+        )
+        in plan.filter_complex
+    )
+    assert "[chosen]," not in plan.filter_complex
+
+
+def test_decision_mutation_changes_compiled_plan() -> None:
+    windows = generate_music_windows(_beatmap(), MediaTime(3, 1), ("att",))
+    selection = select_music(windows)
+    assert selection is not None
+    first = plan_basic_mix(
+        EntityRevisionRef("plan", 1),
+        REF,
+        MediaTime(3, 1),
+        (MediaTimeRange(MediaTime(1, 1), MediaTime(1, 1)),),
+    )
+    second = plan_basic_mix(
+        EntityRevisionRef("plan", 1),
+        REF,
+        MediaTime(3, 1),
+        (MediaTimeRange(MediaTime(2, 1), MediaTime(1, 2)),),
+    )
+    assert (
+        compile_audio_execution(selection, first).filter_complex
+        != compile_audio_execution(selection, second).filter_complex
+    )

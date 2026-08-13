@@ -18,6 +18,7 @@ from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
 from video_editing_agent.music.audio_editorial import inspect_pcm16_wav, plan_basic_mix
 from video_editing_agent.music.beat_analysis.service import WaveEnergyBeatAnalysisService
+from video_editing_agent.music.execution import compile_audio_execution
 from video_editing_agent.music.selection.service import (
     WindowScoringPolicy,
     generate_music_windows,
@@ -73,6 +74,38 @@ def render(
     )
 
 
+def render_structured(ffmpeg, video, music, output, selection, mix):
+    plan = compile_audio_execution(selection, mix)
+    subprocess.run(
+        [
+            ffmpeg,
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-i",
+            str(video),
+            "-i",
+            str(music),
+            "-filter_complex",
+            plan.filter_complex,
+            "-map",
+            "0:v",
+            "-map",
+            "[a]",
+            "-t",
+            plan.output_duration_seconds,
+            "-c:v",
+            "libx264",
+            "-c:a",
+            "aac",
+            str(output),
+        ],
+        check=True,
+    )
+    return plan
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--video", type=pathlib.Path, required=True)
@@ -115,8 +148,25 @@ def main() -> int:
     baseline = args.output / "baseline_mix_preview.mp4"
     structured = args.output / "structured_mix_preview.mp4"
     render(args.ffmpeg, args.video, music, baseline, structured=False)
-    render(args.ffmpeg, args.video, music, structured, structured=True)
-    qc = inspect_pcm16_wav(str(music))
+    execution = render_structured(args.ffmpeg, args.video, music, structured, selection, mix)
+    rendered_pcm = args.output / "structured_mix_qc.wav"
+    subprocess.run(
+        [
+            args.ffmpeg,
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-i",
+            str(structured),
+            "-vn",
+            "-c:a",
+            "pcm_s16le",
+            str(rendered_pcm),
+        ],
+        check=True,
+    )
+    qc = inspect_pcm16_wav(str(rendered_pcm))
     render_seconds = time.perf_counter() - render_started
     gates = {
         "PYTHON_SUPPORT_COMPATIBLE": "audioop"
@@ -160,6 +210,18 @@ def main() -> int:
         ),
         "R0_10A_REGRESSION": len(beatmap.beats) >= 20
         and selection.rights_evidence_refs == (attestation.attestation_id,),
+        "SELECTED_SEGMENTS_EXECUTED": execution.source_segments
+        == tuple(item.source_range for item in selection.source_segments),
+        "DECISION_AUTOMATION_COMPILED": all(
+            token in execution.filter_complex
+            for token in (
+                "atrim=start=9.000",
+                "afade=t=in",
+                "between(t,0.750",
+                "volume=0.316227766",
+            )
+        ),
+        "POST_MIX_QC": rendered_pcm.exists() and qc.clipped_samples == 0,
     }
     report = {
         "gates": {key: "PASS" if value else "FAIL" for key, value in gates.items()},
@@ -205,6 +267,14 @@ def main() -> int:
                 }
                 for item in mix.automation_intents
             ]
+        },
+        "execution": {
+            "selected_asset_id": execution.selected_asset_id,
+            "source_segments": [
+                [float(item.start.as_fraction()), float(item.end.as_fraction())]
+                for item in execution.source_segments
+            ],
+            "filter_complex": execution.filter_complex,
         },
         "qc": {
             "peak_dbfs": qc.peak_dbfs,
