@@ -1,88 +1,140 @@
 # Current Work Order
 
-**Status:** READY_FOR_HUMAN_ACCEPTANCE
+**Status:** ACTIVE
 
-**Phase:** R0.9 Product Probe evidence hardening + Phase Closure
+**Phase:** R0.10A — Local Music Rights → BeatMap → CandidateMusicWindow → Audible Mix Foundation
 
-**Goal:** repair the Product Probe evidence chain so the R0.9 Human Gate is based on actual end-to-end retrieval/window/resolution behavior over the local real-media corpus, not probe-preselected answers.
-
-**Technical result:** PASS on 2026-08-13. The hardened Probe executes the real lexical/E5
-indexes, persisted OpenCV evidence/event reduction, canonical CandidateWindow generation and
-grounded Resolver. Local review artifacts are under `example/probe-output/r0_9_product/`.
-R0.9 remains open pending a real human verdict.
+**Goal:** establish the first rights-aware, grounded and audible music/audio-editing path using local audio, existing media-time/rights contracts and deterministic FFmpeg execution.
 
 ## Entry
 
 1. Read `docs/operations/CODEX_EXECUTION_ENTRY.md`.
 2. Read `docs/roadmap/CURRENT_PHASE_STATUS.md`.
 3. Read this file.
-4. Inspect only the current R0.8 evidence/retrieval persistence plus R0.9A/R0.9B pipeline/probes needed for this rerun.
+4. Read `docs/capabilities/CAP-06_MUSIC_AUDIO_EDITORIAL.md` sections 1–18 and Roadmap V2 R0.10.
+5. Inspect only existing Asset/rights, BeatMap placeholder, R0.8 speech/VAD and FFmpeg/audio seams required for this batch.
 
-Do not add a new R0.9 feature module and do not begin R0.10.
+Do not restart broad music-provider/model research. Do not add a paid/network music service, heavyweight audio-text model, final EDL authority, subtitle/render productization or R0.11+ work.
 
-## Mandatory repair
+## 1. Canonical music/audio contracts
 
-Replace the current product comparison's preconstructed decision inputs with the real implementation path.
+Evolve existing canonical seams rather than creating duplicate authorities.
 
-The Product Probe may fix:
+Implement provider-neutral values/artifacts sufficient for this boundary, including as appropriate:
 
-- EditPlan/EditSlot intent;
-- separate human-known expected semantic/event labels or coarse scoring windows;
-- deterministic strategy/configuration.
+- `MusicIntent`;
+- rights-aware local music candidate/eligibility result;
+- canonical `BeatMap` with rational source-time beats/downbeats/energy or confidence data actually measured by the baseline;
+- grounded `CandidateMusicWindow` wholly inside the authoritative audio Asset;
+- `MusicSelectionDecision` for the selected local candidate/window;
+- basic `AudioMixDecision` describing source-audio/BGM policy and explicit gain/duck/fade envelope intent.
 
-It must **not** feed the answer into the system by hardcoding:
+Keep provider/strategy parameters out of Domain truth. Do not let BeatMap or a model create video-cut authority.
 
-- winning `ShotCandidate` identities/ranks;
-- final `CandidateWindow` identities;
-- selected source ranges used as pipeline input.
+## 2. Rights-first local music path
 
-Candidates/ranks must come from the actual lexical and dense retrieval/index path over local project data. CandidateWindows must come from actual persisted/generated R0.8 speech/temporal evidence and anchors through the canonical R0.9 CandidateWindow generator. Resolver/optimizer must consume only those generated windows.
+Start from local user-owned/attested audio only.
 
-Use the existing gitignored `example/` corpus and existing local runtimes/caches. Reuse persisted evidence when trustworthy; regenerate through existing owners when needed. Do not fabricate ShotAnalysis or temporal evidence merely to force the expected result. Human-confirmed corpus coverage may be used as scoring ground truth, not as source-selection authority.
+Reuse `RightsAttestation`, `LicenseSnapshot`, `ManualLicenseOverride` and `RightsEligibility` semantics where they apply. Required behavior:
 
-## Comparison
+- `unknown` is never treated as clear;
+- ineligible music cannot become a selection;
+- warning requires inspectable warning/provenance;
+- local user music can become eligible through explicit attestation without pretending the system independently certified copyright;
+- generated/provider music remains outside the normal product pool in this batch.
 
-Run the same three variants over the same legal real-media search space:
+No arbitrary URL ingest and no external purchase flow.
 
-1. lexical-only;
-2. hybrid lexical+dense;
-3. hybrid + grounded Resolver/optimizer.
+## 3. BeatMap baseline
 
-Report actual retrieved Shot IDs/ranks, actual generated CandidateWindows, selected exact source ranges, recall where honestly scoreable, unresolved behavior, provenance and deterministic rerun equality.
+Implement a CPU-practical local BeatMap provider/service behind the owned seam. Prefer existing/local lightweight dependencies or FFmpeg-compatible analysis; do not add a large runtime merely for this batch.
 
-Do not require hybrid to beat lexical by construction. Report an honest tie/regression/improvement from the real corpus.
+Measure only what the implementation can support honestly. At minimum establish useful periodic/energy timing evidence sufficient to generate grounded musical windows. If reliable downbeat/phrase/section inference is not available in the first baseline, preserve those fields as unavailable rather than fabricating them.
 
-## Local review artifacts
+All BeatMap times use canonical rational `MediaTime` and remain inside the exact audio Asset source range.
 
-Replace/regenerate the local-only artifacts under:
+## 4. CandidateMusicWindow + selection
 
-`example/probe-output/r0_9_product/`
+Generate a bounded set of legal candidate music windows from measured BeatMap/audio boundaries and requested target duration. No arbitrary LLM timestamps and no millisecond enumeration.
 
-including:
+The selected window must preserve:
 
-- `lexical_only_preview.mp4`;
-- `hybrid_retrieval_preview.mp4`;
-- `grounded_resolver_preview.mp4`;
-- `comparison.json`;
-- `HUMAN_REVIEW.md`.
+- exact audio Asset revision;
+- exact rational source range;
+- BeatMap/evidence refs;
+- rights provenance;
+- strategy version;
+- score/confidence/reasons/warnings where available.
 
-The previews must be rendered only from source ranges produced by the repaired real pipeline.
+Selection can begin with transparent local metadata/structure rules. Do not add CLAP or another semantic-audio model unless the current evidence shows the batch cannot be completed without it.
 
-## Acceptance
+## 5. Basic AudioEditorial foundation
 
-Technical acceptance requires:
+Use existing R0.8 speech/VAD ranges when available to produce an explicit deterministic BGM gain envelope.
 
-- no preselected candidate/window/source-range answers in probe inputs;
-- real lexical+dense retrieval execution;
-- real evidence/anchor → CandidateWindow execution;
-- Resolver selections are exact generated CandidateWindows;
-- hard constraints dominate;
-- explicit unresolved where unsupported;
-- deterministic repeat/provenance;
-- R0.9A/R0.9B regressions and full Quality Gate green.
+At minimum support:
 
-If a bounded mechanism defect is exposed, repair it with regression coverage and rerun this same Product Probe in this work order.
+- source audio preserve/mute policy;
+- BGM base gain;
+- speech-aware duck-down / release envelope represented as inspectable data;
+- simple fade-in/fade-out;
+- no clipping/invalid-range behavior;
+- explicit unresolved/warning behavior when required audio evidence is missing.
 
-If technical acceptance passes, commit/push non-private changes and classify `READY_FOR_HUMAN_ACCEPTANCE`; stop before R0.9 closure/R0.10. If the real local corpus genuinely cannot supply an honest scored path, classify the smallest concrete evidence/corpus gap rather than substituting scripted answers.
+Do not encode these semantics only as opaque FFmpeg command strings. FFmpeg is execution, not authority.
 
-Final report: HEAD, actual pipeline stages exercised, real retrieved IDs/ranks, real CandidateWindows/source ranges, three preview files, named gates, Quality Gate and major-stage wall-clock.
+## 6. Audible engineering/live probe
+
+Create a reusable R0.10A probe under `tools/probes/`.
+
+If no rights-safe local music file already exists, create a deterministic local-only test music fixture solely for Engineering Probe purposes (for example a simple rhythmic synthetic signal). It must remain gitignored and must not be represented as product-selected commercial music.
+
+Exercise the full owned path:
+
+`local audio fixture/Asset → rights evidence → BeatMap → CandidateMusicWindow → MusicSelectionDecision → AudioMixDecision → FFmpeg diagnostic mix`
+
+Reuse one existing real video preview/source plus existing speech/VAD evidence where practical.
+
+Write local-only artifacts under:
+
+`example/probe-output/r0_10a/`
+
+At minimum:
+
+- `music_selection.json`;
+- `beatmap.json`;
+- `audio_mix_decision.json`;
+- `audible_mix_preview.mp4`.
+
+The preview should make the BGM plainly audible while preserving intelligible source/speech audio when present, so the user can verify that R0.10 has actually introduced audible soundtrack behavior.
+
+## Named probe gates
+
+Prove at least:
+
+1. `LOCAL_RIGHTS_REQUIRED` — no rights evidence means no clear selection;
+2. `INELIGIBLE_CANNOT_WIN`;
+3. `BEATMAP_SOURCE_TIME_BOUNDED`;
+4. `BEATMAP_DETERMINISTIC`;
+5. `MUSIC_WINDOW_GROUNDED`;
+6. `MUSIC_WINDOW_INSIDE_ASSET`;
+7. `SELECTION_PRESERVES_RIGHTS_PROVENANCE`;
+8. `SPEECH_DUCKING_EXPLICIT` — when speech evidence exists, gain-envelope intent is explicit and deterministic;
+9. `AUDIO_MIX_NO_AUTHORITY_LEAK` — FFmpeg execution cannot mutate selection/BeatMap authority;
+10. `AUDIBLE_PREVIEW_RENDERED`.
+
+Add focused regression coverage for canonical ownership, rational times, rights fail-closed behavior, deterministic window identity and mix-envelope bounds.
+
+## Quality / repair policy
+
+If a bounded defect in an existing shared mechanism appears, repair the invariant, add regression coverage and continue through this same work order when practical. Do not create a new micro-phase for routine fixes.
+
+Run focused tests, the R0.10A live probe and the complete repository Quality Gate.
+
+If all green:
+
+- coherent commit + push `main`;
+- keep generated audio/video artifacts local and gitignored;
+- classify `ENGINEERING BASELINE ADEQUATE`, `MATERIAL DEFECT` or `BLOCKED`;
+- report HEAD, implemented contracts/services, rights behavior, BeatMap/window metrics, ducking/mix evidence, preview path and major-stage wall-clock time;
+- stop at the R0.10A boundary. Do not begin external-provider music search or later R0.10 Product Probe work in this batch.
