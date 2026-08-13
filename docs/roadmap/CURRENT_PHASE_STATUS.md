@@ -4,7 +4,7 @@
 
 **Current phase:** R0.9 — Director → Retrieval → Resolver → Deterministic Optimizer
 
-**Active boundary:** R0.9 READY_FOR_HUMAN_ACCEPTANCE
+**Active boundary:** R0.9 Product Probe evidence hardening + Phase Closure
 
 **Date:** 2026-08-13
 
@@ -19,25 +19,21 @@
 - R0.9A `ef6efa1f047201c96caeb2c56d7c895af00549a1` — grounded EditSlot → hybrid retrieval → CandidateWindow.
 - R0.9B `fb2584d2c707fab3885179ad6f28e713362f2d68` — canonical edit contracts + grounded Resolver + deterministic sequence optimizer.
 
-R0.9B converged duplicate EditPlan/EditSlot/CandidateWindow ownership onto the existing Domain contracts, introduced rational DurationConstraint semantics, preserved R0.9A regression behavior, and passed its Resolver/optimizer probe and repository Quality Gate.
+R0.9A/B implementation remains accepted and CI-green.
 
-## Ready for human acceptance — R0.9 phase closure
+## Product Probe evidence hardening
 
-No new R0.9 feature module is planned before the Product Probe.
+Candidate closure probe `1d889ad1879f52e02966e6a441169db8ef0a6ddd` is **not yet valid for Human Gate**.
 
-The real-footage comparison has passed its technical acceptance gates:
+The probe renders real local footage, but its comparison function pre-constructs `ShotCandidate`, `CandidateWindow` and source ranges in probe code. Therefore the previews do not yet prove the required end-to-end chain from the real local corpus through the actual R0.9 retrieval/window machinery into Resolver.
 
-`lexical-only` vs `hybrid retrieval` vs `hybrid + grounded Resolver`.
+This is a probe-validity defect, not a reason to add R0.9C/R0.9D or reopen accepted R0.9A/B mechanisms.
 
-The probe exposes candidate recall, trim/source windows, final sequence decisions and three
-human-inspectable previews under the local gitignored
-`example/probe-output/r0_9_product/` directory. Technical gates passed; sequence/cut
-preference remains a Human Gate and has not been self-approved by Codex.
+The same Product Probe must be rerun with candidate identities/ranks produced by the actual lexical+dense retrieval path and source windows produced from actual R0.8 evidence/anchors through the canonical CandidateWindow generator. Fixed EditPlan intent and separate human-known scoring expectations are allowed; preselected candidate IDs or answer source ranges are not.
 
-R0.9 is now `READY_FOR_HUMAN_ACCEPTANCE`. After human acceptance, close R0.9 and activate
-R0.10 without adding another engineering subphase.
+After the repaired technical Product Probe passes, restore `READY_FOR_HUMAN_ACCEPTANCE` and expose the three real-pipeline previews for human candidate/trim/sequence judgment. Human acceptance then closes R0.9 and activates R0.10.
 
-Do not begin R0.10 implementation before R0.9 closure.
+Do not begin R0.10 before R0.9 closure.
 
 ## Operational control
 
