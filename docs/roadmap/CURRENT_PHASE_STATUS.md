@@ -4,7 +4,7 @@
 
 **Current phase:** R0.9 — Director → Retrieval → Resolver → Deterministic Optimizer
 
-**Active boundary:** R0.9 Product Probe evidence hardening + Phase Closure
+**Active boundary:** R0.9 READY_FOR_HUMAN_ACCEPTANCE
 
 **Date:** 2026-08-13
 
@@ -23,15 +23,19 @@ R0.9A/B implementation remains accepted and CI-green.
 
 ## Product Probe evidence hardening
 
-Candidate closure probe `1d889ad1879f52e02966e6a441169db8ef0a6ddd` is **not yet valid for Human Gate**.
+Candidate closure probe `1d889ad1879f52e02966e6a441169db8ef0a6ddd` was not valid for
+Human Gate because it preconstructed decision inputs. The hardened replacement now passes
+the required real-pipeline technical gates.
 
-The probe renders real local footage, but its comparison function pre-constructs `ShotCandidate`, `CandidateWindow` and source ranges in probe code. Therefore the previews do not yet prove the required end-to-end chain from the real local corpus through the actual R0.9 retrieval/window machinery into Resolver.
+That probe-validity defect was repaired without adding R0.9C/R0.9D or reopening accepted
+R0.9A/B mechanisms.
 
-This is a probe-validity defect, not a reason to add R0.9C/R0.9D or reopen accepted R0.9A/B mechanisms.
+The replacement executes the actual lexical and multilingual-E5 dense indexes over the
+managed local corpus, derives persisted OpenCV motion evidence and anchors, generates windows
+through the canonical CandidateWindow generator, and passes those windows to the grounded
+Resolver/optimizer. Its three previews remain local and gitignored.
 
-The same Product Probe must be rerun with candidate identities/ranks produced by the actual lexical+dense retrieval path and source windows produced from actual R0.8 evidence/anchors through the canonical CandidateWindow generator. Fixed EditPlan intent and separate human-known scoring expectations are allowed; preselected candidate IDs or answer source ranges are not.
-
-After the repaired technical Product Probe passes, restore `READY_FOR_HUMAN_ACCEPTANCE` and expose the three real-pipeline previews for human candidate/trim/sequence judgment. Human acceptance then closes R0.9 and activates R0.10.
+R0.9 is `READY_FOR_HUMAN_ACCEPTANCE`. Human acceptance then closes R0.9 and activates R0.10.
 
 Do not begin R0.10 before R0.9 closure.
 

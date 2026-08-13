@@ -1,10 +1,15 @@
 # Current Work Order
 
-**Status:** ACTIVE
+**Status:** READY_FOR_HUMAN_ACCEPTANCE
 
 **Phase:** R0.9 Product Probe evidence hardening + Phase Closure
 
 **Goal:** repair the Product Probe evidence chain so the R0.9 Human Gate is based on actual end-to-end retrieval/window/resolution behavior over the local real-media corpus, not probe-preselected answers.
+
+**Technical result:** PASS on 2026-08-13. The hardened Probe executes the real lexical/E5
+indexes, persisted OpenCV evidence/event reduction, canonical CandidateWindow generation and
+grounded Resolver. Local review artifacts are under `example/probe-output/r0_9_product/`.
+R0.9 remains open pending a real human verdict.
 
 ## Entry
 
