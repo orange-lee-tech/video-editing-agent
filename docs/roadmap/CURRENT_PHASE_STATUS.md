@@ -4,7 +4,7 @@
 
 **Current phase:** R0.9 — Director → Retrieval → Resolver → Deterministic Optimizer
 
-**Active boundary:** R0.9B — Canonical Edit Contracts → Resolver → Deterministic Optimizer
+**Active boundary:** R0.9 Product Probe + Phase Closure
 
 **Date:** 2026-08-13
 
@@ -14,25 +14,26 @@
 - R0.7B — Pre-production Planning + Commercial Skill Foundation.
 - R0.8 — Media Evidence Foundation.
 
-## R0.9A candidate
+## Accepted R0.9 engineering baselines
 
-`ef6efa1f047201c96caeb2c56d7c895af00549a1` — `feat: add grounded hybrid candidate windows`
+- R0.9A `ef6efa1f047201c96caeb2c56d7c895af00549a1` — grounded EditSlot → hybrid retrieval → CandidateWindow.
+- R0.9B `fb2584d2c707fab3885179ad6f28e713362f2d68` — canonical edit contracts + grounded Resolver + deterministic sequence optimizer.
 
-The R0.9A live probe passed and produced an inspectable real-media CandidateWindow preview. Post-review found three bounded contract issues that must be converged before Resolver work expands:
+R0.9B converged duplicate EditPlan/EditSlot/CandidateWindow ownership onto the existing Domain contracts, introduced rational DurationConstraint semantics, preserved R0.9A regression behavior, and passed its Resolver/optimizer probe and repository Quality Gate.
 
-1. canonical `EditPlan` / `EditSlot` already exist in `domain/edit/model.py`; do not keep a competing Director definition;
-2. canonical `CandidateWindow` already exists in `domain/edit/resolution.py`; do not keep a competing Director definition;
-3. `MediaTimeRange` means an exact media interval and must not be reused as a min/max duration constraint.
+## Active — R0.9 phase closure
 
-These are structural hardening items, not a failed retrieval/window mechanism. R0.9B must fix them first and continue in the same batch into Resolver + deterministic sequence optimization.
+No new R0.9 feature module is planned before the Product Probe.
 
-## Active — R0.9B
+The remaining Roadmap requirement is the major real-footage comparison:
 
-Build the first deterministic grounded source-selection decision using the existing `ResolutionDecision` / `ResolvedSelection` contract. Preserve explainable feature contributions, score/confidence separation, alternatives, evidence provenance, hard-feasibility dominance and deterministic sequence optimization over bounded CandidateWindows.
+`lexical-only` vs `hybrid retrieval` vs `hybrid + grounded Resolver`.
 
-The local probe should also export a non-authoritative resolved-sequence diagnostic preview for human inspection.
+The probe must expose candidate recall, trim/source windows, final sequence decisions and human-inspectable previews. Technical gates can be automated; sequence/cut preference remains a Human Gate and must not be self-approved by Codex.
 
-After R0.9B, run the real-footage R0.9 Product Probe / phase closure before entering R0.10.
+If the technical Product Probe is sound, stop at `READY_FOR_HUMAN_ACCEPTANCE`. After human acceptance, close R0.9 and activate R0.10 without adding another engineering subphase.
+
+Do not begin R0.10 implementation before R0.9 closure.
 
 ## Operational control
 
