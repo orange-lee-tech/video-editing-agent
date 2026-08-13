@@ -4,7 +4,7 @@
 
 **Current phase:** R0.9 — Director → Retrieval → Resolver → Deterministic Optimizer
 
-**Active boundary:** R0.9 Product Probe + Phase Closure
+**Active boundary:** R0.9 READY_FOR_HUMAN_ACCEPTANCE
 
 **Date:** 2026-08-13
 
@@ -21,17 +21,21 @@
 
 R0.9B converged duplicate EditPlan/EditSlot/CandidateWindow ownership onto the existing Domain contracts, introduced rational DurationConstraint semantics, preserved R0.9A regression behavior, and passed its Resolver/optimizer probe and repository Quality Gate.
 
-## Active — R0.9 phase closure
+## Ready for human acceptance — R0.9 phase closure
 
 No new R0.9 feature module is planned before the Product Probe.
 
-The remaining Roadmap requirement is the major real-footage comparison:
+The real-footage comparison has passed its technical acceptance gates:
 
 `lexical-only` vs `hybrid retrieval` vs `hybrid + grounded Resolver`.
 
-The probe must expose candidate recall, trim/source windows, final sequence decisions and human-inspectable previews. Technical gates can be automated; sequence/cut preference remains a Human Gate and must not be self-approved by Codex.
+The probe exposes candidate recall, trim/source windows, final sequence decisions and three
+human-inspectable previews under the local gitignored
+`example/probe-output/r0_9_product/` directory. Technical gates passed; sequence/cut
+preference remains a Human Gate and has not been self-approved by Codex.
 
-If the technical Product Probe is sound, stop at `READY_FOR_HUMAN_ACCEPTANCE`. After human acceptance, close R0.9 and activate R0.10 without adding another engineering subphase.
+R0.9 is now `READY_FOR_HUMAN_ACCEPTANCE`. After human acceptance, close R0.9 and activate
+R0.10 without adding another engineering subphase.
 
 Do not begin R0.10 implementation before R0.9 closure.
 

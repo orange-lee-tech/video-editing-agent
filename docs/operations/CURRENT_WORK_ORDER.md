@@ -1,10 +1,14 @@
 # Current Work Order
 
-**Status:** ACTIVE
+**Status:** READY_FOR_HUMAN_ACCEPTANCE
 
 **Phase:** R0.9 Product Probe + Phase Closure
 
 **Goal:** prove or falsify R0.9 on the existing local real-media corpus by comparing retrieval/selection baselines, then stop for a real Human Gate before phase closure.
+
+**Technical result:** PASS on 2026-08-13. Local review artifacts are in the gitignored
+`example/probe-output/r0_9_product/` directory. R0.9 remains open pending a real human
+sequence/cut-quality verdict.
 
 ## Entry
 
