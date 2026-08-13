@@ -1,10 +1,15 @@
 # Current Work Order
 
-**Status:** ACTIVE
+**Status:** ENGINEERING BASELINE ADEQUATE
 
 **Phase:** R0.10A — Local Music Rights → BeatMap → CandidateMusicWindow → Audible Mix Foundation
 
 **Goal:** establish the first rights-aware, grounded and audible music/audio-editing path using local audio, existing media-time/rights contracts and deterministic FFmpeg execution.
+
+**Technical result:** PASS on 2026-08-13. The local-only Engineering Probe established
+rights fail-closed behavior, a deterministic WAV-energy BeatMap, grounded music windows,
+explicit VAD duck/fade automation and an audible FFmpeg diagnostic mix. External providers
+and later R0.10 Product Probe work were not started.
 
 ## Entry
 

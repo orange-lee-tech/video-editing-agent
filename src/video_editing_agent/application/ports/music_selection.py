@@ -55,6 +55,26 @@ class MusicSelectionRequest:
 
 
 @dataclass(frozen=True, slots=True)
+class CandidateMusicWindow:
+    candidate_id: str
+    audio_asset_ref: EntityRevisionRef
+    source_range: MediaTimeRange
+    beat_map_ref: EntityRevisionRef
+    rights_evidence_refs: tuple[str, ...]
+    strategy_version: str
+    score: float
+    confidence: float
+
+    def __post_init__(self) -> None:
+        if not self.candidate_id.strip() or not self.strategy_version.strip():
+            raise ValueError("candidate identity/strategy must not be empty")
+        if not self.rights_evidence_refs:
+            raise ValueError("music window requires rights provenance")
+        _confidence(self.score)
+        _confidence(self.confidence)
+
+
+@dataclass(frozen=True, slots=True)
 class MusicSelectionDecision:
     decision_id: str
     selected_asset_ref: EntityRevisionRef

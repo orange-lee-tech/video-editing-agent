@@ -6,6 +6,7 @@ from enum import StrEnum
 from typing import Protocol
 
 from video_editing_agent.domain.common.entity import EntityRevisionRef
+from video_editing_agent.domain.common.media_time import MediaTime
 
 
 class SourceAudioPolicy(StrEnum):
@@ -30,6 +31,8 @@ class AudioAutomationIntent:
     gain_db: float | None = None
     evidence_refs: tuple[str, ...] = ()
     reason: str | None = None
+    start: MediaTime | None = None
+    end: MediaTime | None = None
 
     def __post_init__(self) -> None:
         if not self.target_slot_ids or any(not value.strip() for value in self.target_slot_ids):
@@ -39,6 +42,11 @@ class AudioAutomationIntent:
                 raise TypeError("gain_db must be a number or None")
             if not math.isfinite(float(self.gain_db)):
                 raise ValueError("gain_db must be finite")
+        if (self.start is None) != (self.end is None):
+            raise ValueError("automation start/end must both be present or absent")
+        if self.start is not None and self.end is not None:
+            if self.start.as_fraction() < 0 or self.end.as_fraction() <= self.start.as_fraction():
+                raise ValueError("automation range must be positive and ordered")
 
 
 @dataclass(frozen=True, slots=True)
