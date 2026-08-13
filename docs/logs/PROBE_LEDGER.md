@@ -70,7 +70,7 @@ The shared commercial-authority refactor was materially working: the earlier fit
 
 Do not weaken the reviewer. Tighten the shared authority contract and fixture toward neutral observable mechanics, cover it with deterministic regressions, require free CI green, then allow one more Product Probe.
 
-### R0.7B Product Probe run #16 — 31610613082
+### R0.7B Product Probe run #16 — 31610613082 — CLOSED
 
 - Date: 2026-08-12
 - Baseline: `48ecafcf45a299ced4d9abafd5501e2b9031f4a3`
@@ -87,17 +87,62 @@ Do not weaken the reviewer. Tighten the shared authority contract and fixture to
 - Material provider invoked: false for both cases
 - Product Ad duration: target 30 s, estimated 23 s, delta -7 s
 - Natural Vlog duration: target 45 s, estimated 45 s, delta 0 s
-- Human evaluation status: pending
+- Human evaluation status: accepted
+- Formal closure: `docs/validation/R0.7B_FINAL_CLOSURE.md`
 
 #### Information gained
 
-The unified Authority + neutral-observation rule can now carry both distinct R0.7B policies through real provider generation, semantic review, shooting planning, and final automated Product Review without the previous unsupported fit/ease claims. The remaining question is no longer an automated semantic-gate question; it is the explicit Human Gate over usefulness, shooting executability, factual fidelity, and expected coverage.
+The unified Authority + neutral-observation rule carried both distinct R0.7B policies through real provider generation, semantic review, shooting planning, and final automated Product Review without the previous unsupported fit/ease claims.
 
-The Product Ad 23/30-second duration result is retained as a human product-quality note. The Roadmap does not define exact duration equality as the R0.7B Product Probe exit criterion, so this is not silently converted into an engineering failure or another paid probe trigger.
+The Product Ad 23/30-second duration result is retained as a non-blocking product-quality note. The Roadmap does not define exact duration equality as the R0.7B Product Probe exit criterion, so it is not converted into an engineering failure or another paid probe trigger.
 
 #### Decision after run #16
 
-- No more paid Product Probe is justified before Human Gate feedback.
-- Do not tune prompts merely to remove the 7-second duration delta.
-- If Human Gate accepts both plans as practical, write formal R0.7B closure evidence and synchronize authoritative/current-state docs.
-- If Human Gate rejects a material product property, classify that product-quality defect first and fix the shared mechanism rather than the observed sentence.
+Human Gate accepted usefulness, shooting executability, factual fidelity, and expected coverage. R0.7B is formally closed. No further R0.7B prompt tuning or paid probe is justified absent a new observed product defect.
+
+### R0.8B Windows Speech / VAD Engineering Probe — 2026-08-13
+
+- Baseline: `1b3406ccec0cc852918ff10d6d7dea9f830e5990`
+- Environment: Windows 11 x64, CPython 3.12.13, Intel i5-6300U, ~19.9 GiB RAM
+- Evidence: `docs/validation/R0.8B_WINDOWS_SPEECH_VAD_ENGINEERING_PROBE.md`
+- Repository mutation during probe: none; `.tools/` only
+- Local Quality Gate: all required checks passed
+- Paid Product Probe: not run
+
+#### Faster-Whisper
+
+- Runtime: `faster-whisper 1.2.1`
+- Model: `Systran/faster-whisper-base`
+- Model revision: `ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66`
+- CPU/int8: successful
+- Word/segment timestamps: present
+- Offline `local_files_only=True`: successful
+- English SAPI sanity: successful, RTF 1.209
+- Chinese SAPI sanity: successful, RTF 0.735
+- Classification: `BASE ADEQUATE`
+- Decision: approved as the R0.8 Windows CPU ASR Engineering baseline; natural-human-speech accuracy remains a later product-quality concern.
+
+#### Silero VAD
+
+- Upstream/model: Silero VAD 6.2.1 pinned ONNX
+- ONNX Runtime 1.28.0: installed, loaded, inferred successfully
+- Silence fixture: complete silence partition, RTF 0.127
+- Speech fixture: silence → speech → silence, RTF 0.110
+- No-audio: unavailable/error, not fabricated silence
+- Atomic persistence and nondeterminism invariants: deterministic tests passed
+- ONNX Runtime 1.29.0 Python comparison: deferred because a compatible Python package was not installable through the tested acquisition path at probe time
+- Decision: ONNX Runtime 1.28.0 + pinned Silero ONNX path approved as the R0.8 Windows CPU VAD Engineering baseline; 1.29 comparison is non-blocking deferred maintenance.
+
+#### Information gained
+
+The existing ASR/VAD provider architecture is not merely unit-test scaffolding: both concrete local inference paths run on the target Windows CPU environment with the expected timing/probability outputs and without a high-end GPU.
+
+The remaining Speech risk is now integration/product quality rather than provider viability. A reusable live provider → owner → SQLite reopen regression should be created before phrase/time mapping relies on persisted Speech/VAD evidence.
+
+#### Decision after R0.8B Engineering Probe
+
+- Preserve the current provider/domain authority boundaries.
+- Do not switch model/runtime merely because a newer version exists.
+- Build one reusable full-chain Speech/VAD integration probe next.
+- If that gate is green, continue to deterministic phrase/time mapping.
+- Do not start R0.9 Director/Resolver authority during this work.
