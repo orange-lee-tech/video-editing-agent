@@ -128,8 +128,7 @@ def main() -> int:
             static["global_median"] < 0.1 and static["residual_p95_median"] < 0.1
         ),
         "PAN_ONLY_FALSE_LOCAL_ACTION": (
-            pan["raw_median"] > 0.5
-            and pan["residual_p95_median"] < pan["raw_median"] * 0.35
+            pan["raw_median"] > 0.5 and pan["residual_p95_median"] < pan["raw_median"] * 0.35
         ),
         "LOCAL_ONLY_RESIDUAL_PRESERVED": (
             local["residual_p95_median"] > static["residual_p95_median"] + 0.5
@@ -182,9 +181,7 @@ def main() -> int:
         asset_media_resolver=Resolver(live_path),
         temporal_evidence_repository=SqliteTemporalEvidenceRepository(database),
         artifact_store=LocalArtifactStore(artifact_root),
-        motion_port=OpenCvVisualMotionPort(
-            OpenCvMotionConfig(ffmpeg_executable=args.ffmpeg)
-        ),
+        motion_port=OpenCvVisualMotionPort(OpenCvMotionConfig(ffmpeg_executable=args.ffmpeg)),
     ).measure(shot_ref)
     reopened = SqliteTemporalEvidenceRepository(SqliteProjectDatabase(database_path)).list_evidence(
         shot_ref
@@ -213,9 +210,7 @@ def main() -> int:
         "shot_range": [1, 4],
         "cases": reports,
         "gates": {name: "PASS" if value else "FAIL" for name, value in gates.items()},
-        "PAN_ONLY_FALSE_LOCAL_ACTION": (
-            "PASS" if gates["PAN_ONLY_FALSE_LOCAL_ACTION"] else "FAIL"
-        ),
+        "PAN_ONLY_FALSE_LOCAL_ACTION": ("PASS" if gates["PAN_ONLY_FALSE_LOCAL_ACTION"] else "FAIL"),
         "persistence": {
             "status": "PASS" if persistence_pass else "FAIL",
             "evidence": len(reopened),

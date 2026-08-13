@@ -77,9 +77,7 @@ class OpenCvVisualMotionPort(VisualMotionPort):
         )
         grays = (
             cv2.cvtColor(
-                np.frombuffer(frame, dtype=np.uint8).reshape(
-                    config.height, config.width, 3
-                ),
+                np.frombuffer(frame, dtype=np.uint8).reshape(config.height, config.width, 3),
                 cv2.COLOR_RGB2GRAY,
             )
             for frame in frames
