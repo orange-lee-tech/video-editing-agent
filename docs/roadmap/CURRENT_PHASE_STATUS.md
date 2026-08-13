@@ -1,63 +1,48 @@
 # Current Roadmap Phase Status
 
-**Roadmap:** V2 ACTIVE  
+**Roadmap V2:** ACTIVE  
 **Current phase:** R0.8 — Media Evidence Foundation  
-**Updated:** 2026-08-13
+**Active boundary:** R0.8G — Retrieval Representation  
+**Date:** 2026-08-13
 
-## Authority
+## Completed
 
-```text
-Product Constitution v1.0
-→ Architecture Contract v0.2
-→ Capability Specs / ADRs
-→ Roadmap V2
-→ current implementation
-```
+- R0.7A — Architecture v0.2 Migration Foundation: CLOSED.
+- R0.7B — Pre-production Planning + Commercial Skill Foundation: CLOSED.
+- R0.8 Speech: CPU ASR, word/segment timestamps, VAD/silence, transcript persistence and deterministic phrase/time mapping.
+- R0.8 Visual temporal evidence: camera/global motion, camera-compensated residual motion, event regions, coarse anchors, fine temporal refinement and seeded subject/product tracking Engineering baselines.
 
-For live implementation facts, always reobserve current `origin/main`; do not treat a recorded SHA in historical evidence as current HEAD.
+R0.8F implementation baseline:
 
-## Closed phases
+`1b5ac063d6be44929a159b7457a802077f0bf64f` — `feat: add seeded subject tracking evidence`
 
-- R0.7A — Architecture v0.2 Migration Foundation: CLOSED. See `docs/validation/R0.7A_FINAL_CLOSURE.md`.
-- R0.7B — Pre-production Planning + Commercial Skill Foundation: CLOSED. See `docs/validation/R0.7B_FINAL_CLOSURE.md`.
+Its controlled Windows probe passed moving-target, pan+local, occlusion, target-exit, distractor, deterministic and persistence/reopen gates. Real-footage robustness remains deliberately unclaimed until the R0.8 Product Probe.
 
-## R0.8 completed engineering foundations
+## Active — R0.8G Retrieval Representation
 
-### Speech
+Finish the remaining engineering representation layer required by R0.8:
 
-- CPU Faster-Whisper baseline;
-- word/segment timestamps;
-- Silero VAD / silence evidence;
-- transcript persistence and reopen;
-- deterministic phrase/time mapping.
+- derived visual-semantic and speech-text embedding representations;
+- local multilingual embedding provider baseline;
+- explicit model/revision/dimension/normalization and source-revision provenance;
+- deterministic project-local exact vector scan;
+- rebuild/invalidation when representation inputs or embedding model change;
+- preserve `ShotAnalysis` identity and semantic authority.
 
-### Visual temporal evidence
+Use the existing `ShotIndexRepresentationDescriptor`, ShotIndex ownership, lexical index and artifact-lifecycle seams. Embeddings are rebuildable retrieval state, never Domain semantic truth.
 
-- exact Shot-scoped camera/global motion measurement;
-- camera-compensated residual motion;
-- bounded-memory streaming frame-pair processing;
-- durable motion Artifact + low-density measurement-set evidence;
-- deterministic event-region reduction;
-- coarse onset / peak / settle anchors;
-- bounded high-rate refinement with exact analyzed-source-range provenance;
-- v1 motion Artifact backward read + v2 range-aware write;
-- persistence/restart and rational original-Asset time mapping.
+Do not implement R0.9 Director/Resolver authority or CandidateWindow generation in this phase.
 
-The latest owner invariant requires provider-reported `analyzed_source_range` to equal the requested analysis range before any Artifact/evidence commit.
+## After R0.8G
 
-## R0.8 remaining planned work
+R0.8H is the phase-level real-footage Product Probe / closure gate using talking-head, handheld product-demo, camera-pan, hand/product interaction, low-motion and noisy/blurred footage. It must measure grounded temporal usefulness and retrieval behavior before R0.8 can close.
 
-1. **R0.8F — Seeded subject/product tracking baseline** — active next boundary.
-2. **R0.8G — Retrieval representation** — multilingual dense representation + provenance + exact local vector scan.
-3. **R0.8H — Real-footage Product Probe and phase closure** — talking head, handheld product demo, camera pan, hand/product interaction, low motion, noisy/blurred footage.
+## Operational control
 
-R0.8 must not leap into R0.9 Director / Resolver authority before these foundations and the real-footage evidence gate are complete.
+Codex reads, in order:
 
-## Operational entrypoints
+1. `docs/operations/CODEX_EXECUTION_ENTRY.md`
+2. this file
+3. `docs/operations/CURRENT_WORK_ORDER.md`
 
-- Codex behavior: `docs/operations/CODEX_EXECUTION_ENTRY.md`
-- Active implementation boundary: `docs/operations/CURRENT_WORK_ORDER.md`
-- Probe history: `docs/logs/PROBE_LEDGER.md`
-- Incident/root-cause history: `docs/logs/INCIDENT_LEDGER.md`
-
-The phase-status file is intentionally concise and may be rewritten as work advances. Historical detail belongs in validation/log documents, not here.
+`CURRENT_WORK_ORDER.md` is the single active implementation boundary. Historical validation/logs are consulted only when that work order points to them.
