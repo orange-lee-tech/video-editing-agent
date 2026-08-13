@@ -1,19 +1,11 @@
-﻿# Architecture Decision Records
+# Legacy Decision Archive
 
-Architecture Contracts are stable baselines.
+This directory contains an early ADR-era record retained for provenance.
 
-Implementation-specific architectural decisions are recorded here as ADRs.
+**Do not add new ADRs here.** The active ADR home accepted by Planning Baseline A0 is:
 
-Naming:
+`docs/adr/`
 
-`ADR-0001-short-title.md`
+Historical files in this directory may still explain early implementation choices, but when they conflict with Product Constitution v1.0, Architecture Contract v0.2 or current `docs/adr/`, the newer accepted authority wins.
 
-Each ADR should contain:
-
-- Context
-- Decision
-- Alternatives considered
-- Consequences
-- Contract impact
-
-Do not modify an Architecture Contract merely because an implementation is inconvenient.
+Do not move/delete historical records merely to make numbering look cleaner; preserve links and provenance unless an explicit migration is justified.

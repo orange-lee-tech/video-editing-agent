@@ -13,6 +13,10 @@ Before coding, read only what is needed in this order:
 
 Do not reread the entire repository or historical validation archive unless the active work order requires it.
 
+## Pause gate
+
+If `CURRENT_WORK_ORDER.md` says `PAUSED`, `NO ACTIVE IMPLEMENTATION WORK`, or otherwise contains no active implementation boundary, **make no code changes and do not resurrect a previous work order**. Report the paused state and stop.
+
 ## Execution behavior
 
 - Reobserve local/remote state first: clean tree, `main`, fetch, fast-forward only.

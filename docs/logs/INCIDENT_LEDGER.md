@@ -8,44 +8,68 @@ Non-authoritative durable debugging history. See `docs/logs/README.md`.
 
 ### Mechanism
 
-Generation, Script review, Shooting review and Product review initially interpreted commercial authority independently. Mechanical facts such as a screw-on lid or 500 mL capacity could drift into unsupported convenience, fit, sufficiency or ease claims. Free-text production-location identity and reviewer projection drift created adjacent symptoms.
+Generation, Script review, Shooting review and Product review initially interpreted commercial authority independently. Mechanical facts could drift into unsupported convenience, fit, sufficiency or ease claims.
 
 ### Durable invariant
 
-`objective`, `audience` and `core_message` may define narrative context/positioning but do not establish concrete product property, performance, fit, adequacy, operability, reliability or outcome facts. Concrete assertions and successful demonstrations require explicit authoritative support.
-
-When authority establishes only a visible mechanism/action/state, generation and review surfaces may describe that neutral observation only. Ease, convenience, simplicity, sufficiency and resulting benefit require separate authority.
-
-### Systemic fix
-
-- shared Commercial Authority projection across generation/review;
-- structured ProductionLocation identity;
-- veto-only reviewer semantics;
-- bounded repair that removes unsupported semantic properties rather than paraphrasing them;
-- deterministic regressions across spoken, on-screen, visual and shooting-instruction surfaces.
+Concrete product property/performance/outcome assertions require explicit authoritative support. Generation and review share the same commercial-authority projection.
 
 ### Closure evidence
 
-Product Probe run `31610613082` on baseline `48ecafcf45a299ced4d9abafd5501e2b9031f4a3` passed automated gates for Product Ad and Natural Vlog. Human Gate subsequently accepted usefulness, shooting executability, factual fidelity and expected coverage. Formal closure: `docs/validation/R0.7B_FINAL_CLOSURE.md`.
-
-Do not reopen this cluster for isolated wording unless new evidence demonstrates a shared invariant failure.
+Product Probe run `31610613082` on baseline `48ecafcf45a299ced4d9abafd5501e2b9031f4a3` passed automated gates and Human Gate. Formal closure: `docs/validation/R0.7B_FINAL_CLOSURE.md`.
 
 ## R0.8E analyzed-source-range owner guard — CLOSED
 
 **Date:** 2026-08-13
 
-### Symptom
+### Mechanism
 
-R0.8E introduced `analyzed_source_range` provenance and tests/Windows probe passed, but code review found the owner check that provider-reported range equals the requested analysis range placed after `return result`, making the validation unreachable.
+The provider-range equality guard existed after `return`, so a faulty provider range could bypass owner validation before persistence.
 
-### Mechanism / subsystem
+### Durable invariant
 
-Owner-boundary validation existed textually but not in the executable control flow. A faulty provider could therefore report a mismatched analysis window and still reach Artifact/evidence persistence.
-
-### Shared invariant
-
-Provider-reported exact analysis identity/range must be validated by the owner **before** any durable Artifact or evidence commit. A guard after persistence/return is not a guard.
+Provider-reported exact analysis identity/range must be validated by the owner **before** any durable Artifact/evidence commit.
 
 ### Fix / verification
 
-Commit `220f6c3d912319cf5e66f2ddf989bdff0d41302d` moves the range-equality check before measurement validation/persistence and adds an explicit provider-range-mismatch regression. GitHub Actions run `31666637333` completed successfully.
+Commit `220f6c3d912319cf5e66f2ddf989bdff0d41302d`; CI run `31666637333` succeeded.
+
+## R0.9 Product Probe answer-injection evidence defect — CLOSED
+
+**Date:** 2026-08-13
+
+### Symptom
+
+A technically green Product Probe rendered real footage and reported plausible lexical/hybrid/Resolver comparisons, but the probe itself preconstructed ShotCandidate objects, CandidateWindows and answer source ranges.
+
+### Mechanism
+
+The evidence harness bypassed the retrieval/evidence/window-generation stages it claimed to validate. Real media at the final FFmpeg step did not make the upstream selection evidence real.
+
+### Durable invariant
+
+A Product Probe must obtain system outputs from the actual owned pipeline. Human ground truth/expected answers may be separate scoring data, but must never be injected as candidate IDs, windows, timestamps or Resolver inputs.
+
+### Fix / verification
+
+The closure probe was reopened rather than sent to Human Gate. Commit `a8574d170aeb366a655b6d32486b481eb081321f` rebuilt the comparison through managed corpus → actual lexical/dense retrieval → R0.8 evidence → canonical CandidateWindow generator → Resolver. The repaired probe passed and later Human Gate accepted visual selection/cut quality.
+
+## R0.10B decision→execution evidence bypass — CLOSED
+
+**Date:** 2026-08-13
+
+### Symptom
+
+R0.10B selected `[9,12)` music segments and produced structured AudioMixDecision automation, but the diagnostic preview independently trimmed `0:6`, hardcoded duck ranges, and measured QC on the input music fixture.
+
+### Mechanism
+
+The probe had two parallel truths: canonical decisions in data and a separately authored FFmpeg path. A plausible audible preview therefore did not prove that the decisions were actually executed.
+
+### Durable invariant
+
+Diagnostic execution must consume canonical decisions. Changing the decision must change the execution plan; execution must not mutate the decision. Output QC must measure the rendered/post-mix output it claims to describe.
+
+### Fix / verification
+
+Commit `81afb604b96486587a308f6f4c69d89f1450f46e` added a non-authoritative compiler from MusicSelectionDecision + AudioMixDecision to an inspectable FFmpeg execution plan, executed the selected source segments, decoded final preview audio for QC, and added decision-mutation/executed-range/clipped-control regressions. CI run `31712962989` succeeded.

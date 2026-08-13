@@ -1,12 +1,9 @@
 # Current Roadmap Phase Status
 
-**Roadmap V2:** ACTIVE
-
-**Current phase:** R0.10 — Music Selection + BeatMap + Audio Editorial
-
-**Active boundary:** R0.10 Product Probe + Phase Closure
-
-**Date:** 2026-08-13
+**Roadmap V2:** ACTIVE  
+**Current phase:** R0.10 — Music Selection + BeatMap + Audio Editorial  
+**Engineering state:** PAUSED BY USER  
+**Pause date:** 2026-08-13
 
 ## Closed
 
@@ -20,14 +17,14 @@
 - `7d4dcc0afb26556f9a161b73ca408946f6f417d7` — R0.10A local rights-aware audible music foundation.
 - `81afb604b96486587a308f6f4c69d89f1450f46e` — R0.10B feature-ranked music windows, natural mix intent, canonical decision→execution bridge and post-mix QC.
 
-R0.10B is accepted as `ENGINEERING BASELINE ADEQUATE`.
+## Pause boundary
 
-## Active — R0.10 Product Probe
+R0.10 is **not closed**.
 
-Use real rights-attested music and a real short-form project for the final R0.10 product comparison. Synthetic rhythmic fixtures remain Engineering-Probe-only.
+The next planned product boundary remains a real-music R0.10 Product Probe/Human Gate, but it is intentionally **not active work**. No R0.11 work has begun.
 
-If technical evidence passes, stop at `READY_FOR_HUMAN_ACCEPTANCE`. Human acceptance closes R0.10 and activates R0.11. Do not begin R0.11 before closure.
+Do not infer an implementation task from the previous Product Probe work order or chat history. Feature construction resumes only after an explicit user instruction and a refreshed `CURRENT_WORK_ORDER.md`.
 
-## Operational control
+## Governance review
 
-Codex reads `CODEX_EXECUTION_ENTRY.md`, this file, then `CURRENT_WORK_ORDER.md`.
+The 2026-08-13 repository audit confirmed Roadmap V2, Product Constitution v1.0 and Architecture Contract v0.2 remain usable as the governing map/authority set. Navigation and repository hygiene were refreshed without changing product policy.
