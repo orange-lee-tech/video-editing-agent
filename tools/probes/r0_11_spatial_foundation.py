@@ -18,11 +18,13 @@ from video_editing_agent.application.ports.spatial_composer import (
     SpatialCompositionRequest,
     SpatialCropKeyframe,
     SpatialEvidenceView,
+    SpatialInterpolationMode,
     SpatialPathPolicy,
 )
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
 from video_editing_agent.domain.edit.resolution import ResolvedSelection
+from video_editing_agent.render.spatial_plan_ffmpeg import compile_spatial_plan
 from video_editing_agent.spatial.composer import (
     DeterministicSpatialComposer,
     tracking_proposal_to_spatial_track,
@@ -322,8 +324,16 @@ def main() -> int:
         "TRACK_HARD_CUT_RESET": second_track_decision.transform_plan.shot_ref
         != track_decision.transform_plan.shot_ref
         and second_track_decision.transform_plan.keyframes[0].source_time == MediaTime(20, 1),
-        "OCCLUSION_HOLDS_LAST_CROP": lost_observation.bounds is None
-        and track_keyframes[2].crop == locked.crop,
+        "OCCLUSION_HAS_NO_FABRICATED_GEOMETRY": lost_observation.bounds is None,
+        "BOUNDED_RECOVERY_BRIDGE": track_decision.spatial_qc is not None
+        and track_decision.spatial_qc.recovery_bridge_count == 1
+        and track_decision.spatial_qc.recovery_bridge_duration_seconds == 2.0,
+        "TRACK_INTERPOLATION_CANONICAL": track_decision.transform_plan.interpolation
+        is SpatialInterpolationMode.LINEAR,
+        "FFMPEG_CONSUMES_CANONICAL_INTERPOLATION": compile_spatial_plan(
+            track_decision.transform_plan
+        ).adapter_id
+        == "ffmpeg-spatial-transform-plan-v2",
         "MANUAL_LOCK_UNCHANGED": locked in track_keyframes,
         "LEGACY_VIEW_DERIVES_FROM_PLAN": tuple(
             item.source_time for item in track_decision.keyframes

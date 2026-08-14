@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Protocol
 
 from video_editing_agent.application.ports.seeded_tracking import NormalizedRectangle
@@ -182,10 +183,11 @@ class SpatialEvidenceTrack:
 
 @dataclass(frozen=True, slots=True)
 class SpatialPathPolicy:
-    version: str = "r0.11-stability-candidate-v1"
+    version: str = "r0.11-stability-recovery-candidate-v2"
     center_dead_zone_pixels: int = 12
     max_center_velocity_pixels_per_second: int = 800
     max_lost_hold_gap: MediaTime = MediaTime(1, 1)
+    max_reacquisition_gap: MediaTime = MediaTime(4, 1)
     suppress_redundant_keyframes: bool = True
 
     def __post_init__(self) -> None:
@@ -202,6 +204,8 @@ class SpatialPathPolicy:
                 raise ValueError(f"{name} must be a non-negative int")
         if self.max_lost_hold_gap.as_fraction() < 0:
             raise ValueError("max_lost_hold_gap must be >= 0")
+        if self.max_reacquisition_gap.as_fraction() < self.max_lost_hold_gap.as_fraction():
+            raise ValueError("max_reacquisition_gap must be >= max_lost_hold_gap")
 
 
 @dataclass(frozen=True, slots=True)
@@ -217,6 +221,11 @@ class SpatialPathQc:
     held_loss_duration_seconds: float
     suppressed_keyframe_count: int
     unresolved_reason: str | None = None
+    recovery_bridge_count: int = 0
+    recovery_bridge_duration_seconds: float = 0.0
+    maximum_reacquisition_gap_observed_seconds: float = 0.0
+    terminal_held_loss_count: int = 0
+    terminal_held_loss_duration_seconds: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -239,6 +248,11 @@ class ManualCropLock:
             raise ValueError("lock_id must not be empty")
 
 
+class SpatialInterpolationMode(StrEnum):
+    HOLD = "hold"
+    LINEAR = "linear"
+
+
 @dataclass(frozen=True, slots=True)
 class SpatialTransformPlan:
     selection_id: str
@@ -247,10 +261,13 @@ class SpatialTransformPlan:
     source_geometry: SourceFrameGeometry
     output_canvas: OutputCanvas
     keyframes: tuple[SpatialCropKeyframe, ...]
+    interpolation: SpatialInterpolationMode = SpatialInterpolationMode.HOLD
 
     def __post_init__(self) -> None:
         if not self.selection_id.strip() or not self.keyframes:
             raise ValueError("spatial transform plan requires identity and keyframes")
+        if not isinstance(self.interpolation, SpatialInterpolationMode):
+            raise ValueError("unsupported spatial interpolation mode")
         times = tuple(item.source_time.as_fraction() for item in self.keyframes)
         if times != tuple(sorted(set(times))):
             raise ValueError("crop keyframe source times must be unique and increasing")

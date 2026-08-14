@@ -9,6 +9,12 @@ authors = [
 requires-python = ">=3.12"
 dependencies = []
 
+[project.optional-dependencies]
+mediapipe-recovery = [
+    "mediapipe==0.10.31",
+    "opencv-python-headless==4.13.0.92",
+]
+
 [project.scripts]
 video-editing-agent = "video_editing_agent.adapters.cli.main:main"
 

@@ -17,6 +17,7 @@ from video_editing_agent.application.ports.spatial_composer import (
     SpatialCropKeyframe,
     SpatialEvidenceTrack,
     SpatialFocusObservation,
+    SpatialInterpolationMode,
     SpatialPathQc,
     SpatialTransformKeyframe,
     SpatialTransformPlan,
@@ -360,11 +361,20 @@ class DeterministicSpatialComposer:
         held_loss_duration = Fraction(0)
         suppressed_keyframes = 0
         policy = request.path_policy
-        for observation in track.observations:
+        recovery_bridge_count = 0
+        recovery_bridge_duration = Fraction(0)
+        maximum_reacquisition_gap = Fraction(0)
+        terminal_held_loss_count = 0
+        terminal_held_loss_duration = Fraction(0)
+        observations = track.observations
+        index = 0
+        while index < len(observations):
+            observation = observations[index]
             if (
                 observation.source_time.as_fraction()
                 >= selection.selected_source_range.end.as_fraction()
             ):
+                index += 1
                 continue
             if (
                 observation.source_time.as_fraction()
@@ -377,20 +387,41 @@ class DeterministicSpatialComposer:
                     return self._unresolved(
                         request, "tracking begins lost; no legal crop exists to hold"
                     )
-                loss_gap = (observation.source_time - last_available_time).as_fraction()
-                if loss_gap > policy.max_lost_hold_gap.as_fraction():
-                    return self._unresolved(
-                        request,
-                        f"tracking loss exceeds policy={policy.version} max_lost_hold_gap",
-                    )
-                if last_observation_time is not None:
-                    held_loss_duration += (
-                        observation.source_time - last_observation_time
+                run_end = index
+                while run_end < len(observations) and observations[run_end].status == "lost":
+                    run_end += 1
+                recovered = observations[run_end] if run_end < len(observations) else None
+                if recovered is not None:
+                    recovery_gap = (recovered.source_time - last_available_time).as_fraction()
+                    maximum_reacquisition_gap = max(maximum_reacquisition_gap, recovery_gap)
+                    if recovery_gap > policy.max_reacquisition_gap.as_fraction():
+                        return self._unresolved(
+                            request,
+                            f"tracking recovery exceeds policy={policy.version} "
+                            "max_reacquisition_gap",
+                        )
+                    recovery_bridge_count += 1
+                    recovery_bridge_duration += recovery_gap
+                    index = run_end
+                    continue
+                for lost in observations[index:run_end]:
+                    loss_gap = (lost.source_time - last_available_time).as_fraction()
+                    if loss_gap > policy.max_lost_hold_gap.as_fraction():
+                        return self._unresolved(
+                            request,
+                            f"tracking loss exceeds policy={policy.version} max_lost_hold_gap",
+                        )
+                    increment = (
+                        lost.source_time - (last_observation_time or last_available_time)
                     ).as_fraction()
-                held_loss_count += 1
-                keyframes.append(SpatialCropKeyframe(observation.source_time, last_crop))
-                lost_times.add(observation.source_time.as_fraction())
-                last_observation_time = observation.source_time
+                    held_loss_duration += increment
+                    terminal_held_loss_duration += increment
+                    held_loss_count += 1
+                    terminal_held_loss_count += 1
+                    keyframes.append(SpatialCropKeyframe(lost.source_time, last_crop))
+                    lost_times.add(lost.source_time.as_fraction())
+                    last_observation_time = lost.source_time
+                index = run_end
                 continue
             assert observation.bounds is not None
             focus = _bounds(observation.bounds, request.source_geometry)
@@ -448,6 +479,7 @@ class DeterministicSpatialComposer:
             last_observation_time = observation.source_time
             last_available_time = observation.source_time
             available_confidence.append(observation.confidence)
+            index += 1
         if not keyframes:
             return self._unresolved(request, "tracking evidence has no in-range observations")
 
@@ -482,14 +514,16 @@ class DeterministicSpatialComposer:
             request.source_geometry,
             request.intent.output_canvas,
             canonical,
+            SpatialInterpolationMode.LINEAR,
         )
         warnings = tuple(
             message
             for condition, message in (
                 (
                     lost_seen,
-                    "tracking loss holds the last legal crop; "
-                    f"policy={self.track_loss_policy} is mechanism-level and uncalibrated",
+                    "tracking loss holds the last legal crop only for terminal short loss or "
+                    "uses a grounded endpoint recovery "
+                    f"bridge; policy={policy.version} is Product-Probe calibrated",
                 ),
                 (manual_used, "manual crop locks override track solve at locked source times"),
             )
@@ -505,6 +539,11 @@ class DeterministicSpatialComposer:
             held_loss_count,
             float(held_loss_duration),
             suppressed_keyframes,
+            recovery_bridge_count,
+            float(recovery_bridge_duration),
+            float(maximum_reacquisition_gap),
+            terminal_held_loss_count,
+            float(terminal_held_loss_duration),
         )
         return self._decision(request, "track", plan, confidence, warnings, qc)
 
@@ -580,6 +619,11 @@ class DeterministicSpatialComposer:
         held_loss_count: int,
         held_loss_duration: float,
         suppressed_keyframes: int,
+        recovery_bridge_count: int,
+        recovery_bridge_duration: float,
+        maximum_reacquisition_gap: float,
+        terminal_held_loss_count: int,
+        terminal_held_loss_duration: float,
     ) -> SpatialPathQc:
         keyframes = plan.keyframes
         displacements: list[float] = []
@@ -625,6 +669,12 @@ class DeterministicSpatialComposer:
             held_loss_count,
             held_loss_duration,
             suppressed_keyframes,
+            None,
+            recovery_bridge_count,
+            recovery_bridge_duration,
+            maximum_reacquisition_gap,
+            terminal_held_loss_count,
+            terminal_held_loss_duration,
         )
 
     @staticmethod

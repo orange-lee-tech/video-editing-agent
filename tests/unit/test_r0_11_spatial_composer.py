@@ -18,6 +18,7 @@ from video_editing_agent.application.ports.spatial_composer import (
     SpatialCropKeyframe,
     SpatialEvidenceTrack,
     SpatialEvidenceView,
+    SpatialInterpolationMode,
     SpatialPathPolicy,
 )
 from video_editing_agent.domain.common.entity import EntityRevisionRef
@@ -225,6 +226,7 @@ def test_tracking_relative_time_maps_to_canonical_source_time_and_is_determinist
     )
     decision = DeterministicSpatialComposer().compose(request)
     assert decision.mode == "track" and decision.transform_plan is not None
+    assert decision.transform_plan.interpolation is SpatialInterpolationMode.LINEAR
     assert len(decision.transform_plan.keyframes) == 2
     for keyframe in decision.transform_plan.keyframes:
         validate_crop(keyframe.crop, SOURCE, PORTRAIT)
@@ -379,3 +381,76 @@ def test_loss_gap_policy_holds_short_and_refuses_over_limit() -> None:
     assert short.spatial_qc.held_loss_count == 1
     assert short.spatial_qc.held_loss_duration_seconds == 1.0
     assert over.mode == "unresolved" and "max_lost_hold_gap" in over.infeasible_reason
+
+
+def test_bounded_recovery_bridges_only_grounded_endpoints_over_actual_interval() -> None:
+    selection = _selection()
+    samples = (
+        TrackingSample(
+            MediaTime(0, 1),
+            "available",
+            None,
+            NormalizedRectangle(0.2, 0.2, 0.05, 0.2),
+            9,
+            0.9,
+        ),
+        TrackingSample(MediaTime(1, 1), "lost", "occlusion", None, 0, 0.0),
+        TrackingSample(MediaTime(2, 1), "lost", "occlusion", None, 0, 0.0),
+        TrackingSample(
+            MediaTime(3, 1),
+            "available",
+            None,
+            NormalizedRectangle(0.4, 0.2, 0.05, 0.2),
+            8,
+            0.8,
+        ),
+    )
+    decision = DeterministicSpatialComposer().compose(
+        _track_request(selection, _tracking_proposal(selection, samples))
+    )
+    assert decision.transform_plan is not None and decision.spatial_qc is not None
+    assert tuple(item.source_time for item in decision.transform_plan.keyframes) == (
+        MediaTime(10, 1),
+        MediaTime(13, 1),
+    )
+    assert decision.spatial_qc.recovery_bridge_count == 1
+    assert decision.spatial_qc.recovery_bridge_duration_seconds == 3.0
+    assert decision.spatial_qc.maximum_reacquisition_gap_observed_seconds == 3.0
+    assert decision.spatial_qc.held_loss_count == 0
+
+
+def test_recovery_over_limit_and_initial_loss_fail_closed() -> None:
+    selection = _selection()
+    available = TrackingSample(
+        MediaTime(0, 1),
+        "available",
+        None,
+        NormalizedRectangle(0.2, 0.2, 0.05, 0.2),
+        9,
+        0.9,
+    )
+    recovered = replace(available, relative_time=MediaTime(9, 2))
+    over = DeterministicSpatialComposer().compose(
+        _track_request(
+            selection,
+            _tracking_proposal(
+                selection,
+                (
+                    available,
+                    TrackingSample(MediaTime(1, 1), "lost", "occlusion", None, 0, 0.0),
+                    recovered,
+                ),
+            ),
+        )
+    )
+    initial = DeterministicSpatialComposer().compose(
+        _track_request(
+            selection,
+            _tracking_proposal(
+                selection,
+                (TrackingSample(MediaTime(0, 1), "lost", "occlusion", None, 0, 0.0),),
+            ),
+        )
+    )
+    assert over.mode == "unresolved" and "max_reacquisition_gap" in over.infeasible_reason
+    assert initial.mode == "unresolved" and "begins lost" in initial.infeasible_reason
