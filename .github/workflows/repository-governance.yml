@@ -1,0 +1,33 @@
+name: repository-governance
+
+on:
+  push:
+    paths:
+      - "README.md"
+      - "LICENSE_STATUS.md"
+      - "docs/**"
+      - "tools/maintenance/**"
+      - "scripts/maintain.ps1"
+      - ".github/README.md"
+      - ".github/workflows/repository-governance.yml"
+  pull_request:
+    paths:
+      - "README.md"
+      - "LICENSE_STATUS.md"
+      - "docs/**"
+      - "tools/maintenance/**"
+      - "scripts/maintain.ps1"
+      - ".github/README.md"
+      - ".github/workflows/repository-governance.yml"
+  workflow_dispatch:
+
+jobs:
+  repository-doctor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check repository governance invariants
+        run: python tools/maintenance/repo_doctor.py

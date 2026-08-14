@@ -36,6 +36,22 @@ HANDOFF_READY is not a product freeze and should not be treated as permanent blo
 - Exact source time remains rational `MediaTime` / `MediaTimeRange`.
 - Do not leap beyond the current Roadmap phase or beyond the active work-order completion boundary.
 
+## Maintenance micro-toolbox
+
+Use these when they reduce repeated work; they are helpers, not mandatory ceremony:
+
+```powershell
+powershell -File scripts/maintain.ps1 doctor
+powershell -File scripts/maintain.ps1 handoff -Output .private/handoff.md
+powershell -File scripts/maintain.ps1 verify
+```
+
+- `doctor` is useful after navigation/archive/control-plane changes.
+- `handoff` creates a **local, non-authoritative** snapshot for conversation transfer.
+- `verify` delegates to the existing canonical full Quality Gate.
+
+Do not create a new automation for a one-off task. Do not let maintenance tools become product/editorial authority.
+
 ## Verification and commit
 
 For code-bearing batches, unless the work order explicitly narrows this:

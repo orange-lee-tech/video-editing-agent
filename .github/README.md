@@ -1,10 +1,11 @@
 # GitHub Automation
 
-This directory contains CI and reproducible engineering/probe workflows.
+This directory contains CI and reproducible engineering/probe/maintenance workflows.
 
 ## Current role
 
 - `workflows/ci.yml` is the primary repository quality-gate workflow.
+- `workflows/repository-governance.yml` runs the lightweight repository doctor when documentation/governance/tooling surfaces change.
 - Other named workflows preserve targeted provider/media/persistence/phase probe entry points and historical reproducibility.
 - `scripts/` contains GitHub-runner helpers such as Windows FFmpeg installation.
 
@@ -21,6 +22,7 @@ Keep a workflow when it still provides one of:
 
 - required CI coverage;
 - reproducible provider/runtime validation;
+- deterministic repository-maintenance protection;
 - durable regression evidence that would be costly to reconstruct.
 
 Remove or consolidate a workflow only after verifying that no active CI, validation record or maintenance path depends on it. Do not delete historical workflows merely to make the directory shorter.
