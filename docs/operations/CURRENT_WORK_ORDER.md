@@ -1,65 +1,80 @@
 # Current Work Order
 
-**Status:** ACTIVE  
-**Phase:** R0.10 — source-audio policy/execution repair → real-music Product Probe / Human Gate / closure  
+**Status:** WAITING_INPUT  
+**Phase:** R0.10 — real-music Product Probe / Human Gate / closure  
 **Updated:** 2026-08-14
 
 ## Current evidence
 
-Remote implementation baseline before this work order refresh:
+Current accepted implementation baseline:
 
-`5644c22211d43cba10b5cdae0575316a32a49a89` — `fix: derive audio ducking from mix decision`
+`6c5b70be39ab4188942787974a07fd1e2d0283ce` — `fix: enforce source audio mix policy`
 
-Observed evidence:
+Observed and reverified evidence:
 
-- fixed-base-gain assumption removed from `compile_audio_execution()`;
-- focused R0.10A/R0.10B tests passed;
-- full Quality Gate passed on remote CI;
-- real-music Product Probe did not run because `example/product-probe-music/` had `0/2` required real local music candidates;
-- classification was correctly `NEEDS_REAL_MUSIC_INPUT`.
+- `AudioMixDecision.source_audio_policy` now controls canonical execution;
+- `PRESERVE` consumes/mixes source audio when available;
+- `MUTE` does not reference the source-audio input and retains intentional BGM output;
+- missing source audio can still produce a valid audible BGM-only output;
+- undefined source-audio `DUCK` fails closed rather than inventing semantics;
+- routine planning with no grounded speech defaults to `MUTE`; grounded speech selects `PRESERVE` using the existing speech/VAD evidence path;
+- existing VAD already uses stream-selective FFmpeg PCM decode, so no eager audio proxy was added without benchmark need;
+- R0.10 focused/live regressions and full repository Quality Gate are green on remote CI.
 
-## Why this boundary changed
+## Why work is waiting
 
-The user clarified a durable product/editorial preference: routine short-form editing should not drag noisy camera audio through the workflow merely because it is muxed with the video. Original source media must remain intact, but visual processing and source-audio processing should be separable, and routine output may mute source audio unless dialogue/ambience/meaningful action sound is intentionally needed.
+The R0.10 engineering boundary is complete enough to run the required Product Probe. The only current blocker is external/user input:
 
-This matches the existing R0.10 Roadmap deliverable `source audio preserve/mute policy`; it is not a new phase.
+```text
+NEEDS_REAL_MUSIC_INPUT
+real local music candidates = 0 / required 2
+```
 
-A code audit also shows a real execution gap:
+Do not create substitute engineering work simply to keep the phase moving.
 
-- `AudioMixDecision` already carries `SourceAudioPolicy`;
-- current basic planning effectively uses `PRESERVE`;
-- current diagnostic audio compiler always consumes `[0:a]` and therefore does not make `source_audio_policy` authoritative.
+## Required user input
 
-## Coherent implementation boundary
+Provide at least two materially different real local music files under the gitignored local probe area, normally:
 
-1. Preserve the authoritative ingested video Asset unchanged. Do not destructively strip/rewrite source files.
-2. Keep visual and source-audio lanes logically separate. Visual-only work must not depend on carrying audio. Reuse existing stream-selective FFmpeg decode where adequate; do **not** automatically materialize a large permanent PCM copy for every Asset.
-3. If a reusable demuxed/decoded audio derivative materially reduces repeated ASR/VAD/audio-analysis work, implement it only as a provenance-preserving derived Artifact/cache with exact source-time mapping. Prefer the smallest architecture-consistent implementation; benchmark before making eager extraction mandatory.
-4. Make `AudioMixDecision.source_audio_policy` affect canonical execution truth. At minimum, `MUTE` and `PRESERVE` must produce observably different valid execution plans and rendered outputs. Give `DUCK` deterministic semantics only if existing ownership/model semantics support it cleanly; otherwise fail explicitly rather than inventing hidden behavior.
-5. For routine short-form planning with no grounded need for camera audio, use `MUTE` as the normal default. Preserve/attenuate source audio only when grounded speech/ambience/critical action sound or explicit user/editorial intent requires it. Do not add expensive denoising merely to rescue unneeded camera audio.
-6. When source speech or critical sound is intentionally retained, preserve its grounded time integrity. Reuse existing ASR/VAD/TemporalEvidence/CandidateWindow machinery rather than creating a second timestamp authority.
-7. Add regressions proving decision mutation changes execution, including source-audio policy. Include a no-audio-input case and prevent accidental silent final output when an intentional BGM/voiceover/SFX lane exists.
-8. Keep all R0.10A/R0.10B regressions and the full repository Quality Gate green.
-9. When at least two materially different, rights-attested real local music tracks are available, resume the existing R0.10 Product Probe and produce the already-defined three controlled comparisons: music candidate, music moment, structured mix.
-10. If real music is still unavailable after the engineering repair, stop with `NEEDS_REAL_MUSIC_INPUT`. If the Product Probe is technically green, stop at `READY_FOR_HUMAN_ACCEPTANCE`.
+```text
+example/product-probe-music/
+```
+
+The user must be able to attest that the tracks may be used for this local test/project. A simple explicit attestation is sufficient for the Product Probe evidence record; the software records the claim but does not certify its legal truth.
+
+The tracks should be materially different enough to make the music-candidate comparison meaningful (for example different mood, rhythm, instrumentation or energy profile). Do not download arbitrary tracks merely to satisfy the count.
+
+## Resume boundary once input exists
+
+1. Sync clean `main` to current `origin/main` and reobserve the control plane.
+2. Confirm at least two suitable local music files and record user rights attestation without fabricating license facts.
+3. Use one real short-form project and run the accepted rights → BeatMap → CandidateMusicWindow → MusicSelectionDecision → AudioMixDecision → canonical execution/render/QC path.
+4. Produce the three controlled comparisons already defined for R0.10:
+   - music candidate: Track A vs Track B;
+   - music moment: ordinary legal window vs feature-ranked selected window;
+   - mix: basic mix vs structured duck/fade mix.
+5. Every preview must consume canonical decisions and receive rendered-output QC.
+6. Keep all R0.10A/R0.10B/source-audio-policy regressions and the full repository Quality Gate green.
+7. If technically green, stop at `READY_FOR_HUMAN_ACCEPTANCE` and present the comparisons in ordinary human terms. Only the user/Human Gate can close R0.10.
 
 ## Hard boundaries
 
 - no destructive modification of user source Assets;
-- no claim that a demuxed audio proxy is a new authoritative Asset;
-- no second audio/timestamp authority outside `AudioMixDecision` → EDLBuilder/execution ownership;
 - no arbitrary downloaded music or fabricated rights;
 - no synthetic music as Product Probe evidence;
-- no R0.11 work before R0.10 closes;
-- no heavyweight denoising/audio model without a demonstrated benchmark need.
+- no second audio/timestamp authority;
+- no new audio proxy unless benchmark evidence justifies it;
+- no new R0.10 micro-phase merely to avoid the input gate;
+- no R0.11 work before R0.10 closes.
 
-## Codex entry
+## Codex entry after input is ready
 
-Before coding:
+Read only:
 
-1. sync clean `main` to current `origin/main`;
-2. read `docs/operations/CODEX_EXECUTION_ENTRY.md`;
-3. read `docs/roadmap/CURRENT_PHASE_STATUS.md` and this work order;
-4. read `docs/capabilities/CAP-06_MUSIC_AUDIO_EDITORIAL.md`;
-5. inspect only the relevant audio planning/execution, ASR/VAD decode path and tests;
-6. execute the whole coherent boundary and stop at its stated gate.
+1. `docs/operations/CODEX_EXECUTION_ENTRY.md`
+2. `docs/roadmap/CURRENT_PHASE_STATUS.md`
+3. this work order
+4. `docs/capabilities/CAP-06_MUSIC_AUDIO_EDITORIAL.md`
+5. the Product Probe implementation/tests actually needed
+
+Then execute the complete remaining R0.10 Product Probe boundary and stop at its stated gate.

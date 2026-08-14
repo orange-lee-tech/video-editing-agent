@@ -2,7 +2,7 @@
 
 **Roadmap V2:** ACTIVE  
 **Current phase:** R0.10 — Music Selection + BeatMap + Audio Editorial  
-**Engineering state:** ACTIVE — source-audio policy/execution repair before Product Probe  
+**Engineering state:** WAITING_INPUT — R0.10 engineering green; real-music Product Probe requires 2 local rights-attested tracks  
 **Updated:** 2026-08-14
 
 ## Closed
@@ -17,37 +17,31 @@
 - `7d4dcc0afb26556f9a161b73ca408946f6f417d7` — R0.10A local rights-aware audible music foundation.
 - `81afb604b96486587a308f6f4c69d89f1450f46e` — R0.10B feature-ranked music windows, natural mix intent, canonical decision→execution bridge and post-mix QC.
 - `5644c22211d43cba10b5cdae0575316a32a49a89` — compiler repair: duck/base-gain relationship derives entirely from `AudioMixDecision`; full Quality Gate green.
+- `6c5b70be39ab4188942787974a07fd1e2d0283ce` — source-audio policy execution repair: `MUTE`/`PRESERVE` change canonical execution/render truth, undefined source-audio `DUCK` fails closed, no-grounded-speech planning defaults to `MUTE`, no-source-audio BGM-only output remains valid and audible.
 
-## Active R0.10 boundary
+## Current R0.10 gate
 
 R0.10 is **not closed**.
 
-The compiler `-10 dB` preflight is complete. The attempted real-music Product Probe stopped correctly at:
+Engineering repair is complete and remote CI is green. The remaining product boundary is:
+
+```text
+>= 2 materially different real local music tracks
++ user rights attestation
+→ real-music Product Probe
+→ controlled A/B: music candidate / music moment / mix
+→ READY_FOR_HUMAN_ACCEPTANCE
+→ Human Gate
+→ R0.10 closure
+```
+
+Current input state:
 
 ```text
 NEEDS_REAL_MUSIC_INPUT
 real local music candidates = 0 / required 2
 ```
 
-No substitute music was downloaded and no synthetic fixture was treated as Product Probe evidence.
+This is an input gap, not an engineering failure. No arbitrary music may be downloaded, no rights may be fabricated, and synthetic music cannot substitute for Product Probe evidence.
 
-Before the Product Probe resumes, a newly surfaced R0.10 Audio Editorial gap must be repaired inside the same phase: `AudioMixDecision.source_audio_policy` exists, but current planning/execution effectively preserves source audio and the diagnostic execution path does not yet make preserve/mute policy authoritative.
-
-The active coherent boundary is therefore:
-
-```text
-non-destructive source-audio lane separation semantics
-→ source-audio policy must change execution truth
-→ keep R0.10A/R0.10B green
-→ when >=2 rights-attested real local music tracks exist, run Product Probe A/B
-→ Human Gate
-→ R0.10 closure
-```
-
-Architecture Contract v0.2 remains unchanged: the original ingested Asset stays immutable; demuxed/decoded audio is a derived Artifact/cache when used.
-
-No R0.11 implementation has begun.
-
-## Governance review
-
-This is not a new micro-phase. Roadmap V2 already defines source-audio preserve/mute policy as an R0.10 Audio Editorial deliverable. The current repair closes that existing ownership/execution gap before product-quality claims are made.
+No further R0.10 engineering work should be invented merely to avoid this input gate. No R0.11 implementation has begun.
