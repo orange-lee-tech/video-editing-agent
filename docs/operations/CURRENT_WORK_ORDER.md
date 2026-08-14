@@ -1,88 +1,87 @@
 # Current Work Order
 
-**Status:** ACTIVE  
-**Phase:** R0.11 — interpolation-aware recovery Product Probe final QC repair  
+**Status:** READY_FOR_HUMAN_GATE  
+**Phase:** R0.11 — real Auto Reframe Product Probe Human Gate  
 **Updated:** 2026-08-14
 
-## Accepted implementation candidate
+## Accepted implementation
 
-`1be9a6121b53a46d1038b67737541b47ee97ec0a` — `feat: add interpolation-aware spatial recovery`
+`d06592560dbeb764666592effa00f7d5537715ef` — `fix: make spatial QC interpolation-aware`
 
 Verified on GitHub:
 
-- single fast-forward implementation commit from `1a203e257...`;
-- remote `ci/quality-gate-diagnostic` is green;
-- canonical `SpatialTransformPlan` now explicitly owns `HOLD` / `LINEAR` interpolation;
-- FFmpeg adapter `ffmpeg-spatial-transform-plan-v2` consumes canonical interpolation using exact rational time and deterministic round-half-up pixel evaluation;
-- MediaPipe recovery is an optional provider behind the existing seeded-tracking evidence boundary;
-- detector model remains external/uncommitted and SHA-256 pinned;
-- `SpatialPathPolicy(version=r0.11-stability-recovery-candidate-v2)` separates terminal short hold (`<=1 s`) from bounded reacquisition (`<=4 s`);
-- recovered lost runs bridge grounded before/after endpoints only; lost observations carry no geometry;
-- full reported Quality Gate: 486 tests plus Ruff, mypy, import contracts, build and diff checks green.
+- fast-forward implementation from `7aa09a7...`;
+- remote `ci/quality-gate-diagnostic` is success;
+- `SpatialTransformPlan.evaluate_crop()` is the canonical HOLD/LINEAR source-time evaluator;
+- SpatialComposer QC and FFmpeg execution now share the same exact rational / round-half-up interpolation semantics;
+- FFmpeg adapter remains `ffmpeg-spatial-transform-plan-v2`; preview execution semantics and preview bytes did not change in the final QC repair;
+- MediaPipe recovery remains optional and provider-neutral;
+- external EfficientDet model SHA is pinned and the model remains uncommitted;
+- `SpatialPathPolicy(version=r0.11-stability-recovery-candidate-v2)` keeps terminal loss hold <=1 s and bounded reacquisition <=4 s;
+- lost observations contain no geometry; recovery bridges grounded endpoints only;
+- full reported Quality Gate is green with 487 tests.
 
-## Real evidence now available
+## Authoritative Product Probe QC
 
-Integrated MediaPipe recovery on `moving_occlusion1_landscape.mp4` reproduced deterministically:
+Movement source:
 
-- 96 available / 92 lost;
-- main loss `47/30`;
-- recovery `133/30`;
-- latency `2.8667 s`;
-- same intended subject recovered;
-- 96/96 reported grounded-observation containment;
-- no fabricated lost geometry.
+`moving_occlusion2_landscape.mp4` — `[7/10, 13/5)`
 
-Six interpolation-aware local/private previews were generated for the existing movement and occlusion source ranges and passed technical decode/output checks.
+- RAW: 40/40 interpolation-aware containment, 41 keyframes, max canonical velocity 240 px/s;
+- STABILIZED: 40/40 containment, 14 keyframes, max canonical velocity 195 px/s.
 
-## Audit finding before Human Gate
+Occlusion source:
 
-The previews are not rejected, but one QC calculation must be repaired before product acceptance evidence is trusted.
+`moving_occlusion1_landscape.mp4` — `[0, 563298/90000)`
 
-`DeterministicSpatialComposer._track_qc()` currently checks each available observation against the latest canonical keyframe at or before that observation time. That is correct for `HOLD`, but tracked plans now use `SpatialInterpolationMode.LINEAR`.
+- RAW: 96/96 interpolation-aware containment, 99 keyframes, max canonical velocity 600 px/s;
+- STABILIZED: 96/96 containment, 14 keyframes, max canonical velocity 450 px/s;
+- main loss `47/30` -> recovery `133/30`;
+- recovery latency 2.8667 s;
+- recovered identity is the intended seeded subject and is contained at recovery;
+- no source/aspect violations, no unresolved plan, no fabricated lost geometry.
 
-Therefore `contained_focus_count` is currently evaluated with stale HOLD semantics instead of the canonical interpolated crop actually executed at that source time.
+The six previously generated local/private previews remain technically valid and were reused byte-for-byte because the final repair changed QC semantics only.
 
-The reported `96/96` containment is consequently not yet authoritative for LINEAR plans.
+## Human Gate — movement
 
-This is an **evidence/QC correctness defect**, not evidence that interpolation, recovery, or MediaPipe itself is wrong.
+Compare:
 
-## Required bounded repair
+- `example/r0_11_product_probe/output/moving_occlusion2_landscape_center.mp4`
+- `example/r0_11_product_probe/output/moving_occlusion2_landscape_raw.mp4`
+- `example/r0_11_product_probe/output/moving_occlusion2_landscape_stabilized.mp4`
 
-1. Make canonical spatial-plan evaluation reusable outside Renderer.
-2. There must be one deterministic evaluator for `HOLD` / `LINEAR` source-time crop semantics.
-3. Prefer placing the pure evaluator with the canonical Application spatial artifact (for example a method/function owned alongside `SpatialTransformPlan`) so both SpatialComposer QC and Renderer consume the same semantics without an inward dependency on `render`.
-4. Preserve exact rational time and deterministic round-half-up pixel behavior.
-5. `SpatialComposer._track_qc()` must evaluate the actual canonical crop at every available observation time before checking containment.
-6. Renderer must consume the same canonical evaluator/semantics and retain no independent interpolation policy.
-7. Add focused regressions proving a LINEAR intermediate observation is checked against the interpolated crop rather than the prior keyframe crop.
-8. Re-run the full Quality Gate.
-9. Re-run Product Probe metadata/QC for both movement and occlusion trios. Re-render only if code/evidence comparison shows output bytes or execution semantics changed; otherwise preserve the already generated v2 previews and refresh metadata/QC honestly.
-10. Stop for Human Gate only after interpolation-aware containment is authoritative.
-
-## Do not change in this repair
-
-- no SpatialPathPolicy retuning;
-- no change to 12 px dead zone or 800 px/s velocity candidate;
-- no change to 1 s terminal hold or 4 s reacquisition candidate;
-- no new tracker/provider;
-- no model bundling;
-- no project-license change;
-- no R0.12 work;
-- no audio-provider work;
-- no R0.11 closure.
-
-## Human Gate after repair
-
-Movement trio:
+Report only:
 
 - best overall: `center / raw / stabilized / tie`;
 - stabilized feel: `natural / jittery / chasing / laggy`;
-- obvious defect: none / clipping / jump / wrong focus / excessive chase / excessive lag / other.
+- obvious defect: `none / clipping / jump / wrong focus / excessive chase / excessive lag / other`.
 
-Occlusion trio:
+## Human Gate — occlusion/recovery
+
+Compare:
+
+- `example/r0_11_product_probe/output/moving_occlusion1_landscape_center.mp4`
+- `example/r0_11_product_probe/output/moving_occlusion1_landscape_raw.mp4`
+- `example/r0_11_product_probe/output/moving_occlusion1_landscape_stabilized.mp4`
+
+Report only:
 
 - best overall: `center / raw / stabilized / tie`;
 - recovery: `acceptable / unacceptable`;
-- obvious defect: wrong focus / abrupt jump / stale framing / excessive lag / clipping / other.
+- obvious defect: `none / wrong focus / abrupt jump / stale framing / excessive lag / clipping / other`.
 
-Human judgment remains product authority; QC is supporting mechanism evidence only.
+Human-visible judgment is product authority. Do not tune again before the Product Owner reports this gate.
+
+## Remaining release note
+
+The exact EfficientDet model redistribution/commercial terms remain `RELEASE_LICENSE_PENDING`. This does not block this local Human Gate. The Product Owner is willing to open-source the project, but no root project license has yet been selected.
+
+## Explicitly not allowed before Human Gate
+
+- no SpatialPathPolicy tuning;
+- no new tracker/provider/model;
+- no rerender unless the user reports a concrete output defect requiring a bounded repair;
+- no R0.12 implementation;
+- no audio-provider work;
+- no R0.11 closure before Human Gate.
