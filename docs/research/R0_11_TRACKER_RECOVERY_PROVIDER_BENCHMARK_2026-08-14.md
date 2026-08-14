@@ -6,16 +6,14 @@ The first valid non-9:16 Product Probe produced a partial result at:
 
 `66fc889094dd46dd51d5ccf028869c37658f648b` — `feat: execute canonical spatial plans in ffmpeg`
 
-Observed local Product Probe evidence reported by Codex:
+Subsequent Human Gate and provider-benchmark evidence changed the active interpretation:
 
-- `moving_occlusion2_landscape.mp4` successfully produced comparable center/raw/stabilized 9:16 previews;
-- raw tracking produced 41 keyframes while stabilized tracking produced 14 keyframes with 27 redundant keyframes suppressed;
-- both raw and stabilized retained mandatory-focus containment for all 40 available observations;
-- the canonical `SpatialTransformPlan` → FFmpeg executor produced valid 540×960 previews;
-- `moving_occlusion1_landscape.mp4` failed before the intended occlusion/recovery event because the current Sparse-LK evidence path lost support at relative `29/30` s and did not reacquire;
-- therefore the remaining blocker is tracker recovery/reacquisition capability, not `SpatialComposer` motion stability.
+1. the movement previews are not valid SpatialComposer acceptance evidence yet because the current FFmpeg adapter is step-held and visibly jumps at crop keyframes;
+2. the current Sparse-LK evidence path cannot reacquire after loss;
+3. a MediaPipe detector + deterministic Sparse-LK reseed candidate does reacquire the originally seeded person deterministically;
+4. the successful real reacquisition gap is 2.863 s, which exceeds the current 1 s lost-hold contract and exposes a separate long-loss/recovery semantic gap.
 
-Do not retune R0.11 crop-path policy while solving this tracker problem.
+Do not conflate these layers.
 
 ## Architectural constraint
 
@@ -28,112 +26,158 @@ SpatialTransformPlan      → execution truth
 Renderer/FFmpeg           → execute only
 ```
 
-A replacement detector/tracker may improve observations and recovery, but it may not become crop authority.
+A detector/tracker may improve observations and recovery, but it may not become crop authority.
 
-## Candidate A — YOLOX-Nano + ByteTrack
+Renderer may not invent interpolation or smoothing not represented by the canonical spatial decision.
 
-Preferred first benchmark candidate.
+## Current Sparse-LK baseline
 
-Why:
-
-- YOLOX official project license: Apache-2.0;
-- ByteTrack official project license: MIT;
-- ByteTrack is explicitly detector-driven and intended to associate detection boxes across video;
-- both projects document ONNX / ONNX Runtime deployment paths;
-- ONNX Runtime itself is MIT and supports a default CPU execution provider;
-- detector-every-frame + association directly addresses the current Sparse-LK no-reacquisition failure mode;
-- YOLOX-Nano is a plausible CPU/local Tier-1 candidate without adopting Ultralytics licensing.
-
-Release gate:
-
-- record the exact detector model/checkpoint/ONNX artifact source and SHA-256;
-- do not infer model-weight terms only from the code repository license;
-- record notices/transitive dependencies before release approval.
-
-Status: `PRIMARY_BENCHMARK_CANDIDATE / NOT_YET_APPROVED_FOR_RELEASE`.
-
-## Candidate B — MediaPipe Object Detector + deterministic Sparse-LK reseed
-
-Secondary benchmark candidate.
-
-Why:
-
-- MediaPipe runtime/project license: Apache-2.0;
-- official Google AI Edge documentation provides CPU-oriented Object Detector task support and EfficientDet-Lite / SSD MobileNet model families;
-- a detector can be used only when the current local track is lost, then deterministically reseed the existing evidence path;
-- this may preserve a lighter architecture than replacing the entire tracker.
-
-Release gate:
-
-- runtime license does not automatically prove the exact downloaded model bundle terms;
-- record exact model artifact, source, hash and applicable terms before release approval;
-- do not approve a model merely because MediaPipe code is Apache-2.0.
-
-Status: `SECONDARY_BENCHMARK_CANDIDATE / MODEL_ARTIFACT_TERMS_REQUIRED`.
-
-## Candidate C — SAM 2
-
-Deferred Tier-2 candidate, not the first CPU benchmark.
-
-- official SAM 2 code and model checkpoints are Apache-2.0;
-- designed for image/video segmentation and can maintain prompted objects across video;
-- default package stack is materially heavier and oriented toward PyTorch/CUDA-class execution;
-- useful later for stronger segmentation/tracking/grounding, but unnecessary as the first recovery repair for the current product gate.
-
-Status: `DEFERRED_GPU_TIER`.
-
-## Explicit default exclusion — Ultralytics YOLO
-
-Do not adopt Ultralytics YOLO into the default proprietary/commercial path without an explicit commercial-license decision.
-
-Current Ultralytics licensing states that AGPL-3.0 is the open-source path and Enterprise licensing is required for proprietary/private commercial deployment without opening the larger project under AGPL-3.0.
-
-Status: `EXCLUDED_FROM_DEFAULT_BENCHMARK_UNLESS_LICENSE_STRATEGY_CHANGES`.
-
-## Benchmark scope
-
-Use the already rights-attested local occlusion clip:
+Rights-attested clip:
 
 `example/r0_11_product_probe/input/moving_occlusion1_landscape.mp4`
 
-Use the same authoritative source range previously selected:
+Authoritative range:
 
 `[0, 563298/90000)`
 
-The benchmark is tracking-evidence only. Do not change spatial policy or rendering behavior.
+Observed baseline:
 
-Measure at minimum:
+- seed `(0.76, 0.38, 0.13, 0.44)`;
+- 29 available + 1 lost observation;
+- first loss `29/30 s`;
+- reason `insufficient_support`;
+- no reacquisition.
 
-- first-loss time;
-- whether reacquisition occurs after the visible occlusion;
-- reacquisition latency;
-- target identity continuity / obvious ID switch;
-- available/lost observation count;
-- recovered subject geometry quality;
-- CPU runtime on the current machine;
-- dependency/model footprint;
-- deterministic repeatability;
-- license/model-artifact completeness.
+Status:
 
-The primary success criterion is not generic detector mAP. It is whether the provider can recover the intended subject sufficiently well for `SpatialComposer` to resume its canonical path without fabricated geometry or wrong-subject switching.
+`BASELINE_RECOVERY_FAILURE`
 
-## Execution order
+## Candidate A — YOLOX-Nano + ByteTrack
 
-1. Benchmark Candidate A locally first.
-2. If Candidate A cannot recover the intended subject acceptably or has unacceptable CPU/runtime/dependency cost, benchmark Candidate B.
-3. Do not benchmark Candidate C unless A/B are materially insufficient.
-4. Do not permanently integrate a candidate merely because it runs.
-5. Preserve provider neutrality behind the existing evidence boundary.
-6. Final provider adoption requires benchmark evidence + transitive code/model/runtime license record.
+Benchmark evidence:
 
-## Product interaction
+- YOLOX revision `6ddff4824372906469a7fae2dc3206c7aa4bbaee`;
+- ByteTrack revision `d1bf0191adff59bc8fcfeaa0b33d3d1642552a99`;
+- model `yolox_nano.onnx`;
+- size 3,659,407 bytes;
+- SHA-256 `C789161ED43C8269FCD4E67C67EEEB4E80C622DA2EB296A20BC6007BD18A0B7D`;
+- ONNX Runtime 1.23.2 CPU;
+- OpenCV 4.13.0;
+- NumPy 2.3.5;
+- six deterministic runs across two association thresholds;
+- 52 available / 136 lost;
+- first loss 1.731 s;
+- no reacquisition of original target ID 1;
+- reappearing intended person became ID 2;
+- approximately 17–21 FPS;
+- peak RSS approximately 150 MB.
 
-The successful movement-only Product Probe is independent evidence and should proceed to Human Gate now.
+Interpretation:
 
-Tracker recovery work must not invalidate or delay the user's comparison of:
+The detector/association path is operationally faster than Candidate B on this machine, but its current identity semantics fail the actual product requirement: the original intended focus subject must survive temporary loss/reappearance as the same grounded subject.
 
-- center;
-- raw;
-- stabilized
+Status:
 
-for `moving_occlusion2_landscape.mp4`.
+`TECHNICALLY_INSUFFICIENT — IDENTITY_CONTINUITY_FAILURE`
+
+Do not integrate Candidate A as the default merely because it is faster.
+
+## Candidate B — MediaPipe Object Detector + deterministic Sparse-LK reseed
+
+Benchmark evidence:
+
+- MediaPipe 0.10.31;
+- OpenCV 4.13.0;
+- NumPy 2.5.2;
+- model `efficientdet_lite0.tflite`;
+- size 4,602,795 bytes;
+- SHA-256 `0720BF247BD76E6594EA28FA9C6F7C5242BE774818997DBBEFFC4DA460C723BB`;
+- three independent runs produced identical observation signatures;
+- 96 available / 92 explicitly lost observations;
+- main real occlusion loss 1.565 s;
+- recovery 4.428 s;
+- latency 2.863 s;
+- additional short gaps recovered at 1.432 s and 5.793 s;
+- local identity contact-sheet inspection confirmed recovery of the originally seeded person without observed switching;
+- lost frames contain no geometry;
+- approximately 6.25–9.18 FPS;
+- peak RSS approximately 127 MB;
+- isolated environment approximately 183 MB.
+
+Interpretation:
+
+Candidate B demonstrates the missing functional mechanism: detector-assisted deterministic reacquisition/reseed can recover the same intended subject while preserving explicit lost observations.
+
+Status:
+
+`RECOVERY_CANDIDATE_TECHNICALLY_READY_LICENSE_PENDING`
+
+## Model/runtime licensing state
+
+Verified release facts remain deliberately separated:
+
+- MediaPipe runtime/source project is Apache-2.0;
+- the exact downloaded EfficientDet-Lite0 model artifact used in the benchmark is recorded by filename and SHA-256 above;
+- exact redistribution/commercial terms for that exact downloaded artifact were not independently established during the benchmark;
+- therefore no bundled-model release approval is claimed.
+
+The Product Owner has stated willingness to open-source the project. This removes the former assumption that the product must remain proprietary, but it does not itself choose a software license.
+
+Current repository state:
+
+- no root `LICENSE` file;
+- no project license declaration in `pyproject.toml`.
+
+Therefore public visibility must not be treated as an already-selected open-source license.
+
+Ultralytics/AGPL-family options may be reconsidered later only after an explicit repository-license strategy decision. They are not needed to complete the current Candidate-B integration review.
+
+## Human Gate feedback on movement preview
+
+The user reports:
+
+- center crop behaves like ordinary static editing and loses the moving person for part of the clip;
+- raw visibly jumps;
+- stabilized visibly jumps as well, though playback itself is smooth.
+
+The current FFmpeg adapter is `ffmpeg-spatial-transform-plan-step-v1`: it holds crop coordinates until the next keyframe and then changes them discretely.
+
+Therefore this Human Gate is classified:
+
+`HUMAN_GATE_INVALID — STEP_HELD_PREVIEW_EXECUTION`
+
+This is not evidence to retune SpatialComposer dead-zone/velocity constants.
+
+## Long-loss/reacquisition contract gap
+
+Current path policy:
+
+- short lost hold limit = 1 s;
+- Composer returns unresolved once an observed loss exceeds that bound.
+
+Candidate B's real reacquisition arrives after 2.863 s.
+
+Therefore the next implementation must explicitly separate:
+
+- short ordinary lost hold;
+- bounded extended recovery wait/fallback;
+- successful later reacquisition;
+- terminal unresolved state.
+
+No focus geometry may be invented during the lost interval.
+
+A bounded recovery wait may keep a legal last/fallback crop, but that behavior must be explicit in the canonical decision/QC rather than a hidden extension of the existing 1 s rule.
+
+## Next engineering order
+
+1. Add explicit canonical interpolation semantics to the spatial plan/decision layer.
+2. Make FFmpeg execute the canonical interpolation instead of step-held jumps for tracked paths.
+3. Keep static/hold semantics explicit.
+4. Integrate the smallest provider-neutral Candidate-B recovery path without making detector boxes crop authority.
+5. Add explicit extended-loss/reacquisition state/QC based on real Product Probe evidence.
+6. Rerun full Quality Gate.
+7. Regenerate movement A/B/C on the same movement range.
+8. Generate occlusion A/B/C on the same occlusion range.
+9. Stop for Human Gate.
+
+Do not tune motion constants merely to compensate for the prior step-held renderer.

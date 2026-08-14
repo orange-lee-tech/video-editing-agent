@@ -1,172 +1,192 @@
 # Current Work Order
 
 **Status:** ACTIVE  
-**Phase:** R0.11 — tracker recovery provider benchmark + movement Human Gate  
+**Phase:** R0.11 — interpolation-correct spatial preview + tracker recovery integration candidate  
 **Updated:** 2026-08-14
 
-## Accepted R0.11 implementation
+## Accepted engineering baselines
 
-Accepted spatial foundation:
+- `ad4f47e5f659e108d34593675bc08177a2c2aff4` — deterministic motion-stability baseline.
+- `66fc889094dd46dd51d5ccf028869c37658f648b` — canonical `SpatialTransformPlan` → FFmpeg execution adapter foundation.
 
-- `ad4f47e5f659e108d34593675bc08177a2c2aff4` — deterministic motion-stability baseline;
-- `66fc889094dd46dd51d5ccf028869c37658f648b` — canonical `SpatialTransformPlan` → deterministic FFmpeg execution adapter.
+Core invariants remain:
 
-Current spatial invariants remain unchanged:
-
-- canonical half-open source-time ranges;
 - spatial evidence providers produce observations only;
-- `SpatialComposer` owns executable crop/path decisions;
-- `SpatialPathPolicy(version=r0.11-stability-candidate-v1)` remains 12 px dead zone, 800 px/s per-axis center velocity, 1 s maximum lost hold, redundant-keyframe suppression;
-- lost observations do not fabricate geometry;
-- mandatory-focus containment outranks motion limiting;
-- `SpatialTransformPlan` remains execution truth;
-- Renderer/FFmpeg executes canonical plans only.
+- `SpatialComposer` owns executable spatial decisions;
+- `SpatialTransformPlan` is execution truth;
+- Renderer/FFmpeg executes canonical decisions and may not invent crop/tracking/smoothing policy;
+- lost observations contain no fabricated geometry;
+- manual locks outrank automatic solve;
+- source time remains canonical half-open `[start, end)`.
 
-Remote `ci/quality-gate-diagnostic` is green at `66fc889`.
+## Human Gate result — movement preview is NOT valid acceptance evidence yet
 
-## Real Product Probe result
+The user watched the existing `moving_occlusion2_landscape` center/raw/stabilized previews and reported:
 
-Replacement landscape media passed the 9:16 crop-latitude gate.
+- CENTER behaves like ordinary static center crop and sometimes leaves the person outside frame;
+- RAW visibly jumps;
+- STABILIZED also visibly jumps, despite otherwise smooth video playback.
 
-### Movement-only clip — usable Product Probe evidence
+CENTER behavior is the intended static baseline and is not a defect by itself.
 
-`moving_occlusion2_landscape.mp4`
+However the RAW/STABILIZED Human Gate is **invalidated by the current preview execution semantics**, because `src/video_editing_agent/render/spatial_plan_ffmpeg.py` compiles crop keyframes as step-held `if(gte(t,...))` jumps. The current adapter therefore injects discrete crop jumps at canonical keyframes.
 
-Authoritative range:
+Do not interpret the user's report as evidence that `SpatialComposer` smoothing constants are wrong until a canonical interpolation-aware preview is rendered.
 
-`[7/10, 13/5)`
+Classification of the previous movement Human Gate:
 
-Reported evidence:
+`HUMAN_GATE_INVALID — STEP_HELD_PREVIEW_EXECUTION`
 
-- 41 tracking observations: 40 available + one `target_exit`;
-- CENTER: 1 keyframe;
-- RAW: 41 keyframes, containment 40/40, maximum velocity 240 px/s;
-- STABILIZED: 14 keyframes, containment 40/40, maximum velocity 195 px/s, 27 redundant keyframes suppressed;
-- RAW/STABILIZED each held the final loss for one frame (~0.0333 s);
-- generated previews are 540×960, 30 FPS, 1.9 s, H.264/AAC;
-- no source-bound/aspect violation and no detected black intervals.
+## Tracker recovery benchmark result
 
-This evidence is now ready for Human Gate. Do not discard or rerun it merely because the occlusion clip failed.
+The provider benchmark completed with no tracked implementation changes.
 
-## Movement Human Gate
+### Baseline Sparse-LK
 
-The user should compare the three local previews already generated for `moving_occlusion2_landscape`:
+- seed `(0.76, 0.38, 0.13, 0.44)`;
+- 29 available + 1 lost observation;
+- first loss `29/30 s`;
+- reason `insufficient_support`;
+- no reacquisition.
 
-- center;
-- raw;
-- stabilized.
+### Candidate A — YOLOX-Nano + ByteTrack
 
-Ask only:
+- YOLOX revision `6ddff4824372906469a7fae2dc3206c7aa4bbaee`;
+- ByteTrack revision `d1bf0191adff59bc8fcfeaa0b33d3d1642552a99`;
+- `yolox_nano.onnx`, SHA-256 `C789161ED43C8269FCD4E67C67EEEB4E80C622DA2EB296A20BC6007BD18A0B7D`;
+- ONNX Runtime 1.23.2 CPU;
+- six deterministic runs across two association thresholds;
+- 52 available / 136 lost;
+- first loss 1.731 s;
+- no reacquisition of original target ID; reappearing person became ID 2;
+- approximately 17–21 FPS, peak RSS approximately 150 MB.
 
-- best overall framing: `center / raw / stabilized / tie`;
-- stabilized feel: `natural / jittery / chasing / laggy`;
-- obvious defect: `none / clipped subject / abrupt jump / wrong focus / excessive chase / excessive lag / other`.
+Result:
 
-Human-visible judgment is product authority. QC metrics are supporting evidence.
+`TECHNICALLY_INSUFFICIENT — IDENTITY_CONTINUITY_FAILURE`
 
-## Occlusion clip — tracker capability blocker
+### Candidate B — MediaPipe Object Detector + deterministic Sparse-LK reseed
 
-`moving_occlusion1_landscape.mp4`
+- MediaPipe 0.10.31;
+- `efficientdet_lite0.tflite`, SHA-256 `0720BF247BD76E6594EA28FA9C6F7C5242BE774818997DBBEFFC4DA460C723BB`;
+- three runs with identical observation signatures;
+- 96 available / 92 explicitly lost observations;
+- main real occlusion: loss 1.565 s, recovery 4.428 s, latency 2.863 s;
+- additional short gaps recovered at 1.432 s and 5.793 s;
+- local identity contact-sheet inspection confirmed recovery of the originally seeded person without switching;
+- lost frames contain no geometry;
+- approximately 6.25–9.18 FPS, peak RSS approximately 127 MB;
+- isolated environment approximately 183 MB.
 
-Authoritative range:
+Result:
 
-`[0, 563298/90000)`
+`RECOVERY_CANDIDATE_TECHNICALLY_READY_LICENSE_PENDING`
 
-Current Sparse-LK evidence path lost support at relative `29/30` s and did not reacquire. Therefore it could not reach/evaluate the later intended real occlusion/recovery event.
+Candidate B is the current technical recovery candidate. Do not silently replace the provider until the integration and licensing gates below are satisfied.
 
-Classification:
+## Important second blocker — long-loss semantics
 
-`TRACKER_RECOVERY_BLOCKED`
+The current `SpatialPathPolicy(version=r0.11-stability-candidate-v1)` has `max_lost_hold_gap = 1 s` and current `DeterministicSpatialComposer._track()` returns unresolved once an observed lost gap exceeds that value.
 
-This does not establish a `SpatialComposer` defect and does not authorize spatial-policy retuning.
+The real MediaPipe recovery gap is 2.863 s, so merely integrating the recovery provider is insufficient: the current Composer would fail closed before recovery arrives.
 
-## Current engineering objective
+Do **not** solve this by fabricating geometry or hiding lost observations.
 
-Run one bounded **tracker recovery provider benchmark** against the same rights-attested occlusion clip and exact source range.
+The next implementation must make long-loss/reacquisition semantics explicit. Preferred minimal direction:
 
-Read:
+- retain the existing 1 s short-loss hold behavior;
+- distinguish an extended `recovery_wait` / equivalent state from normal short hold;
+- continue emitting only legal held/fallback crop decisions, never invented focus geometry;
+- permit a bounded later reacquisition window derived from real Product Probe evidence;
+- record extended-loss duration/recovery in `SpatialPathQc`;
+- fail closed if the explicit recovery window is exceeded or reacquisition cannot safely resume;
+- do not silently reinterpret `max_lost_hold_gap` as an unlimited hold.
 
-- `docs/capabilities/CAP-07_SPATIAL_COMPOSITION_AUTO_REFRAME.md`;
-- `docs/research/R0_11_TRACKER_RECOVERY_PROVIDER_BENCHMARK_2026-08-14.md`.
+The exact recovery-window candidate is engineering work and remains Product-Probe calibrated, not constitutional truth.
 
-The benchmark is tracking-evidence work only. Do not render new A/B/C spatial previews until a recovery candidate has demonstrated materially better observations.
+## Implementation objective A — canonical interpolation semantics
 
-## Candidate order
+The current step-held preview adapter must be repaired before another Human Gate.
 
-### Candidate A — primary
+Important authority rule:
 
-`YOLOX-Nano detector + ByteTrack association`
+**Renderer may not invent interpolation.**
 
-Benchmark locally first.
+If the canonical plan does not currently carry enough interpolation semantics, extend the canonical Application artifact minimally so interpolation is explicit and owned upstream.
+
+Expected direction:
+
+- static/hold plans remain explicitly held/static;
+- tracked crop paths carry an explicit deterministic interpolation mode;
+- initial tracked candidate should use bounded piecewise linear interpolation unless existing contracts justify another deterministic mode;
+- FFmpeg compiler consumes that mode exactly;
+- no hidden easing/smoothing is invented by Renderer;
+- same canonical path must reproduce deterministically;
+- focused tests prove intermediate-time crop positions, exact keyframe positions, range boundaries and fail-closed unsupported modes.
+
+After this repair, regenerate the movement clip center/raw/stabilized previews using the same source range and compare again. Do not retune 12 px / 800 px/s merely to compensate for the old step-held executor.
+
+## Implementation objective B — recovery provider integration candidate
+
+After or alongside interpolation repair, integrate the smallest provider-neutral path needed to reproduce Candidate B observations on the rights-attested occlusion clip.
 
 Requirements:
 
-- preserve provider neutrality behind the existing evidence boundary;
-- detector/tracker boxes are observations only;
-- prefer ONNX/CPU execution for this benchmark;
-- record exact runtime packages/versions;
-- record exact detector model/checkpoint/ONNX source and SHA-256;
-- do not infer model artifact licensing solely from the code repository license;
-- do not permanently add the provider/dependency/model to product defaults in this benchmark batch.
+- provider remains behind the existing tracking evidence port/boundary;
+- detector output never becomes crop authority;
+- deterministic reseed must preserve the original intended subject identity;
+- lost frames remain `lost` with no geometry;
+- exact provider/model/runtime versions and model SHA are recorded;
+- model is not committed to Git history unless a separate release/model-distribution decision explicitly authorizes that;
+- benchmark-only private artifacts remain under ignored locations.
 
-### Candidate B — secondary only if A is insufficient
+Do not add YOLOX+ByteTrack as the default after its observed identity continuity failure.
 
-`MediaPipe Object Detector + deterministic reseed of the existing local tracker`
+## Licensing / open-source gate
 
-Use only if Candidate A materially fails recovery, identity continuity, CPU/runtime or dependency criteria.
+The Product Owner explicitly stated willingness to open-source the project.
 
-Runtime license alone is not model-artifact approval. Record the exact model artifact and applicable terms separately.
+That changes the strategic constraint: an AGPL-compatible route may now be considered in future provider selection.
 
-### Candidate C — deferred
+However, **do not change the repository license automatically**:
 
-SAM 2 remains a stronger/heavier GPU-tier option and is not part of the first recovery benchmark unless A/B are materially insufficient.
+- current repository has no root `LICENSE` file;
+- `pyproject.toml` currently declares no project license;
+- public source visibility is not yet an explicit open-source license choice;
+- adopting an AGPL dependency or relicensing the project is a separate Product Owner governance decision.
 
-Ultralytics YOLO is excluded from the default candidate path unless the product's commercial/open-source licensing strategy explicitly changes.
+For the current MediaPipe candidate, exact model-artifact terms remain a release gate. Continue to distinguish runtime/source license from model artifact rights.
 
-## Recovery benchmark metrics
+## Next Product Probe
 
-For the exact occlusion clip/range measure at minimum:
+Once objectives A and B plus explicit long-loss semantics are implemented and Quality Gate is green:
 
-- first-loss time;
-- whether reacquisition occurs after the visible occlusion;
-- reacquisition latency;
-- target identity continuity / obvious wrong-subject switch;
-- available/lost observation count;
-- recovered geometry quality;
-- deterministic repeatability across repeated runs;
-- CPU wall-clock runtime / effective processing rate;
-- package/model footprint;
-- code/runtime/model/transitive license record completeness.
+1. regenerate movement A/B/C on the exact existing movement source range;
+2. generate occlusion A/B/C on the exact existing occlusion source range using the recovery-capable evidence path;
+3. keep all variants fair: same source/range/canvas/frame-rate/audio treatment;
+4. run technical QC;
+5. stop for Human Gate.
 
-The success criterion is not generic detector mAP. It is whether the intended focus subject can be recovered well enough for `SpatialComposer` to resume canonical spatial decisions without fabricated geometry or wrong-subject switching.
+Human Gate questions stay simple:
 
-## Benchmark workflow
+For movement:
 
-1. `git status → fetch → main → pull --ff-only → clean`.
-2. Keep the private media under `example/` untracked.
-3. Use local/private benchmark scripts/output where possible; do not pollute permanent product dependencies during comparison.
-4. Benchmark Candidate A on the exact source range.
-5. Repeat enough to confirm deterministic/operational behavior.
-6. If A is materially insufficient, benchmark B under the same evidence contract.
-7. Do not auto-integrate a winner. Stop and report evidence to ChatGPT for the release/provider decision.
-8. Do not change `SpatialComposer`, `SpatialPathPolicy`, crop constants or FFmpeg spatial authority.
+- best overall: `center / raw / stabilized / tie`;
+- stabilized feel: `natural / jittery / chasing / laggy`;
+- obvious defect.
 
-## Final benchmark classification
+For occlusion:
 
-Use one:
-
-- `RECOVERY_CANDIDATE_READY_FOR_INTEGRATION` — at least one candidate materially recovers the intended subject and has no unresolved release-blocking license/runtime contradiction;
-- `RECOVERY_CANDIDATE_TECHNICALLY_READY_LICENSE_PENDING` — recovery succeeds but exact model/runtime terms are not yet sufficiently recorded for release approval;
-- `RECOVERY_BENCHMARK_INCONCLUSIVE` — tested candidates do not reliably recover the intended subject;
-- `RECOVERY_BENCHMARK_BLOCKED` — required local runtime/model acquisition or evidence mechanism is unavailable.
+- best overall;
+- recovery: `acceptable / unacceptable`;
+- obvious wrong-focus, jump, stale hold, excessive lag or clipping.
 
 ## Explicitly not allowed
 
-- no dead-zone / velocity / loss-gap retuning;
-- no change to canonical spatial authority;
-- no manual crop-path rescue;
-- no generative outpainting/uncrop;
 - no R0.12 proxy/cache work;
-- no audio-provider work;
-- no permanent new provider adoption before benchmark review;
-- no R0.11 closure before movement Human Gate plus successful occlusion/recovery Product Probe.
+- no audio-provider implementation;
+- no generative outpainting/uncrop;
+- no Renderer-owned interpolation/crop authority;
+- no fabricated focus geometry during loss;
+- no permanent model artifact commit before license/distribution approval;
+- no R0.11 closure before corrected movement Human Gate and real occlusion/recovery Human Gate.
