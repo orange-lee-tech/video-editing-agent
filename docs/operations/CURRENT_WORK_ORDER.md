@@ -1,98 +1,100 @@
 # Current Work Order
 
 **Status:** ACTIVE  
-**Phase:** R0.11 — Spatial Composition / Auto Reframe foundation  
+**Phase:** R0.11 — contract hardening + time-varying track-path foundation  
 **Updated:** 2026-08-14
 
-## Entry state
+## Accepted baseline
 
-R0.10 is closed. Its final closure evidence is stored in:
+Current accepted R0.11 implementation baseline:
 
-`docs/validation/R0.10_FINAL_CLOSURE.md`
+`ef0baa455c27c0ccb42ae74c4d24ede76e543a74` — `feat: add deterministic spatial composition foundation`
 
-Current implementation baseline before R0.11 code work:
+Remote review confirmed:
 
-`4782889f3746cf1024abfa0c45f3402cfec834a3` — `fix: canonicalize music candidate ordering`
+- SpatialComposer owns executable crop decisions;
+- existing R0.8 spatial/tracking primitives and R0.9 ResolvedSelection/source time are reused;
+- static/hold crop generation is deterministic and source-bound;
+- exact target aspect ratio is preserved;
+- mandatory impossible-fit returns non-generative unresolved;
+- manual locks outrank automatic focus in the tested path;
+- Engineering Probe `7/7 PASS`;
+- focused tests reported `31 passed`;
+- full pytest reported `466 passed`;
+- remote `ci/quality-gate-diagnostic` is green;
+- no detector/model dependency was added.
 
-The control-plane closure/activation commits that follow are documentation/governance only.
+## Review defects to repair first
 
-## Read before coding
+Before feature expansion, repair these bounded contract inconsistencies:
 
-1. `docs/operations/CODEX_EXECUTION_ENTRY.md`
-2. `docs/roadmap/CURRENT_PHASE_STATUS.md`
-3. this work order
-4. `docs/capabilities/CAP-07_SPATIAL_COMPOSITION_AUTO_REFRAME.md`
-5. `docs/adr/ADR-007_SPATIAL_COMPOSER_AUTO_REFRAME.md`
-6. only the R0.8 tracking/TemporalEvidence and R0.9 ResolvedSelection/EditSlot code actually needed for this boundary
-7. relevant architecture types needed to preserve the v0.2 ownership model
+1. **Half-open source range:** `_manual()` currently accepts `source_time == selected_source_range.end`, but SpatialTransformPlan rejects it. Manual lock validation must use the same `[start, end)` contract and add an exact-end regression.
+2. **Protected-region truth:** `SpatialCompositionRequest.protected_regions` must not be silently ignored. If deterministic safe-zone semantics are not implemented in this batch, non-empty protected regions must explicitly fail closed/unresolved rather than produce a normal plan.
+3. **Framing-style truth:** arbitrary non-empty `framing_style` must not silently become `hold`. Make supported modes explicit. Unknown/unsupported modes fail closed or reject validation. `hold` remains supported; `track` may become supported only when the time-varying path below is actually implemented.
 
-Do not broadly reread unrelated phases.
+Do these repairs before adding dynamic behavior. Do not create a micro-phase for them.
 
-## Goal
+## Coherent feature boundary after repairs
 
-Establish the first real R0.11 spatial authority and deterministic geometry foundation without prematurely choosing a new detector/tracker vendor.
+Reuse the existing R0.8 seeded tracking contract:
 
-The intended ownership chain is:
+- `SeededTrackingProposal.analyzed_source_range`;
+- `TrackingSample.relative_time`;
+- sample status/reason/rectangle/support evidence.
 
-```text
-EditSlot / CommercialSkill spatial intent
-+
-existing grounded spatial/temporal evidence
-→ SpatialComposer
-→ ReframeDecision / SpatialTransformPlan
-→ later EDLBuilder
-→ later Renderer execution
-```
+Build the smallest provider-neutral, canonical time-varying spatial evidence seam and deterministic track path.
 
-Renderer is not allowed to become a cinematographer.
+Required behavior:
 
-## Coherent implementation boundary
+1. Map tracking-relative sample time to canonical source time without creating a second timestamp authority.
+2. Preserve Shot identity, selection identity, provider/provenance and source-range legality.
+3. Represent time-varying focus observations separately from the existing static SpatialEvidenceView if overloading it would make semantics ambiguous.
+4. Generate legal target-aspect crop candidates for valid samples; tracker rectangles remain observations only.
+5. Add a supported `track` path that produces multiple source-time crop keyframes inside one resolved Shot.
+6. Keep path state Shot-local. A hard Shot cut always resets path state.
+7. Define tracking-loss/occlusion behavior explicitly. Missing/invalid tracker samples may not fabricate focus geometry. Use conservative fail-closed/hold behavior backed by explicit versioned policy; do not hide arbitrary thresholds as calibrated truth.
+8. If smoothing/motion limiting is introduced, make parameters explicit/versioned and deterministic. Do not claim product-calibrated naturalness yet.
+9. Manual locks are hard constraints. Dynamic auto solve must not alter a locked crop keyframe.
+10. Protected regions must never be silently ignored. Implement deterministic semantics only if the existing CAP/ADR/contracts support them without inventing an arbitrary overlap threshold; otherwise return explicit unresolved/warning when requested.
+11. Every executable keyframe must satisfy source bounds, target aspect ratio and `[source_start, source_end)` time legality.
+12. Keep legacy ReframeDecision keyframes and SpatialTransformPlan consistent wherever both representations remain necessary; do not create two divergent execution truths.
 
-1. **Audit before adding types.** Locate and reuse the existing R0.8 tracking/TemporalEvidence and R0.9 resolved-selection references. Do not build a second spatial-understanding stack.
-2. Add the smallest provider-neutral application contracts needed for `ReframeIntent`, spatial evidence input/view, crop/path primitives and `ReframeDecision`/`SpatialTransformPlan`. Keep them application artifacts/value contracts; do not create a new top-level Domain Entity without an architecture decision.
-3. Represent source frame geometry and target canvas/aspect ratio exactly enough that legality can be validated deterministically.
-4. Implement deterministic crop-candidate generation for an initial CPU/local baseline. At minimum support a static/hold result centered or biased by grounded focus evidence while respecting target aspect ratio and source bounds.
-5. Add deterministic validation proving every executable crop remains inside source geometry and satisfies the target aspect ratio within exact/rational or explicitly bounded numeric semantics.
-6. Define impossible-fit behavior explicitly. If mandatory focus constraints cannot be satisfied inside the source frame, return fallback/unresolved/warnings rather than fabricating pixels or silently violating constraints.
-7. Preserve Shot boundaries. No smoothing/path state may cross a hard source Shot cut.
-8. Keep provider/model output observational. If a focus proposal seam is needed, it may identify/score focus targets but cannot directly become executable crop coordinates without deterministic validation/ownership.
-9. If manual locks/keyframes already have an obvious architecture seam, represent their precedence contract; do not build UI in this batch.
-10. Add focused engineering regressions for deterministic repeatability, source-bound legality, target-aspect legality, hard-cut reset, and impossible-fit refusal/fallback.
-11. Add one bounded Engineering Probe using deterministic/synthetic geometry and existing evidence fixtures if appropriate. Synthetic evidence is valid for mechanism proof here; it is not R0.11 Product Probe evidence.
-12. Keep the full repository Quality Gate green.
+## Engineering evidence required
+
+Add focused regressions/probe coverage for at least:
+
+- manual lock exactly at source end is rejected consistently;
+- unsupported framing mode cannot silently return hold;
+- non-empty protected regions cannot be silently ignored;
+- relative tracking sample time maps to correct canonical source time;
+- dynamic path is deterministic under equivalent input ordering;
+- all dynamic crop keyframes remain legal;
+- track path stays inside one Shot and resets on a different Shot;
+- explicit tracking loss/occlusion behavior;
+- manual locked keyframe remains unchanged by track solve;
+- no generated/synthesized focus geometry is introduced.
+
+Run the full repository Quality Gate.
 
 ## Explicitly not in this batch
 
-- no new YOLO/MediaPipe/SAM2 or other detector/tracker dependency merely to make the demo look smarter;
-- no transitive model/runtime license commitment without the existing dependency-license gate;
-- no full smooth tracking optimizer yet unless the foundation naturally reaches it without widening scope;
+- no YOLO/MediaPipe/SAM2/new detector dependency merely to improve appearance;
+- no provider benchmark selection or license commitment yet;
+- no claim that current smoothing constants are product-optimal;
+- no R0.11 Product Probe claim from synthetic fixtures;
 - no generative outpainting/uncrop;
-- no Auto Reframe Product Probe claim from synthetic fixtures;
-- no Renderer hidden crop logic;
-- no R0.12 preview/proxy/cache implementation;
-- no subtitle/graphics UI work.
+- no Renderer-owned crop logic;
+- no R0.12 preview/proxy/cache work.
 
 ## Stop conditions
 
-Stop and report rather than invent semantics if:
+Stop and report instead of inventing semantics if:
 
-- existing R0.8 tracking evidence cannot represent the spatial information required and a new authority would be necessary;
-- a proposed dependency introduces unresolved code/model/runtime licensing constraints;
-- current source geometry/time mapping is insufficient to preserve authoritative source time;
-- an architecture conflict would require changing Product Constitution or Architecture Contract v0.2.
+- existing SeededTrackingProposal cannot be mapped to canonical source time without changing time authority;
+- supporting protected regions requires a new product-policy decision not present in CAP-07/ADR-007;
+- dynamic path requires a new top-level Domain Entity or Architecture Contract change;
+- a new dependency becomes necessary and its transitive code/model/runtime licensing is unresolved.
 
-Otherwise complete the whole coherent boundary autonomously.
+Otherwise complete the entire coherent boundary, commit/push one green batch, and report starting/ending HEAD, repaired contracts, new/reused types, dynamic path semantics, probe results, full Quality Gate, and remaining Product Probe/provider needs.
 
-## Required report
-
-After one coherent green batch, report:
-
-- starting/ending HEAD;
-- files/types introduced or reused;
-- exact SpatialComposer ownership boundary;
-- geometry/candidate semantics;
-- focused Engineering Probe results;
-- full Quality Gate result;
-- any unresolved evidence/provider need for the next R0.11 batch.
-
-Do not mark R0.11 closed and do not begin R0.12.
+Do not close R0.11 and do not begin R0.12.
