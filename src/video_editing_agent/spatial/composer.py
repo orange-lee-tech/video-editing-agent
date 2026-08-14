@@ -4,7 +4,10 @@ import hashlib
 import math
 from fractions import Fraction
 
-from video_editing_agent.application.ports.seeded_tracking import NormalizedRectangle
+from video_editing_agent.application.ports.seeded_tracking import (
+    NormalizedRectangle,
+    SeededTrackingProposal,
+)
 from video_editing_agent.application.ports.spatial_composer import (
     OutputCanvas,
     PixelCrop,
@@ -12,10 +15,13 @@ from video_editing_agent.application.ports.spatial_composer import (
     SourceFrameGeometry,
     SpatialCompositionRequest,
     SpatialCropKeyframe,
+    SpatialEvidenceTrack,
+    SpatialFocusObservation,
     SpatialTransformKeyframe,
     SpatialTransformPlan,
 )
 from video_editing_agent.domain.common.media_time import MediaTime
+from video_editing_agent.domain.edit.resolution import ResolvedSelection
 
 
 def _fraction(value: float) -> Fraction:
@@ -80,12 +86,84 @@ def _legacy_keyframe(
     )
 
 
+def tracking_proposal_to_spatial_track(
+    proposal: SeededTrackingProposal,
+    selection: ResolvedSelection,
+    focus_ref: str,
+    evidence_refs: tuple[str, ...],
+) -> SpatialEvidenceTrack:
+    if proposal.shot_ref != selection.shot_ref:
+        raise ValueError("tracking proposal belongs to a different Shot")
+    if (
+        proposal.analyzed_source_range.start.as_fraction()
+        < selection.selected_source_range.start.as_fraction()
+        or proposal.analyzed_source_range.end.as_fraction()
+        > selection.selected_source_range.end.as_fraction()
+    ):
+        raise ValueError("tracking proposal escapes resolved source range")
+    samples = tuple(sorted(proposal.samples, key=lambda item: item.relative_time.as_fraction()))
+    observations = tuple(
+        SpatialFocusObservation(
+            proposal.analyzed_source_range.start + sample.relative_time,
+            sample.status,
+            sample.rectangle,
+            sample.support_ratio,
+            sample.reason,
+        )
+        for sample in samples
+    )
+    if any(
+        item.source_time.as_fraction() < proposal.analyzed_source_range.start.as_fraction()
+        or item.source_time.as_fraction() > proposal.analyzed_source_range.end.as_fraction()
+        for item in observations
+    ):
+        raise ValueError("tracking observation escapes analyzed source range")
+    identity = (
+        selection.selection_id,
+        proposal.shot_ref,
+        proposal.analyzed_source_range,
+        proposal.width,
+        proposal.height,
+        proposal.seed_id,
+        proposal.provider_id,
+        proposal.provider_revision,
+        proposal.frames_per_second,
+        observations,
+        tuple(sorted(evidence_refs)),
+    )
+    digest = hashlib.sha256(repr(identity).encode()).hexdigest()
+    return SpatialEvidenceTrack(
+        f"spt_{digest}",
+        selection.selection_id,
+        selection.shot_ref,
+        proposal.analyzed_source_range,
+        SourceFrameGeometry(proposal.width, proposal.height),
+        focus_ref,
+        proposal.provider_id,
+        proposal.provider_revision,
+        proposal.frames_per_second,
+        observations,
+        tuple(sorted(evidence_refs)),
+    )
+
+
 class DeterministicSpatialComposer:
     """Own legal static/hold crop decisions; observations never become commands directly."""
 
-    policy_version = "r0.11-static-hold-v1"
+    policy_version = "r0.11-static-track-v2"
+    track_loss_policy = "hold-last-legal-crop-v1"
 
     def compose(self, request: SpatialCompositionRequest) -> ReframeDecision:
+        if request.protected_regions:
+            return self._unresolved(
+                request, "protected-region overlap policy is not defined for deterministic solve"
+            )
+        if request.intent.framing_style not in {"hold", "track"}:
+            return self._unresolved(
+                request, f"unsupported framing style: {request.intent.framing_style}"
+            )
+        if request.intent.framing_style == "track":
+            return self._track(request)
         selection = request.selection
         evidence = tuple(
             sorted(
@@ -216,7 +294,7 @@ class DeterministicSpatialComposer:
             if not (
                 request.selection.selected_source_range.start.as_fraction()
                 <= lock.keyframe.source_time.as_fraction()
-                <= request.selection.selected_source_range.end.as_fraction()
+                < request.selection.selected_source_range.end.as_fraction()
             ):
                 raise ValueError("manual crop lock escapes resolved source range")
             validate_crop(lock.keyframe.crop, request.source_geometry, request.intent.output_canvas)
@@ -232,6 +310,140 @@ class DeterministicSpatialComposer:
             request, "manual", plan, 1.0, ("manual crop locks override auto solve",)
         )
 
+    def _track(self, request: SpatialCompositionRequest) -> ReframeDecision:
+        tracks = tuple(
+            sorted(
+                request.spatial_tracks,
+                key=lambda item: (item.focus_ref, item.track_id),
+            )
+        )
+        if not tracks:
+            return self._unresolved(request, "track framing requires grounded tracking evidence")
+        if len(request.intent.mandatory_focus_refs) > 1:
+            return self._unresolved(request, "multi-focus dynamic tracking is not supported")
+        focus_ref = (
+            request.intent.mandatory_focus_refs[0]
+            if request.intent.mandatory_focus_refs
+            else tracks[0].focus_ref
+        )
+        matching = tuple(item for item in tracks if item.focus_ref == focus_ref)
+        if not matching:
+            return self._unresolved(request, "mandatory focus tracking evidence unavailable")
+        track = matching[0]
+        selection = request.selection
+        if track.selection_id != selection.selection_id or track.shot_ref != selection.shot_ref:
+            raise ValueError("spatial track provenance disagrees with resolved selection")
+        if track.source_geometry != request.source_geometry:
+            raise ValueError("spatial track geometry disagrees with source geometry")
+        if (
+            track.analyzed_source_range.start.as_fraction()
+            < selection.selected_source_range.start.as_fraction()
+            or track.analyzed_source_range.end.as_fraction()
+            > selection.selected_source_range.end.as_fraction()
+        ):
+            raise ValueError("spatial track escapes resolved source range")
+        try:
+            crop_width, crop_height = _crop_dimensions(
+                request.source_geometry, request.intent.output_canvas
+            )
+        except ValueError as exc:
+            return self._unresolved(request, str(exc))
+        keyframes: list[SpatialCropKeyframe] = []
+        last_crop: PixelCrop | None = None
+        lost_seen = False
+        lost_times: set[Fraction] = set()
+        available_confidence: list[float] = []
+        for observation in track.observations:
+            if (
+                observation.source_time.as_fraction()
+                >= selection.selected_source_range.end.as_fraction()
+            ):
+                continue
+            if (
+                observation.source_time.as_fraction()
+                < selection.selected_source_range.start.as_fraction()
+            ):
+                raise ValueError("spatial observation precedes resolved source range")
+            if observation.status == "lost":
+                lost_seen = True
+                if last_crop is None:
+                    return self._unresolved(
+                        request, "tracking begins lost; no legal crop exists to hold"
+                    )
+                keyframes.append(SpatialCropKeyframe(observation.source_time, last_crop))
+                lost_times.add(observation.source_time.as_fraction())
+                continue
+            assert observation.bounds is not None
+            focus = _bounds(observation.bounds, request.source_geometry)
+            if focus.width > crop_width or focus.height > crop_height:
+                return self._unresolved(request, "tracked mandatory focus cannot fit legal crop")
+            center_x = Fraction(2 * focus.left + focus.width, 2)
+            center_y = Fraction(2 * focus.top + focus.height, 2)
+            crop = _centered_crop(
+                center_x,
+                center_y,
+                crop_width,
+                crop_height,
+                request.source_geometry,
+            )
+            if not _contains(crop, focus):
+                return self._unresolved(request, "no legal crop contains tracked mandatory focus")
+            validate_crop(crop, request.source_geometry, request.intent.output_canvas)
+            keyframes.append(SpatialCropKeyframe(observation.source_time, crop))
+            last_crop = crop
+            available_confidence.append(observation.confidence)
+        if not keyframes:
+            return self._unresolved(request, "tracking evidence has no in-range observations")
+
+        by_time = {item.source_time.as_fraction(): item for item in keyframes}
+        manual_used = False
+        lock_times: set[Fraction] = set()
+        for lock in sorted(
+            request.manual_locks,
+            key=lambda item: (item.keyframe.source_time.as_fraction(), item.lock_id),
+        ):
+            if not (
+                selection.selected_source_range.start.as_fraction()
+                <= lock.keyframe.source_time.as_fraction()
+                < selection.selected_source_range.end.as_fraction()
+            ):
+                raise ValueError("manual crop lock escapes resolved source range")
+            validate_crop(lock.keyframe.crop, request.source_geometry, request.intent.output_canvas)
+            by_time[lock.keyframe.source_time.as_fraction()] = lock.keyframe
+            lock_times.add(lock.keyframe.source_time.as_fraction())
+            manual_used = True
+        canonical_items: list[SpatialCropKeyframe] = []
+        for key in sorted(by_time):
+            item = by_time[key]
+            if key in lost_times and key not in lock_times and canonical_items:
+                item = SpatialCropKeyframe(item.source_time, canonical_items[-1].crop)
+            canonical_items.append(item)
+        canonical = tuple(canonical_items)
+        plan = SpatialTransformPlan(
+            selection.selection_id,
+            selection.shot_ref,
+            selection.selected_source_range,
+            request.source_geometry,
+            request.intent.output_canvas,
+            canonical,
+        )
+        warnings = tuple(
+            message
+            for condition, message in (
+                (
+                    lost_seen,
+                    "tracking loss holds the last legal crop; "
+                    f"policy={self.track_loss_policy} is mechanism-level and uncalibrated",
+                ),
+                (manual_used, "manual crop locks override track solve at locked source times"),
+            )
+            if condition
+        )
+        confidence = (
+            sum(available_confidence) / len(available_confidence) if available_confidence else 0.0
+        )
+        return self._decision(request, "track", plan, confidence, warnings)
+
     def _decision(
         self,
         request: SpatialCompositionRequest,
@@ -240,7 +452,7 @@ class DeterministicSpatialComposer:
         confidence: float,
         warnings: tuple[str, ...],
     ) -> ReframeDecision:
-        evidence_refs = tuple(sorted(item.evidence_id for item in request.spatial_evidence))
+        evidence_refs = self._evidence_refs(request)
         identity = (
             request.selection,
             request.source_geometry,
@@ -268,7 +480,7 @@ class DeterministicSpatialComposer:
         )
 
     def _unresolved(self, request: SpatialCompositionRequest, reason: str) -> ReframeDecision:
-        evidence_refs = tuple(sorted(item.evidence_id for item in request.spatial_evidence))
+        evidence_refs = self._evidence_refs(request)
         identity = (
             request.selection,
             request.source_geometry,
@@ -289,4 +501,17 @@ class DeterministicSpatialComposer:
             evidence_refs,
             ("non-generative fallback required",),
             reason,
+        )
+
+    @staticmethod
+    def _evidence_refs(request: SpatialCompositionRequest) -> tuple[str, ...]:
+        return tuple(
+            sorted(
+                {
+                    *(item.evidence_id for item in request.spatial_evidence),
+                    *(item.track_id for item in request.spatial_tracks),
+                    *(ref for item in request.spatial_tracks for ref in item.evidence_refs),
+                    *request.evidence_refs,
+                }
+            )
         )

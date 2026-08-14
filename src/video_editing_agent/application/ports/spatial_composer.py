@@ -102,6 +102,79 @@ class SpatialEvidenceView:
 
 
 @dataclass(frozen=True, slots=True)
+class SpatialFocusObservation:
+    source_time: MediaTime
+    status: str
+    bounds: NormalizedRectangle | None
+    confidence: float
+    loss_reason: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.source_time.as_fraction() < 0:
+            raise ValueError("source_time must be >= 0")
+        _unit_interval("confidence", self.confidence)
+        if self.status == "available":
+            if self.bounds is None or self.loss_reason is not None:
+                raise ValueError("available observation requires bounds and no loss reason")
+            values = (
+                self.bounds.x,
+                self.bounds.y,
+                self.bounds.width,
+                self.bounds.height,
+            )
+            if (
+                any(not math.isfinite(value) for value in values)
+                or self.bounds.x < 0
+                or self.bounds.y < 0
+                or self.bounds.width <= 0
+                or self.bounds.height <= 0
+                or self.bounds.x + self.bounds.width > 1
+                or self.bounds.y + self.bounds.height > 1
+            ):
+                raise ValueError("available observation bounds must be normalized")
+        elif self.status == "lost":
+            if self.bounds is not None or not self.loss_reason:
+                raise ValueError("lost observation requires reason and no focus geometry")
+        else:
+            raise ValueError("unsupported spatial observation status")
+
+
+@dataclass(frozen=True, slots=True)
+class SpatialEvidenceTrack:
+    track_id: str
+    selection_id: str
+    shot_ref: EntityRevisionRef
+    analyzed_source_range: MediaTimeRange
+    source_geometry: SourceFrameGeometry
+    focus_ref: str
+    provider_id: str
+    provider_revision: str
+    sampling_fps: int
+    observations: tuple[SpatialFocusObservation, ...]
+    evidence_refs: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        values = (
+            self.track_id,
+            self.selection_id,
+            self.focus_ref,
+            self.provider_id,
+            self.provider_revision,
+        )
+        if any(not value.strip() for value in values) or not self.observations:
+            raise ValueError("spatial evidence track requires identity, provider, and observations")
+        if (
+            isinstance(self.sampling_fps, bool)
+            or not isinstance(self.sampling_fps, int)
+            or self.sampling_fps <= 0
+        ):
+            raise ValueError("sampling_fps must be a positive int")
+        times = tuple(item.source_time.as_fraction() for item in self.observations)
+        if times != tuple(sorted(set(times))):
+            raise ValueError("spatial observations must be unique and source-time ordered")
+
+
+@dataclass(frozen=True, slots=True)
 class SpatialCropKeyframe:
     source_time: MediaTime
     crop: PixelCrop
@@ -198,6 +271,7 @@ class SpatialCompositionRequest:
     source_geometry: SourceFrameGeometry
     intent: ReframeIntent
     spatial_evidence: tuple[SpatialEvidenceView, ...] = ()
+    spatial_tracks: tuple[SpatialEvidenceTrack, ...] = ()
     manual_locks: tuple[ManualCropLock, ...] = ()
     protected_regions: tuple[NormalizedCanvasRegion, ...] = ()
     evidence_refs: tuple[str, ...] = ()
@@ -231,6 +305,30 @@ class ReframeDecision:
             raise ValueError("infeasible reframe decision must not contain executable keyframes")
         if self.infeasible_reason is not None and self.transform_plan is not None:
             raise ValueError("infeasible reframe decision must not contain a transform plan")
+        if self.transform_plan is not None:
+            if self.transform_plan.selection_id != self.selection_id:
+                raise ValueError("reframe decision and transform plan selection must agree")
+            if len(self.keyframes) != len(self.transform_plan.keyframes):
+                raise ValueError("legacy keyframe view must derive from the transform plan")
+            source = self.transform_plan.source_geometry
+            for legacy, canonical in zip(
+                self.keyframes, self.transform_plan.keyframes, strict=True
+            ):
+                crop = canonical.crop
+                expected = (
+                    canonical.source_time,
+                    (crop.left + crop.width / 2) / source.width,
+                    (crop.top + crop.height / 2) / source.height,
+                    source.width / crop.width,
+                )
+                observed = (
+                    legacy.source_time,
+                    legacy.crop_center_x,
+                    legacy.crop_center_y,
+                    legacy.scale,
+                )
+                if observed != expected:
+                    raise ValueError("legacy keyframe view diverges from transform plan")
 
 
 class SpatialComposer(Protocol):
