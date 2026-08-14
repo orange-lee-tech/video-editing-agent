@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from video_editing_agent.application.ports.audio_editorial import SourceAudioPolicy
 from video_editing_agent.domain.asset.rights import RightsAttestation, RightsEligibility
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevisionRef, EntityStatus
 from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
@@ -52,3 +53,9 @@ def test_mix_envelope_is_bounded_and_speech_explicit() -> None:
         for x in mix.automation_intents
     )
     assert all(x.start is None or x.end.as_fraction() <= 6 for x in mix.automation_intents)
+    assert mix.source_audio_policy is SourceAudioPolicy.PRESERVE
+
+
+def test_mix_defaults_to_muting_ungrounded_source_audio() -> None:
+    mix = plan_basic_mix(EntityRevisionRef("plan", 1), REF, MediaTime(6, 1), ())
+    assert mix.source_audio_policy is SourceAudioPolicy.MUTE

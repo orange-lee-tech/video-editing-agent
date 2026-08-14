@@ -6,6 +6,7 @@ from video_editing_agent.application.ports.audio_editorial import (
     AudioAutomationKind,
     AudioMixDecision,
     AudioTrackRole,
+    SourceAudioPolicy,
 )
 from video_editing_agent.application.ports.music_selection import MusicSelectionDecision
 from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
@@ -15,6 +16,8 @@ from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRan
 class AudioExecutionPlan:
     selected_asset_id: str
     source_segments: tuple[MediaTimeRange, ...]
+    source_audio_policy: SourceAudioPolicy
+    consumes_source_audio: bool
     filter_complex: str
     output_duration_seconds: str
 
@@ -24,7 +27,10 @@ def _seconds(value: MediaTime) -> str:
 
 
 def compile_audio_execution(
-    selection: MusicSelectionDecision, mix: AudioMixDecision
+    selection: MusicSelectionDecision,
+    mix: AudioMixDecision,
+    *,
+    source_audio_available: bool = True,
 ) -> AudioExecutionPlan:
     segments = tuple(item.source_range for item in selection.source_segments)
     if not segments:
@@ -65,15 +71,30 @@ def compile_audio_execution(
             bgm_filters.append(f"volume='{multiplier:.9f}':enable='between(t,{start},{end})'")
     duration = sum(item.duration.as_fraction() for item in segments)
     duration_text = f"{float(duration):.6f}".rstrip("0").rstrip(".")
-    graph = ";".join(
-        (
-            *segment_filters,
-            f"{concat_inputs}concat=n={len(segments)}:v=0:a=1[chosen]",
-            f"[chosen]{','.join(bgm_filters) if bgm_filters else 'anull'}[bgm]",
-            f"[0:a]atrim=0:{duration_text},asetpts=PTS-STARTPTS[src]",
-            "[src][bgm]amix=inputs=2:duration=first:normalize=0[a]",
+    graph_parts = [
+        *segment_filters,
+        f"{concat_inputs}concat=n={len(segments)}:v=0:a=1[chosen]",
+        f"[chosen]{','.join(bgm_filters) if bgm_filters else 'anull'}[bgm]",
+    ]
+    consumes_source_audio = False
+    if mix.source_audio_policy is SourceAudioPolicy.DUCK:
+        raise ValueError("source-audio DUCK execution is not implemented")
+    if mix.source_audio_policy is SourceAudioPolicy.PRESERVE and source_audio_available:
+        graph_parts.extend(
+            (
+                f"[0:a]atrim=0:{duration_text},asetpts=PTS-STARTPTS[src]",
+                "[src][bgm]amix=inputs=2:duration=first:normalize=0[a]",
+            )
         )
-    )
+        consumes_source_audio = True
+    else:
+        graph_parts.append("[bgm]anull[a]")
+    graph = ";".join(graph_parts)
     return AudioExecutionPlan(
-        selection.selected_asset_ref.entity_id, segments, graph, duration_text
+        selection.selected_asset_ref.entity_id,
+        segments,
+        mix.source_audio_policy,
+        consumes_source_audio,
+        graph,
+        duration_text,
     )

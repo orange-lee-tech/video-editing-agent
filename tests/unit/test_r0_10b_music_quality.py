@@ -7,6 +7,7 @@ from video_editing_agent.application.ports.audio_editorial import (
     AudioAutomationIntent,
     AudioAutomationKind,
     AudioTrackRole,
+    SourceAudioPolicy,
 )
 from video_editing_agent.application.ports.music_selection import MusicIntent
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevisionRef, EntityStatus
@@ -130,3 +131,52 @@ def test_duck_multiplier_is_relative_to_decision_base_gain() -> None:
 
     assert "volume='0.251188643'" in compile_audio_execution(selection, mix).filter_complex
     assert "volume='0.501187234'" in compile_audio_execution(selection, changed_base).filter_complex
+
+
+def test_source_audio_policy_mutation_changes_canonical_execution() -> None:
+    selection = select_music(generate_music_windows(_beatmap(), MediaTime(3, 1), ("att",)))
+    assert selection is not None
+    preserve = plan_basic_mix(
+        EntityRevisionRef("plan", 1),
+        REF,
+        MediaTime(3, 1),
+        (MediaTimeRange(MediaTime(1, 1), MediaTime(1, 1)),),
+    )
+    mute = replace(preserve, source_audio_policy=SourceAudioPolicy.MUTE)
+
+    preserve_plan = compile_audio_execution(selection, preserve)
+    mute_plan = compile_audio_execution(selection, mute)
+    assert preserve_plan.source_audio_policy is SourceAudioPolicy.PRESERVE
+    assert preserve_plan.consumes_source_audio
+    assert "[0:a]" in preserve_plan.filter_complex
+    assert mute_plan.source_audio_policy is SourceAudioPolicy.MUTE
+    assert not mute_plan.consumes_source_audio
+    assert "[0:a]" not in mute_plan.filter_complex
+    assert preserve_plan.filter_complex != mute_plan.filter_complex
+
+
+def test_no_source_audio_still_compiles_intentional_bgm_output() -> None:
+    selection = select_music(generate_music_windows(_beatmap(), MediaTime(3, 1), ("att",)))
+    assert selection is not None
+    preserve = plan_basic_mix(
+        EntityRevisionRef("plan", 1),
+        REF,
+        MediaTime(3, 1),
+        (MediaTimeRange(MediaTime(1, 1), MediaTime(1, 1)),),
+    )
+
+    plan = compile_audio_execution(selection, preserve, source_audio_available=False)
+    assert not plan.consumes_source_audio
+    assert "[0:a]" not in plan.filter_complex
+    assert "[bgm]anull[a]" in plan.filter_complex
+
+
+def test_source_audio_duck_fails_closed_until_semantics_are_owned() -> None:
+    selection = select_music(generate_music_windows(_beatmap(), MediaTime(3, 1), ("att",)))
+    assert selection is not None
+    mix = replace(
+        plan_basic_mix(EntityRevisionRef("plan", 1), REF, MediaTime(3, 1), ()),
+        source_audio_policy=SourceAudioPolicy.DUCK,
+    )
+    with pytest.raises(ValueError, match="source-audio DUCK execution is not implemented"):
+        compile_audio_execution(selection, mix)

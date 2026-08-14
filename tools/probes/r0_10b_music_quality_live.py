@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import pathlib
@@ -9,9 +10,10 @@ import subprocess
 import sys
 import time
 import wave
+from dataclasses import replace
 from datetime import UTC, datetime
 
-from video_editing_agent.application.ports.audio_editorial import AudioTrackRole
+from video_editing_agent.application.ports.audio_editorial import AudioTrackRole, SourceAudioPolicy
 from video_editing_agent.application.ports.music_selection import MusicIntent
 from video_editing_agent.domain.asset.rights import RightsAttestation
 from video_editing_agent.domain.common.entity import EntityRevisionRef
@@ -147,8 +149,17 @@ def main() -> int:
     render_started = time.perf_counter()
     baseline = args.output / "baseline_mix_preview.mp4"
     structured = args.output / "structured_mix_preview.mp4"
+    muted_source = args.output / "muted_source_mix_preview.mp4"
     render(args.ffmpeg, args.video, music, baseline, structured=False)
     execution = render_structured(args.ffmpeg, args.video, music, structured, selection, mix)
+    muted_execution = render_structured(
+        args.ffmpeg,
+        args.video,
+        music,
+        muted_source,
+        selection,
+        replace(mix, source_audio_policy=SourceAudioPolicy.MUTE),
+    )
     rendered_pcm = args.output / "structured_mix_qc.wav"
     subprocess.run(
         [
@@ -167,6 +178,24 @@ def main() -> int:
         check=True,
     )
     qc = inspect_pcm16_wav(str(rendered_pcm))
+    muted_pcm = args.output / "muted_source_mix_qc.wav"
+    subprocess.run(
+        [
+            args.ffmpeg,
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-i",
+            str(muted_source),
+            "-vn",
+            "-c:a",
+            "pcm_s16le",
+            str(muted_pcm),
+        ],
+        check=True,
+    )
+    muted_qc = inspect_pcm16_wav(str(muted_pcm))
     render_seconds = time.perf_counter() - render_started
     gates = {
         "PYTHON_SUPPORT_COMPATIBLE": "audioop"
@@ -222,6 +251,15 @@ def main() -> int:
             )
         ),
         "POST_MIX_QC": rendered_pcm.exists() and qc.clipped_samples == 0,
+        "SOURCE_POLICY_EXECUTION_DIFFERS": execution.consumes_source_audio
+        and not muted_execution.consumes_source_audio
+        and "[0:a]" in execution.filter_complex
+        and "[0:a]" not in muted_execution.filter_complex,
+        "SOURCE_POLICY_RENDER_DIFFERS": hashlib.sha256(structured.read_bytes()).digest()
+        != hashlib.sha256(muted_source.read_bytes()).digest(),
+        "MUTED_SOURCE_RETAINS_AUDIBLE_BGM": muted_qc.rms_dbfs is not None
+        and muted_qc.silent_fraction < 0.95
+        and muted_qc.clipped_samples == 0,
     }
     report = {
         "gates": {key: "PASS" if value else "FAIL" for key, value in gates.items()},
@@ -270,11 +308,18 @@ def main() -> int:
         },
         "execution": {
             "selected_asset_id": execution.selected_asset_id,
+            "source_audio_policy": execution.source_audio_policy.value,
+            "consumes_source_audio": execution.consumes_source_audio,
             "source_segments": [
                 [float(item.start.as_fraction()), float(item.end.as_fraction())]
                 for item in execution.source_segments
             ],
             "filter_complex": execution.filter_complex,
+        },
+        "muted_execution": {
+            "source_audio_policy": muted_execution.source_audio_policy.value,
+            "consumes_source_audio": muted_execution.consumes_source_audio,
+            "filter_complex": muted_execution.filter_complex,
         },
         "qc": {
             "peak_dbfs": qc.peak_dbfs,
@@ -282,6 +327,13 @@ def main() -> int:
             "silent_fraction": qc.silent_fraction,
             "clipped_samples": qc.clipped_samples,
             "warnings": qc.warnings,
+        },
+        "muted_qc": {
+            "peak_dbfs": muted_qc.peak_dbfs,
+            "rms_dbfs": muted_qc.rms_dbfs,
+            "silent_fraction": muted_qc.silent_fraction,
+            "clipped_samples": muted_qc.clipped_samples,
+            "warnings": muted_qc.warnings,
         },
         "timings_seconds": {
             "analysis": analysis_seconds,

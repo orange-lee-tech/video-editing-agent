@@ -83,7 +83,7 @@ def plan_basic_mix(
     return AudioMixDecision(
         f"amd_{digest}",
         edit_plan_ref,
-        SourceAudioPolicy.PRESERVE,
+        SourceAudioPolicy.PRESERVE if merged else SourceAudioPolicy.MUTE,
         tuple(intents),
         "diagnostic PCM peak/RMS only",
         0.9,
