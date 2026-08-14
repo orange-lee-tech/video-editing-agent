@@ -111,7 +111,17 @@ def select_music(
 ) -> MusicSelectionDecision | None:
     if not windows:
         return None
-    selected = windows[0]
+    ranked = tuple(
+        sorted(
+            windows,
+            key=lambda item: (
+                -item.score,
+                item.source_range.start.as_fraction(),
+                item.candidate_id,
+            ),
+        )
+    )
+    selected = ranked[0]
     segments: tuple[MusicSourceSegment, ...] = (MusicSourceSegment(0, selected.source_range),)
     warnings: tuple[str, ...] = ()
     if (
@@ -142,5 +152,11 @@ def select_music(
         selected.confidence,
         ("highest deterministic feature score", *selected.reasons),
         warnings,
-        tuple(dict.fromkeys(item.audio_asset_ref for item in windows[1:])),
+        tuple(
+            dict.fromkeys(
+                item.audio_asset_ref
+                for item in ranked[1:]
+                if item.audio_asset_ref != selected.audio_asset_ref
+            )
+        ),
     )

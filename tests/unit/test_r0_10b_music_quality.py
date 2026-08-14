@@ -66,6 +66,40 @@ def test_feature_scores_are_inspectable_nonconstant_and_deterministic() -> None:
     assert all(item.feature_contributions and item.reasons for item in first)
 
 
+def test_selection_globally_ranks_unordered_cross_asset_candidates() -> None:
+    generated = generate_music_windows(_beatmap(), MediaTime(3, 1), ("att",))
+    low_ref = EntityRevisionRef("music-low", 1)
+    high_ref = EntityRevisionRef("music-high", 1)
+    low = replace(generated[0], candidate_id="candidate-low", audio_asset_ref=low_ref, score=0.4)
+    duplicate_low_asset = replace(
+        generated[1], candidate_id="candidate-alternative", audio_asset_ref=low_ref, score=0.3
+    )
+    high = replace(generated[2], candidate_id="candidate-high", audio_asset_ref=high_ref, score=0.9)
+
+    first = select_music((low, duplicate_low_asset, high))
+    reversed_input = select_music((high, duplicate_low_asset, low))
+
+    assert first == reversed_input
+    assert first is not None
+    assert first.selected_asset_ref == high_ref
+    assert first.score == 0.9
+    assert first.alternative_asset_refs == (low_ref,)
+    assert first.reasons[0] == "highest deterministic feature score"
+
+
+def test_selection_tie_breaking_is_order_independent() -> None:
+    generated = generate_music_windows(_beatmap(), MediaTime(3, 1), ("att",))
+    first = replace(generated[0], candidate_id="candidate-z", score=0.8)
+    second = replace(generated[1], candidate_id="candidate-a", score=0.8)
+    expected = min((first, second), key=lambda item: item.source_range.start.as_fraction())
+
+    forward = select_music((first, second))
+    reverse = select_music((second, first))
+    assert forward == reverse
+    assert forward is not None
+    assert forward.source_segments[0].source_range == expected.source_range
+
+
 def test_loop_and_duck_ramps_are_bounded() -> None:
     windows = generate_music_windows(_beatmap(), MediaTime(3, 1), ("att",))
     decision = select_music(windows, target_duration=MediaTime(6, 1))

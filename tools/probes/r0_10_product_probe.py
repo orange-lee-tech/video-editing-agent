@@ -189,12 +189,7 @@ def main() -> int:
         records.append((source, digest, ref, attestation, decoded, beatmap, windows))
     analysis_seconds = time.perf_counter() - analysis_started
 
-    candidate_windows = tuple(
-        sorted(
-            (record[6][0] for record in records),
-            key=lambda item: (-item.score, item.audio_asset_ref.entity_id, item.candidate_id),
-        )
-    )
+    candidate_windows = tuple(record[6][0] for record in reversed(records))
     winning_selection = select_music(candidate_windows)
     if winning_selection is None:
         raise RuntimeError("candidate comparison produced no MusicSelectionDecision")
@@ -303,7 +298,7 @@ def main() -> int:
         "MUSIC_CANDIDATE_A_B": rendered["candidate_a"]["asset_id"]
         != rendered["candidate_b"]["asset_id"],
         "CANDIDATE_WINNER_IS_GLOBAL_TOP_SCORE": winning_selection.selected_asset_ref
-        == candidate_windows[0].audio_asset_ref,
+        == max(candidate_windows, key=lambda item: item.score).audio_asset_ref,
         "MUSIC_MOMENT_A_B": rendered["moment_ordinary"]["source_ranges_seconds"]
         != rendered["moment_selected"]["source_ranges_seconds"],
         "MIX_A_B": rendered["mix_basic"]["sha256"] != rendered["mix_structured"]["sha256"],
