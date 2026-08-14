@@ -120,7 +120,7 @@ def _check_live_state(errors: list[str]) -> None:
             f"CURRENT_PHASE_STATUS={status_phase}, CURRENT_WORK_ORDER={work_phase}"
         )
 
-    collaboration_path = "docs/operations/CHATGPT_GITHUB_CODEX_COLLABORATION.md"
+    collaboration_path = "operations/CHATGPT_GITHUB_CODEX_COLLABORATION.md"
     if collaboration_path not in _read("docs/README.md"):
         errors.append("docs/README.md does not route new handoffs to the collaboration contract")
 
