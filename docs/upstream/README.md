@@ -5,9 +5,12 @@
 - `UPSTREAM_COMPONENTS_V2.md` — current component/reference ledger.
 - `UPSTREAM_POLICY_V2.md` — current reuse/dependency policy.
 
-`UPSTREAM_COMPONENTS.md` and `UPSTREAM_POLICY.md` are historical bootstrap snapshots.
+Retired V1 bootstrap snapshots are preserved under:
 
-Other named FireRed/TransNet files preserve phase-specific audit/provenance evidence and are retained for traceability.
+- `docs/archive/upstream/UPSTREAM_COMPONENTS.md`
+- `docs/archive/upstream/UPSTREAM_POLICY.md`
+
+Other named FireRed/TransNet files preserve phase-specific audit/provenance evidence and remain here because they still document exact adopted/reimplemented mechanisms.
 
 ## Rule
 

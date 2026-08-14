@@ -2,7 +2,7 @@
 
 **Status:** non-authoritative engineering memory
 
-This directory stores only durable debugging/probe information that is expensive to rediscover. It is not an authority pack and it is not the active project-state surface.
+This directory stores durable debugging/probe/collaboration knowledge that is expensive to rediscover. It is not an authority pack and it is not the active project-state surface.
 
 ## Authority / live-state boundary
 
@@ -23,6 +23,8 @@ Do not create phase-specific working-cache files when those two dynamic files ca
 
 - `INCIDENT_LEDGER.md` — durable symptom → mechanism → invariant → fix/evidence history.
 - `PROBE_LEDGER.md` — material Engineering/Product Probe history and information gained.
+- `COLLABORATION_LESSONS.md` — durable lessons about ChatGPT/User/GitHub/Codex orchestration.
+- `REPOSITORY_GOVERNANCE_LESSONS.md` — durable repository hygiene, archive and navigation lessons.
 
 ## What deserves a log entry
 
@@ -32,7 +34,7 @@ Record only information likely to prevent future rediscovery, such as:
 symptom → mechanism → subsystem → shared invariant → fix → verification
 ```
 
-or a material probe that established provider viability, product quality, a negative control, or a phase gate.
+or a material probe/workflow lesson that established a reliable practice or exposed a repeatable failure mode.
 
 Do not log ordinary green CI runs, repeated command output, routine formatter fixes, or every local experiment.
 
@@ -46,4 +48,4 @@ Secrets, private footage, machine-specific absolute paths, giant CI logs already
 
 ## Retention
 
-Ledgers are append/curate-oriented durable memory and may be compacted when details are duplicated by formal closure evidence. Formal phase closure belongs in `docs/validation/`; active instructions belong in `docs/operations/`.
+Ledgers are append/curate-oriented durable memory and may be compacted when details are duplicated by formal closure evidence. Formal phase closure belongs in `docs/validation/`; active instructions belong in `docs/operations/`; retired documents belong in `docs/archive/`.

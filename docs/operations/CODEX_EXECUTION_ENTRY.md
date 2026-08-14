@@ -8,14 +8,20 @@ Before coding, read only what is needed in this order:
 
 1. `docs/operations/CODEX_EXECUTION_ENTRY.md` — execution behavior.
 2. `docs/roadmap/CURRENT_PHASE_STATUS.md` — current phase and completed/remaining boundaries.
-3. `docs/operations/CURRENT_WORK_ORDER.md` — the single active implementation boundary and acceptance gates.
+3. `docs/operations/CURRENT_WORK_ORDER.md` — the single active implementation boundary or handoff blueprint.
 4. Only the capability/implementation/tests referenced by the current work order.
 
-Do not reread the entire repository or historical validation archive unless the active work order requires it.
+At a new ChatGPT/Codex handoff, the coordinating ChatGPT should also read `CHATGPT_GITHUB_CODEX_COLLABORATION.md` once. Codex does not need to reread collaboration/history documents every run.
 
-## Pause gate
+Do not reread the entire repository or historical validation/archive unless the active work order requires it.
 
-If `CURRENT_WORK_ORDER.md` says `PAUSED`, `NO ACTIVE IMPLEMENTATION WORK`, or otherwise contains no active implementation boundary, **make no code changes and do not resurrect a previous work order**. Report the paused state and stop.
+## Work-state gate
+
+- `ACTIVE` — execute the stated boundary.
+- `HANDOFF_READY` — resumable blueprint. Codex does **not** self-activate it from stale chat/history; the coordinating ChatGPT reobserves `origin/main` and activates/refreshes it.
+- `PAUSED` / `NO ACTIVE IMPLEMENTATION WORK` — make no code changes unless the user explicitly changes the work state.
+
+HANDOFF_READY is not a product freeze and should not be treated as permanent blocking state.
 
 ## Execution behavior
 
@@ -45,9 +51,9 @@ uv build
 git diff --check
 ```
 
-Run the capability-specific live Engineering Probe when required by `CURRENT_WORK_ORDER.md`.
+Run the capability-specific live Engineering/Product Probe when required by `CURRENT_WORK_ORDER.md`.
 
-If all required gates pass, make one coherent commit on `main` and push. If commit/push approval is the only blocker, preserve the verified working tree/staging and report it; do not redo the implementation.
+If all required gates pass, make one coherent commit on `main` and push. If commit/push approval is the only blocker, preserve the verified working tree/staging and report it; do not redo implementation.
 
 ## Reporting
 

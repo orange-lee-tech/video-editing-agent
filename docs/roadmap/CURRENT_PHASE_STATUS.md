@@ -2,8 +2,8 @@
 
 **Roadmap V2:** ACTIVE  
 **Current phase:** R0.10 — Music Selection + BeatMap + Audio Editorial  
-**Engineering state:** PAUSED BY USER  
-**Pause date:** 2026-08-13
+**Engineering state:** HANDOFF_READY — ready for the next conversation to resume  
+**Handoff date:** 2026-08-14
 
 ## Closed
 
@@ -17,14 +17,24 @@
 - `7d4dcc0afb26556f9a161b73ca408946f6f417d7` — R0.10A local rights-aware audible music foundation.
 - `81afb604b96486587a308f6f4c69d89f1450f46e` — R0.10B feature-ranked music windows, natural mix intent, canonical decision→execution bridge and post-mix QC.
 
-## Pause boundary
+## Resume boundary
 
 R0.10 is **not closed**.
 
-The next planned product boundary remains a real-music R0.10 Product Probe/Human Gate, but it is intentionally **not active work**. No R0.11 work has begun.
+The next planned product boundary is:
 
-Do not infer an implementation task from the previous Product Probe work order or chat history. Feature construction resumes only after an explicit user instruction and a refreshed `CURRENT_WORK_ORDER.md`.
+`real rights-attested local music → R0.10 Product Probe A/B → Human Gate → R0.10 closure`
+
+A bounded compiler preflight also remains: remove the hidden fixed `-10 dB` base-gain assumption so duck/base-gain relationships derive entirely from `AudioMixDecision`.
+
+No R0.11 implementation has begun.
+
+## Handoff meaning
+
+`HANDOFF_READY` is deliberately resumable, not a lock. A new coordinating ChatGPT conversation must first reobserve current `origin/main`, then may activate the preserved R0.10 boundary through `docs/operations/CURRENT_WORK_ORDER.md` and issue a compact Codex instruction.
+
+Codex must not independently reconstruct a stale job from old chat history; the coordinating ChatGPT owns work-order activation.
 
 ## Governance review
 
-The 2026-08-13 repository audit confirmed Roadmap V2, Product Constitution v1.0 and Architecture Contract v0.2 remain usable as the governing map/authority set. Navigation and repository hygiene were refreshed without changing product policy.
+The repository audit confirmed Roadmap V2, Product Constitution v1.0 and Architecture Contract v0.2 remain usable. No structural Roadmap V3/resequencing is justified at this point.

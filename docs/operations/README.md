@@ -4,20 +4,25 @@ Dynamic collaboration/execution state lives here. These files are intentionally 
 
 ## Files
 
-- `CODEX_EXECUTION_ENTRY.md` — stable minimal behavior/read-order for local Codex implementation.
-- `CURRENT_WORK_ORDER.md` — the single active implementation boundary, or an explicit PAUSED state.
+- `CHATGPT_GITHUB_CODEX_COLLABORATION.md` — stable role split and handoff protocol among user, ChatGPT, GitHub and Codex.
+- `CODEX_EXECUTION_ENTRY.md` — minimal behavior/read-order for local Codex implementation.
+- `CURRENT_WORK_ORDER.md` — the single active implementation boundary or `HANDOFF_READY` resume blueprint.
 
 Related live phase state:
 
 - `../roadmap/CURRENT_PHASE_STATUS.md`
 
-## Pause semantics
+## Work-state semantics
 
-If `CURRENT_WORK_ORDER.md` says `PAUSED` or `NO ACTIVE IMPLEMENTATION WORK`, agents must not infer an old work order from chat history, roadmap prose or historical validation files. Reobserve `origin/main` and wait for an explicit resumed work order.
+- `ACTIVE` means the current boundary may be executed.
+- `HANDOFF_READY` means the project is deliberately ready for a new coordinating ChatGPT conversation to reobserve GitHub and activate/refresh the preserved boundary. It is **not** a lock.
+- `PAUSED` means no implementation should proceed until the user changes that state.
+
+Codex must never resurrect an obsolete work order from old chat history. ChatGPT owns work-order activation after observing current GitHub truth.
 
 ## Authority boundary
 
-Operations documents may coordinate work but cannot override:
+Operations documents coordinate work but cannot override:
 
 `Product Constitution → Architecture Contract → Capability Specs → ADRs → Roadmap`
 

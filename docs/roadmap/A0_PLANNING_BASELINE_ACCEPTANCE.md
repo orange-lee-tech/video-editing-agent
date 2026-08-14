@@ -34,7 +34,7 @@ ADRs
 Implementation / Provider behavior
 ```
 
-The v0.1 / v0.1.1 / v0.1.2 Architecture Contracts remain preserved as historical baselines. They are not current authority where they conflict with v0.2 or the Product Constitution.
+The retired v0.1 / v0.1.1 / v0.1.2 Architecture Contracts are preserved under `docs/archive/architecture/`. They are not current authority where they conflict with v0.2 or the Product Constitution.
 
 This explicitly neutralizes legacy product behavior such as:
 
@@ -55,17 +55,17 @@ It is not Resolver-eligible merely because it is a local file. If the user also 
 
 This is accepted as a compatible interpretation of Product Constitution v1.0. A future Constitution revision is required only if product intent itself changes.
 
-## Current phase
+## Phase at acceptance
 
-A0 is complete.
-
-The active construction phase is:
+A0 completed the planning gate and entered:
 
 > **R0.7A — Architecture v0.2 Migration Foundation**
 
-Initial audit and migration batching are recorded in:
+The completed migration audit is preserved at:
 
-`docs/roadmap/R0.7A_MIGRATION_AUDIT.md`
+`docs/archive/roadmap/R0.7A_MIGRATION_AUDIT.md`
+
+Current construction state must be read from `CURRENT_PHASE_STATUS.md`, not from this historical acceptance record.
 
 ## Freeze discipline
 

@@ -28,7 +28,7 @@ This is **not** a generic text-to-video or autonomous stock-footage generator. M
 
 ## Current repository state
 
-Feature development is intentionally **PAUSED** by user decision as of 2026-08-13 while repository governance is consolidated.
+The repository is **HANDOFF_READY** as of 2026-08-14 and is intended to continue construction in the next ChatGPT conversation.
 
 Completed/accepted milestones:
 
@@ -40,12 +40,14 @@ Completed/accepted milestones:
 - R0.10A — local rights-aware music/BeatMap/audible-mix foundation;
 - R0.10B — feature-ranked music windows, structured audio mix intent, decision→execution bridge and post-mix QC.
 
-R0.10 is **not closed**. Its real-music Product Probe has not been executed. R0.11+ has not started.
+R0.10 is **not closed**. The next planned boundary is its real-music Product Probe → Human Gate → closure. R0.11+ has not started.
 
 Live state is always recorded in:
 
 - [`docs/roadmap/CURRENT_PHASE_STATUS.md`](docs/roadmap/CURRENT_PHASE_STATUS.md)
 - [`docs/operations/CURRENT_WORK_ORDER.md`](docs/operations/CURRENT_WORK_ORDER.md)
+
+New ChatGPT conversations should also read [`docs/operations/CHATGPT_GITHUB_CODEX_COLLABORATION.md`](docs/operations/CHATGPT_GITHUB_CODEX_COLLABORATION.md).
 
 ## Authority and navigation
 
@@ -62,7 +64,7 @@ Normative order:
 
 The explicit planning-baseline acceptance record is [`docs/roadmap/A0_PLANNING_BASELINE_ACCEPTANCE.md`](docs/roadmap/A0_PLANNING_BASELINE_ACCEPTANCE.md).
 
-Historical contracts, research and old ADR material are preserved for provenance but are not allowed to override the active authority chain.
+Retired documents are centralized under [`docs/archive/`](docs/archive/). They are provenance only and never override the active authority chain.
 
 ## Product rules that do not drift
 
@@ -79,13 +81,14 @@ Historical contracts, research and old ADR material are preserved for provenance
 
 ## Repository map
 
-- `.github/` — CI and reproducible probe workflows; see `.github/README.md`.
-- `docs/` — product, architecture, roadmap, ADRs, validation, logs, research and operations.
+- `.github/` — CI and reproducible probe/maintenance workflows.
+- `docs/` — active product/architecture/roadmap/ADR/validation/log/operations documentation.
+- `docs/archive/` — retired documentation preserved for provenance only.
 - `LICENSES/` — third-party license-text staging/retention policy, not the project license.
 - `scripts/` — repository/developer helper scripts and historical standalone probes.
 - `src/` — production Python package.
 - `tests/` — unit/integration/contract tests and redistributable fixtures.
-- `tools/` — developer/evidence tooling; phase probes live under `tools/probes/`.
+- `tools/` — developer/evidence/maintenance tooling; phase probes live under `tools/probes/`.
 
 Local/private media, toolchains and probe outputs are intentionally gitignored and do not belong in GitHub.
 
@@ -111,7 +114,7 @@ uv build
 git diff --check
 ```
 
-Feature implementation must not start while `CURRENT_WORK_ORDER.md` is paused.
+At a new conversation, reobserve `origin/main` before activating the handoff-ready work order. Do not reconstruct active work from chat memory alone.
 
 ## Upstream strategy
 

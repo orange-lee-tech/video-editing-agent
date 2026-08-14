@@ -10,11 +10,13 @@ The original `CANDIDATE ROADMAP` wording at the top of the drafted file is a pre
 
 `CURRENT_PHASE_STATUS.md` is the canonical current-phase pointer.
 
-As of the 2026-08-13 governance audit, feature development is intentionally paused in **R0.10** after accepted R0.10A/R0.10B engineering baselines. The R0.10 real-music Product Probe is the planned resume point but is not currently active work.
+As of the 2026-08-14 handoff, the project is **HANDOFF_READY in R0.10** after accepted R0.10A/R0.10B engineering baselines. R0.10 is not closed. The intended resume boundary remains the real-music Product Probe → Human Gate → closure.
+
+HANDOFF_READY is not a product freeze. A new coordinating ChatGPT conversation may reobserve `origin/main`, activate a bounded work order and continue construction without inventing a new roadmap.
 
 ## Historical planning records
 
-- `A0_PLANNING_BASELINE_ACCEPTANCE.md` — planning-set activation/freeze decision.
-- `R0.7A_MIGRATION_AUDIT.md` — historical migration planning/audit record.
+- `A0_PLANNING_BASELINE_ACCEPTANCE.md` — planning-set activation/freeze decision; still canonical because it defines authority.
+- `../archive/roadmap/R0.7A_MIGRATION_AUDIT.md` — completed migration planning/audit provenance.
 
-Do not create a new roadmap merely because completed phases have advanced. Revise/replace Roadmap V2 only when the planned construction sequence or capability decomposition materially changes.
+Do not create a new roadmap merely because completed phases have advanced. Revise/replace Roadmap V2 only when the planned construction sequence, capability decomposition or exit criteria materially change.

@@ -14,21 +14,21 @@ Authority order:
 
 Acceptance record: `docs/roadmap/A0_PLANNING_BASELINE_ACCEPTANCE.md`.
 
-The `CANDIDATE` wording inside the original v0.2 draft header records its pre-acceptance drafting state. A0 supersedes that status label without rewriting the historical draft body.
+The `CANDIDATE` wording inside the original v0.2 draft header records its pre-acceptance drafting state. A0 supersedes that status label for current authority.
 
-## Historical contracts
+## Retired architecture contracts
 
-The v0.1.x series remains preserved for provenance:
+The v0.1.x series is preserved centrally under:
 
-- `ARCHITECTURE_CONTRACT_V0.1.md`
-- `ARCHITECTURE_CONTRACT_V0.1.1.md`
-- `ARCHITECTURE_CONTRACT_V0.1.2.md`
+`docs/archive/architecture/`
 
-Where a v0.1.x rule conflicts with Product Constitution v1.0 or accepted v0.2, it is historical only.
+Those files are provenance only. Where a v0.1.x rule conflicts with Product Constitution v1.0 or accepted v0.2, it is historical and must not be implemented.
 
 ## Current construction state
 
-Feature work is intentionally **PAUSED** in R0.10 after accepted R0.10A/R0.10B engineering baselines. See:
+R0.10 is **HANDOFF_READY** after accepted R0.10A/R0.10B engineering baselines. It is not closed; the next planned boundary is the real-music Product Probe / Human Gate.
+
+See:
 
 - `docs/roadmap/CURRENT_PHASE_STATUS.md`
 - `docs/operations/CURRENT_WORK_ORDER.md`
