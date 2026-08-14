@@ -2,7 +2,7 @@
 
 **Roadmap V2:** ACTIVE  
 **Current phase:** R0.11 — Spatial Composition / Auto Reframe  
-**Engineering state:** ACTIVE — real two-clip Product Probe authorized and ready to execute  
+**Engineering state:** WAITING_HUMAN — real Product Probe blocked by 9:16 source geometry; non-9:16 footage required  
 **Updated:** 2026-08-14
 
 ## Closed
@@ -21,77 +21,66 @@
 
 ## Verified engineering state
 
-At the accepted motion-stability baseline:
+The accepted motion-stability implementation remains green:
 
-- analyzed/source time legality is canonical half-open `[start, end)`;
-- R0.8 seeded-tracking evidence is reused;
-- `SpatialComposer` owns executable crop/path decisions;
+- canonical source-time ranges are half-open;
+- grounded R0.8 seeded-tracking evidence is reused;
+- `SpatialComposer` owns executable spatial decisions;
 - `SpatialPathPolicy(version=r0.11-stability-candidate-v1)` is explicit and versioned;
-- current uncalibrated candidate values are 12 px center dead zone, 800 px/s per-axis center velocity limit, 1 s maximum lost hold and redundant-keyframe suppression;
-- manual locks remain hard constraints;
-- lost observations do not fabricate focus geometry;
+- candidate defaults remain 12 px dead zone, 800 px/s per-axis center velocity limit, 1 s maximum lost hold and redundant-keyframe suppression;
+- lost observations do not fabricate geometry;
 - mandatory-focus containment outranks velocity limiting;
-- stabilization is Shot-local;
-- `SpatialPathQc` exposes inspectable movement/loss/geometry metrics;
+- path state is Shot-local;
+- `SpatialPathQc` is inspectable;
 - `SpatialTransformPlan` remains execution truth;
 - Engineering Probe reported `26/26 PASS`;
 - full pytest reported `475 passed`; Ruff, mypy, import contracts, build and diff checks were green;
-- remote `ci/quality-gate-diagnostic` is green;
-- no detector/model/provider dependency was added.
+- remote CI is green;
+- no detector/model/provider dependency was introduced.
 
-The current policy values remain mechanism candidates only. They are not product-calibrated until real human-viewed evidence supports them.
+## Real Product Probe attempt result
 
-## Real Product Probe media now supplied
+Two user-rights-attested clips were inspected:
 
-On 2026-08-14 the user confirmed two local private clips under:
+- `moving_occlusion1.mp4` — 720×1280, approximately 4.46 s, contains visible occlusion;
+- `moving_occlusion2.mp4` — 720×1280, approximately 2.73 s, no intended occlusion.
 
-`example/r0_11_product_probe/input/`
+Both are already exactly 9:16.
 
-Roles:
+For the current 9:16 target and maximum legal-crop semantics, the only legal maximum crop is the whole 720×1280 frame. CENTER, RAW and STABILIZED would therefore be spatially identical and cannot provide valid Product Probe evidence.
 
-- `moving_occlusion1*` — moving subject with real occlusion;
-- `moving_occlusion2*` — moving subject without occlusion.
+Classification:
 
-The user explicitly attested that they have the right to use both clips for this project test.
+`EXECUTION_BLOCKED — TARGET_ASPECT_NO_CROP_LATITUDE`
 
-The media remains local/private and must not be tracked or uploaded to GitHub.
+This does **not** downgrade the accepted engineering baseline and does **not** establish a tracker defect. The geometry gate occurs before a meaningful tracking/stabilization comparison.
 
-## Active Product Probe boundary
+## Current gate
 
-Execute the real comparison against both clips:
+R0.11 now waits for rights-attested source footage with actual crop latitude relative to a 9:16 output.
+
+Preferred evidence:
+
+- landscape 16:9 source, ideally 1920×1080 or 1280×720;
+- one moving-subject clip with a brief real occlusion/recovery;
+- one moving-subject clip without occlusion;
+- preferably 6–20 seconds each;
+- preserve original source framing; do not pre-convert to 9:16.
+
+Then execute:
 
 ```text
-same source / same exact source range / same target canvas
-→ center/static baseline
+same non-9:16 source / same exact range / same 9:16 target
+→ center/static
 vs
 raw/simple grounded tracking
 vs
 stabilized SpatialComposer
-→ canonical SpatialTransformPlan execution
-→ rendered local previews + SpatialPathQc/comparison metadata
+→ canonical plan previews + Spatial QC
 → Human Gate
 ```
 
-No speculative algorithm or parameter tuning should occur before the first Human Gate.
-
-The comparison must preserve decision truth: tracker/provider outputs remain observations; `SpatialComposer` owns executable decisions; FFmpeg/Renderer only executes canonical plans.
-
-If the existing seeded tracker cannot materially track a supplied clip, record `TRACKER_BLOCKED` and treat provider capability as the next evidence gate rather than silently switching implementations.
-
-## Human Gate required before R0.11 closure
-
-The user will compare center/raw/stabilized previews for both clips.
-
-Primary product questions:
-
-- which framing feels best overall;
-- whether stabilized motion feels natural versus jittery/chasing/laggy;
-- whether any subject is clipped or focus becomes wrong;
-- for `moving_occlusion1`, whether occlusion and recovery are acceptable.
-
-Human preference is authoritative product evidence. Spatial QC is supporting evidence.
-
-R0.11 remains open until this Human Gate is complete.
+Do not retune the accepted policy or add zoom/tracker/provider authority while waiting merely to make the current vertical footage usable.
 
 ## Future audio-provider backlog
 
@@ -99,6 +88,6 @@ Automatic rights-aware music discovery/acquisition remains recorded separately i
 
 `docs/research/AUDIO_PROVIDER_CANDIDATES_2026-08-14.md`
 
-It does not reopen R0.10 and is not part of this Product Probe.
+It does not reopen R0.10 and is not part of the R0.11 Product Probe.
 
 No R0.12 implementation has begun.
