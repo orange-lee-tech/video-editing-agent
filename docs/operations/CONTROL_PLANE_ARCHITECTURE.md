@@ -1,144 +1,85 @@
-# Control Plane Architecture — ChatGPT / Codex / GitHub / Local Foreman
+# Control Plane Architecture — Information Economy
 
 **Status:** ACTIVE OPERATING MODEL  
 **Updated:** 2026-08-14
 
-## Problem being solved
+## Goal
 
-Long Codex prompts accumulated repeated architecture explanations, historical context, startup rules, validation requirements and stop conditions.
+Optimize Codex for **execution efficiency, accuracy and necessity**. Prompt length is secondary.
 
-That is inefficient and increases instruction collision risk: task-specific objectives compete with repeated durable rules, while Codex spends effort reconstructing a state model that already exists in repository documents.
+Moving a long prompt into Markdown is not a solution if Codex must still read the same information before every task. Repository documents are an authority/tool store; they are not automatically model context.
 
-The control plane therefore separates **durable authority**, **current state**, **active delta**, and **runtime observation**.
+## Model-read vs machine-read
 
-## Four layers
+The foreman may machine-parse rich repository state and work-order files. Codex should normally see only the smallest safe execution surface.
 
-### 1. Durable authority
+### L0 — always visible
+
+Only information needed to start correctly:
+
+- active task/phase;
+- one-sentence objective;
+- actual local Git state;
+- immediate next action;
+- hard blocker/stop conditions;
+- named trigger routes.
+
+### L1 — task-local expansion
+
+Open only when needed: relevant implementation files, focused tests, exact tool command, or one targeted contract/reference.
+
+### L2 — authority/evidence expansion
+
+Open only when the task hits an architecture/product boundary, contradictory evidence, provider/license uncertainty, or a failed quality gate that cannot be resolved locally.
+
+### L3 — historical/deep investigation
+
+Project history, broad validation records, upstream research and old decisions are last-resort context, not startup context.
+
+## Trigger-first rule
+
+Secondary information is exposed by condition, not by completeness anxiety.
 
 Examples:
 
-- Product Constitution;
-- Architecture Contract;
-- CAPs;
-- ADRs;
-- Engineering Operating Protocol;
-- Chat/Codex execution policy.
+- architecture ambiguity -> route to the smallest relevant CAP/ADR/contract section;
+- symbol/code-location uncertainty -> targeted search first, not repository-wide reading;
+- test failure -> focused failure evidence + quality tool route;
+- Git-state problem -> repository recovery route;
+- license/provider uncertainty -> release/research route and fail closed where required;
+- destructive/high-risk operation -> stop for ChatGPT/User gate.
 
-These documents explain long-lived rules.
+The route points to information or a tool. It does not copy the target into L0.
 
-They must not be recopied into every Codex prompt.
+## Toolbox model
 
-### 2. Current routing state
+Maintain a compact Codex toolbox index with two families:
 
-`docs/operations/CURRENT_CONTROL_STATE.md`
+1. **work tools** — locate, inspect, test, verify, probe, build, handoff and repository-maintenance commands;
+2. **blocked strategies** — what to do when state, architecture, evidence, licensing, network or destructive-operation blockers occur.
 
-Owns only:
+The toolbox should be complete enough to route work but should not be read in full on every task. Foreman exposes only the route relevant to the current trigger.
 
-- current phase;
-- phase state;
-- active work-order ID;
-- latest accepted implementation baseline;
-- current Human Gate/release notes relevant to routing;
-- default read strategy;
-- immediate gate.
+## Authority boundaries
 
-It is compact and intentionally replaceable as the project advances.
+- User: product intent, Human Gate, governance decisions.
+- ChatGPT: work-order design, GitHub/CI review, phase/closure control.
+- Codex: bounded local implementation and verification.
+- Foreman: deterministic observation, validation and routing only.
+- GitHub `main`: live committed implementation truth.
+- Product Constitution / Architecture / CAP / ADR: durable authority opened only when triggered.
 
-It does not claim live GitHub HEAD authority.
+## Normal startup
 
-### 3. Active work-order delta
-
-`docs/operations/CURRENT_WORK_ORDER.md`
-
-Owns only the current coherent batch:
-
-- objective;
-- required read set;
-- allowed scope;
-- forbidden scope;
-- acceptance tests;
-- stop gate.
-
-Historical explanations belong in validation/research/ADR docs instead.
-
-### 4. Runtime observation
-
-Generated local file:
-
-`.private/codex_brief.md`
-
-Produced by the deterministic foreman helper from:
-
-- actual local Git state;
-- `CURRENT_CONTROL_STATE.md`;
-- `CURRENT_WORK_ORDER.md`;
-- minimal referenced task files/metadata.
-
-The generated brief is ephemeral and never committed.
-
-## Foreman role
-
-The foreman is a deterministic local construction assistant.
-
-It should:
-
-- inspect local branch/HEAD/status;
-- check obvious state/work-order consistency;
-- generate a concise active briefing;
-- route to existing verify/handoff maintenance commands;
-- fail closed on contradictions.
-
-It must not:
-
-- decide product architecture;
-- rewrite project state on its own;
-- modify source;
-- auto-commit/push;
-- declare remote CI green without evidence;
-- invent missing constraints.
-
-ChatGPT remains the remote GitHub/CI control plane. Codex remains the local complex-batch writer.
-
-## Read-on-demand rule
-
-Normal Codex startup should read:
-
-1. `CURRENT_CONTROL_STATE.md`;
-2. `CURRENT_WORK_ORDER.md`;
-3. only the task-specific references named by the work order.
-
-Do not make every batch reread Product Constitution + Architecture Contract + Roadmap + all CAPs + all historical validation unless the task actually touches those authorities.
-
-A contradiction or architecture-sensitive change is the trigger to expand the read set.
-
-## Prompt budget rule
-
-A normal ChatGPT → Codex prompt should be a launcher, not the complete construction manual.
-
-Target shape:
+The preferred steady-state flow is:
 
 ```text
-Sync main and confirm clean state.
-Read docs/operations/CURRENT_CONTROL_STATE.md.
-Run powershell -File scripts/maintain.ps1 foreman.
-Follow .private/codex_brief.md and execute the active work order to its stop gate.
-Run required verification, commit/push bounded reusable changes, then report.
+sync main -> run foreman -> read L0 brief -> execute
+                           -> trigger L1/L2 only if needed
 ```
 
-Use a long inline prompt only when:
+Codex should not automatically read `CURRENT_CONTROL_STATE.md`, `CURRENT_WORK_ORDER.md`, Product Constitution, Architecture Contract, CAPs, ADRs or historical validation before routine bounded work. The foreman may parse control files on Codex's behalf.
 
-- a new architecture decision has not yet been recorded;
-- an emergency repair depends on fresh evidence not yet captured in docs;
-- a one-off destructive/risky operation requires explicit human constraints.
+## Success criterion
 
-After the decision becomes durable, move it into the correct repository document and shrink subsequent prompts again.
-
-## State ownership
-
-- User: product intent / Human Gate / governance decisions.
-- ChatGPT: current control state, work-order design, GitHub/CI review, closure records.
-- Codex: bounded local implementation/test loop.
-- Foreman: deterministic state briefing and preflight only.
-- GitHub `main`: live committed implementation truth.
-
-This architecture exists to reduce repeated reasoning, not to remove checks. The goal is **check once at the right layer, reference thereafter**.
+A good control plane does not maximize context. It keeps the automation chain and work relationships reliable while making the next correct action obvious.
