@@ -8,8 +8,8 @@ This directory stores durable phase/probe evidence: readiness records, engineeri
 - Intermediate readiness/audit/probe files remain historical evidence and should not be mistaken for current state.
 - Current live phase/status belongs in `../roadmap/CURRENT_PHASE_STATUS.md`, not here.
 
-Closed modern phases include R0.7A, R0.7B, R0.8 and R0.9 with their corresponding final evidence.
+Closed modern phases include R0.7A, R0.7B, R0.8, R0.9 and R0.10 with their corresponding final evidence.
 
-R0.10 is **not closed** as of the 2026-08-13 governance pause. R0.10A/R0.10B are accepted engineering baselines, but the real-music Product Probe/Human Gate has not been completed; therefore no R0.10 final-closure document should exist yet.
+R0.10 closed on 2026-08-14 after the real-music Product Probe and explicit Human Gate acceptance. See `R0.10_FINAL_CLOSURE.md` for the durable engineering/Product Probe/Human Gate record.
 
 Never commit private footage, local absolute paths or generated media merely to make validation self-contained. Record hashes/IDs/metrics and keep private media local.

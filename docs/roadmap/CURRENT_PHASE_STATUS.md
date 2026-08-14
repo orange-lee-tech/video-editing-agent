@@ -1,8 +1,8 @@
 # Current Roadmap Phase Status
 
 **Roadmap V2:** ACTIVE  
-**Current phase:** R0.10 — Music Selection + BeatMap + Audio Editorial  
-**Engineering state:** READY_FOR_HUMAN_ACCEPTANCE — real-music Product Probe green  
+**Current phase:** R0.11 — Spatial Composition / Auto Reframe  
+**Engineering state:** ACTIVE — spatial authority and deterministic geometry foundation  
 **Updated:** 2026-08-14
 
 ## Closed
@@ -11,47 +11,61 @@
 - R0.7B — Pre-production Planning + Commercial Skill Foundation.
 - R0.8 — Media Evidence Foundation.
 - R0.9 — Director → Retrieval → Resolver → Deterministic Optimizer.
+- R0.10 — Music Selection + BeatMap + Audio Editorial.
 
-## Accepted R0.10 engineering baselines
+## R0.10 closure evidence
 
-- `7d4dcc0afb26556f9a161b73ca408946f6f417d7` — R0.10A local rights-aware audible music foundation.
-- `81afb604b96486587a308f6f4c69d89f1450f46e` — R0.10B feature-ranked music windows, natural mix intent, canonical decision→execution bridge and post-mix QC.
-- `5644c22211d43cba10b5cdae0575316a32a49a89` — compiler repair: duck/base-gain relationship derives entirely from `AudioMixDecision`.
-- `6c5b70be39ab4188942787974a07fd1e2d0283ce` — source-audio policy execution repair.
-- `5d63268a39baf5a994a5fca41d2be43f768f9df0` — real-music Product Probe harness.
-- `4782889f3746cf1024abfa0c45f3402cfec834a3` — core music selection canonicalizes global candidate ordering and removes caller-order dependency.
+R0.10 closed after engineering verification, a real-music Product Probe and explicit Human Gate acceptance.
 
-## Verified Product Probe evidence
+Closing implementation baseline:
 
-The real-music Product Probe uses two user-rights-attested local tracks and six canonical-decision previews with rendered-output QC.
+`4782889f3746cf1024abfa0c45f3402cfec834a3` — `fix: canonicalize music candidate ordering`
 
-Observed result after the core-ordering repair:
+Human Gate result:
 
-- Track A: score `0.9460`, selected range `6.05–12.05s`;
-- Track B: score `0.9553`, selected range `29.65–35.65s`;
-- deliberately reversed cross-track input still selects Track B;
-- ordinary moment `30.45–36.45s` vs selected moment `29.65–35.65s`;
-- source audio policy `MUTE`;
-- candidate / moment / mix comparisons rendered through canonical decisions;
-- Product Probe `9/9 PASS`;
-- focused R0.10 `15 passed`;
-- full pytest `461 passed`;
-- remote `ci/quality-gate-diagnostic` green;
-- no clipping, accidental silence or source-music mutation detected.
+- music candidate: **Track B**;
+- music moment: **selected**;
+- mix: **structured**;
+- obvious audible defect: **none**.
 
-Track B BeatMap confidence remains low at `0.0633`. This is intentionally visible as a Human Gate quality risk; no hidden score compensation was introduced.
+The low Track B BeatMap confidence `0.0633` remained visible and was not compensated by hidden score changes. Durable closure evidence is recorded in `docs/validation/R0.10_FINAL_CLOSURE.md`.
 
-## Current R0.10 gate
+## Active R0.11 boundary
 
-R0.10 is **not closed**. Engineering evidence is adequate and no further implementation work should be invented before human review.
+R0.11 now owns mixed-aspect spatial composition and Auto Reframe.
 
-Remaining boundary:
+The first coherent implementation boundary is deliberately foundational:
 
 ```text
-Human Gate: candidate / moment / mix listening judgments
-→ accept or identify a concrete audible defect
-→ if accepted, record R0.10 closure
-→ only then begin R0.11
+existing ResolvedSelection + existing tracking/TemporalEvidence
+→ provider-neutral ReframeIntent / spatial evidence view
+→ deterministic legal crop candidates
+→ deterministic SpatialComposer decision/path
+→ bounded validation/QC
 ```
 
-No R0.11 implementation has begun.
+This first boundary must establish ownership and geometry before adopting any new detector/tracker dependency.
+
+Required invariants:
+
+- `SpatialComposer`, not Renderer, owns crop/scale/reposition decisions;
+- a model/provider may observe or propose focus targets but cannot write executable crop coordinates directly;
+- crop candidates remain inside source geometry and preserve target aspect ratio;
+- hard source Shot cuts reset spatial path state;
+- manual locks/keyframes outrank automatic re-solve once represented;
+- impossible-fit cases return fallback/unresolved rather than generative outpainting;
+- reuse R0.8 tracking/TemporalEvidence where possible; do not create a duplicate video-understanding stack;
+- do not add a tenth top-level Domain Entity merely for reframing; keep new application artifacts behind the accepted v0.2 ownership model;
+- proxy/cache remains R0.12 productization scope.
+
+## R0.11 first exit target
+
+Before broad Product Probe work, the repository should have a deterministic CPU-capable spatial foundation that can:
+
+- express a target aspect-ratio intent;
+- consume grounded existing spatial evidence;
+- generate/validate legal crop candidates;
+- produce an inspectable `ReframeDecision`/spatial transform path;
+- prove source-bound, Shot-boundary, deterministic-repeatability and impossible-fit behavior with focused engineering evidence.
+
+No R0.12 implementation has begun.
