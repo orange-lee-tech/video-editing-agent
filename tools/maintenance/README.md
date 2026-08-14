@@ -35,10 +35,22 @@ uv run python tools/maintenance/handoff_snapshot.py --output .private/handoff.md
 
 The snapshot is orientation only. The receiving ChatGPT must still reobserve GitHub/main and CI.
 
+## Foreman brief
+
+```powershell
+powershell -File scripts/maintain.ps1 foreman
+```
+
+Validates the current control state/work-order pointers and local Git facts, then writes the
+concise, deterministic `.private/codex_brief.md`. Contradictions are recorded as blockers and
+return a nonzero exit code. The helper only inspects state; it never fetches, edits product source,
+changes control status, commits or pushes.
+
 ## Unified PowerShell wrapper
 
 ```powershell
 powershell -File scripts/maintain.ps1 doctor
+powershell -File scripts/maintain.ps1 foreman
 powershell -File scripts/maintain.ps1 handoff -Output .private/handoff.md
 powershell -File scripts/maintain.ps1 verify
 ```

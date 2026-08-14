@@ -1,5 +1,5 @@
 param(
-    [ValidateSet("doctor", "handoff", "verify")]
+    [ValidateSet("doctor", "foreman", "handoff", "verify")]
     [string]$Task = "doctor",
     [string]$Output,
     [switch]$SkipSync
@@ -34,6 +34,9 @@ try {
                 $args += @("--output", $Output)
             }
             Invoke-Checked "uv" $args
+        }
+        "foreman" {
+            Invoke-Checked "uv" @("run", "python", "tools/maintenance/foreman.py")
         }
         "verify" {
             if ($SkipSync) {

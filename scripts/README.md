@@ -5,7 +5,8 @@ This directory contains repository/developer helper scripts and older standalone
 ## Current helpers
 
 - `verify.ps1` — canonical local full Quality Gate wrapper.
-- `maintain.ps1` — tiny maintenance dispatcher for repository doctor, handoff snapshot and full verification.
+- `maintain.ps1` — maintenance dispatcher for repository doctor, deterministic foreman brief,
+  handoff snapshot and full verification.
 - `probe_*.py` files from earlier phases are retained where they preserve reproducible engineering evidence.
 
 New phase evidence harnesses should normally live under `tools/probes/` unless a script is specifically a general repository/CI helper.
