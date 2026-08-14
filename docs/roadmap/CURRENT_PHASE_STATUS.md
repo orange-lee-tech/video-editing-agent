@@ -1,8 +1,8 @@
 # Current Roadmap Phase Status
 
 **Roadmap V2:** ACTIVE  
-**Current phase:** R0.11 — Spatial Composition / Auto Reframe  
-**Engineering state:** READY_FOR_HUMAN_GATE — canonical interpolation, recovery tracking, interpolation-aware QC and six real Product Probe previews are technically green  
+**Current phase:** R0.12 — activation / control-plane hardening before product implementation  
+**Engineering state:** ACTIVE — `CONTROL-PLANE-001`  
 **Updated:** 2026-08-14
 
 ## Closed
@@ -12,65 +12,58 @@
 - R0.8 — Media Evidence Foundation.
 - R0.9 — Director → Retrieval → Resolver → Deterministic Optimizer.
 - R0.10 — Music Selection + BeatMap + Audio Editorial.
+- R0.11 — Spatial Composition / Auto Reframe.
 
-## Accepted R0.11 foundations
+## R0.11 closure
 
-- `ef0baa455c27c0ccb42ae74c4d24ede76e543a74` — static spatial composition.
-- `3ea89a51354fd3df62eed82e7959201969ec8b57` — source-time track paths.
-- `ad4f47e5f659e108d34593675bc08177a2c2aff4` — deterministic motion stability.
-- `66fc889094dd46dd51d5ccf028869c37658f648b` — initial canonical FFmpeg spatial execution.
-- `1be9a6121b53a46d1038b67737541b47ee97ec0a` — interpolation-aware recovery candidate.
-- `d06592560dbeb764666592effa00f7d5537715ef` — canonical interpolation-aware QC repair.
+Accepted implementation baseline:
 
-At `d065925`, remote `ci/quality-gate-diagnostic` is success.
+`d06592560dbeb764666592effa00f7d5537715ef` — `fix: make spatial QC interpolation-aware`
 
-## Current implementation state
+Remote `ci/quality-gate-diagnostic` for the accepted code baseline: success.
 
-- `SpatialTransformPlan` owns explicit HOLD / LINEAR interpolation and canonical `evaluate_crop()` semantics.
-- SpatialComposer QC uses the actual canonical interpolated crop at every available observation time.
-- FFmpeg adapter v2 consumes the same interpolation semantics; no Renderer-owned smoothing authority exists.
-- MediaPipe Object Detector + deterministic Sparse-LK reseed is the current recovery-capable evidence provider candidate.
-- external EfficientDet artifact hash is enforced; model remains external/uncommitted and redistribution license status remains pending.
-- terminal unrecovered loss is bounded to 1 s.
-- recovered loss runs use a separate candidate `max_reacquisition_gap = 4 s` contract.
-- lost observations contain no geometry; recovery bridges only grounded endpoints.
+Final technical evidence:
 
-## Real Product Probe evidence
+- movement RAW containment `40/40`, 41 keyframes, max path velocity 240 px/s;
+- movement STABILIZED containment `40/40`, 14 keyframes, max path velocity 195 px/s;
+- occlusion RAW containment `96/96`, 99 keyframes, max path velocity 600 px/s;
+- occlusion STABILIZED containment `96/96`, 14 keyframes, max path velocity 450 px/s;
+- recovery `47/30 → 133/30`, latency about 2.8667 s;
+- recovered identity remained the intended seeded subject;
+- canonical `SpatialTransformPlan.evaluate_crop()` is shared by QC and Renderer semantics;
+- no fabricated lost geometry;
+- source/aspect validation green.
 
-Movement:
+Final Human Gate:
 
-- RAW 40/40 containment, 41 keyframes, max velocity 240 px/s;
-- STABILIZED 40/40 containment, 14 keyframes, max velocity 195 px/s.
+- movement: `stabilized` preferred; natural; subject normal;
+- occlusion/recovery: `stabilized` preferred; minor visible micro-jump;
+- classification: `PASS_WITH_MINOR_DEFECT`.
 
-Occlusion/recovery:
+The recovery micro-jump is a recorded known limitation, not a reason to keep retuning R0.11 without broader Product Probe evidence.
 
-- RAW 96/96 containment, 99 keyframes, max velocity 600 px/s;
-- STABILIZED 96/96 containment, 14 keyframes, max velocity 450 px/s;
-- main recovery `47/30 -> 133/30`, latency 2.8667 s;
-- intended seeded subject recovered and contained;
-- no source/aspect violations or unresolved plans.
+Release/distribution note:
 
-All six local/private 540x960 Product Probe previews are technically valid. The final QC repair did not change preview execution semantics, so existing preview bytes were reused.
+- MediaPipe recovery runtime remains optional;
+- EfficientDet Lite0 model remains external and SHA-pinned;
+- model redistribution/commercial artifact terms remain `RELEASE_LICENSE_PENDING`;
+- local/product engineering acceptance is closed;
+- any future bundled distribution path must resolve or fail closed on this license gate.
 
-## Active gate
+Canonical closure record:
 
-The Product Owner must now perform the Human Gate on both movement and occlusion trios.
+`docs/validation/R0.11_FINAL_CLOSURE.md`
 
-Do not retune R0.11 policy or change providers before this judgment.
+## Current gate before R0.12 product work
 
-## Licensing state
+The project control plane has accumulated duplicated state/explanation across ChatGPT prompts and repository docs.
 
-The Product Owner is willing to open-source the project, but no root project license has yet been selected.
+Before EDL/Renderer/Subtitle/Preview/Proxy productization begins, execute `CONTROL-PLANE-001`:
 
-The current EfficientDet model remains `RELEASE_LICENSE_PENDING` for redistribution. This does not block the local Product Probe Human Gate; release/distribution policy must be resolved before an applicable packaged release.
+- establish one compact `CURRENT_CONTROL_STATE.md` routing manifest;
+- keep `CURRENT_WORK_ORDER.md` delta-only;
+- add deterministic foreman/preflight briefing generation;
+- keep durable rules in Product/Architecture/CAP/ADR docs instead of copying them into each Codex prompt;
+- preserve ChatGPT as remote GitHub/CI control plane and Codex as local complex-batch writer.
 
-## R0.11 completion gate
-
-R0.11 can close after:
-
-1. movement A/B/C Human Gate is acceptable;
-2. occlusion/recovery A/B/C Human Gate is acceptable;
-3. any concrete Human Gate defect is either accepted as a bounded candidate limitation or repaired and revalidated;
-4. model/dependency release status remains explicitly recorded for the intended distribution path.
-
-No R0.12 implementation has begun.
+R0.12 product implementation has **not** begun yet.

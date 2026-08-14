@@ -1,87 +1,130 @@
 # Current Work Order
 
-**Status:** READY_FOR_HUMAN_GATE  
-**Phase:** R0.11 — real Auto Reframe Product Probe Human Gate  
-**Updated:** 2026-08-14
+**ID:** `CONTROL-PLANE-001`  
+**Status:** ACTIVE  
+**Owner/writer:** Codex  
+**Purpose:** Compress Codex startup/control instructions before R0.12 product construction.
 
-## Accepted implementation
+## Objective
 
-`d06592560dbeb764666592effa00f7d5537715ef` — `fix: make spatial QC interpolation-aware`
+Create a deterministic "foreman" helper that turns current repository state + current control documents into one concise local Codex briefing.
 
-Verified on GitHub:
+The helper must reduce repeated prompt text without becoming a new product/architecture authority.
 
-- fast-forward implementation from `7aa09a7...`;
-- remote `ci/quality-gate-diagnostic` is success;
-- `SpatialTransformPlan.evaluate_crop()` is the canonical HOLD/LINEAR source-time evaluator;
-- SpatialComposer QC and FFmpeg execution now share the same exact rational / round-half-up interpolation semantics;
-- FFmpeg adapter remains `ffmpeg-spatial-transform-plan-v2`; preview execution semantics and preview bytes did not change in the final QC repair;
-- MediaPipe recovery remains optional and provider-neutral;
-- external EfficientDet model SHA is pinned and the model remains uncommitted;
-- `SpatialPathPolicy(version=r0.11-stability-recovery-candidate-v2)` keeps terminal loss hold <=1 s and bounded reacquisition <=4 s;
-- lost observations contain no geometry; recovery bridges grounded endpoints only;
-- full reported Quality Gate is green with 487 tests.
+## Read
 
-## Authoritative Product Probe QC
+1. `docs/operations/CURRENT_CONTROL_STATE.md`
+2. `docs/operations/CODEX_EXECUTION_ENTRY.md`
+3. `docs/operations/CHATGPT_GITHUB_CODEX_COLLABORATION.md`
+4. `tools/maintenance/repo_doctor.py`
+5. `tools/maintenance/handoff_snapshot.py`
+6. `scripts/maintain.ps1`
 
-Movement source:
+Read other files only if needed to implement/test this work order.
 
-`moving_occlusion2_landscape.mp4` — `[7/10, 13/5)`
+## Allowed scope
 
-- RAW: 40/40 interpolation-aware containment, 41 keyframes, max canonical velocity 240 px/s;
-- STABILIZED: 40/40 containment, 14 keyframes, max canonical velocity 195 px/s.
+Preferred implementation surface:
 
-Occlusion source:
+- `tools/maintenance/foreman.py` (new, if this is the cleanest shape);
+- `scripts/maintain.ps1`;
+- existing maintenance helpers when reuse is materially cleaner than duplication;
+- focused tests for the maintenance/control-plane behavior;
+- concise operations docs needed to make the entry flow unambiguous.
 
-`moving_occlusion1_landscape.mp4` — `[0, 563298/90000)`
+Do not touch product implementation under `src/video_editing_agent/` except if an import/test fixture genuinely requires a mechanical change; otherwise stop and report.
 
-- RAW: 96/96 interpolation-aware containment, 99 keyframes, max canonical velocity 600 px/s;
-- STABILIZED: 96/96 containment, 14 keyframes, max canonical velocity 450 px/s;
-- main loss `47/30` -> recovery `133/30`;
-- recovery latency 2.8667 s;
-- recovered identity is the intended seeded subject and is contained at recovery;
-- no source/aspect violations, no unresolved plan, no fabricated lost geometry.
+## Required behavior
 
-The six previously generated local/private previews remain technically valid and were reused byte-for-byte because the final repair changed QC semantics only.
+A command equivalent to:
 
-## Human Gate — movement
+```powershell
+powershell -File scripts/maintain.ps1 foreman
+```
 
-Compare:
+must:
 
-- `example/r0_11_product_probe/output/moving_occlusion2_landscape_center.mp4`
-- `example/r0_11_product_probe/output/moving_occlusion2_landscape_raw.mp4`
-- `example/r0_11_product_probe/output/moving_occlusion2_landscape_stabilized.mp4`
+1. verify local repository basics needed for a safe Codex batch (repository, branch, status, HEAD, upstream/fetch state when available);
+2. read `CURRENT_CONTROL_STATE.md` and `CURRENT_WORK_ORDER.md`;
+3. validate obvious control contradictions (phase/work-order mismatch, missing referenced control files, malformed required metadata);
+4. generate `.private/codex_brief.md`;
+5. keep the generated brief concise and task-oriented;
+6. list only the task-specific read set from the active work order, plus the two current control files;
+7. surface stop/block reasons clearly instead of guessing;
+8. never modify product source or Git state as part of brief generation.
 
-Report only:
+The generated brief should include at minimum:
 
-- best overall: `center / raw / stabilized / tie`;
-- stabilized feel: `natural / jittery / chasing / laggy`;
-- obvious defect: `none / clipping / jump / wrong focus / excessive chase / excessive lag / other`.
+- active phase/state;
+- active work-order ID;
+- accepted implementation baseline;
+- actual local HEAD/branch/cleanliness;
+- work-order objective;
+- allowed scope;
+- forbidden scope;
+- required read set;
+- validation/stop gate;
+- any detected contradiction/blocker.
 
-## Human Gate — occlusion/recovery
+## Authority boundary
 
-Compare:
+The foreman is a deterministic assistant, not an architect.
 
-- `example/r0_11_product_probe/output/moving_occlusion1_landscape_center.mp4`
-- `example/r0_11_product_probe/output/moving_occlusion1_landscape_raw.mp4`
-- `example/r0_11_product_probe/output/moving_occlusion1_landscape_stabilized.mp4`
+It may:
 
-Report only:
+- inspect;
+- validate consistency;
+- summarize already-recorded state;
+- generate a briefing;
+- route to existing maintenance/verification commands.
 
-- best overall: `center / raw / stabilized / tie`;
-- recovery: `acceptable / unacceptable`;
-- obvious defect: `none / wrong focus / abrupt jump / stale framing / excessive lag / clipping / other`.
+It may not:
 
-Human-visible judgment is product authority. Do not tune again before the Product Owner reports this gate.
+- invent product decisions;
+- silently rewrite `CURRENT_CONTROL_STATE.md`;
+- change phase/work-order status;
+- decide that CI is green without evidence;
+- make source edits;
+- auto-commit/push.
 
-## Remaining release note
+Remote GitHub/CI observation remains primarily ChatGPT's control-plane responsibility.
 
-The exact EfficientDet model redistribution/commercial terms remain `RELEASE_LICENSE_PENDING`. This does not block this local Human Gate. The Product Owner is willing to open-source the project, but no root project license has yet been selected.
+## Prompt compression target
 
-## Explicitly not allowed before Human Gate
+After this batch, a normal Codex construction prompt should usually be approximately:
 
-- no SpatialPathPolicy tuning;
-- no new tracker/provider/model;
-- no rerender unless the user reports a concrete output defect requiring a bounded repair;
-- no R0.12 implementation;
-- no audio-provider work;
-- no R0.11 closure before Human Gate.
+```text
+Sync main and confirm clean state.
+Read docs/operations/CURRENT_CONTROL_STATE.md.
+Run: powershell -File scripts/maintain.ps1 foreman
+Follow .private/codex_brief.md and execute the active work order to its stop gate.
+Run required verification, commit/push the bounded reusable changes, then report.
+```
+
+Do not require a 100+ line task prompt unless the active work order itself is genuinely novel/high-risk.
+
+## Verification
+
+Add focused deterministic tests for at least:
+
+- valid control state/work order -> brief generated;
+- missing/malformed control metadata -> fail closed;
+- phase/work-order mismatch -> fail closed;
+- dirty tree is surfaced prominently;
+- `.private/codex_brief.md` is untracked/ignored;
+- brief does not expand by copying whole durable documents.
+
+Run the repository's normal Quality Gate.
+
+## Stop gate
+
+Stop when:
+
+- foreman command works;
+- generated brief is concise and deterministic;
+- focused tests pass;
+- full Quality Gate is green;
+- reusable changes are committed/pushed;
+- working tree is clean.
+
+Do not start R0.12 product feature implementation in this batch.
