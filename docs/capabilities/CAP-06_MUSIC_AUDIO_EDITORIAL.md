@@ -246,6 +246,40 @@ OutputSpec
 user locks/preferences
 ```
 
+### Source-audio lane separation
+
+The authoritative ingested video Asset remains immutable and keeps its original muxed audio. Do not destructively strip or rewrite user source media merely because most edits will not use its original sound.
+
+Visual and source-audio processing should nevertheless be logically separated as early as practical:
+
+```text
+authoritative video Asset
+├─ visual decode / Shot / visual evidence path
+└─ source-audio analysis/editorial path
+```
+
+Visual-only processing should not decode or carry audio merely because the container contains it. Speech/VAD/audio QC may consume the source Asset directly through stream-selective decode or a reusable derived audio Artifact.
+
+A demuxed/decoded audio proxy, waveform or temporary stem is a derived Artifact, not a new Asset. It must preserve source-time mapping/provenance. Materializing a full audio proxy on every ingest is not mandatory: use stream-selective decode by default and introduce/reuse a cached audio derivative when repeated analysis benchmarks show a real latency/I/O win.
+
+### Default source-audio editorial policy
+
+Source-audio presence does not imply source-audio use.
+
+For routine short-form edits where the camera audio contains no required dialogue, ambience or meaningful action sound, the normal editorial default is:
+
+```text
+source audio → MUTE
+```
+
+If grounded evidence or explicit user/editorial intent says source sound matters, use `PRESERVE` or an explicit attenuated/ducked policy as appropriate. Examples include dialogue, narration captured in-camera, meaningful product/action sound, or ambience that materially supports the scene.
+
+Do not run expensive denoising merely to rescue unneeded camera audio; muting it is often the better editorial decision. Denoising is a separate optional capability and is not implied by this spec.
+
+When source dialogue or other essential sound is retained, its grounded time ranges become edit constraints: CandidateWindow/Resolver/EDL construction must not casually cut a required phrase or critical sound event in half.
+
+For the normal product path, final output should contain at least one intentional audible lane (retained source audio, voiceover, BGM or SFX) unless the user explicitly requests silence. Technical QC must catch accidental silent output.
+
 ---
 
 ## 15. Speech-first ducking

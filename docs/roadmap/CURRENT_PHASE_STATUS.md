@@ -2,8 +2,8 @@
 
 **Roadmap V2:** ACTIVE  
 **Current phase:** R0.10 — Music Selection + BeatMap + Audio Editorial  
-**Engineering state:** ACTIVE — R0.10 Product Probe boundary resumed  
-**Resume date:** 2026-08-14
+**Engineering state:** ACTIVE — source-audio policy/execution repair before Product Probe  
+**Updated:** 2026-08-14
 
 ## Closed
 
@@ -16,25 +16,38 @@
 
 - `7d4dcc0afb26556f9a161b73ca408946f6f417d7` — R0.10A local rights-aware audible music foundation.
 - `81afb604b96486587a308f6f4c69d89f1450f46e` — R0.10B feature-ranked music windows, natural mix intent, canonical decision→execution bridge and post-mix QC.
+- `5644c22211d43cba10b5cdae0575316a32a49a89` — compiler repair: duck/base-gain relationship derives entirely from `AudioMixDecision`; full Quality Gate green.
 
-## Resume boundary
+## Active R0.10 boundary
 
 R0.10 is **not closed**.
 
-The active product boundary is:
+The compiler `-10 dB` preflight is complete. The attempted real-music Product Probe stopped correctly at:
 
-`real rights-attested local music → R0.10 Product Probe A/B → Human Gate → R0.10 closure`
+```text
+NEEDS_REAL_MUSIC_INPUT
+real local music candidates = 0 / required 2
+```
 
-A bounded compiler preflight also remains: remove the hidden fixed `-10 dB` base-gain assumption so duck/base-gain relationships derive entirely from `AudioMixDecision`.
+No substitute music was downloaded and no synthetic fixture was treated as Product Probe evidence.
+
+Before the Product Probe resumes, a newly surfaced R0.10 Audio Editorial gap must be repaired inside the same phase: `AudioMixDecision.source_audio_policy` exists, but current planning/execution effectively preserves source audio and the diagnostic execution path does not yet make preserve/mute policy authoritative.
+
+The active coherent boundary is therefore:
+
+```text
+non-destructive source-audio lane separation semantics
+→ source-audio policy must change execution truth
+→ keep R0.10A/R0.10B green
+→ when >=2 rights-attested real local music tracks exist, run Product Probe A/B
+→ Human Gate
+→ R0.10 closure
+```
+
+Architecture Contract v0.2 remains unchanged: the original ingested Asset stays immutable; demuxed/decoded audio is a derived Artifact/cache when used.
 
 No R0.11 implementation has begun.
 
-## Resume state
-
-The previous `HANDOFF_READY` state was deliberately resumable, not a lock. On 2026-08-14 the coordinating ChatGPT reobserved current `origin/main` and CI, confirmed the preserved boundary still matched implementation reality, and activated `docs/operations/CURRENT_WORK_ORDER.md`.
-
-Codex must execute only the active work order and must not independently reconstruct a stale job from old chat history.
-
 ## Governance review
 
-The repository audit confirmed Roadmap V2, Product Constitution v1.0 and Architecture Contract v0.2 remain usable. No structural Roadmap V3/resequencing is justified at this point.
+This is not a new micro-phase. Roadmap V2 already defines source-audio preserve/mute policy as an R0.10 Audio Editorial deliverable. The current repair closes that existing ownership/execution gap before product-quality claims are made.
