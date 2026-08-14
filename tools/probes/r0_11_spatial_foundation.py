@@ -18,6 +18,7 @@ from video_editing_agent.application.ports.spatial_composer import (
     SpatialCompositionRequest,
     SpatialCropKeyframe,
     SpatialEvidenceView,
+    SpatialPathPolicy,
 )
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
@@ -216,6 +217,82 @@ def main() -> int:
     )
     lost_observation = first_track.observations[2]
     track_keyframes = track_decision.transform_plan.keyframes
+    analyzed_end_rejected = False
+    try:
+        tracking_proposal_to_spatial_track(
+            proposal(
+                first,
+                (
+                    TrackingSample(
+                        first.selected_source_range.duration,
+                        "available",
+                        None,
+                        NormalizedRectangle(0.2, 0.2, 0.1, 0.2),
+                        1,
+                        1.0,
+                    ),
+                ),
+            ),
+            first,
+            "product",
+            ("tev_tracking_shot-a",),
+        )
+    except ValueError:
+        analyzed_end_rejected = True
+    direct_invalid_rejected = False
+    try:
+        replace(
+            first_track,
+            observations=(
+                replace(
+                    first_track.observations[0],
+                    source_time=first_track.analyzed_source_range.end,
+                ),
+            ),
+        )
+    except ValueError:
+        direct_invalid_rejected = True
+
+    def stabilized(positions, *, policy=None, lost=()):
+        samples = [
+            TrackingSample(
+                MediaTime(index, 1),
+                "available",
+                None,
+                NormalizedRectangle(position, 0.2, 0.05, 0.2),
+                9,
+                0.9,
+            )
+            for index, position in enumerate(positions)
+        ]
+        samples.extend(
+            TrackingSample(MediaTime(value, 1), "lost", "occlusion", None, 0, 0.0) for value in lost
+        )
+        track = tracking_proposal_to_spatial_track(
+            proposal(first, samples), first, "product", ("tev_tracking_shot-a",)
+        )
+        return composer.compose(
+            SpatialCompositionRequest(
+                first,
+                source,
+                ReframeIntent(canvas, ("product",), framing_style="track"),
+                spatial_tracks=(track,),
+                path_policy=policy or SpatialPathPolicy(),
+            )
+        )
+
+    jitter = stabilized((0.2, 0.202, 0.199))
+    movement = stabilized((0.2, 0.4))
+    limited = stabilized(
+        (0.2, 0.3),
+        policy=SpatialPathPolicy(max_center_velocity_pixels_per_second=100),
+    )
+    short_loss = stabilized((0.2,), lost=(1,))
+    long_loss = stabilized((0.2,), lost=(2,))
+    assert jitter.transform_plan is not None and jitter.spatial_qc is not None
+    assert movement.transform_plan is not None
+    assert limited.transform_plan is not None and limited.spatial_qc is not None
+    assert short_loss.spatial_qc is not None
     gates = {
         "DETERMINISTIC_REPEATABILITY": first_decision == repeat,
         "SOURCE_BOUND_LEGALITY": first_crop.left >= 0
@@ -252,6 +329,24 @@ def main() -> int:
             item.source_time for item in track_decision.keyframes
         )
         == tuple(item.source_time for item in track_keyframes),
+        "ANALYZED_END_REJECTED": analyzed_end_rejected,
+        "DIRECT_INVALID_TRACK_REJECTED": direct_invalid_rejected,
+        "DEAD_ZONE_SUPPRESSES_JITTER": len(jitter.transform_plan.keyframes) == 1
+        and jitter.spatial_qc.suppressed_keyframe_count == 2,
+        "REAL_MOVEMENT_REMAINS": len(movement.transform_plan.keyframes) == 2,
+        "VELOCITY_LIMIT_DETERMINISTIC": limited.transform_plan.keyframes[1].crop.left
+        - limited.transform_plan.keyframes[0].crop.left
+        == 100
+        and limited.spatial_qc.max_center_velocity_pixels_per_second == 100.0,
+        "MANDATORY_FOCUS_CONTAINED": limited.spatial_qc.contained_focus_count
+        == limited.spatial_qc.focus_observation_count,
+        "SHORT_LOSS_POLICY": short_loss.mode == "track"
+        and short_loss.spatial_qc.held_loss_count == 1,
+        "OVER_LIMIT_LOSS_REFUSED": long_loss.mode == "unresolved"
+        and "max_lost_hold_gap" in long_loss.infeasible_reason,
+        "SPATIAL_QC_INSPECTABLE": track_decision.spatial_qc is not None
+        and track_decision.spatial_qc.source_bound_violations == 0
+        and track_decision.spatial_qc.target_aspect_violations == 0,
     }
     report = {
         "classification": "ENGINEERING_FOUNDATION_ONLY",
@@ -264,6 +359,8 @@ def main() -> int:
             for item in track_keyframes
         ],
         "track_warnings": track_decision.warnings,
+        "track_qc": asdict(track_decision.spatial_qc),
+        "policy": asdict(track_request.path_policy),
         "pass": all(gates.values()),
     }
     print(json.dumps(report, sort_keys=True))

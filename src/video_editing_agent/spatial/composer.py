@@ -17,6 +17,7 @@ from video_editing_agent.application.ports.spatial_composer import (
     SpatialCropKeyframe,
     SpatialEvidenceTrack,
     SpatialFocusObservation,
+    SpatialPathQc,
     SpatialTransformKeyframe,
     SpatialTransformPlan,
 )
@@ -114,7 +115,7 @@ def tracking_proposal_to_spatial_track(
     )
     if any(
         item.source_time.as_fraction() < proposal.analyzed_source_range.start.as_fraction()
-        or item.source_time.as_fraction() > proposal.analyzed_source_range.end.as_fraction()
+        or item.source_time.as_fraction() >= proposal.analyzed_source_range.end.as_fraction()
         for item in observations
     ):
         raise ValueError("tracking observation escapes analyzed source range")
@@ -350,9 +351,15 @@ class DeterministicSpatialComposer:
             return self._unresolved(request, str(exc))
         keyframes: list[SpatialCropKeyframe] = []
         last_crop: PixelCrop | None = None
+        last_observation_time: MediaTime | None = None
+        last_available_time: MediaTime | None = None
         lost_seen = False
         lost_times: set[Fraction] = set()
         available_confidence: list[float] = []
+        held_loss_count = 0
+        held_loss_duration = Fraction(0)
+        suppressed_keyframes = 0
+        policy = request.path_policy
         for observation in track.observations:
             if (
                 observation.source_time.as_fraction()
@@ -366,12 +373,24 @@ class DeterministicSpatialComposer:
                 raise ValueError("spatial observation precedes resolved source range")
             if observation.status == "lost":
                 lost_seen = True
-                if last_crop is None:
+                if last_crop is None or last_available_time is None:
                     return self._unresolved(
                         request, "tracking begins lost; no legal crop exists to hold"
                     )
+                loss_gap = (observation.source_time - last_available_time).as_fraction()
+                if loss_gap > policy.max_lost_hold_gap.as_fraction():
+                    return self._unresolved(
+                        request,
+                        f"tracking loss exceeds policy={policy.version} max_lost_hold_gap",
+                    )
+                if last_observation_time is not None:
+                    held_loss_duration += (
+                        observation.source_time - last_observation_time
+                    ).as_fraction()
+                held_loss_count += 1
                 keyframes.append(SpatialCropKeyframe(observation.source_time, last_crop))
                 lost_times.add(observation.source_time.as_fraction())
+                last_observation_time = observation.source_time
                 continue
             assert observation.bounds is not None
             focus = _bounds(observation.bounds, request.source_geometry)
@@ -379,18 +398,55 @@ class DeterministicSpatialComposer:
                 return self._unresolved(request, "tracked mandatory focus cannot fit legal crop")
             center_x = Fraction(2 * focus.left + focus.width, 2)
             center_y = Fraction(2 * focus.top + focus.height, 2)
-            crop = _centered_crop(
+            proposed = _centered_crop(
                 center_x,
                 center_y,
                 crop_width,
                 crop_height,
                 request.source_geometry,
             )
-            if not _contains(crop, focus):
+            if not _contains(proposed, focus):
                 return self._unresolved(request, "no legal crop contains tracked mandatory focus")
-            validate_crop(crop, request.source_geometry, request.intent.output_canvas)
-            keyframes.append(SpatialCropKeyframe(observation.source_time, crop))
-            last_crop = crop
+            validate_crop(proposed, request.source_geometry, request.intent.output_canvas)
+            stabilized = proposed
+            if last_crop is not None and last_observation_time is not None:
+                delta_left = proposed.left - last_crop.left
+                delta_top = proposed.top - last_crop.top
+                if (
+                    abs(delta_left) <= policy.center_dead_zone_pixels
+                    and abs(delta_top) <= policy.center_dead_zone_pixels
+                    and _contains(last_crop, focus)
+                ):
+                    stabilized = last_crop
+                else:
+                    elapsed = (observation.source_time - last_observation_time).as_fraction()
+                    maximum = math.floor(policy.max_center_velocity_pixels_per_second * elapsed)
+                    limited_left = last_crop.left + min(max(delta_left, -maximum), maximum)
+                    limited_top = last_crop.top + min(max(delta_top, -maximum), maximum)
+                    limited = PixelCrop(
+                        limited_left,
+                        limited_top,
+                        proposed.width,
+                        proposed.height,
+                    )
+                    validate_crop(limited, request.source_geometry, request.intent.output_canvas)
+                    if not _contains(limited, focus):
+                        return self._unresolved(
+                            request,
+                            "velocity limit would crop mandatory focus; refusing path",
+                        )
+                    stabilized = limited
+            if (
+                last_crop is not None
+                and stabilized == last_crop
+                and policy.suppress_redundant_keyframes
+            ):
+                suppressed_keyframes += 1
+            else:
+                keyframes.append(SpatialCropKeyframe(observation.source_time, stabilized))
+            last_crop = stabilized
+            last_observation_time = observation.source_time
+            last_available_time = observation.source_time
             available_confidence.append(observation.confidence)
         if not keyframes:
             return self._unresolved(request, "tracking evidence has no in-range observations")
@@ -442,7 +498,15 @@ class DeterministicSpatialComposer:
         confidence = (
             sum(available_confidence) / len(available_confidence) if available_confidence else 0.0
         )
-        return self._decision(request, "track", plan, confidence, warnings)
+        qc = self._track_qc(
+            request,
+            track,
+            plan,
+            held_loss_count,
+            float(held_loss_duration),
+            suppressed_keyframes,
+        )
+        return self._decision(request, "track", plan, confidence, warnings, qc)
 
     def _decision(
         self,
@@ -451,6 +515,7 @@ class DeterministicSpatialComposer:
         plan: SpatialTransformPlan,
         confidence: float,
         warnings: tuple[str, ...],
+        spatial_qc: SpatialPathQc | None = None,
     ) -> ReframeDecision:
         evidence_refs = self._evidence_refs(request)
         identity = (
@@ -462,6 +527,7 @@ class DeterministicSpatialComposer:
             plan,
             evidence_refs,
             self.policy_version,
+            request.path_policy,
         )
         digest = hashlib.sha256(repr(identity).encode()).hexdigest()
         legacy = tuple(
@@ -477,6 +543,7 @@ class DeterministicSpatialComposer:
             evidence_refs,
             warnings,
             transform_plan=plan,
+            spatial_qc=spatial_qc,
         )
 
     def _unresolved(self, request: SpatialCompositionRequest, reason: str) -> ReframeDecision:
@@ -490,6 +557,7 @@ class DeterministicSpatialComposer:
             evidence_refs,
             reason,
             self.policy_version,
+            request.path_policy,
         )
         digest = hashlib.sha256(repr(identity).encode()).hexdigest()
         return ReframeDecision(
@@ -501,6 +569,62 @@ class DeterministicSpatialComposer:
             evidence_refs,
             ("non-generative fallback required",),
             reason,
+            spatial_qc=SpatialPathQc(0, 0, 0, 0, 0.0, 0.0, 0, 0, 0.0, 0, reason),
+        )
+
+    @staticmethod
+    def _track_qc(
+        request: SpatialCompositionRequest,
+        track: SpatialEvidenceTrack,
+        plan: SpatialTransformPlan,
+        held_loss_count: int,
+        held_loss_duration: float,
+        suppressed_keyframes: int,
+    ) -> SpatialPathQc:
+        keyframes = plan.keyframes
+        displacements: list[float] = []
+        velocities: list[float] = []
+        directions: list[tuple[int, int]] = []
+        for left, right in zip(keyframes, keyframes[1:], strict=False):
+            dx = right.crop.left - left.crop.left
+            dy = right.crop.top - left.crop.top
+            displacement = math.hypot(dx, dy)
+            elapsed = float((right.source_time - left.source_time).as_fraction())
+            displacements.append(displacement)
+            velocities.append(0.0 if elapsed == 0 else displacement / elapsed)
+            directions.append(((dx > 0) - (dx < 0), (dy > 0) - (dy < 0)))
+        direction_changes = sum(
+            current != previous and current != (0, 0) and previous != (0, 0)
+            for previous, current in zip(directions, directions[1:], strict=False)
+        )
+        available = tuple(item for item in track.observations if item.status == "available")
+        contained = 0
+        for observation in available:
+            assert observation.bounds is not None
+            active = max(
+                (
+                    item
+                    for item in keyframes
+                    if item.source_time.as_fraction() <= observation.source_time.as_fraction()
+                ),
+                key=lambda item: item.source_time.as_fraction(),
+                default=None,
+            )
+            if active is not None and _contains(
+                active.crop, _bounds(observation.bounds, request.source_geometry)
+            ):
+                contained += 1
+        return SpatialPathQc(
+            len(available),
+            contained,
+            0,
+            0,
+            max(displacements, default=0.0),
+            max(velocities, default=0.0),
+            direction_changes,
+            held_loss_count,
+            held_loss_duration,
+            suppressed_keyframes,
         )
 
     @staticmethod

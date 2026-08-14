@@ -172,6 +172,51 @@ class SpatialEvidenceTrack:
         times = tuple(item.source_time.as_fraction() for item in self.observations)
         if times != tuple(sorted(set(times))):
             raise ValueError("spatial observations must be unique and source-time ordered")
+        if any(
+            item.source_time.as_fraction() < self.analyzed_source_range.start.as_fraction()
+            or item.source_time.as_fraction() >= self.analyzed_source_range.end.as_fraction()
+            for item in self.observations
+        ):
+            raise ValueError("spatial observation must stay inside half-open analyzed source range")
+
+
+@dataclass(frozen=True, slots=True)
+class SpatialPathPolicy:
+    version: str = "r0.11-stability-candidate-v1"
+    center_dead_zone_pixels: int = 12
+    max_center_velocity_pixels_per_second: int = 800
+    max_lost_hold_gap: MediaTime = MediaTime(1, 1)
+    suppress_redundant_keyframes: bool = True
+
+    def __post_init__(self) -> None:
+        if not self.version.strip():
+            raise ValueError("spatial path policy version must not be empty")
+        for name, value in (
+            ("center_dead_zone_pixels", self.center_dead_zone_pixels),
+            (
+                "max_center_velocity_pixels_per_second",
+                self.max_center_velocity_pixels_per_second,
+            ),
+        ):
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise ValueError(f"{name} must be a non-negative int")
+        if self.max_lost_hold_gap.as_fraction() < 0:
+            raise ValueError("max_lost_hold_gap must be >= 0")
+
+
+@dataclass(frozen=True, slots=True)
+class SpatialPathQc:
+    focus_observation_count: int
+    contained_focus_count: int
+    source_bound_violations: int
+    target_aspect_violations: int
+    max_center_displacement_pixels: float
+    max_center_velocity_pixels_per_second: float
+    direction_change_count: int
+    held_loss_count: int
+    held_loss_duration_seconds: float
+    suppressed_keyframe_count: int
+    unresolved_reason: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -272,6 +317,7 @@ class SpatialCompositionRequest:
     intent: ReframeIntent
     spatial_evidence: tuple[SpatialEvidenceView, ...] = ()
     spatial_tracks: tuple[SpatialEvidenceTrack, ...] = ()
+    path_policy: SpatialPathPolicy = SpatialPathPolicy()
     manual_locks: tuple[ManualCropLock, ...] = ()
     protected_regions: tuple[NormalizedCanvasRegion, ...] = ()
     evidence_refs: tuple[str, ...] = ()
@@ -288,6 +334,7 @@ class ReframeDecision:
     warnings: tuple[str, ...] = ()
     infeasible_reason: str | None = None
     transform_plan: SpatialTransformPlan | None = None
+    spatial_qc: SpatialPathQc | None = None
 
     def __post_init__(self) -> None:
         for name, value in (

@@ -16,7 +16,9 @@ from video_editing_agent.application.ports.spatial_composer import (
     SourceFrameGeometry,
     SpatialCompositionRequest,
     SpatialCropKeyframe,
+    SpatialEvidenceTrack,
     SpatialEvidenceView,
+    SpatialPathPolicy,
 )
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
@@ -275,3 +277,105 @@ def test_track_manual_lock_is_unchanged_and_hard_cut_resets_path() -> None:
     assert locked in first_decision.transform_plan.keyframes
     assert second_decision.transform_plan.keyframes[0].source_time == MediaTime(20, 1)
     assert first_decision.transform_plan.shot_ref != second_decision.transform_plan.shot_ref
+
+
+def test_analyzed_range_is_half_open_in_converter_and_track_contract() -> None:
+    selection = _selection()
+    base = _tracking_proposal(
+        selection,
+        (
+            TrackingSample(
+                MediaTime(0, 1),
+                "available",
+                None,
+                NormalizedRectangle(0.2, 0.2, 0.1, 0.2),
+                9,
+                0.9,
+            ),
+        ),
+    )
+    short_range = MediaTimeRange(MediaTime(10, 1), MediaTime(2, 1))
+    exact_end = replace(
+        base,
+        analyzed_source_range=short_range,
+        samples=(replace(base.samples[0], relative_time=MediaTime(2, 1)),),
+    )
+    before_start = replace(
+        base,
+        analyzed_source_range=short_range,
+        samples=(replace(base.samples[0], relative_time=MediaTime(-1, 1)),),
+    )
+    with pytest.raises(ValueError, match="escapes analyzed source range"):
+        tracking_proposal_to_spatial_track(exact_end, selection, "product", ("e",))
+    with pytest.raises(ValueError, match="escapes analyzed source range"):
+        tracking_proposal_to_spatial_track(before_start, selection, "product", ("e",))
+
+    valid = tracking_proposal_to_spatial_track(base, selection, "product", ("e",))
+    with pytest.raises(ValueError, match="half-open analyzed source range"):
+        SpatialEvidenceTrack(
+            valid.track_id,
+            valid.selection_id,
+            valid.shot_ref,
+            short_range,
+            valid.source_geometry,
+            valid.focus_ref,
+            valid.provider_id,
+            valid.provider_revision,
+            valid.sampling_fps,
+            (replace(valid.observations[0], source_time=short_range.end),),
+            valid.evidence_refs,
+        )
+
+
+def _compose_positions(positions, *, policy=None, lost=()):
+    selection = _selection()
+    samples = [
+        TrackingSample(
+            MediaTime(index, 1),
+            "available",
+            None,
+            NormalizedRectangle(position, 0.2, 0.05, 0.2),
+            9,
+            0.9,
+        )
+        for index, position in enumerate(positions)
+    ]
+    samples.extend(
+        TrackingSample(MediaTime(time, 1), "lost", "occlusion", None, 0, 0.0) for time in lost
+    )
+    request = replace(
+        _track_request(selection, _tracking_proposal(selection, samples)),
+        path_policy=policy or SpatialPathPolicy(),
+    )
+    return DeterministicSpatialComposer().compose(request)
+
+
+def test_dead_zone_suppresses_jitter_but_real_movement_remains() -> None:
+    jitter = _compose_positions((0.2, 0.202, 0.199))
+    movement = _compose_positions((0.2, 0.4))
+    assert jitter.transform_plan is not None and jitter.spatial_qc is not None
+    assert movement.transform_plan is not None
+    assert len(jitter.transform_plan.keyframes) == 1
+    assert jitter.spatial_qc.suppressed_keyframe_count == 2
+    assert len(movement.transform_plan.keyframes) == 2
+    assert movement.transform_plan.keyframes[0].crop != movement.transform_plan.keyframes[1].crop
+
+
+def test_velocity_limit_is_deterministic_and_preserves_focus() -> None:
+    policy = SpatialPathPolicy(max_center_velocity_pixels_per_second=100)
+    first = _compose_positions((0.2, 0.3), policy=policy)
+    second = _compose_positions((0.2, 0.3), policy=policy)
+    assert first == second and first.transform_plan is not None and first.spatial_qc is not None
+    crops = first.transform_plan.keyframes
+    assert crops[1].crop.left - crops[0].crop.left == 100
+    assert first.spatial_qc.contained_focus_count == first.spatial_qc.focus_observation_count
+    assert first.spatial_qc.max_center_velocity_pixels_per_second == 100.0
+
+
+def test_loss_gap_policy_holds_short_and_refuses_over_limit() -> None:
+    short = _compose_positions((0.2,), lost=(1,))
+    over = _compose_positions((0.2,), lost=(2,))
+    assert short.mode == "track" and short.spatial_qc is not None
+    assert short.spatial_qc.held_loss_count == 1
+    assert short.spatial_qc.held_loss_duration_seconds == 1.0
+    assert over.mode == "unresolved" and "max_lost_hold_gap" in over.infeasible_reason
