@@ -1,110 +1,172 @@
 # Current Work Order
 
 **Status:** ACTIVE  
-**Phase:** R0.11 — real Auto Reframe Product Probe with replacement non-9:16 media  
+**Phase:** R0.11 — tracker recovery provider benchmark + movement Human Gate  
 **Updated:** 2026-08-14
 
-## Accepted implementation baseline
+## Accepted R0.11 implementation
 
-`ad4f47e5f659e108d34593675bc08177a2c2aff4` — `feat: stabilize deterministic spatial track paths`
+Accepted spatial foundation:
 
-The R0.11 engineering foundation remains accepted. The prior Product Probe was blocked only because both supplied clips were already exactly 9:16, leaving no crop latitude for a 9:16 target.
+- `ad4f47e5f659e108d34593675bc08177a2c2aff4` — deterministic motion-stability baseline;
+- `66fc889094dd46dd51d5ccf028869c37658f648b` — canonical `SpatialTransformPlan` → deterministic FFmpeg execution adapter.
 
-Accepted invariants remain:
+Current spatial invariants remain unchanged:
 
 - canonical half-open source-time ranges;
-- R0.8 grounded seeded-tracking evidence;
+- spatial evidence providers produce observations only;
 - `SpatialComposer` owns executable crop/path decisions;
-- `SpatialPathPolicy(version=r0.11-stability-candidate-v1)` remains unchanged;
-- current uncalibrated candidates remain 12 px dead zone, 800 px/s per-axis center velocity limit, 1 s maximum lost hold and redundant-keyframe suppression;
-- manual locks are hard constraints;
+- `SpatialPathPolicy(version=r0.11-stability-candidate-v1)` remains 12 px dead zone, 800 px/s per-axis center velocity, 1 s maximum lost hold, redundant-keyframe suppression;
 - lost observations do not fabricate geometry;
-- mandatory-focus containment outranks velocity limiting;
+- mandatory-focus containment outranks motion limiting;
 - `SpatialTransformPlan` remains execution truth;
-- Engineering Probe `26/26 PASS`;
-- full pytest `475 passed` plus Ruff, mypy, import contracts, build and diff checks green.
+- Renderer/FFmpeg executes canonical plans only.
 
-## Replacement Product Probe media supplied
+Remote `ci/quality-gate-diagnostic` is green at `66fc889`.
 
-The user reports that replacement test material has now been placed under:
+## Real Product Probe result
 
-`example/r0_11_product_probe/input/`
+Replacement landscape media passed the 9:16 crop-latitude gate.
 
-Do not assume filenames or extensions. Discover the actual local files and inspect their geometry before proceeding.
+### Movement-only clip — usable Product Probe evidence
 
-The prior 9:16 clips may remain present and must not be mistaken for the replacement benchmark inputs.
+`moving_occlusion2_landscape.mp4`
 
-## Geometry gate first
+Authoritative range:
 
-Before tracking or rendering:
+`[7/10, 13/5)`
 
-1. enumerate candidate video files under `example/r0_11_product_probe/input/`;
-2. inspect filename, SHA-256, codec, duration, resolution, display aspect and frame rate;
-3. identify the two intended replacement moving-subject clips by actual local evidence;
-4. require source geometry with real crop latitude relative to the 9:16 target;
-5. prefer landscape 16:9; other non-9:16 sources are acceptable if they provide meaningful crop freedom;
-6. if the replacement files are still effectively 9:16 after display-rotation/aspect handling, stop as `EXECUTION_BLOCKED — TARGET_ASPECT_NO_CROP_LATITUDE` rather than inventing zoom or crop authority.
+Reported evidence:
 
-## Product Probe execution
+- 41 tracking observations: 40 available + one `target_exit`;
+- CENTER: 1 keyframe;
+- RAW: 41 keyframes, containment 40/40, maximum velocity 240 px/s;
+- STABILIZED: 14 keyframes, containment 40/40, maximum velocity 195 px/s, 27 redundant keyframes suppressed;
+- RAW/STABILIZED each held the final loss for one frame (~0.0333 s);
+- generated previews are 540×960, 30 FPS, 1.9 s, H.264/AAC;
+- no source-bound/aspect violation and no detected black intervals.
 
-For each usable replacement clip:
+This evidence is now ready for Human Gate. Do not discard or rerun it merely because the occlusion clip failed.
 
-```text
-same source / same exact source range / same 9:16 target canvas
-→ A — center/static crop
-→ B — raw/simple grounded tracking path
-→ C — stabilized SpatialComposer path
-→ canonical SpatialTransformPlan execution
-→ local previews + SpatialPathQc/comparison metadata
-→ Human Gate
-```
+## Movement Human Gate
+
+The user should compare the three local previews already generated for `moving_occlusion2_landscape`:
+
+- center;
+- raw;
+- stabilized.
+
+Ask only:
+
+- best overall framing: `center / raw / stabilized / tie`;
+- stabilized feel: `natural / jittery / chasing / laggy`;
+- obvious defect: `none / clipped subject / abrupt jump / wrong focus / excessive chase / excessive lag / other`.
+
+Human-visible judgment is product authority. QC metrics are supporting evidence.
+
+## Occlusion clip — tracker capability blocker
+
+`moving_occlusion1_landscape.mp4`
+
+Authoritative range:
+
+`[0, 563298/90000)`
+
+Current Sparse-LK evidence path lost support at relative `29/30` s and did not reacquire. Therefore it could not reach/evaluate the later intended real occlusion/recovery event.
+
+Classification:
+
+`TRACKER_RECOVERY_BLOCKED`
+
+This does not establish a `SpatialComposer` defect and does not authorize spatial-policy retuning.
+
+## Current engineering objective
+
+Run one bounded **tracker recovery provider benchmark** against the same rights-attested occlusion clip and exact source range.
+
+Read:
+
+- `docs/capabilities/CAP-07_SPATIAL_COMPOSITION_AUTO_REFRAME.md`;
+- `docs/research/R0_11_TRACKER_RECOVERY_PROVIDER_BENCHMARK_2026-08-14.md`.
+
+The benchmark is tracking-evidence work only. Do not render new A/B/C spatial previews until a recovery candidate has demonstrated materially better observations.
+
+## Candidate order
+
+### Candidate A — primary
+
+`YOLOX-Nano detector + ByteTrack association`
+
+Benchmark locally first.
 
 Requirements:
 
-- choose one exact authoritative continuous source range per clip and use it unchanged for A/B/C;
-- preserve the meaningful occlusion/recovery interval for the occlusion clip;
-- reuse the current R0.8 seeded tracker; do not add/switch providers;
-- tracker/provider rectangles remain observations only;
-- A/B/C executable spatial decisions remain canonical `SpatialTransformPlan` decisions owned by the spatial layer;
-- Renderer/FFmpeg may execute plans but may not recompute crop choices;
-- use identical output canvas/resolution/frame-rate policy and identical audio treatment across A/B/C;
-- no subtitles, graphics, music or presentation bias;
-- keep `SpatialPathPolicy(version=r0.11-stability-candidate-v1)` unchanged before Human Gate;
-- do not manually rescue a path or tune constants after preview inspection.
+- preserve provider neutrality behind the existing evidence boundary;
+- detector/tracker boxes are observations only;
+- prefer ONNX/CPU execution for this benchmark;
+- record exact runtime packages/versions;
+- record exact detector model/checkpoint/ONNX source and SHA-256;
+- do not infer model artifact licensing solely from the code repository license;
+- do not permanently add the provider/dependency/model to product defaults in this benchmark batch.
 
-If two usable clips are found, generate six local/private previews under `example/r0_11_product_probe/output/`:
+### Candidate B — secondary only if A is insufficient
 
-```text
-<clip1>_center.mp4
-<clip1>_raw.mp4
-<clip1>_stabilized.mp4
-<clip2>_center.mp4
-<clip2>_raw.mp4
-<clip2>_stabilized.mp4
-```
+`MediaPipe Object Detector + deterministic reseed of the existing local tracker`
 
-Save local comparison metadata beside the previews including source hash/metadata/range, tracker identity, observation/loss information, plan IDs, policy IDs, keyframe counts, `SpatialPathQc`, render identity and output QC/hashes.
+Use only if Candidate A materially fails recovery, identity continuity, CPU/runtime or dependency criteria.
 
-Human-visible occlusion is not automatically tracker loss. Record what the tracker actually reports; never manufacture a lost interval.
+Runtime license alone is not model-artifact approval. Record the exact model artifact and applicable terms separately.
 
-## Stop classifications
+### Candidate C — deferred
 
-- `READY_FOR_HUMAN_GATE` — technically valid comparable A/B/C previews produced.
-- `PARTIAL_PRODUCT_PROBE` — one clip succeeds and another has a concrete blocker.
-- `TRACKER_BLOCKED` — current seeded tracker cannot materially follow the intended subject.
-- `EXECUTION_BLOCKED — TARGET_ASPECT_NO_CROP_LATITUDE` — replacement geometry still has no meaningful crop freedom.
-- `EXECUTION_BLOCKED` — canonical plans cannot be previewed without violating spatial authority and no bounded adapter can solve it cleanly.
+SAM 2 remains a stronger/heavier GPU-tier option and is not part of the first recovery benchmark unless A/B are materially insufficient.
+
+Ultralytics YOLO is excluded from the default candidate path unless the product's commercial/open-source licensing strategy explicitly changes.
+
+## Recovery benchmark metrics
+
+For the exact occlusion clip/range measure at minimum:
+
+- first-loss time;
+- whether reacquisition occurs after the visible occlusion;
+- reacquisition latency;
+- target identity continuity / obvious wrong-subject switch;
+- available/lost observation count;
+- recovered geometry quality;
+- deterministic repeatability across repeated runs;
+- CPU wall-clock runtime / effective processing rate;
+- package/model footprint;
+- code/runtime/model/transitive license record completeness.
+
+The success criterion is not generic detector mAP. It is whether the intended focus subject can be recovered well enough for `SpatialComposer` to resume canonical spatial decisions without fabricated geometry or wrong-subject switching.
+
+## Benchmark workflow
+
+1. `git status → fetch → main → pull --ff-only → clean`.
+2. Keep the private media under `example/` untracked.
+3. Use local/private benchmark scripts/output where possible; do not pollute permanent product dependencies during comparison.
+4. Benchmark Candidate A on the exact source range.
+5. Repeat enough to confirm deterministic/operational behavior.
+6. If A is materially insufficient, benchmark B under the same evidence contract.
+7. Do not auto-integrate a winner. Stop and report evidence to ChatGPT for the release/provider decision.
+8. Do not change `SpatialComposer`, `SpatialPathPolicy`, crop constants or FFmpeg spatial authority.
+
+## Final benchmark classification
+
+Use one:
+
+- `RECOVERY_CANDIDATE_READY_FOR_INTEGRATION` — at least one candidate materially recovers the intended subject and has no unresolved release-blocking license/runtime contradiction;
+- `RECOVERY_CANDIDATE_TECHNICALLY_READY_LICENSE_PENDING` — recovery succeeds but exact model/runtime terms are not yet sufficiently recorded for release approval;
+- `RECOVERY_BENCHMARK_INCONCLUSIVE` — tested candidates do not reliably recover the intended subject;
+- `RECOVERY_BENCHMARK_BLOCKED` — required local runtime/model acquisition or evidence mechanism is unavailable.
 
 ## Explicitly not allowed
 
-- no speculative policy retuning before Human Gate;
-- no new detector/tracker/model/provider;
-- no artificial zoom authority merely to force a benchmark;
-- no synthetic Product Probe substitution;
-- no Renderer-owned spatial decisions;
+- no dead-zone / velocity / loss-gap retuning;
+- no change to canonical spatial authority;
+- no manual crop-path rescue;
 - no generative outpainting/uncrop;
 - no R0.12 proxy/cache work;
-- no audio-provider implementation;
-- no R0.11 closure before Human Gate.
-
-Keep all Product Probe media and outputs local/private/untracked.
+- no audio-provider work;
+- no permanent new provider adoption before benchmark review;
+- no R0.11 closure before movement Human Gate plus successful occlusion/recovery Product Probe.

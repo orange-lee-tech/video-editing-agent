@@ -2,7 +2,7 @@
 
 **Roadmap V2:** ACTIVE  
 **Current phase:** R0.11 — Spatial Composition / Auto Reframe  
-**Engineering state:** ACTIVE — replacement Product Probe media supplied; geometry inspection and real A/B/C preview generation next  
+**Engineering state:** ACTIVE — movement Product Probe ready for Human Gate; occlusion path blocked by tracker reacquisition and entering provider benchmark  
 **Updated:** 2026-08-14
 
 ## Closed
@@ -18,43 +18,64 @@
 - `ef0baa455c27c0ccb42ae74c4d24ede76e543a74` — deterministic static spatial composition foundation.
 - `3ea89a51354fd3df62eed82e7959201969ec8b57` — deterministic source-time track paths.
 - `ad4f47e5f659e108d34593675bc08177a2c2aff4` — deterministic motion-stability baseline.
+- `66fc889094dd46dd51d5ccf028869c37658f648b` — canonical `SpatialTransformPlan` → deterministic FFmpeg execution adapter.
 
-The accepted engineering foundation remains green: canonical half-open source time, R0.8 grounded tracking evidence, `SpatialComposer` crop authority, explicit `SpatialPathPolicy(version=r0.11-stability-candidate-v1)`, inspectable `SpatialPathQc`, canonical `SpatialTransformPlan`, Engineering Probe `26/26 PASS`, full pytest `475 passed` and remaining Quality Gate checks green.
+At `66fc889`, remote `ci/quality-gate-diagnostic` is green. The implementation diff is bounded to the FFmpeg spatial-plan executor and two focused regressions; it does not change `SpatialComposer`, the seeded tracker or stabilization constants.
 
-## Previous Product Probe attempt
+## Real Product Probe — partial success
 
-The prior two clips were both 720×1280 (9:16). With a 9:16 target and the current maximum legal-crop semantics, the only legal maximum crop was the full frame, so center/raw/stabilized would have been identical.
+The replacement 1280×720 landscape clips passed the 9:16 crop-latitude gate.
 
-Classification was correctly recorded as:
+### Movement path
 
-`EXECUTION_BLOCKED — TARGET_ASPECT_NO_CROP_LATITUDE`
+`moving_occlusion2_landscape.mp4` produced technically valid center/raw/stabilized previews.
 
-This was a media-geometry blocker, not a tracker or R0.11 implementation failure.
+Reported evidence:
 
-## Current gate reopened
+- source range `[7/10, 13/5)`;
+- 41 observations, 40 available and one terminal `target_exit`;
+- CENTER 1 keyframe;
+- RAW 41 keyframes, containment 40/40, max velocity 240 px/s;
+- STABILIZED 14 keyframes, containment 40/40, max velocity 195 px/s, 27 keyframes suppressed;
+- rendered previews 540×960 / 30 FPS / 1.9 s with no reported black intervals.
 
-The user now reports replacement material has been placed under:
+This branch of the Product Probe is ready for the user's Human Gate now.
 
-`example/r0_11_product_probe/input/`
+### Occlusion/recovery path
 
-The next execution must discover the actual files and inspect display geometry rather than trusting names. Only non-9:16 media with meaningful crop latitude may proceed to the real Product Probe.
+`moving_occlusion1_landscape.mp4` exposed a provider capability failure before the intended later occlusion/recovery event:
 
-For two usable clips, execute:
+- authoritative range `[0, 563298/90000)`;
+- current Sparse-LK support was lost at relative `29/30` s;
+- no reacquisition occurred;
+- therefore the later real occlusion/recovery could not be evaluated.
 
-```text
-same source / same exact range / same 9:16 target
-→ center/static
-vs
-raw/simple grounded tracking
-vs
-stabilized SpatialComposer
-→ canonical SpatialTransformPlan previews + Spatial QC
-→ Human Gate
-```
+This is a tracker-recovery blocker, not evidence against `SpatialComposer` motion stability.
 
-Do not retune the accepted stabilization policy before Human Gate. Do not add zoom authority, a new detector/tracker/provider, Renderer-owned crop decisions, R0.12 proxy/cache work or audio-provider integration.
+## Active engineering gate
 
-R0.11 remains open until the real previews are technically valid and the user completes the Human Gate.
+The next engineering work is a provider-neutral tracker recovery benchmark, documented in:
+
+`docs/research/R0_11_TRACKER_RECOVERY_PROVIDER_BENCHMARK_2026-08-14.md`
+
+Candidate order:
+
+1. YOLOX-Nano + ByteTrack as the primary local/CPU benchmark candidate;
+2. MediaPipe Object Detector + deterministic reseed only if the primary candidate is materially insufficient;
+3. SAM 2 deferred to a heavier GPU tier.
+
+Ultralytics YOLO remains excluded from the default proprietary/commercial path absent an explicit licensing strategy change.
+
+No provider is approved merely because its code repository is permissively licensed. Exact model artifacts, runtimes and transitive dependencies require their own release record.
+
+## R0.11 completion gate
+
+R0.11 remains open until both are satisfied:
+
+1. movement Human Gate establishes whether center/raw/stabilized behavior is product-acceptable;
+2. a recovery-capable tracking evidence path enables a real occlusion/recovery A/B/C Product Probe and Human Gate.
+
+Do not retune current spatial constants while the active failure is tracker reacquisition.
 
 ## Future audio-provider backlog
 
@@ -62,4 +83,4 @@ Automatic rights-aware music discovery/acquisition remains recorded separately i
 
 `docs/research/AUDIO_PROVIDER_CANDIDATES_2026-08-14.md`
 
-It does not reopen R0.10 and is not part of the R0.11 Product Probe.
+It does not reopen R0.10 and is not part of R0.11.
