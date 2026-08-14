@@ -74,7 +74,9 @@ def _build_snapshot() -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate a local non-authoritative handoff snapshot.")
+    parser = argparse.ArgumentParser(
+        description="Generate a local non-authoritative handoff snapshot."
+    )
     parser.add_argument(
         "--output",
         type=Path,
