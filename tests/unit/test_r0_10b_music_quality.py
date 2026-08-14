@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
@@ -107,3 +108,25 @@ def test_decision_mutation_changes_compiled_plan() -> None:
         compile_audio_execution(selection, first).filter_complex
         != compile_audio_execution(selection, second).filter_complex
     )
+
+
+def test_duck_multiplier_is_relative_to_decision_base_gain() -> None:
+    windows = generate_music_windows(_beatmap(), MediaTime(3, 1), ("att",))
+    selection = select_music(windows)
+    assert selection is not None
+    mix = plan_basic_mix(
+        EntityRevisionRef("plan", 1),
+        REF,
+        MediaTime(3, 1),
+        (MediaTimeRange(MediaTime(1, 1), MediaTime(1, 1)),),
+    )
+    changed_base = replace(
+        mix,
+        automation_intents=tuple(
+            replace(intent, gain_db=-16.0) if intent.kind is AudioAutomationKind.GAIN else intent
+            for intent in mix.automation_intents
+        ),
+    )
+
+    assert "volume='0.251188643'" in compile_audio_execution(selection, mix).filter_complex
+    assert "volume='0.501187234'" in compile_audio_execution(selection, changed_base).filter_complex

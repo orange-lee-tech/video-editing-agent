@@ -35,6 +35,15 @@ def compile_audio_execution(
         raise ValueError("mix automation targets a different music Asset revision")
     if any(item.target_role is not AudioTrackRole.BGM for item in mix.automation_intents):
         raise ValueError("diagnostic compiler accepts BGM role automation only")
+    base_gain_intents = tuple(
+        item
+        for item in mix.automation_intents
+        if item.kind is AudioAutomationKind.GAIN and item.gain_db is not None
+    )
+    if len(base_gain_intents) != 1:
+        raise ValueError("diagnostic compiler requires exactly one explicit BGM base gain")
+    base_gain_db = base_gain_intents[0].gain_db
+    assert base_gain_db is not None
     segment_filters = [
         f"[1:a]atrim=start={_seconds(item.start)}:duration={_seconds(item.duration)},asetpts=PTS-STARTPTS[m{index}]"
         for index, item in enumerate(segments)
@@ -52,7 +61,7 @@ def compile_audio_execution(
         elif intent.kind is AudioAutomationKind.FADE_OUT:
             bgm_filters.append(f"afade=t=out:st={start}:d={_seconds(intent.end - intent.start)}")
         elif intent.kind is AudioAutomationKind.DUCK and intent.gain_db is not None:
-            multiplier = 10 ** ((intent.gain_db + 10.0) / 20)
+            multiplier = 10 ** ((intent.gain_db - base_gain_db) / 20)
             bgm_filters.append(f"volume='{multiplier:.9f}':enable='between(t,{start},{end})'")
     duration = sum(item.duration.as_fraction() for item in segments)
     duration_text = f"{float(duration):.6f}".rstrip("0").rstrip(".")
