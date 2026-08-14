@@ -4,7 +4,9 @@ import math
 from dataclasses import dataclass
 from typing import Protocol
 
-from video_editing_agent.domain.common.media_time import MediaTime
+from video_editing_agent.application.ports.seeded_tracking import NormalizedRectangle
+from video_editing_agent.domain.common.entity import EntityRevisionRef
+from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
 from video_editing_agent.domain.edit.resolution import ResolvedSelection
 
 
@@ -27,6 +29,128 @@ class OutputCanvas:
                 raise TypeError(f"{name} must be an int")
             if value <= 0:
                 raise ValueError(f"{name} must be > 0")
+
+
+@dataclass(frozen=True, slots=True)
+class SourceFrameGeometry:
+    width: int
+    height: int
+
+    def __post_init__(self) -> None:
+        OutputCanvas(self.width, self.height)
+
+
+@dataclass(frozen=True, slots=True)
+class PixelCrop:
+    left: int
+    top: int
+    width: int
+    height: int
+
+    def __post_init__(self) -> None:
+        for name, value in (
+            ("left", self.left),
+            ("top", self.top),
+            ("width", self.width),
+            ("height", self.height),
+        ):
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise TypeError(f"{name} must be an int")
+        if self.left < 0 or self.top < 0 or self.width <= 0 or self.height <= 0:
+            raise ValueError("pixel crop must have non-negative origin and positive size")
+
+
+@dataclass(frozen=True, slots=True)
+class ReframeIntent:
+    output_canvas: OutputCanvas
+    mandatory_focus_refs: tuple[str, ...] = ()
+    preferred_focus_refs: tuple[str, ...] = ()
+    framing_style: str = "hold"
+
+    def __post_init__(self) -> None:
+        if not self.framing_style.strip():
+            raise ValueError("framing_style must not be empty")
+        refs = (*self.mandatory_focus_refs, *self.preferred_focus_refs)
+        if any(not item.strip() for item in refs):
+            raise ValueError("focus refs must be non-empty")
+
+
+@dataclass(frozen=True, slots=True)
+class SpatialEvidenceView:
+    evidence_id: str
+    shot_ref: EntityRevisionRef
+    source_range: MediaTimeRange
+    focus_ref: str
+    bounds: NormalizedRectangle
+    confidence: float
+
+    def __post_init__(self) -> None:
+        if not self.evidence_id.strip() or not self.focus_ref.strip():
+            raise ValueError("spatial evidence identity must not be empty")
+        _unit_interval("confidence", self.confidence)
+        values = (self.bounds.x, self.bounds.y, self.bounds.width, self.bounds.height)
+        if (
+            any(not math.isfinite(value) for value in values)
+            or self.bounds.x < 0
+            or self.bounds.y < 0
+            or self.bounds.width <= 0
+            or self.bounds.height <= 0
+            or self.bounds.x + self.bounds.width > 1
+            or self.bounds.y + self.bounds.height > 1
+        ):
+            raise ValueError("spatial evidence bounds must be normalized inside the source frame")
+
+
+@dataclass(frozen=True, slots=True)
+class SpatialCropKeyframe:
+    source_time: MediaTime
+    crop: PixelCrop
+
+    def __post_init__(self) -> None:
+        if self.source_time.as_fraction() < 0:
+            raise ValueError("source_time must be >= 0")
+
+
+@dataclass(frozen=True, slots=True)
+class ManualCropLock:
+    lock_id: str
+    keyframe: SpatialCropKeyframe
+
+    def __post_init__(self) -> None:
+        if not self.lock_id.strip():
+            raise ValueError("lock_id must not be empty")
+
+
+@dataclass(frozen=True, slots=True)
+class SpatialTransformPlan:
+    selection_id: str
+    shot_ref: EntityRevisionRef
+    source_range: MediaTimeRange
+    source_geometry: SourceFrameGeometry
+    output_canvas: OutputCanvas
+    keyframes: tuple[SpatialCropKeyframe, ...]
+
+    def __post_init__(self) -> None:
+        if not self.selection_id.strip() or not self.keyframes:
+            raise ValueError("spatial transform plan requires identity and keyframes")
+        times = tuple(item.source_time.as_fraction() for item in self.keyframes)
+        if times != tuple(sorted(set(times))):
+            raise ValueError("crop keyframe source times must be unique and increasing")
+        for item in self.keyframes:
+            if not (
+                self.source_range.start.as_fraction()
+                <= item.source_time.as_fraction()
+                < self.source_range.end.as_fraction()
+            ):
+                raise ValueError("crop keyframe must stay inside resolved source range")
+            crop = item.crop
+            if (
+                crop.left + crop.width > self.source_geometry.width
+                or crop.top + crop.height > self.source_geometry.height
+            ):
+                raise ValueError("crop keyframe escapes source geometry")
+            if crop.width * self.output_canvas.height != crop.height * self.output_canvas.width:
+                raise ValueError("crop keyframe must preserve output canvas aspect ratio")
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,10 +195,12 @@ class SpatialTransformKeyframe:
 @dataclass(frozen=True, slots=True)
 class SpatialCompositionRequest:
     selection: ResolvedSelection
-    output_canvas: OutputCanvas
+    source_geometry: SourceFrameGeometry
+    intent: ReframeIntent
+    spatial_evidence: tuple[SpatialEvidenceView, ...] = ()
+    manual_locks: tuple[ManualCropLock, ...] = ()
     protected_regions: tuple[NormalizedCanvasRegion, ...] = ()
     evidence_refs: tuple[str, ...] = ()
-    manual_lock_refs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,6 +213,7 @@ class ReframeDecision:
     evidence_refs: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
     infeasible_reason: str | None = None
+    transform_plan: SpatialTransformPlan | None = None
 
     def __post_init__(self) -> None:
         for name, value in (
@@ -102,6 +229,8 @@ class ReframeDecision:
             raise ValueError("spatial keyframe source times must be unique and increasing")
         if self.infeasible_reason is not None and self.keyframes:
             raise ValueError("infeasible reframe decision must not contain executable keyframes")
+        if self.infeasible_reason is not None and self.transform_plan is not None:
+            raise ValueError("infeasible reframe decision must not contain a transform plan")
 
 
 class SpatialComposer(Protocol):
