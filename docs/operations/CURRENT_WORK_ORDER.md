@@ -1,14 +1,14 @@
 # Current Work Order
 
-**Status:** HANDOFF_READY — RESUMABLE BLUEPRINT  
+**Status:** ACTIVE  
 **Phase:** R0.10 — real-music Product Probe / Human Gate / closure  
-**Handoff:** 2026-08-14
+**Activated:** 2026-08-14
 
 ## Meaning
 
-This file preserves the next coherent construction boundary for a new conversation. It is **not a pause lock** and it is not permission for Codex to invent work by itself.
+This file is the active coherent construction boundary. It was activated after reobserving current `origin/main` and CI and confirming that the preserved R0.10 boundary still matches implementation reality.
 
-A new coordinating ChatGPT conversation may, after reobserving current `origin/main`, change this status to `ACTIVE` and continue this boundary without asking for a new product-policy decision. If the user changes the goal or the repository has materially changed, refresh the work order first.
+No new product-policy decision is required to execute this boundary. If the user changes the goal or the repository materially changes, refresh the work order before continuing.
 
 ## Resume boundary
 
@@ -29,13 +29,12 @@ If fewer than two suitable real local music candidates exist, report `NEEDS_REAL
 - no heavyweight audio model without a benchmark need;
 - no final EDL/Renderer authority leap.
 
-## New-conversation entry
+## Execution entry
 
-Before activation:
+Before coding:
 
-1. reobserve `origin/main` and CI;
-2. read `docs/README.md`;
-3. read `docs/operations/CHATGPT_GITHUB_CODEX_COLLABORATION.md`;
-4. read `docs/roadmap/CURRENT_PHASE_STATUS.md` and this file;
-5. inspect only the R0.10 implementation/tests needed to confirm the boundary still matches reality;
-6. activate/update this work order, then give Codex a compact instruction pointing back to repository docs.
+1. reobserve local/remote state and confirm a clean `main` working tree;
+2. read `docs/operations/CODEX_EXECUTION_ENTRY.md`;
+3. read `docs/roadmap/CURRENT_PHASE_STATUS.md` and this file;
+4. inspect only the R0.10 implementation/tests needed for this boundary;
+5. execute the complete work order and stop at its stated gate.

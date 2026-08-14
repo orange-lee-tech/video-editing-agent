@@ -2,8 +2,8 @@
 
 **Roadmap V2:** ACTIVE  
 **Current phase:** R0.10 — Music Selection + BeatMap + Audio Editorial  
-**Engineering state:** HANDOFF_READY — ready for the next conversation to resume  
-**Handoff date:** 2026-08-14
+**Engineering state:** ACTIVE — R0.10 Product Probe boundary resumed  
+**Resume date:** 2026-08-14
 
 ## Closed
 
@@ -21,7 +21,7 @@
 
 R0.10 is **not closed**.
 
-The next planned product boundary is:
+The active product boundary is:
 
 `real rights-attested local music → R0.10 Product Probe A/B → Human Gate → R0.10 closure`
 
@@ -29,11 +29,11 @@ A bounded compiler preflight also remains: remove the hidden fixed `-10 dB` base
 
 No R0.11 implementation has begun.
 
-## Handoff meaning
+## Resume state
 
-`HANDOFF_READY` is deliberately resumable, not a lock. A new coordinating ChatGPT conversation must first reobserve current `origin/main`, then may activate the preserved R0.10 boundary through `docs/operations/CURRENT_WORK_ORDER.md` and issue a compact Codex instruction.
+The previous `HANDOFF_READY` state was deliberately resumable, not a lock. On 2026-08-14 the coordinating ChatGPT reobserved current `origin/main` and CI, confirmed the preserved boundary still matched implementation reality, and activated `docs/operations/CURRENT_WORK_ORDER.md`.
 
-Codex must not independently reconstruct a stale job from old chat history; the coordinating ChatGPT owns work-order activation.
+Codex must execute only the active work order and must not independently reconstruct a stale job from old chat history.
 
 ## Governance review
 
