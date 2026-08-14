@@ -18,8 +18,10 @@ from video_editing_agent.application.ports.spatial_composer import (
     SpatialCropKeyframe,
     SpatialEvidenceTrack,
     SpatialEvidenceView,
+    SpatialFocusObservation,
     SpatialInterpolationMode,
     SpatialPathPolicy,
+    SpatialTransformPlan,
 )
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
@@ -454,3 +456,60 @@ def test_recovery_over_limit_and_initial_loss_fail_closed() -> None:
     )
     assert over.mode == "unresolved" and "max_reacquisition_gap" in over.infeasible_reason
     assert initial.mode == "unresolved" and "begins lost" in initial.infeasible_reason
+
+
+def test_track_qc_uses_linear_crop_at_intermediate_observation_time() -> None:
+    selection = _selection()
+    observation = SpatialFocusObservation(
+        MediaTime(11, 1),
+        "available",
+        NormalizedRectangle(50 / 1920, 100 / 1080, 30 / 1920, 30 / 1080),
+        0.9,
+    )
+    track = SpatialEvidenceTrack(
+        "track",
+        selection.selection_id,
+        selection.shot_ref,
+        selection.selected_source_range,
+        SOURCE,
+        "product",
+        "provider",
+        "revision",
+        30,
+        (observation,),
+    )
+    plan = SpatialTransformPlan(
+        selection.selection_id,
+        selection.shot_ref,
+        selection.selected_source_range,
+        SOURCE,
+        PORTRAIT,
+        (
+            SpatialCropKeyframe(MediaTime(10, 1), PixelCrop(0, 4, 603, 1072)),
+            SpatialCropKeyframe(MediaTime(12, 1), PixelCrop(200, 4, 603, 1072)),
+        ),
+        SpatialInterpolationMode.LINEAR,
+    )
+
+    assert plan.keyframes[0].crop.left == 0
+    assert plan.evaluate_crop(observation.source_time).left == 100
+    qc = DeterministicSpatialComposer._track_qc(
+        SpatialCompositionRequest(
+            selection,
+            SOURCE,
+            ReframeIntent(PORTRAIT, ("product",), framing_style="track"),
+            spatial_tracks=(track,),
+        ),
+        track,
+        plan,
+        0,
+        0.0,
+        0,
+        0,
+        0.0,
+        0.0,
+        0,
+        0.0,
+    )
+    assert qc.focus_observation_count == 1
+    assert qc.contained_focus_count == 0

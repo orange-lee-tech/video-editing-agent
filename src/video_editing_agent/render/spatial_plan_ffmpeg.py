@@ -4,11 +4,9 @@ from dataclasses import dataclass
 from fractions import Fraction
 
 from video_editing_agent.application.ports.spatial_composer import (
-    PixelCrop,
     SpatialInterpolationMode,
     SpatialTransformPlan,
 )
-from video_editing_agent.domain.common.media_time import MediaTime
 
 
 def _ffmpeg_fraction(value: Fraction) -> str:
@@ -19,45 +17,6 @@ def _ffmpeg_fraction(value: Fraction) -> str:
 
 def _ffmpeg_seconds(value: Fraction) -> str:
     return f"{float(value):.9f}".rstrip("0").rstrip(".")
-
-
-def _round_half_up(value: Fraction) -> int:
-    return (
-        value.numerator // value.denominator
-        if value.denominator == 1
-        else (2 * value.numerator + value.denominator) // (2 * value.denominator)
-    )
-
-
-def evaluate_spatial_crop(plan: SpatialTransformPlan, source_time: MediaTime) -> PixelCrop:
-    """Evaluate canonical interpolation using exact rational time and round-half-up pixels."""
-
-    time = source_time.as_fraction()
-    frames = plan.keyframes
-    if time <= frames[0].source_time.as_fraction():
-        return frames[0].crop
-    if time >= frames[-1].source_time.as_fraction():
-        return frames[-1].crop
-    for left, right in zip(frames, frames[1:], strict=False):
-        start = left.source_time.as_fraction()
-        end = right.source_time.as_fraction()
-        if time == end:
-            return right.crop
-        if start <= time < end:
-            if plan.interpolation is SpatialInterpolationMode.HOLD:
-                return left.crop
-            if plan.interpolation is not SpatialInterpolationMode.LINEAR:
-                raise ValueError("unsupported spatial interpolation mode")
-            ratio = (time - start) / (end - start)
-            return PixelCrop(
-                _round_half_up(
-                    Fraction(left.crop.left) + ratio * (right.crop.left - left.crop.left)
-                ),
-                _round_half_up(Fraction(left.crop.top) + ratio * (right.crop.top - left.crop.top)),
-                left.crop.width,
-                left.crop.height,
-            )
-    raise AssertionError("canonical spatial interval lookup failed")
 
 
 def _hold_expression(plan: SpatialTransformPlan, attribute: str) -> str:

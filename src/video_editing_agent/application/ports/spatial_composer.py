@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from enum import StrEnum
+from fractions import Fraction
 from typing import Protocol
 
 from video_editing_agent.application.ports.seeded_tracking import NormalizedRectangle
@@ -286,6 +287,47 @@ class SpatialTransformPlan:
                 raise ValueError("crop keyframe escapes source geometry")
             if crop.width * self.output_canvas.height != crop.height * self.output_canvas.width:
                 raise ValueError("crop keyframe must preserve output canvas aspect ratio")
+
+    def evaluate_crop(self, source_time: MediaTime) -> PixelCrop:
+        """Evaluate the canonical crop at exact source time."""
+
+        time = source_time.as_fraction()
+        first = self.keyframes[0]
+        if time <= first.source_time.as_fraction():
+            return first.crop
+        last = self.keyframes[-1]
+        if time >= last.source_time.as_fraction():
+            return last.crop
+        for left, right in zip(self.keyframes, self.keyframes[1:], strict=False):
+            start = left.source_time.as_fraction()
+            end = right.source_time.as_fraction()
+            if time == end:
+                return right.crop
+            if start <= time < end:
+                if self.interpolation is SpatialInterpolationMode.HOLD:
+                    return left.crop
+                if self.interpolation is not SpatialInterpolationMode.LINEAR:
+                    raise ValueError("unsupported spatial interpolation mode")
+                if left.crop.width != right.crop.width or left.crop.height != right.crop.height:
+                    raise ValueError("linear interpolation requires constant crop dimensions")
+                ratio = (time - start) / (end - start)
+                return PixelCrop(
+                    _round_spatial_pixel(
+                        Fraction(left.crop.left) + ratio * (right.crop.left - left.crop.left)
+                    ),
+                    _round_spatial_pixel(
+                        Fraction(left.crop.top) + ratio * (right.crop.top - left.crop.top)
+                    ),
+                    left.crop.width,
+                    left.crop.height,
+                )
+        raise AssertionError("canonical spatial interval lookup failed")
+
+
+def _round_spatial_pixel(value: Fraction) -> int:
+    """Round a non-negative exact pixel position to nearest integer, ties upward."""
+
+    return (2 * value.numerator + value.denominator) // (2 * value.denominator)
 
 
 @dataclass(frozen=True, slots=True)

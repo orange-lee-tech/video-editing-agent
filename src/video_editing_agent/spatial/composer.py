@@ -645,18 +645,8 @@ class DeterministicSpatialComposer:
         contained = 0
         for observation in available:
             assert observation.bounds is not None
-            active = max(
-                (
-                    item
-                    for item in keyframes
-                    if item.source_time.as_fraction() <= observation.source_time.as_fraction()
-                ),
-                key=lambda item: item.source_time.as_fraction(),
-                default=None,
-            )
-            if active is not None and _contains(
-                active.crop, _bounds(observation.bounds, request.source_geometry)
-            ):
+            active_crop = plan.evaluate_crop(observation.source_time)
+            if _contains(active_crop, _bounds(observation.bounds, request.source_geometry)):
                 contained += 1
         return SpatialPathQc(
             len(available),
