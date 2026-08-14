@@ -2,6 +2,7 @@
 
 **ID:** `CONTROL-PLANE-001`  
 **Status:** ACTIVE  
+**Phase:** R0.12 — control-plane hardening before product implementation  
 **Owner/writer:** Codex  
 **Purpose:** Compress Codex startup/control instructions before R0.12 product construction.
 
