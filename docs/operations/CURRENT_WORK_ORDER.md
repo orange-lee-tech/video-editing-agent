@@ -1,66 +1,69 @@
 # Current Work Order
 
-**Status:** ACTIVE  
-**Phase:** R0.10 — global music-selection ordering repair → Product Probe rerun → Human Gate / closure  
+**Status:** WAITING_HUMAN  
+**Phase:** R0.10 — Human Gate / closure  
 **Updated:** 2026-08-14
 
 ## Current evidence
 
-Current observed implementation baseline:
+Current accepted implementation baseline:
 
-`5d63268a39baf5a994a5fca41d2be43f768f9df0` — `test: add real music product probe`
+`4782889f3746cf1024abfa0c45f3402cfec834a3` — `fix: canonicalize music candidate ordering`
 
 Remote review confirmed:
 
-- real-music Product Probe executed two materially different rights-attested local tracks;
-- all six previews consumed canonical decisions and passed rendered-output QC;
-- Product Probe 9/9 PASS and full remote CI green;
-- Track B won the probe with score `0.9553` over Track A `0.9460`;
-- Product Probe harness explicitly sorts cross-track top windows by global score before calling `select_music()`.
+- core `select_music()` owns deterministic global candidate ordering;
+- ordering is score descending, then source start, then candidate ID;
+- caller tuple ordering no longer affects the selection decision;
+- `alternative_asset_refs` excludes the winner and is deterministic/deduplicated;
+- Product Probe deliberately reverses cross-track candidate input and still selects the global top score;
+- focused R0.10 tests passed (`15 passed`);
+- full pytest passed (`461 passed`);
+- remote `ci/quality-gate-diagnostic` is green;
+- real-music Product Probe is `9/9 PASS`.
 
-## Bounded defect found during review
+## Human Gate evidence set
 
-`MusicSelectionService` owns rights-aware music choice. Current core helper `select_music()` selects `windows[0]` and records the reason `highest deterministic feature score`, but it does not itself sort or validate the input tuple.
+Use the existing local previews under:
 
-Per-track `generate_music_windows()` sorts windows inside one BeatMap, but cross-track aggregation is not guaranteed to preserve global score order. The Product Probe harness manually sorts globally, so it can hide a caller-order dependency in core selection semantics.
+`example/probe-output/r0_10_product/`
 
-This is a small decision-authority defect, not a reason to reopen R0.10 scoring or redesign the Product Probe.
+Three ordinary comparisons are required:
 
-## Coherent implementation boundary
+1. Music candidate: `candidate_a.mp4` vs `candidate_b.mp4`.
+2. Music moment: `moment_ordinary.mp4` vs `moment_selected.mp4`.
+3. Mix: `mix_basic.mp4` vs `mix_structured.mp4`.
 
-1. Make core music selection deterministic and order-independent for candidate tuples: the highest score must win regardless of caller ordering.
-2. Define deterministic tie-breaking consistent with existing window-ranking semantics and stable identity; do not introduce model randomness or new scoring weights.
-3. Ensure `alternative_asset_refs` derives from the same canonical global ordering and remains deterministic/deduplicated.
-4. Add regression(s) with deliberately unordered candidates from different audio Assets proving the higher-scored candidate wins and the decision reason remains truthful.
-5. Remove redundant Product Probe pre-sorting if that improves evidence quality, or at minimum add a probe assertion that core selection itself wins under reversed/unsorted candidate input. The Product Probe must not be the only layer enforcing ordering.
-6. Keep all R0.10A/R0.10B/source-audio-policy regressions and full Quality Gate green.
-7. Rerun the same real-music Product Probe using the existing local tracks and previews/QC path. Do not alter rights attestations or substitute media.
-8. If technically green, stop at `READY_FOR_HUMAN_ACCEPTANCE` and report the same three human comparisons. Do not close R0.10 yourself.
+Known Product Probe facts:
 
-## Human Gate after repair
+- Track A score `0.9460`, range `6.05–12.05s`;
+- Track B score `0.9553`, range `29.65–35.65s`;
+- system winner Track B;
+- ordinary moment `30.45–36.45s`;
+- selected moment `29.65–35.65s`;
+- source audio policy `MUTE`;
+- Track B BeatMap confidence `0.0633` is low and must remain visible when judging usefulness.
 
-Present only ordinary judgments:
+## Required human response
+
+Return only ordinary editorial judgments plus any obvious defect note:
 
 - Music candidate: Track A / Track B / tie;
 - Music moment: ordinary / selected / tie;
 - Mix: basic / structured / tie;
-- optional obvious defect notes (voice clarity, pumping, fade naturalness, BGM too loud/quiet, other audible problem).
+- optional defect note: e.g. BGM too loud/quiet, pumping, unnatural fade, rhythm feels wrong, or another clearly audible problem.
 
-Track B BeatMap confidence `0.0633` must remain visible to the reviewer; do not silently compensate for it by changing scores during this bounded repair.
+The Human Gate is not a request to validate numeric scores. Prefer what sounds/feels better for the short-form result.
+
+## After Human Gate
+
+- If accepted or preference/ties show no blocking quality defect, ChatGPT records R0.10 closure and advances the control plane to R0.11.
+- If a concrete audible defect is identified, repair only that defect inside R0.10, rerun the affected evidence, and return to Human Gate.
 
 ## Hard boundaries
 
-- no scoring redesign or new heavyweight audio model;
-- no new music/downloading/rights claims;
-- no synthetic Product Probe evidence;
-- no R0.11 work;
-- no proxy/cache implementation in this work order; large-media caching remains a later architecture/productization concern.
-
-## Codex entry
-
-1. Sync clean `main` to current `origin/main`.
-2. Read `docs/operations/CODEX_EXECUTION_ENTRY.md`.
-3. Read `docs/roadmap/CURRENT_PHASE_STATUS.md` and this work order.
-4. Inspect only music selection service/port, R0.10 tests and the Product Probe harness.
-5. Execute the complete bounded repair and rerun the existing Product Probe if local inputs remain available.
-6. Commit/push one coherent green batch and report starting/ending HEAD, changed files, gates, Product Probe result and final classification.
+- no further speculative R0.10 engineering before human evidence;
+- no hidden compensation for Track B confidence;
+- no scoring redesign without a Human Gate defect that justifies it;
+- no R0.11 work before R0.10 closes;
+- no proxy/cache implementation in this phase. Proxy/cache remains planned for R0.12 productization.
