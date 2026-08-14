@@ -1,80 +1,66 @@
 # Current Work Order
 
-**Status:** WAITING_INPUT  
-**Phase:** R0.10 — real-music Product Probe / Human Gate / closure  
+**Status:** ACTIVE  
+**Phase:** R0.10 — global music-selection ordering repair → Product Probe rerun → Human Gate / closure  
 **Updated:** 2026-08-14
 
 ## Current evidence
 
-Current accepted implementation baseline:
+Current observed implementation baseline:
 
-`6c5b70be39ab4188942787974a07fd1e2d0283ce` — `fix: enforce source audio mix policy`
+`5d63268a39baf5a994a5fca41d2be43f768f9df0` — `test: add real music product probe`
 
-Observed and reverified evidence:
+Remote review confirmed:
 
-- `AudioMixDecision.source_audio_policy` now controls canonical execution;
-- `PRESERVE` consumes/mixes source audio when available;
-- `MUTE` does not reference the source-audio input and retains intentional BGM output;
-- missing source audio can still produce a valid audible BGM-only output;
-- undefined source-audio `DUCK` fails closed rather than inventing semantics;
-- routine planning with no grounded speech defaults to `MUTE`; grounded speech selects `PRESERVE` using the existing speech/VAD evidence path;
-- existing VAD already uses stream-selective FFmpeg PCM decode, so no eager audio proxy was added without benchmark need;
-- R0.10 focused/live regressions and full repository Quality Gate are green on remote CI.
+- real-music Product Probe executed two materially different rights-attested local tracks;
+- all six previews consumed canonical decisions and passed rendered-output QC;
+- Product Probe 9/9 PASS and full remote CI green;
+- Track B won the probe with score `0.9553` over Track A `0.9460`;
+- Product Probe harness explicitly sorts cross-track top windows by global score before calling `select_music()`.
 
-## Why work is waiting
+## Bounded defect found during review
 
-The R0.10 engineering boundary is complete enough to run the required Product Probe. The only current blocker is external/user input:
+`MusicSelectionService` owns rights-aware music choice. Current core helper `select_music()` selects `windows[0]` and records the reason `highest deterministic feature score`, but it does not itself sort or validate the input tuple.
 
-```text
-NEEDS_REAL_MUSIC_INPUT
-real local music candidates = 0 / required 2
-```
+Per-track `generate_music_windows()` sorts windows inside one BeatMap, but cross-track aggregation is not guaranteed to preserve global score order. The Product Probe harness manually sorts globally, so it can hide a caller-order dependency in core selection semantics.
 
-Do not create substitute engineering work simply to keep the phase moving.
+This is a small decision-authority defect, not a reason to reopen R0.10 scoring or redesign the Product Probe.
 
-## Required user input
+## Coherent implementation boundary
 
-Provide at least two materially different real local music files under the gitignored local probe area, normally:
+1. Make core music selection deterministic and order-independent for candidate tuples: the highest score must win regardless of caller ordering.
+2. Define deterministic tie-breaking consistent with existing window-ranking semantics and stable identity; do not introduce model randomness or new scoring weights.
+3. Ensure `alternative_asset_refs` derives from the same canonical global ordering and remains deterministic/deduplicated.
+4. Add regression(s) with deliberately unordered candidates from different audio Assets proving the higher-scored candidate wins and the decision reason remains truthful.
+5. Remove redundant Product Probe pre-sorting if that improves evidence quality, or at minimum add a probe assertion that core selection itself wins under reversed/unsorted candidate input. The Product Probe must not be the only layer enforcing ordering.
+6. Keep all R0.10A/R0.10B/source-audio-policy regressions and full Quality Gate green.
+7. Rerun the same real-music Product Probe using the existing local tracks and previews/QC path. Do not alter rights attestations or substitute media.
+8. If technically green, stop at `READY_FOR_HUMAN_ACCEPTANCE` and report the same three human comparisons. Do not close R0.10 yourself.
 
-```text
-example/product-probe-music/
-```
+## Human Gate after repair
 
-The user must be able to attest that the tracks may be used for this local test/project. A simple explicit attestation is sufficient for the Product Probe evidence record; the software records the claim but does not certify its legal truth.
+Present only ordinary judgments:
 
-The tracks should be materially different enough to make the music-candidate comparison meaningful (for example different mood, rhythm, instrumentation or energy profile). Do not download arbitrary tracks merely to satisfy the count.
+- Music candidate: Track A / Track B / tie;
+- Music moment: ordinary / selected / tie;
+- Mix: basic / structured / tie;
+- optional obvious defect notes (voice clarity, pumping, fade naturalness, BGM too loud/quiet, other audible problem).
 
-## Resume boundary once input exists
-
-1. Sync clean `main` to current `origin/main` and reobserve the control plane.
-2. Confirm at least two suitable local music files and record user rights attestation without fabricating license facts.
-3. Use one real short-form project and run the accepted rights → BeatMap → CandidateMusicWindow → MusicSelectionDecision → AudioMixDecision → canonical execution/render/QC path.
-4. Produce the three controlled comparisons already defined for R0.10:
-   - music candidate: Track A vs Track B;
-   - music moment: ordinary legal window vs feature-ranked selected window;
-   - mix: basic mix vs structured duck/fade mix.
-5. Every preview must consume canonical decisions and receive rendered-output QC.
-6. Keep all R0.10A/R0.10B/source-audio-policy regressions and the full repository Quality Gate green.
-7. If technically green, stop at `READY_FOR_HUMAN_ACCEPTANCE` and present the comparisons in ordinary human terms. Only the user/Human Gate can close R0.10.
+Track B BeatMap confidence `0.0633` must remain visible to the reviewer; do not silently compensate for it by changing scores during this bounded repair.
 
 ## Hard boundaries
 
-- no destructive modification of user source Assets;
-- no arbitrary downloaded music or fabricated rights;
-- no synthetic music as Product Probe evidence;
-- no second audio/timestamp authority;
-- no new audio proxy unless benchmark evidence justifies it;
-- no new R0.10 micro-phase merely to avoid the input gate;
-- no R0.11 work before R0.10 closes.
+- no scoring redesign or new heavyweight audio model;
+- no new music/downloading/rights claims;
+- no synthetic Product Probe evidence;
+- no R0.11 work;
+- no proxy/cache implementation in this work order; large-media caching remains a later architecture/productization concern.
 
-## Codex entry after input is ready
+## Codex entry
 
-Read only:
-
-1. `docs/operations/CODEX_EXECUTION_ENTRY.md`
-2. `docs/roadmap/CURRENT_PHASE_STATUS.md`
-3. this work order
-4. `docs/capabilities/CAP-06_MUSIC_AUDIO_EDITORIAL.md`
-5. the Product Probe implementation/tests actually needed
-
-Then execute the complete remaining R0.10 Product Probe boundary and stop at its stated gate.
+1. Sync clean `main` to current `origin/main`.
+2. Read `docs/operations/CODEX_EXECUTION_ENTRY.md`.
+3. Read `docs/roadmap/CURRENT_PHASE_STATUS.md` and this work order.
+4. Inspect only music selection service/port, R0.10 tests and the Product Probe harness.
+5. Execute the complete bounded repair and rerun the existing Product Probe if local inputs remain available.
+6. Commit/push one coherent green batch and report starting/ending HEAD, changed files, gates, Product Probe result and final classification.
