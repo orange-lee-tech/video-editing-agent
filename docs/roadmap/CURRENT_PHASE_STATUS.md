@@ -2,7 +2,7 @@
 
 **Roadmap V2:** ACTIVE  
 **Current phase:** R0.11 — Spatial Composition / Auto Reframe  
-**Engineering state:** ACTIVE — deterministic track path accepted; analyzed-range hardening + motion-stability baseline next  
+**Engineering state:** WAITING_HUMAN — deterministic motion-stability baseline accepted; real Product Probe media required  
 **Updated:** 2026-08-14
 
 ## Closed
@@ -15,75 +15,56 @@
 
 ## Accepted R0.11 baselines
 
-`ef0baa455c27c0ccb42ae74c4d24ede76e543a74` — `feat: add deterministic spatial composition foundation`
+- `ef0baa455c27c0ccb42ae74c4d24ede76e543a74` — deterministic static spatial composition foundation.
+- `3ea89a51354fd3df62eed82e7959201969ec8b57` — deterministic source-time track paths.
+- `ad4f47e5f659e108d34593675bc08177a2c2aff4` — deterministic motion-stability baseline.
 
-`3ea89a51354fd3df62eed82e7959201969ec8b57` — `feat: add deterministic spatial track paths`
+## Verified evidence at `ad4f47e5`
 
-Verified evidence at `3ea89a5`:
+Remote review confirms:
 
-- manual-lock timing uses the canonical half-open selection range `[start, end)`;
-- non-empty protected regions fail closed rather than being silently ignored;
-- unsupported framing styles fail closed; `hold` and `track` are explicit supported paths;
-- existing R0.8 `SeededTrackingProposal` / `TrackingSample` are reused rather than replaced;
-- `SpatialEvidenceTrack` / `SpatialFocusObservation` preserve selection, Shot, source geometry, provider revision and evidence provenance;
-- relative tracking time maps to canonical source time as `analyzed_source_range.start + relative_time`;
-- tracker observations remain evidence; executable crop coordinates are regenerated and validated by `SpatialComposer`;
-- dynamic `track` mode produces multiple source-time crop keyframes inside one resolved Shot;
-- lost/occluded observations carry no fabricated geometry and use explicit `hold-last-legal-crop-v1` mechanism behavior;
-- manual locks override auto solve at the locked source time;
-- hard Shot cuts reset path state;
-- legacy `ReframeDecision.keyframes` are derived from the canonical `SpatialTransformPlan` and are validated against it;
-- Engineering Probe reported `17/17 PASS`;
-- focused tests reported `33 passed`;
-- full pytest reported `471 passed`;
+- `SpatialEvidenceTrack` now enforces its own half-open analyzed range `[start, end)`;
+- `tracking_proposal_to_spatial_track()` rejects exact analyzed-end and before-start observations;
+- canonical source time remains `analyzed_source_range.start + relative_time`;
+- `SpatialPathPolicy(version=r0.11-stability-candidate-v1)` is explicit and participates in decision identity;
+- current uncalibrated mechanism candidates are 12 px center dead zone, 800 px/s per-axis center velocity limit, 1 s maximum lost hold and redundant-keyframe suppression;
+- velocity limiting fails closed rather than silently cropping out mandatory focus;
+- over-limit tracking loss fails closed;
+- manual locks remain exact hard constraints;
+- stabilization stays Shot-local;
+- `SpatialPathQc` exposes focus containment, geometry legality, movement/velocity, direction changes, held loss and keyframe suppression;
+- `SpatialTransformPlan` remains execution truth and the legacy decision view derives from it;
+- Engineering Probe reported `26/26 PASS`;
+- focused/full validation reported `475` pytest tests plus Ruff, mypy, import contracts, build and diff checks green;
 - remote `ci/quality-gate-diagnostic` is green;
-- no new detector/model dependency was introduced.
+- no detector/model/provider dependency was added.
 
-## Bounded review finding
+The current numeric path-policy defaults remain mechanism candidates only. They are not yet product-calibrated natural-camera values.
 
-One half-open-range leak remains in the tracking-conversion boundary.
+## Real Product Probe gate
 
-`MediaTimeRange` is explicitly `[start, end)`, but `tracking_proposal_to_spatial_track()` currently rejects an observation only when `source_time > analyzed_source_range.end`. An observation exactly at `analyzed_source_range.end` can therefore survive conversion. If the analyzed range is a strict subrange of the resolved selection, that endpoint can still enter the executable track path even though it lies outside the track's authoritative analyzed interval.
+The existing private corpus was audited. It contains camera motion and hand/object interaction, but it does not provide verified coverage of a moving subject plus meaningful tracking occlusion. Synthetic fixtures are therefore not accepted as Product Probe evidence.
 
-The next batch must:
-
-- change analyzed-range observation legality to `[analyzed_start, analyzed_end)`;
-- make `SpatialEvidenceTrack` validate its own observation times so direct construction cannot bypass the invariant;
-- add exact-analyzed-end and direct-construction regressions.
-
-This is a bounded R0.11 contract repair, not a new phase.
-
-## Next R0.11 boundary
-
-After that repair, add the first deterministic motion-stability policy needed before a real Auto Reframe Product Probe:
+R0.11 now waits for rights-attested local footage suitable for a real comparison:
 
 ```text
-grounded time-varying focus evidence
-→ legal per-sample crops
-→ explicit/versioned dead-zone / hysteresis / motion-limit / loss-gap policy
-→ deterministic stabilized SpatialTransformPlan
-→ spatial QC metrics
-→ real Product Probe harness/readiness
+same source range / same target canvas
+→ center/static crop
+vs
+raw/simple tracking path
+vs
+stabilized SpatialComposer path
+→ rendered previews + spatial QC
+→ Human Gate
 ```
 
-Required invariants:
+The Product Probe executor must consume canonical `SpatialTransformPlan` decisions. FFmpeg/Renderer may execute those plans but may not recreate crop authority.
 
-- canonical source time remains authoritative;
-- no executable keyframe may equal or exceed its authoritative half-open analyzed/selection end;
-- provider/tracker rectangles never become executable crop coordinates directly;
-- all crop/path state remains Shot-local;
-- manual locks remain hard constraints;
-- tracking loss never fabricates observations;
-- stabilization parameters are explicit/versioned mechanism candidates, not claimed as product-calibrated truth before benchmark evidence;
-- path QC must expose jitter/motion/coverage/fallback behavior rather than hiding it;
-- no generative outpainting/uncrop;
-- no R0.12 proxy/cache implementation.
-
-R0.11 Product Probe is not yet accepted. A real moving/occlusion corpus and human comparison against center crop/simple tracking remain required.
+No further speculative spatial algorithm work should begin while waiting for suitable media. The real-media probe harness should be completed against the actual supplied files, not against another synthetic placeholder corpus.
 
 ## Future audio-provider backlog
 
-The user's future requirement for automatic rights-aware music discovery/acquisition is preserved separately in:
+The future requirement for automatic rights-aware music discovery/acquisition remains recorded in:
 
 `docs/research/AUDIO_PROVIDER_CANDIDATES_2026-08-14.md`
 
