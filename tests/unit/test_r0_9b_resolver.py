@@ -78,3 +78,35 @@ def test_explicit_slot_can_resolve_to_multiple_grounded_selections() -> None:
     )
     assert len(decision.selections) == 2
     assert tuple(x.order for x in decision.selections) == (0, 1)
+
+def test_planning_context_does_not_change_resolution_authority() -> None:
+    slot = _slot("one", 0)
+    envelope = EntityEnvelope(
+        "plan",
+        1,
+        "0.2",
+        EntityStatus.VALID,
+        datetime.now(UTC),
+        "test",
+    )
+    brief_ref = EntityRevisionRef("brief", 1)
+    editing_only = EditPlan(
+        envelope,
+        None,
+        None,
+        (slot,),
+        brief_ref=brief_ref,
+    )
+    combined = EditPlan(
+        envelope,
+        EntityRevisionRef("script", 1),
+        EntityRevisionRef("shoot", 1),
+        (slot,),
+        brief_ref=brief_ref,
+    )
+    candidates = {"one": (_candidate("winner", "a", 0, 0.9, 0.9),)}
+    plan_ref = EntityRevisionRef("plan", 1)
+
+    assert optimize_sequence(editing_only, candidates, plan_ref=plan_ref) == optimize_sequence(
+        combined, candidates, plan_ref=plan_ref
+    )

@@ -42,11 +42,20 @@ class EditSlot:
 @dataclass(frozen=True, slots=True)
 class EditPlan:
     envelope: EntityEnvelope
-    script_plan_ref: EntityRevisionRef
-    shooting_plan_ref: EntityRevisionRef
+    script_plan_ref: EntityRevisionRef | None
+    shooting_plan_ref: EntityRevisionRef | None
     slots: tuple[EditSlot, ...]
+    brief_ref: EntityRevisionRef | None = None
 
     def __post_init__(self) -> None:
+        if self.shooting_plan_ref is not None and self.script_plan_ref is None:
+            raise ValueError("EditPlan cannot reference ShootingPlan without ScriptPlan")
+        if self.brief_ref is None and (
+            self.script_plan_ref is None or self.shooting_plan_ref is None
+        ):
+            raise ValueError(
+                "EditPlan requires Brief provenance or complete legacy Planning provenance"
+            )
         if not self.slots or len({x.slot_id for x in self.slots}) != len(self.slots):
             raise ValueError("EditPlan requires unique slots")
         if tuple(x.order for x in self.slots) != tuple(sorted(x.order for x in self.slots)):

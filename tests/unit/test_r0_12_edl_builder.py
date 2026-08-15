@@ -303,3 +303,39 @@ def test_builder_refuses_unmappable_spatial_and_audio_decisions() -> None:
         EDLBuildDiagnosticCode.AUDIO_MAPPING_UNSUPPORTED,
         EDLBuildDiagnosticCode.SPATIAL_DECISION_INVALID,
     }
+
+def test_builder_timeline_is_independent_of_planning_provenance() -> None:
+    legacy_plan, decisions, shots = _fixture()
+    brief_ref = EntityRevisionRef("brief", 1)
+    editing_only_plan = replace(
+        legacy_plan,
+        script_plan_ref=None,
+        shooting_plan_ref=None,
+        brief_ref=brief_ref,
+    )
+    combined_plan = replace(
+        legacy_plan,
+        brief_ref=brief_ref,
+    )
+    builder = DeterministicEDLBuilder()
+
+    editing_only = builder.build(
+        EDLBuildRequest(
+            _envelope("edl-provenance"),
+            editing_only_plan,
+            decisions,
+            shots,
+        )
+    )
+    combined = builder.build(
+        EDLBuildRequest(
+            _envelope("edl-provenance"),
+            combined_plan,
+            decisions,
+            shots,
+        )
+    )
+
+    assert editing_only.is_built and editing_only.edl is not None
+    assert combined.is_built and combined.edl is not None
+    assert encode_edl(editing_only.edl) == encode_edl(combined.edl)
