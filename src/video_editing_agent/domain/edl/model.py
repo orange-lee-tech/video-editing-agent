@@ -1,9 +1,73 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTimeRange
+
+
+class EDLTrackFamily(StrEnum):
+    VIDEO = "video"
+    SOURCE_AUDIO = "source_audio"
+    BGM = "bgm"
+    VOICEOVER = "voiceover"
+    SFX = "sfx"
+    SUBTITLE = "subtitle"
+    GRAPHICS = "graphics"
+
+
+_TRACK_FAMILY_ORDER = {
+    EDLTrackFamily.VIDEO: 0,
+    EDLTrackFamily.SOURCE_AUDIO: 1,
+    EDLTrackFamily.BGM: 2,
+    EDLTrackFamily.VOICEOVER: 3,
+    EDLTrackFamily.SFX: 4,
+    EDLTrackFamily.SUBTITLE: 5,
+    EDLTrackFamily.GRAPHICS: 6,
+}
+
+
+@dataclass(frozen=True, slots=True)
+class EDLTrack:
+    """A typed composition lane; lower family/layer values compose first."""
+
+    track_id: str
+    family: EDLTrackFamily
+    layer: int = 0
+
+    def __post_init__(self) -> None:
+        if not self.track_id.strip():
+            raise ValueError("track_id must not be empty")
+        if not isinstance(self.family, EDLTrackFamily):
+            raise TypeError("family must be an EDLTrackFamily")
+        if self.layer < 0:
+            raise ValueError("track layer must be >= 0")
+
+    @property
+    def composition_key(self) -> tuple[int, int, str]:
+        return (_TRACK_FAMILY_ORDER[self.family], self.layer, self.track_id)
+
+
+def legacy_track(track_id: str) -> EDLTrack | None:
+    """Map the v0.1 built-in track identifiers without guessing custom semantics."""
+
+    normalized = track_id.casefold()
+    aliases = {
+        "video": EDLTrackFamily.VIDEO,
+        "source_audio": EDLTrackFamily.SOURCE_AUDIO,
+        "bgm": EDLTrackFamily.BGM,
+        "voiceover": EDLTrackFamily.VOICEOVER,
+        "sfx": EDLTrackFamily.SFX,
+        "subtitle": EDLTrackFamily.SUBTITLE,
+        "title": EDLTrackFamily.GRAPHICS,
+        "overlay": EDLTrackFamily.GRAPHICS,
+        "graphics": EDLTrackFamily.GRAPHICS,
+    }
+    family = aliases.get(normalized)
+    if family is None:
+        return None
+    return EDLTrack(track_id=track_id, family=family)
 
 
 def _resolve_range(
@@ -101,8 +165,32 @@ class EDL:
     envelope: EntityEnvelope
     edit_plan_ref: EntityRevisionRef
     segments: tuple[EDLSegment, ...]
+    tracks: tuple[EDLTrack, ...] = ()
 
-    def __post_init__(self) -> None:
-        segment_ids = tuple(segment.segment_id for segment in self.segments)
-        if len(segment_ids) != len(set(segment_ids)):
-            raise ValueError("EDL segment_id values must be unique")
+    @property
+    def effective_tracks(self) -> tuple[EDLTrack, ...]:
+        """Return explicit v0.2 tracks or the safe built-in v0.1 migration view."""
+
+        if self.tracks:
+            return tuple(sorted(self.tracks, key=lambda track: track.composition_key))
+        migrated = {
+            track.track_id: track
+            for segment in self.segments
+            if (track := legacy_track(segment.track_id)) is not None
+        }
+        return tuple(sorted(migrated.values(), key=lambda track: track.composition_key))
+
+    @property
+    def ordered_segments(self) -> tuple[EDLSegment, ...]:
+        track_order = {track.track_id: index for index, track in enumerate(self.effective_tracks)}
+        return tuple(
+            sorted(
+                self.segments,
+                key=lambda segment: (
+                    track_order.get(segment.track_id, len(track_order)),
+                    segment.timeline_range.start.as_fraction(),
+                    segment.timeline_range.end.as_fraction(),
+                    segment.segment_id,
+                ),
+            )
+        )
