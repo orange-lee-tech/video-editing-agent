@@ -4,11 +4,11 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-15
 current_phase: R0.12
-phase_state: PRODUCT_IMPLEMENTATION_EDL_DRIVEN_RENDERER
-active_work_order: R0.12-RENDERER-001
-accepted_code_baseline: b6c5684a9b07d79f20a10d28886cd087eaeecf10
+phase_state: PRODUCT_IMPLEMENTATION_LIVING_INTEGRATION_SMOKE
+active_work_order: R0.12-SMOKE-001
+accepted_code_baseline: 83fc2999297023f828fa77719cd357fe82eab5de
 control_plane_baseline: 1012f239aa95899e914ba6091c3b825dfc6302fe
-previous_work_order: R0.12-EDLBUILDER-001
+previous_work_order: R0.12-RENDERER-001
 previous_work_order_result: PASS
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
@@ -18,11 +18,11 @@ writer: chatgpt
 
 ## Routing truth
 
-`R0.12-EDLBUILDER-001` is accepted. The application layer now deterministically assembles grounded ResolutionDecision/ResolvedSelection outputs, authoritative Shot/Asset mappings and already-approved spatial/audio execution decisions into canonical EDL v0.2. Missing, ambiguous, unresolved, out-of-range or unsupported mappings fail closed with structured diagnostics.
+`R0.12-RENDERER-001` is accepted after independent GitHub review. The canonical EDL-driven FFmpeg Renderer validates EDL before execution, rejects unsupported/missing/ambiguous execution semantics, uses deterministic argv with `shell=False`, and has produced ffprobe-verified local MP4 artifacts. Remote `ci/quality-gate-diagnostic` for `83fc2999297023f828fa77719cd357fe82eab5de` is green.
 
-The accepted builder baseline is `b6c5684a9b07d79f20a10d28886cd087eaeecf10`; remote `ci/quality-gate-diagnostic` is green. The same bounded commit also fixes Foreman read-reference validation so existing directory paths are accepted without changing L0/trigger disclosure semantics.
+The live Renderer probe genuinely executes `DeterministicEDLBuilder → FFmpegEDLRenderer → MP4 → ffprobe`. Current spatial proof is filter-graph semantic evidence rather than pixel-level final-frame verification; carry that as an integration-smoke enhancement, not a Renderer-foundation blocker.
 
-The current development stage remains **Structural Construction**. Rough finish is acceptable; structural authority, determinism, compatibility, provenance and safe failure are not deferrable.
+Do not continue expanding EDL or Renderer abstractions without a concrete execution blocker. The next structural risk is cross-phase wiring drift.
 
 ## Information economy rule
 
@@ -39,4 +39,4 @@ Do not preload unrelated CAPs, project history or broad repository surfaces.
 
 ## Current gate
 
-Execute `R0.12-RENDERER-001` only: establish the first deterministic canonical-EDL-to-local-MP4 rendering path and prove it with synthetic engineering media. Do not begin Subtitle, Graphics, Preview, Proxy/cache, hardware-routing or packaging work in the same batch.
+Execute `R0.12-SMOKE-001` only: establish a durable low-cost actual-module integration smoke from Resolver output through EDLBuilder and Renderer to ffprobe, and minimally synchronize the already-approved R0.16 integration hard constraints into Roadmap V2. Do not claim this synthetic/local Engineering Probe is the final R0.16 one-click Product Probe, and do not begin Subtitle/Graphics/Preview/Proxy work in the same batch.

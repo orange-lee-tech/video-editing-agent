@@ -41,10 +41,45 @@ A paid Product Probe requires a question that deterministic/local evidence canno
 - Human Gate accepted visual selections and cut points; Resolver-vs-hybrid subjective preference was explicitly inconclusive rather than fabricated.
 - Durable conclusion: grounded exact source-selection plans can be produced without LLM timestamp hallucination.
 
-### R0.10A/B Music / Audio Engineering Baselines — ACCEPTED, PHASE OPEN
+### R0.10 Music Selection + BeatMap + Audio Editorial — CLOSED
 
-- R0.10A: `7d4dcc0afb26556f9a161b73ca408946f6f417d7` — local rights-aware audio, BeatMap, grounded music window and audible mix foundation.
-- R0.10B candidate: `d893d4c6fb67f1218416a302c7c6775c22bde088` — signal-derived BeatMap confidence, feature-ranked windows, bounded loop plan and structured duck/fade intent.
-- R0.10B bridge repair: `81afb604b96486587a308f6f4c69d89f1450f46e` — canonical MusicSelectionDecision/AudioMixDecision compiled to diagnostic FFmpeg execution; QC measured post-mix decoded PCM.
-- Repaired R0.10B gates: 15/15 PASS; Quality Gate: 454 tests; CI success.
-- Durable conclusion: the local engineering path is rights-aware, inspectable and audibly executable, but R0.10 has **not** passed its real-music Product Probe/Human Gate and is not closed.
+- Final implementation baseline before governance closure: `4782889f3746cf1024abfa0c45f3402cfec834a3`.
+- Evidence: `docs/validation/R0.10_FINAL_CLOSURE.md`.
+- Real-music Product Probe gates: 9/9 PASS; Human Gate chose Track B, selected moment and structured mix with no blocking audible defect.
+- Canonical execution distinguishes source-audio MUTE/PRESERVE and keeps uncertain semantics fail-closed.
+- Durable conclusion: a rights-aware, auditable music-selection/mix path is real and executable; broader BeatMap quality and provider acquisition remain downstream work.
+
+### R0.11 Spatial Composition / Auto Reframe — CLOSED
+
+- Accepted implementation baseline: `d06592560dbeb764666592effa00f7d5537715ef` — interpolation-aware spatial QC.
+- Result: `PASS_WITH_MINOR_DEFECT`.
+- Movement baseline accepted as natural/stable; occlusion recovery retains a visible micro-jump as a known non-blocking limitation.
+- Durable conclusion: spatial ownership and executable transform plans are structurally accepted; do not endlessly retune this during Stage A unless broader real-corpus evidence shows a systematic failure.
+
+### R0.12 EDL v0.2 foundation — ACCEPTED ENGINEERING BASELINE
+
+- `ff343833deb9296c1df0b6fc944735388d5c8296` — typed tracks, deterministic composition and structured validation.
+- Engineering Probe: 5 named gates PASS.
+- Durable conclusion: EDL owns deterministic typed track/timeline structure.
+
+### R0.12 EDL automation / serialization — ACCEPTED ENGINEERING BASELINE
+
+- `4b2522ae1a6838517baf4c5bcf36d30026f86912` — exact rational spatial/audio automation and deterministic v0.2 codec.
+- Reported Engineering Probe: 5/5 PASS; focused tests 21 PASS; full gate 505 tests.
+- Durable conclusion: executable automation and persisted EDL round-trip no longer depend on binary-float timeline authority.
+
+### R0.12 deterministic EDLBuilder — ACCEPTED ENGINEERING BASELINE
+
+- `b6c5684a9b07d79f20a10d28886cd087eaeecf10` — grounded decisions → authoritative Shot/Asset mapping → exact EDL assembly.
+- Reported Engineering Probe: 6/6 PASS; focused verification 26 tests; full gate 513 tests.
+- Durable conclusion: already-approved Resolver/Spatial/Audio decisions can converge into one canonical executable EDL without Renderer guesswork.
+
+### R0.12 EDL-driven FFmpeg Renderer — ACCEPTED ENGINEERING BASELINE
+
+- `83fc2999297023f828fa77719cd357fe82eab5de` — `feat: add deterministic EDL-driven renderer`.
+- Remote `ci/quality-gate-diagnostic`: success.
+- Live Engineering Probe: 8/8 PASS; it invokes `DeterministicEDLBuilder` → `FFmpegEDLRenderer` → real MP4 → ffprobe rather than bypassing the Renderer.
+- Verified output characteristics: 2.000 s, 180×320, 30 FPS; PRESERVE output has audio while MUTE output has no audio.
+- Focused tests: 22 PASS; reported full Quality Gate: 522 tests plus Ruff/mypy/import contracts/build/diff check.
+- Current spatial evidence checks the emitted LINEAR crop/filter semantics rather than pixel-level final-frame motion. Add final-image spatial evidence to the living integration smoke later; this is not a Stage-A Renderer-foundation blocker.
+- Durable conclusion: canonical EDL is now physically executable into a locally verifiable MP4 while missing/unsupported semantics remain fail-closed.

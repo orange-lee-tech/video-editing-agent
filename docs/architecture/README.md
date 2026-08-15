@@ -18,23 +18,38 @@ The `CANDIDATE` wording inside the original v0.2 draft header records its pre-ac
 
 ## Retired architecture contracts
 
-The v0.1.x series is preserved centrally under:
-
-`docs/archive/architecture/`
-
-Those files are provenance only. Where a v0.1.x rule conflicts with Product Constitution v1.0 or accepted v0.2, it is historical and must not be implemented.
+The v0.1.x series is preserved centrally under `docs/archive/architecture/` as provenance only.
 
 ## Current construction state
 
-R0.10 is **HANDOFF_READY** after accepted R0.10A/R0.10B engineering baselines. It is not closed; the next planned boundary is the real-music Product Probe / Human Gate.
+The project is in **Stage A — Structural Construction**, currently R0.12.
+
+Accepted R0.12 execution chain:
+
+```text
+EditPlan / grounded ResolutionDecision
++ authoritative Shot/Asset mappings
++ approved Spatial/Audio decisions
+→ EDLBuilder
+→ canonical EDL v0.2
+→ EDL-driven Renderer
+→ local MP4 artifact
+```
+
+Accepted Renderer baseline:
+
+`83fc2999297023f828fa77719cd357fe82eab5de` — `feat: add deterministic EDL-driven renderer`.
+
+The Renderer may compile backend syntax, but it may not consult Resolver, SpatialComposer or AudioEditorial as alternate execution authority. Missing or unsupported execution semantics fail closed rather than being repaired at render time.
 
 See:
 
 - `docs/roadmap/CURRENT_PHASE_STATUS.md`
 - `docs/operations/CURRENT_WORK_ORDER.md`
+- `docs/capabilities/CAP-08_EDL_RENDER_PREVIEW_SUBTITLE.md`
 
 Core authority chain:
 
-`Brief → ScriptPlan → ShootingPlan → user visual Assets/Shots → evidence → Music/BeatMap → EditPlan → ResolutionDecision → spatial/audio decisions → EDL → Render → Review`
+`Brief → ScriptPlan → ShootingPlan → user visual Assets/Shots → evidence → Music/BeatMap → EditPlan → ResolutionDecision → spatial/audio decisions → EDLBuilder → EDL → Renderer → Review`
 
 External models/providers/upstreams contribute capability implementations only. They never override Domain ownership or Product Constitution policy.

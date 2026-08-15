@@ -28,7 +28,7 @@ This is **not** a generic text-to-video or autonomous stock-footage generator. M
 
 ## Current repository state
 
-The repository is **HANDOFF_READY** as of 2026-08-14 and is intended to continue construction in the next ChatGPT conversation.
+The project is in **Stage A — Structural Construction**. Stage-A progress measures end-to-end structural closure, not commercial polish; Stage B begins after structural construction reaches 100%.
 
 Completed/accepted milestones:
 
@@ -37,17 +37,20 @@ Completed/accepted milestones:
 - R0.7B — Brief → ScriptPlan → ShootingPlan + commercial-authority baseline;
 - R0.8 — real-footage speech, motion, temporal evidence, tracking and dense retrieval foundation;
 - R0.9 — grounded Director → retrieval → CandidateWindow → Resolver/optimizer source-selection plan;
-- R0.10A — local rights-aware music/BeatMap/audible-mix foundation;
-- R0.10B — feature-ranked music windows, structured audio mix intent, decision→execution bridge and post-mix QC.
+- R0.10 — Music Selection + BeatMap + Audio Editorial, closed after real-music Product Probe/Human Gate;
+- R0.11 — Spatial Composition / Auto Reframe, closed `PASS_WITH_MINOR_DEFECT`;
+- R0.12 accepted foundations — typed/exact EDL v0.2, deterministic EDLBuilder, and canonical-EDL-driven FFmpeg Renderer.
 
-R0.10 is **not closed**. The next planned boundary is its real-music Product Probe → Human Gate → closure. R0.11+ has not started.
+Accepted R0.12 Renderer baseline:
+
+`83fc2999297023f828fa77719cd357fe82eab5de` — `feat: add deterministic EDL-driven renderer`.
+
+That baseline provides the first verified path from canonical EDL to an actual local MP4. R0.12 remains open for integration smoke, Subtitle/Graphics, Preview, Proxy/cache and later bounded renderer/productization work.
 
 Live state is always recorded in:
 
 - [`docs/roadmap/CURRENT_PHASE_STATUS.md`](docs/roadmap/CURRENT_PHASE_STATUS.md)
 - [`docs/operations/CURRENT_WORK_ORDER.md`](docs/operations/CURRENT_WORK_ORDER.md)
-
-New ChatGPT conversations should also read [`docs/operations/CHATGPT_GITHUB_CODEX_COLLABORATION.md`](docs/operations/CHATGPT_GITHUB_CODEX_COLLABORATION.md).
 
 ## Authority and navigation
 
@@ -56,13 +59,13 @@ Start with [`docs/README.md`](docs/README.md).
 Normative order:
 
 1. [`docs/product/PRODUCT_CONSTITUTION_V1.0.md`](docs/product/PRODUCT_CONSTITUTION_V1.0.md) — highest product authority;
-2. [`docs/architecture/ARCHITECTURE_CONTRACT_V0.2.md`](docs/architecture/ARCHITECTURE_CONTRACT_V0.2.md) — active architecture baseline, accepted by A0;
+2. [`docs/architecture/ARCHITECTURE_CONTRACT_V0.2.md`](docs/architecture/ARCHITECTURE_CONTRACT_V0.2.md) — active architecture baseline;
 3. [`docs/capabilities/`](docs/capabilities/) — active capability specifications;
 4. [`docs/adr/`](docs/adr/) — active architecture decisions;
 5. [`docs/roadmap/ROADMAP_V2.md`](docs/roadmap/ROADMAP_V2.md) — active construction map;
 6. implementation/tests/provider behavior.
 
-The explicit planning-baseline acceptance record is [`docs/roadmap/A0_PLANNING_BASELINE_ACCEPTANCE.md`](docs/roadmap/A0_PLANNING_BASELINE_ACCEPTANCE.md).
+The development-stage meaning is defined by [`docs/roadmap/DEVELOPMENT_STAGE_MODEL.md`](docs/roadmap/DEVELOPMENT_STAGE_MODEL.md).
 
 Retired documents are centralized under [`docs/archive/`](docs/archive/). They are provenance only and never override the active authority chain.
 
@@ -75,7 +78,7 @@ Retired documents are centralized under [`docs/archive/`](docs/archive/). They a
 - Resolver cannot invent source timestamps outside grounded evidence.
 - BeatMap describes music; it does not own video cuts.
 - EDL is the sole executable timeline authority.
-- Renderer/execution code performs decisions; it does not create hidden editorial decisions.
+- Renderer executes validated EDL; it does not create, repair or reposition editorial decisions.
 - Engineering Probe and Product Probe evidence are different: synthetic fixtures may prove machinery, not real editing usefulness.
 - Rights/provenance remain explicit; unknown rights are never silently promoted to verified rights.
 
@@ -114,7 +117,7 @@ uv build
 git diff --check
 ```
 
-At a new conversation, reobserve `origin/main` before activating the handoff-ready work order. Do not reconstruct active work from chat memory alone.
+At a new conversation, reobserve `origin/main` and use the active foreman/work-order path; do not reconstruct current work from chat memory alone.
 
 ## Upstream strategy
 

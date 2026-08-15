@@ -3,7 +3,7 @@
 **Roadmap V2:** ACTIVE  
 **Development stage:** STRUCTURAL CONSTRUCTION  
 **Current phase:** R0.12 — EDL / Renderer / Subtitle / Preview / Proxy Productization  
-**Engineering state:** ACTIVE — `R0.12-RENDERER-001`  
+**Engineering state:** ACTIVE — `R0.12-SMOKE-001`  
 **Updated:** 2026-08-15
 
 ## Progress meaning
@@ -27,31 +27,35 @@ Reaching 100% will begin a separate product-refinement stage; it will not mean c
 
 `1012f239aa95899e914ba6091c3b825dfc6302fe` — trigger-first foreman v2. Further control-plane refinement is demand-driven only.
 
-## R0.12 EDL foundations accepted
+## Accepted R0.12 structural baselines
 
-- `ff343833deb9296c1df0b6fc944735388d5c8296` — typed tracks, deterministic composition and structured validation.
+- `ff343833deb9296c1df0b6fc944735388d5c8296` — typed EDL tracks, deterministic composition and structured validation.
 - `4b2522ae1a6838517baf4c5bcf36d30026f86912` — exact rational spatial/audio automation plus deterministic EDL v0.2 codec/round-trip.
+- `b6c5684a9b07d79f20a10d28886cd087eaeecf10` — deterministic grounded decision-to-EDL assembly.
+- `83fc2999297023f828fa77719cd357fe82eab5de` — deterministic EDL-driven FFmpeg Renderer.
 
-## R0.12 EDLBuilder accepted
-
-Accepted code baseline:
-
-`b6c5684a9b07d79f20a10d28886cd087eaeecf10` — `feat: add deterministic EDL builder`.
-
-Verified from GitHub:
+Renderer verification from GitHub/source audit:
 
 - remote `ci/quality-gate-diagnostic` success;
-- deterministic grounded selection → Shot/Asset → exact timeline assembly;
-- approved spatial plan and music/audio decisions translate without new creative policy;
-- missing/conflicting/unresolved/out-of-range/unsupported mappings fail closed with structured diagnostics;
-- MUTE and PRESERVE produce observably different canonical track structures;
-- Foreman read-reference fix is limited to accepting existing directory paths rather than only files;
-- reported Engineering Probe `6/6 PASS`, focused verification `26 tests`, full Quality Gate `513 tests` plus Ruff/mypy/import contracts/build/diff check.
+- EDL is sole timeline/spatial/audio execution authority;
+- missing media, ambiguous Asset mappings, timeline gaps and unsupported semantics fail closed;
+- deterministic argv, `shell=False`;
+- live probe executes EDLBuilder → Renderer → actual MP4 → ffprobe;
+- observed output: 2.000 s, 180×320, 30 FPS; PRESERVE contains audio, MUTE does not;
+- reported focused tests 22 PASS and full gate 522 tests plus Ruff/mypy/import contracts/build/diff check.
+
+Current known integration evidence gap: spatial live-probe proof checks the generated LINEAR crop/filter semantics rather than final-frame pixel motion. This is carried into the living smoke path, not treated as a reason to reopen the Renderer foundation.
 
 ## Active R0.12 frontier
 
-`R0.12-RENDERER-001` establishes the first canonical EDL-driven FFmpeg render path.
+`R0.12-SMOKE-001` establishes a durable bounded integration regression path using actual Resolver/optimizer output → EDLBuilder → EDL-driven Renderer → ffprobe.
 
-The structural target is deliberately concrete: a validated canonical EDL must produce an actual locally verifiable MP4 while unsupported execution semantics fail closed. Renderer may reuse deterministic R0.11 FFmpeg compilation ideas, but it may no longer treat `SpatialTransformPlan` or any upstream decision object as alternate timeline authority.
+This smoke must use real module outputs at each linked boundary rather than hand-authoring downstream truth, but it remains controlled Engineering Probe evidence. It must not be mislabeled as the later R0.16 real one-click Product Probe.
 
-Subtitle, Graphics, Preview, Proxy/cache, hardware routing and packaging remain outside this batch.
+After the smoke path is green, continue R0.12 Subtitle/Graphics/Preview/Proxy productization without expanding EDL/Renderer internals unless a concrete blocker appears.
+
+## Downstream structural constraints
+
+The R0.16 one-click chain must eventually use actual VisualUnderstanding evidence in Retrieval/Resolver; a visual-only automatic-BGM promise requires a concrete rights-aware provider path; Stage A needs a bounded minimum editing-expression/effects floor without a monolithic Effects Engine; and the final Reference/B爆款 → Script Product Probe must show downstream speech/temporal/music/subtitle/transition evidence feeding back into Script/ShootingPlan planning.
+
+These are integration requirements, not Stage-B polish.
