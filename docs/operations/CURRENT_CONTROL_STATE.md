@@ -4,11 +4,11 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-15
 current_phase: R0.12
-phase_state: PRODUCT_IMPLEMENTATION_EDL_BUILDER
-active_work_order: R0.12-EDLBUILDER-001
-accepted_code_baseline: 4b2522ae1a6838517baf4c5bcf36d30026f86912
+phase_state: PRODUCT_IMPLEMENTATION_EDL_DRIVEN_RENDERER
+active_work_order: R0.12-RENDERER-001
+accepted_code_baseline: b6c5684a9b07d79f20a10d28886cd087eaeecf10
 control_plane_baseline: 1012f239aa95899e914ba6091c3b825dfc6302fe
-previous_work_order: R0.12-EDL-002
+previous_work_order: R0.12-EDLBUILDER-001
 previous_work_order_result: PASS
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
@@ -18,9 +18,11 @@ writer: chatgpt
 
 ## Routing truth
 
-`R0.12-EDL-002` is accepted. The canonical EDL now has exact rational spatial/audio automation, deterministic v0.2 codec/round-trip, schema-version fail-closed behavior and expanded automation validation. Remote `ci/quality-gate-diagnostic` for `4b2522ae1a6838517baf4c5bcf36d30026f86912` is green.
+`R0.12-EDLBUILDER-001` is accepted. The application layer now deterministically assembles grounded ResolutionDecision/ResolvedSelection outputs, authoritative Shot/Asset mappings and already-approved spatial/audio execution decisions into canonical EDL v0.2. Missing, ambiguous, unresolved, out-of-range or unsupported mappings fail closed with structured diagnostics.
 
-The current development stage is **Structural Construction** as defined by `docs/roadmap/DEVELOPMENT_STAGE_MODEL.md`. Construction progress reaching 100% will mean the end-to-end product structure is closed and ready for refinement; it will not mean commercial polish is complete.
+The accepted builder baseline is `b6c5684a9b07d79f20a10d28886cd087eaeecf10`; remote `ci/quality-gate-diagnostic` is green. The same bounded commit also fixes Foreman read-reference validation so existing directory paths are accepted without changing L0/trigger disclosure semantics.
+
+The current development stage remains **Structural Construction**. Rough finish is acceptable; structural authority, determinism, compatibility, provenance and safe failure are not deferrable.
 
 ## Information economy rule
 
@@ -37,4 +39,4 @@ Do not preload unrelated CAPs, project history or broad repository surfaces.
 
 ## Current gate
 
-Execute `R0.12-EDLBUILDER-001` only: deterministically assemble already-approved decisions into canonical EDL v0.2. Do not begin Renderer, Subtitle, Preview, Proxy/cache or UI implementation in the same batch.
+Execute `R0.12-RENDERER-001` only: establish the first deterministic canonical-EDL-to-local-MP4 rendering path and prove it with synthetic engineering media. Do not begin Subtitle, Graphics, Preview, Proxy/cache, hardware-routing or packaging work in the same batch.
