@@ -24,7 +24,7 @@ def _git(root: Path, *args: str) -> str:
     ).stdout.strip()
 
 
-def _control(*, phase: str = "R0.12", work_order: str = "CONTROL-PLANE-001") -> str:
+def _control(*, phase: str = "R0.12", work_order: str = "CONTROL-PLANE-002") -> str:
     return f"""# Current Control State
 
 ---
@@ -39,7 +39,7 @@ writer: codex
 """
 
 
-def _work(*, phase: str = "R0.12", identity: str = "CONTROL-PLANE-001") -> str:
+def _work(*, phase: str = "R0.12", identity: str = "CONTROL-PLANE-002") -> str:
     return f"""# Current Work Order
 
 **ID:** `{identity}`
@@ -82,6 +82,7 @@ def _repo(tmp_path: Path, *, control: str | None = None, work: str | None = None
         "docs/operations/CURRENT_CONTROL_STATE.md": control or _control(),
         "docs/operations/CURRENT_WORK_ORDER.md": work or _work(),
         "docs/operations/CODEX_EXECUTION_ENTRY.md": "entry marker that may be referenced only\n",
+        "docs/operations/CODEX_TOOLBOX.md": "TOOLBOX_TARGET_CONTENT_MUST_NOT_BE_PRELOADED\n",
         "docs/task-specific.md": "DURABLE_DOCUMENT_BODY_MUST_NOT_BE_COPIED\n" * 100,
         ".gitignore": "/.private/\n",
     }
@@ -104,13 +105,27 @@ def test_valid_control_state_generates_concise_deterministic_brief(tmp_path: Pat
 
     assert first_errors == second_errors == ()
     assert first == second
-    assert "Active work order: `CONTROL-PLANE-001`" in first
+    assert "Active work order: `CONTROL-PLANE-002`" in first
     assert "Working tree: `clean`" in first
-    assert "`docs/operations/CURRENT_CONTROL_STATE.md`" in first
-    assert "`docs/operations/CURRENT_WORK_ORDER.md`" in first
-    assert "`docs/task-specific.md`" in first
+    assert "## Allowed scope" not in first
+    assert "## Required read set" not in first
+    assert "brief generated" not in first
+    assert "docs/task-specific.md" not in first
     assert "DURABLE_DOCUMENT_BODY_MUST_NOT_BE_COPIED" not in first
-    assert len(first.splitlines()) < 100
+    assert "TOOLBOX_TARGET_CONTENT_MUST_NOT_BE_PRELOADED" not in first
+    assert len(first.splitlines()) < 70
+
+
+def test_selected_trigger_exposes_only_its_route_without_target_content(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    brief, errors = build_foreman_brief(root, "architecture")
+
+    assert errors == ()
+    assert "CODEX_TOOLBOX.md#architecturecontract-ambiguity" in brief
+    assert "#testquality-failure" not in brief
+    assert "#gitrepository-state-issue" not in brief
+    assert "TOOLBOX_TARGET_CONTENT_MUST_NOT_BE_PRELOADED" not in brief
+    assert "rerun foreman with trigger `quality`" not in brief
 
 
 @pytest.mark.parametrize(

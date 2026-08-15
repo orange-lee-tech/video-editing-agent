@@ -41,10 +41,15 @@ The snapshot is orientation only. The receiving ChatGPT must still reobserve Git
 powershell -File scripts/maintain.ps1 foreman
 ```
 
-Validates the current control state/work-order pointers and local Git facts, then writes the
-concise, deterministic `.private/codex_brief.md`. Contradictions are recorded as blockers and
-return a nonzero exit code. The helper only inspects state; it never fetches, edits product source,
-changes control status, commits or pushes.
+Validates control pointers and local Git facts, then writes L0-only `.private/codex_brief.md`.
+Secondary routes are exposed one at a time, for example:
+
+```powershell
+powershell -File scripts/maintain.ps1 foreman -Trigger quality
+```
+
+Routes point into `docs/operations/CODEX_TOOLBOX.md` without copying target content. Contradictions
+remain blockers with a nonzero exit. Foreman never fetches, edits source/state, commits or pushes.
 
 ## Unified PowerShell wrapper
 
