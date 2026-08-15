@@ -32,9 +32,27 @@ Stage A does **not** permit postponing structural defects. The following remain 
 
 Stage-A 100% means:
 
-> the planned construction roadmap is structurally closed end to end and ready for systematic refinement.
+> the planned construction roadmap is structurally closed end to end **and the two core product workflows are genuinely operable through a normal user path**, ready for systematic refinement.
 
-It does **not** mean commercial perfection or final product maturity.
+The two mandatory operability gates are:
+
+1. **Planning core:** a user supplies the intended high-performing/reference/commercial goal and receives a persisted, inspectable `ScriptPlan` plus executable `ShootingPlan` from the real planning pipeline.
+2. **Editing core:** a user selects local footage as the visual source and an output destination, runs the real owned understanding → music → Director/Resolver → spatial/audio → EDL → Renderer path, and receives a real final MP4 with the Stage-A minimum music/text/subtitle/editing-expression floor. Human-entered or hand-authored internal selections must not masquerade as automatic pipeline output.
+
+Stage-A 100% also requires a **minimum ordinary Windows user entry point**. It need not be visually polished, but an ordinary user must be able to:
+
+- create/open a project;
+- select input footage files and/or a footage folder;
+- select or clearly identify the output folder;
+- provide the planning/editing inputs required by the two core workflows;
+- start the workflow and observe meaningful progress or failure state;
+- locate the generated Script/ShootingPlan and final MP4 without editing repository files or manually constructing internal Domain/EDL artifacts.
+
+The engineering CLI may remain available, but CLI-only access does **not** satisfy the Stage-A 100% product-operability gate.
+
+Acceptance must include real Product Probe execution of both core workflows through the user-facing path. Green unit tests, isolated module probes, or a synthetic integration smoke are necessary evidence but cannot substitute for this gate.
+
+Stage-A 100% does **not** mean commercial perfection or final product maturity.
 
 ## Stage B — Product Refinement
 

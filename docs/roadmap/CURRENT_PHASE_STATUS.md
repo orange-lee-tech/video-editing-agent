@@ -12,7 +12,7 @@ Canonical stage model: `docs/roadmap/DEVELOPMENT_STAGE_MODEL.md`.
 
 The current 0–100% project percentage measures **structural construction**: end-to-end capability closure with correct authority, extensibility, deterministic execution, compatibility and safe failure behavior.
 
-Reaching 100% will begin a separate product-refinement stage; it will not mean commercial quality is already perfect.
+Reaching 100% begins a separate product-refinement stage; it does not mean commercial quality is already perfect. It does require the two core product workflows to work through an ordinary user-facing path, including minimum Windows input/output workflow; module completion alone is insufficient.
 
 ## Closed
 
@@ -63,6 +63,17 @@ The default/fallback font and semantic correctness of multilingual glyph shapes 
 Do not start Graphics, transitions, Preview, Proxy/cache or further Renderer expansion while this audit hold is open. No new downstream work order is activated here.
 
 The next Product Owner decision may choose how to sequence the remaining R0.12 surfaces, but subtitle closure should first remove the small execution-authority ambiguity above.
+
+## Stage-A 100% product-operability gate
+
+Structural completion is not granted by closing backend modules alone. Before Stage A can reach 100%:
+
+- the planning core must run from real user intent/reference/commercial goal through the real planning pipeline to user-visible `ScriptPlan` + `ShootingPlan`;
+- the editing core must run from user-selected local footage through actual VisualUnderstanding/evidence, music, Director/Resolver, spatial/audio, canonical EDL and Renderer to a real final MP4 with the bounded Stage-A music/text/subtitle/editing-expression floor;
+- no human-entered coverage text, hand-authored ResolutionDecision/EDL, or other engineering fixture may substitute for an automatic step in the Product Probe it claims to validate;
+- an ordinary Windows user must have a minimum user-facing entry point to create/open a project, choose input footage/files or folder, choose/identify an output folder, start the workflow, see meaningful progress/errors, and locate the generated planning artifacts/final MP4 without editing repository files.
+
+The current Python CLI remains a useful engineering adapter, but it is not by itself the Stage-A product UX. The desktop/frontend toolkit is not yet selected; that decision must preserve the existing Domain/Application/Port boundaries and should be informed by the R0.12 Preview backend and R0.14 Windows packaging constraints rather than chosen for UI fashion.
 
 ## Downstream structural constraints
 
