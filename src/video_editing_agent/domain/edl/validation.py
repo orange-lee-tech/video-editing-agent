@@ -3,7 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from video_editing_agent.domain.edl.model import EDL, EDLSegment
+from video_editing_agent.domain.edl.automation import (
+    EDLAudioAutomationKind,
+    EDLInterpolation,
+    ExactRational,
+)
+from video_editing_agent.domain.edl.model import EDL, EDLSegment, EDLTrackFamily
 
 
 class EDLDiagnosticCode(StrEnum):
@@ -12,6 +17,14 @@ class EDLDiagnosticCode(StrEnum):
     UNKNOWN_TRACK = "unknown_track"
     DURATION_MISMATCH = "duration_mismatch"
     SAME_TRACK_OVERLAP = "same_track_overlap"
+    AUTOMATION_TRACK_INCOMPATIBLE = "automation_track_incompatible"
+    AUTOMATION_KEYFRAME_ORDER = "automation_keyframe_order"
+    AUTOMATION_KEYFRAME_RANGE = "automation_keyframe_range"
+    AUTOMATION_VALUE_INVALID = "automation_value_invalid"
+    AUTOMATION_INTERPOLATION_UNSUPPORTED = "automation_interpolation_unsupported"
+    AUDIO_LOOP_INVALID = "audio_loop_invalid"
+    AUTOMATION_TIME_MAPPING_INVALID = "automation_time_mapping_invalid"
+    AUDIO_KIND_UNSUPPORTED = "audio_kind_unsupported"
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,6 +103,7 @@ def validate_edl(edl: EDL) -> EDLValidationResult:
         seen_tracks.add(track.track_id)
 
     known_tracks = {track.track_id for track in edl.effective_tracks}
+    track_families = {track.track_id: track.family for track in edl.effective_tracks}
     for segment in edl.segments:
         if segment.track_id not in known_tracks:
             diagnostics.append(
@@ -109,7 +123,153 @@ def validate_edl(edl: EDL) -> EDLValidationResult:
                     track_id=segment.track_id,
                 )
             )
+        diagnostics.extend(_automation_findings(segment, track_families.get(segment.track_id)))
 
     diagnostics.extend(_overlap_findings(edl.segments))
     diagnostics.sort(key=lambda item: (item.code.value, item.track_id or "", item.segment_ids))
     return EDLValidationResult(diagnostics=tuple(diagnostics))
+
+
+def _automation_findings(
+    segment: EDLSegment, track_family: EDLTrackFamily | None
+) -> list[EDLDiagnostic]:
+    findings: list[EDLDiagnostic] = []
+
+    def add(code: EDLDiagnosticCode, message: str) -> None:
+        findings.append(
+            EDLDiagnostic(
+                code=code,
+                message=message,
+                segment_ids=(segment.segment_id,),
+                track_id=segment.track_id,
+            )
+        )
+
+    spatial = segment.spatial_automation
+    if spatial is not None:
+        if track_family not in (EDLTrackFamily.VIDEO, EDLTrackFamily.GRAPHICS):
+            add(
+                EDLDiagnosticCode.AUTOMATION_TRACK_INCOMPATIBLE,
+                "spatial automation requires a video or graphics track",
+            )
+        if not isinstance(spatial.interpolation, EDLInterpolation):
+            add(
+                EDLDiagnosticCode.AUTOMATION_INTERPOLATION_UNSUPPORTED,
+                "spatial automation interpolation is unsupported",
+            )
+        timeline_times = tuple(item.timeline_time.as_fraction() for item in spatial.keyframes)
+        source_times = tuple(item.source_time.as_fraction() for item in spatial.keyframes)
+        if not spatial.keyframes or timeline_times != tuple(sorted(set(timeline_times))):
+            add(
+                EDLDiagnosticCode.AUTOMATION_KEYFRAME_ORDER,
+                "spatial keyframes must be non-empty, unique, and timeline ordered",
+            )
+        if source_times != tuple(sorted(set(source_times))):
+            add(
+                EDLDiagnosticCode.AUTOMATION_KEYFRAME_ORDER,
+                "spatial source times must be unique and ordered",
+            )
+        if any(
+            item.timeline_time.as_fraction() < segment.timeline_range.start.as_fraction()
+            or item.timeline_time.as_fraction() >= segment.timeline_range.end.as_fraction()
+            or item.source_time.as_fraction() < segment.source_range.start.as_fraction()
+            or item.source_time.as_fraction() >= segment.source_range.end.as_fraction()
+            for item in spatial.keyframes
+        ):
+            add(
+                EDLDiagnosticCode.AUTOMATION_KEYFRAME_RANGE,
+                "spatial keyframes must stay inside half-open segment mappings",
+            )
+        if any(
+            item.timeline_time.as_fraction() - segment.timeline_range.start.as_fraction()
+            != item.source_time.as_fraction() - segment.source_range.start.as_fraction()
+            for item in spatial.keyframes
+        ):
+            add(
+                EDLDiagnosticCode.AUTOMATION_TIME_MAPPING_INVALID,
+                "spatial source/timeline keyframes must follow the segment mapping",
+            )
+        if any(
+            any(
+                isinstance(value, bool) or not isinstance(value, int)
+                for value in (
+                    item.crop_left,
+                    item.crop_top,
+                    item.crop_width,
+                    item.crop_height,
+                )
+            )
+            or not isinstance(item.scale, ExactRational)
+            or not isinstance(item.position_x, ExactRational)
+            or not isinstance(item.position_y, ExactRational)
+            or item.crop_left < 0
+            or item.crop_top < 0
+            or item.crop_width <= 0
+            or item.crop_height <= 0
+            or item.scale.value <= 0
+            for item in spatial.keyframes
+        ):
+            add(
+                EDLDiagnosticCode.AUTOMATION_VALUE_INVALID,
+                "spatial crop and scale values must be legal",
+            )
+
+    audio_families = {
+        EDLTrackFamily.SOURCE_AUDIO,
+        EDLTrackFamily.BGM,
+        EDLTrackFamily.VOICEOVER,
+        EDLTrackFamily.SFX,
+    }
+    for automation in segment.audio_automations:
+        if track_family not in audio_families:
+            add(
+                EDLDiagnosticCode.AUTOMATION_TRACK_INCOMPATIBLE,
+                "audio automation requires an audio track",
+            )
+        if not isinstance(automation.interpolation, EDLInterpolation):
+            add(
+                EDLDiagnosticCode.AUTOMATION_INTERPOLATION_UNSUPPORTED,
+                "audio automation interpolation is unsupported",
+            )
+        if not isinstance(automation.kind, EDLAudioAutomationKind):
+            add(
+                EDLDiagnosticCode.AUDIO_KIND_UNSUPPORTED,
+                "audio automation kind is unsupported",
+            )
+        times = tuple(item.timeline_time.as_fraction() for item in automation.keyframes)
+        if times != tuple(sorted(set(times))):
+            add(
+                EDLDiagnosticCode.AUTOMATION_KEYFRAME_ORDER,
+                "audio keyframes must be unique and timeline ordered",
+            )
+        if any(
+            item.timeline_time.as_fraction() < segment.timeline_range.start.as_fraction()
+            or item.timeline_time.as_fraction() > segment.timeline_range.end.as_fraction()
+            for item in automation.keyframes
+        ):
+            add(
+                EDLDiagnosticCode.AUTOMATION_KEYFRAME_RANGE,
+                "audio envelope points must stay inside the closed segment envelope",
+            )
+        if automation.kind is EDLAudioAutomationKind.LOOP:
+            loop_range = automation.loop_source_range
+            if (
+                loop_range is None
+                or loop_range.start.as_fraction() < segment.source_range.start.as_fraction()
+                or loop_range.end.as_fraction() > segment.source_range.end.as_fraction()
+            ):
+                add(
+                    EDLDiagnosticCode.AUDIO_LOOP_INVALID,
+                    "loop automation requires a source range inside the segment mapping",
+                )
+        elif automation.loop_source_range is not None:
+            add(
+                EDLDiagnosticCode.AUDIO_LOOP_INVALID,
+                "only loop automation may define loop_source_range",
+            )
+        if automation.kind is not EDLAudioAutomationKind.LOOP and not automation.keyframes:
+            add(
+                EDLDiagnosticCode.AUTOMATION_KEYFRAME_ORDER,
+                "non-loop audio automation requires envelope keyframes",
+            )
+    return findings

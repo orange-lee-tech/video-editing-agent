@@ -5,6 +5,7 @@ from enum import StrEnum
 
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTimeRange
+from video_editing_agent.domain.edl.automation import EDLAudioAutomation, EDLSpatialAutomation
 
 
 class EDLTrackFamily(StrEnum):
@@ -96,6 +97,8 @@ class EDLSegment:
     shot_ref: EntityRevisionRef | None
     spatial_decision_ref: str | None
     audio_mix_decision_ref: str | None
+    spatial_automation: EDLSpatialAutomation | None
+    audio_automations: tuple[EDLAudioAutomation, ...]
 
     def __init__(
         self,
@@ -112,6 +115,8 @@ class EDLSegment:
         shot_ref: EntityRevisionRef | None = None,
         spatial_decision_ref: str | None = None,
         audio_mix_decision_ref: str | None = None,
+        spatial_automation: EDLSpatialAutomation | None = None,
+        audio_automations: tuple[EDLAudioAutomation, ...] = (),
     ) -> None:
         if not segment_id.strip():
             raise ValueError("segment_id must not be empty")
@@ -142,6 +147,8 @@ class EDLSegment:
         object.__setattr__(self, "shot_ref", shot_ref)
         object.__setattr__(self, "spatial_decision_ref", spatial_decision_ref)
         object.__setattr__(self, "audio_mix_decision_ref", audio_mix_decision_ref)
+        object.__setattr__(self, "spatial_automation", spatial_automation)
+        object.__setattr__(self, "audio_automations", audio_automations)
 
     @property
     def source_in_ms(self) -> int:
