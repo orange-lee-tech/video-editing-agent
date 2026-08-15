@@ -4,8 +4,8 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-15
 current_phase: R0.12
-phase_state: PRODUCT_IMPLEMENTATION_EDITPLAN_COMPAT_CLOSED_HANDOFF
-active_work_order: R0.12-EDITPLAN-COMPAT-001
+phase_state: PRODUCT_IMPLEMENTATION_EDITING_DIRECTOR_ENTRY_ACTIVE
+active_work_order: R0.12-EDITING-DIRECTOR-ENTRY-001
 accepted_code_baseline: 1abc185a793d6a73ea55824bd2a036a1a134151a
 control_plane_baseline: 1012f239aa95899e914ba6091c3b825dfc6302fe
 previous_work_order: R0.12-EDITPLAN-COMPAT-001
@@ -18,39 +18,58 @@ writer: chatgpt
 
 ## Routing truth
 
-`ADR-009_TWO_CORE_WORKFLOWS_PARALLEL_ENTRY.md` is ACCEPTED: Planning Workflow and Editing Workflow are parallel primary-capability entries, while Combined Workflow is their composition. `Brief` is the common intent root; Planning may enrich Editing but is not an activation license for Editing.
+`ADR-009_TWO_CORE_WORKFLOWS_PARALLEL_ENTRY.md` is ACCEPTED. `R0.12-EDITPLAN-COMPAT-001` is CLOSED at accepted code baseline `1abc185a793d6a73ea55824bd2a036a1a134151a`: Editing-only `EditPlan` values can carry exact Brief provenance without fabricated Planning artifacts while Combined provenance remains representable.
 
-`R0.12-EDITPLAN-COMPAT-001` is accepted and CLOSED at code baseline `1abc185a793d6a73ea55824bd2a036a1a134151a`.
+The subsequent Application audit confirms the remaining upstream production gap:
 
-The accepted Domain boundary now allows explicit Brief-rooted Editing-only `EditPlan` values without fabricated ScriptPlan/ShootingPlan, preserves exact Planning provenance in Combined mode, intentionally retains the prior complete ScriptPlan+ShootingPlan shape for compatibility, and fails closed on broken provenance. Resolver and EDLBuilder authority remains independent of Planning provenance once EditSlots/grounded decisions are fixed.
+- current `ApplicationRuntime` exposes preproduction/media only;
+- current `ProjectWorkspace.runtime()` requires preproduction provider ports and therefore is not an independent Editing composition root;
+- current `editing/director/` contains candidate-window/retrieval helpers but no production Director workflow that creates EditPlan from Brief + persisted media understanding;
+- R0.9 Product Probe correctly validated the grounded retrieval/resolution kernel but manually constructed EditSlots/EditPlan before entering it;
+- current SQLite schema v5 has no EditPlan persistence because no production EditPlan producer previously existed.
 
-No production redesign occurred in Resolver, CandidateWindow generation, Retrieval, EDLBuilder, Canonical EDL, Renderer, Media Understanding, subtitle, spatial, music or audio. No fictitious EditPlan persistence migration was added.
+Architecture Contract v0.2 treats EditPlan as a top-level durable Domain Entity and requires durable stages to support pause/revision/resume semantics. Therefore persistence becomes justified in the same bounded work that introduces a production Director producer.
 
-Durable validation: `docs/validation/R0.12_EDITPLAN_PARALLEL_ENTRY_CLOSURE.md`.
+## Current active boundary
 
-## Verification truth
+`R0.12-EDITING-DIRECTOR-ENTRY-001` is ACTIVE.
 
-Accepted local evidence includes 20 focused PASS, full pytest 551 PASS, Ruff format PASS, Ruff lint PASS, mypy 184 source files PASS, import-linter 3 contracts kept, build PASS, diff-check PASS and the existing living Resolver → EDLBuilder → Renderer smoke 10/10 PASS with verified MP4 output.
+Its bounded goal is:
 
-Remote GitHub independently confirms `ci/quality-gate-diagnostic = success` at `1abc185a793d6a73ea55824bd2a036a1a134151a`.
+`exact Brief + persisted eligible local footage understanding + optional exact Planning context`
+`→ provider-neutral Director proposal`
+`→ production Director validation/owner workflow`
+`→ persisted EditPlan`
+`→ existing Retrieval/CandidateWindow/Resolver kernel`
 
-The first semantic commit exposed a process defect rather than a product defect: local acceptance had omitted the CI formatter gate. Future full local acceptance must include `uv run ruff format --check .` as well as `uv run ruff check .` before code is declared green.
+The work must not create a second editing engine or reopen R0.9.
 
-## Current gate
+Expected structural additions include:
 
-There is intentionally no active downstream implementation task. `CURRENT_WORK_ORDER.md` is CLOSED, so Foreman should block until the next bounded work order is prepared.
+- provider-neutral Director request/proposal port;
+- production Director service/workflow;
+- first official EditPlan repository/codec and SQLite v6 table/migration;
+- independent Editing composition surface that does not require dummy Planning providers;
+- replaceable DeepSeek Director adapter;
+- bounded engineering CLI generate/show path;
+- offline living integration proving generated slots enter the existing Resolver path;
+- optional/live provider probe where credentials are available.
 
-The next cross-cutting structural surface to pre-process is a real Editing Application entry/orchestration boundary. It must accept Brief/editorial intent + user footage, permit optional Planning context, and reuse the same existing Editing Core. An empty wrapper, hand-authored EditPlan shortcut, or duplicate Resolver/EDLBuilder/Renderer path is not acceptable closure.
+## Stop boundary
 
-After that bounded correction, continue the remaining R0.12 productization terrain: Graphics/minimal transitions, Preview backend benchmark, Proxy/cache, and Renderer operational controls.
+Material redesign/duplication of Resolver, CandidateWindow, retrieval algorithms, EDLBuilder, Canonical EDL, Renderer, subtitle, SpatialComposer, music/audio editorial, VisualUnderstanding, Preview, Proxy/cache, Graphics/transitions, Review, packaging or GUI is outside the active Work Order and requires STOP/re-audit.
 
-Final Stage-A closure still requires real Planning-only, Editing-only and Combined workflows through an ordinary Windows user-facing path.
+Do not expand current EditSlot fields to the full future CAP-04 vocabulary merely to make the provider richer. This work uses the currently implemented intent surface.
 
 ## Execution routing
 
-Current Codex release decision: **NO ACTIVE CODEX TASK**.
+Current Codex release decision: **YES — ONE BOUNDED SESSION**.
 
-Use GitHub for deterministic governance/audit, User PowerShell for simple local deterministic execution, and only release Codex when a bounded task actually requires complex multi-file/runtime/debug iteration.
+Reason: this is now a coherent multi-file structural implementation spanning SQLite migration/persistence, Application ports/workflow, workspace composition, provider parsing/wiring, CLI and migration/integration tests. It is beyond the efficient scope of manual PowerShell patching, while architecture and boundaries are already pre-converged.
+
+ChatGPT must independently re-observe the resulting commit, CI and critical code before acceptance. Codex PASS is evidence, not authority.
+
+User PowerShell remains the preferred channel for simple deterministic local Windows/live-provider verification after a candidate commit exists.
 
 Normal Foreman routing remains trigger-first:
 
@@ -60,3 +79,11 @@ Normal Foreman routing remains trigger-first:
 - Git state issue -> `git`;
 - license/provider uncertainty -> `external`;
 - destructive/high-risk operation -> `high-risk`.
+
+## Next gate
+
+Do not activate Graphics/Preview/Proxy/Renderer productization work concurrently with this cross-cutting entry correction.
+
+After this Work Order closes, resume remaining R0.12 terrain: bounded Graphics/minimal transitions, Preview backend benchmark, Proxy/cache and remaining Renderer operational controls.
+
+Final Stage-A closure still requires real Planning-only, Editing-only and Combined end-to-end workflows through an ordinary Windows user-facing path; this Director entry is necessary but not sufficient for Stage-A 100%.
