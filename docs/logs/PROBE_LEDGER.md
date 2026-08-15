@@ -94,3 +94,16 @@ A paid Product Probe requires a question that deterministic/local evidence canno
 - Temporary `tmp-renderer-nav-sync*` branches were removed and independently confirmed absent.
 - Classification remains `ENGINEERING_FOUNDATION_ONLY`; it is not a substitute for R0.16 VisualUnderstanding-driven one-click Product Probe evidence.
 - Durable conclusion: a cheap living cross-phase execution spine now catches Resolver/EDLBuilder/Renderer contract drift before final integration.
+
+### R0.12 structured subtitle execution — IMPLEMENTATION CANDIDATE / AUDIT HOLD
+
+- Candidate: `12e4049c53a9597fba2a6654701d779d496b9433` — `feat: add structured subtitle execution`.
+- Remote `ci/quality-gate-diagnostic`: success.
+- Reported Engineering Probe: 7/7 PASS; English lower-safe region difference 12,963, Chinese upper-safe region difference 8,383, zero pixel difference between cues; real ignored/private MP4 and ASS artifact produced.
+- Canonical EDL schema v3 carries subtitle cue text, exact rational ranges, language, optional speaker reference, bounded emphasis and layout intent; decoder retains v2 backward-read support.
+- Existing living Resolver → EDLBuilder → Renderer smoke remains 10/10 PASS; reported full Quality Gate: Ruff, mypy 184 files, 538 tests, import contracts, build and diff check all PASS.
+- Evidence is correctly classified as Engineering Probe only. It does not claim semantic Chinese glyph correctness without OCR/Human Gate and does not redistribute a font.
+- **Audit guard:** ASS generation currently rounds canonical cue boundaries to centiseconds. Non-centisecond rational `MediaTime` would therefore be silently retimed unless the backend rejects or explicitly supports that representation.
+- **Audit guard:** multiple canonical SUBTITLE tracks/layers are not yet mapped or rejected; ASS generation currently emits all cues as `Layer 0`, which can erase track/layer execution semantics.
+- **Evidence gap:** the punctuated final MP4 filename proves typed output-path handling, but not comma/apostrophe escaping inside the actual ASS filter path; exercise punctuation in the subtitle artifact parent path before claiming that case fully proven.
+- Durable conclusion: the subtitle architecture and controlled multilingual burn-in path are sound, but the candidate is not yet a fully accepted structural baseline until exact-time and multi-track/layer backend semantics are fail-closed or faithfully mapped.

@@ -2,52 +2,61 @@
 
 **ID:** `R0.12-SUBTITLE-001`  
 **Status:** ACTIVE  
-**Phase:** R0.12 — structured subtitle execution  
+**Phase:** R0.12 — structured subtitle execution audit closure  
 **Owner/writer:** Codex
 
 ## Objective
 
-Build one complete deterministic subtitle path in which approved structured cues become canonical exact-time EDL execution data and are burned into a real MP4 through the existing EDL-driven FFmpeg Renderer using an ASS/libass baseline. Prove timing, escaping, layout intent and multilingual execution without moving subtitle wording policy or creative decisions into Renderer.
+Finish the existing structured-subtitle boundary by resolving the remaining execution-authority audit guards without broadening scope. Preserve the accepted body of the `12e4049c53a9597fba2a6654701d779d496b9433` candidate; do not advance into another R0.12 subsystem until subtitle execution is fail-closed and faithful to canonical EDL semantics.
 
 ## Read
 
 1. `docs/capabilities/CAP-08_EDL_RENDER_PREVIEW_SUBTITLE.md`
-2. `src/video_editing_agent/domain/edl/model.py`
-3. `src/video_editing_agent/domain/edl/codec.py`
-4. `src/video_editing_agent/domain/edl/validation.py`
-5. `src/video_editing_agent/render/edl_ffmpeg.py`
+2. `src/video_editing_agent/domain/edl/subtitle.py`
+3. `src/video_editing_agent/domain/edl/validation.py`
+4. `src/video_editing_agent/render/edl_ffmpeg.py`
+5. `tests/unit/test_r0_12_subtitle_execution.py`
+6. `tools/probes/r0_12_subtitle_live.py`
 
-Use foreman `location` only if existing speech/transcript or EDL codec interfaces are unclear. Use `architecture` only for a genuine ownership ambiguity. Use `external` if FFmpeg/libass/font distribution licensing becomes a release-boundary question; do not block local engineering merely because a redistributable font is not yet selected.
+Use foreman `architecture` only if exact EDL→backend timing/layer ownership is genuinely ambiguous. Use `quality` only after a concrete verification failure. Do not preload unrelated R0.12 areas.
 
-## Required delta
+## Accepted candidate body
 
-- Add a small typed structured subtitle cue value/model sufficient for current CAP-08 semantics: stable cue identity, exact `MediaTimeRange`, text, language, optional speaker/ref, bounded emphasis spans/tokens and deterministic layout/safe-zone intent. Do not create a new top-level Domain Entity.
-- Preserve the rule that ASR transcript is evidence/input, not automatically final subtitle wording. This batch consumes approved/structured cue text; it does not invent rewriting, translation or summarization policy.
-- Extend canonical EDL only as much as required to make subtitle execution truth self-contained. Do **not** fake subtitle cues as media `EDLSegment`s with invented `asset_ref`/`source_range`. Prefer a subtitle-specific typed execution payload associated with an `EDLTrackFamily.SUBTITLE` track and exact EDL timeline ranges.
-- Extend deterministic EDL v0.2 serialization/deserialization and validation for the subtitle payload. Canonical serialize → deserialize → canonical serialize must remain stable. Preserve rational time; no binary-float timing authority.
-- Validator must diagnose rather than repair: duplicate cue IDs, invalid/unknown subtitle track, illegal timeline ranges, malformed emphasis spans, invalid language/layout data, unsupported overlap/shape semantics selected for this baseline, and any other locally provable invariant.
-- Add a deterministic subtitle builder/compiler boundary that maps approved structured cues into canonical EDL subtitle execution data without changing cue wording or timing unless an explicit deterministic layout/splitting rule is owned there. If no splitting is needed for the baseline, keep it out rather than inventing policy.
-- Extend the existing FFmpeg Renderer so it consumes canonical EDL subtitle data, emits a deterministic ASS artifact/filter invocation, and burns captions into the final MP4. Renderer may format/escape execution syntax; it must not rewrite text, retime cues or choose editorial emphasis.
-- ASS generation must safely escape user text and paths so braces, backslashes, commas, colons, quotes, line breaks or shell-like text cannot escape typed execution. Keep `shell=False`; no raw model/provider shell fragments.
-- Implement a bounded safe-zone/layout mapping and bounded keyword-emphasis representation consistent with CAP-08. Avoid a general typography engine, karaoke engine or motion-graphics system.
-- Add deterministic unit/contract tests for cue model, EDL codec round-trip, validation, ASS escaping/timing and Renderer compilation.
-- Add one small local Engineering Probe that generates/uses controlled video, burns at least English + Chinese structured cues, runs FFmpeg/libass, ffprobes the result, and proves captions altered pixels in the intended subtitle region at expected cue times. The probe may accept/use an explicitly supplied local Windows font if necessary; do not commit or redistribute proprietary font files. Record missing font/glyph support honestly rather than substituting OCR or claiming semantic glyph correctness from a render-success code alone.
-- Keep the existing living Resolver → EDLBuilder → Renderer smoke green. Do not force subtitles into that smoke unless the integration is natural and low-cost; the living smoke should remain cheap.
+The implementation candidate already provides the intended Stage-A shape and should not be redesigned without evidence:
+
+- approved `StructuredSubtitleCue` → canonical `EDLSubtitleCue` without fake media Assets;
+- exact rational cue ranges retained in canonical EDL;
+- language, optional speaker reference, bounded emphasis and upper/lower safe-zone intent;
+- deterministic EDL schema v3 codec with v2 backward reading;
+- validator diagnostics for duplicate IDs, track/range/text/language/layout/emphasis/overlap errors;
+- deterministic ASS/libass burn-in through the existing EDL-driven Renderer;
+- escaped subtitle text, typed process invocation and `shell=False`;
+- English + Chinese region-pixel Engineering Probe with no unsupported semantic-glyph claim;
+- living Resolver → EDLBuilder → Renderer smoke remains green.
+
+## Required audit closure delta
+
+- **Exact-time execution:** canonical EDL remains exact rational authority. The ASS backend must not silently `round()` arbitrary cue boundaries and thereby retime them. Either preserve exact semantics through an explicitly supported backend representation, or detect cue times that cannot be represented by the current ASS baseline and fail closed with a stable structured diagnostic before invocation. Do not change canonical cue timing to make the backend happy.
+- **Subtitle track/layer semantics:** the Stage-A baseline must have one explicit deterministic rule for multiple SUBTITLE tracks. Either map supported EDL subtitle track/layer ordering into backend layer semantics without losing authority, or explicitly reject unsupported multi-track/layer input. Do not silently flatten distinct canonical layers into one ASS layer.
+- **Path-escaping evidence:** keep the current escaping implementation if correct, but make the live/contract evidence exercise punctuation in the actual ASS filter path (for example a controlled parent directory containing comma/apostrophe) rather than treating a punctuated final MP4 filename as proof of filter-path escaping.
+- Preserve the current v2 backward-read behavior and canonical v3 round-trip.
+- Preserve the multilingual glyph limitation honestly: render/pixel evidence is engineering evidence; semantic glyph correctness remains a separate font/environment/Human-Gate question.
+- Rerun focused subtitle tests/probe, the living integration smoke, and the full repository Quality Gate after the bounded closure repair.
 
 ## Hard boundaries
 
 - EDL remains sole exact executable timeline authority.
-- Subtitle builder/planner owns structured caption preparation; Renderer owns execution only.
-- Do not use fake media Assets for text cues.
-- Do not add Graphics/CTA/price cards, transitions, Preview, Proxy/cache, hardware routing, packaging or UI in this batch.
-- Do not implement ASR transcription, translation, LLM rewriting, caption summarization, broad style recommendation, karaoke animation or a monolithic Effects Engine.
-- No new third-party dependency unless a concrete blocker requires it; FFmpeg/libass baseline should use the existing toolchain where possible.
-- Do not bundle a font or alter project licensing in this batch.
+- Renderer may encode supported backend syntax; it may not retime, relayer, rewrite or repair canonical subtitle decisions silently.
+- Do not redesign the subtitle model, add a general typography engine, or expand EDL beyond a concrete closure blocker.
+- No ASR rewriting/translation, karaoke, font redistribution, Graphics/CTA/price cards, transitions, Preview, Proxy/cache, hardware routing, packaging or UI.
+- No new third-party dependency unless a concrete blocker proves it necessary.
 
 ## Verification
 
-Run focused subtitle/EDL/Renderer tests, the multilingual subtitle Engineering Probe, the existing living integration smoke if practical under the configured local toolchain, and the full repository Quality Gate. Preserve import contracts and `git diff --check`.
+Focused subtitle/EDL/Renderer tests must cover non-centisecond rational cue timing and multi-SUBTITLE-track/layer behavior explicitly. Run the multilingual subtitle Engineering Probe, the living Resolver → EDLBuilder → Renderer smoke, the full repository Quality Gate, import contracts and `git diff --check`.
 
 ## Stop gate
 
-Stop when structured cues → canonical exact-time EDL subtitle payload → deterministic ASS/libass Renderer → real MP4 is reproducible and green; deterministic codec/validation tests pass; multilingual probe evidence is recorded honestly; full Quality Gate passes; bounded reusable changes are committed/pushed; and the working tree is clean. Do not continue into Graphics, transitions, Preview or Proxy/cache.
+Stop when the existing subtitle candidate is faithful or explicitly fail-closed for backend time/layer representability, the actual ASS filter-path punctuation case is exercised, all required checks are green, changes are committed/pushed, and the working tree is clean.
+
+Do not continue into Graphics, transitions, Preview, Proxy/cache or another roadmap phase. Await Product Owner direction after subtitle closure.

@@ -3,7 +3,7 @@
 **Roadmap V2:** ACTIVE  
 **Development stage:** STRUCTURAL CONSTRUCTION  
 **Current phase:** R0.12 — EDL / Renderer / Subtitle / Preview / Proxy Productization  
-**Engineering state:** ACTIVE — `R0.12-SUBTITLE-001`  
+**Engineering state:** AUDIT HOLD — `R0.12-SUBTITLE-001` candidate implemented, closure guards remain  
 **Updated:** 2026-08-15
 
 ## Progress meaning
@@ -23,44 +23,49 @@ Reaching 100% will begin a separate product-refinement stage; it will not mean c
 - R0.10 — Music Selection + BeatMap + Audio Editorial.
 - R0.11 — Spatial Composition / Auto Reframe (`PASS_WITH_MINOR_DEFECT`).
 
-## Control-plane baseline
-
-`1012f239aa95899e914ba6091c3b825dfc6302fe` — trigger-first foreman v2. Further control-plane refinement is demand-driven only.
-
 ## Accepted R0.12 structural baselines
 
 - `ff343833deb9296c1df0b6fc944735388d5c8296` — typed EDL tracks, deterministic composition and structured validation.
-- `4b2522ae1a6838517baf4c5bcf36d30026f86912` — exact rational spatial/audio automation plus deterministic EDL v0.2 codec/round-trip.
+- `4b2522ae1a6838517baf4c5bcf36d30026f86912` — exact rational spatial/audio automation plus deterministic EDL codec/round-trip.
 - `b6c5684a9b07d79f20a10d28886cd087eaeecf10` — deterministic grounded decision-to-EDL assembly.
 - `83fc2999297023f828fa77719cd357fe82eab5de` — deterministic EDL-driven FFmpeg Renderer.
 - `9f06386f9f311fe241f250f4679fa6b2042699b0` — living Resolver → EDLBuilder → Renderer → ffprobe/final-pixel integration smoke.
 
-## Living smoke accepted
+## Subtitle implementation candidate
 
-Independent review confirms:
+`12e4049c53a9597fba2a6654701d779d496b9433` — `feat: add structured subtitle execution`.
 
-- `main` is exactly `9f06386f9f311fe241f250f4679fa6b2042699b0` and is one commit ahead of the previous docs baseline;
-- remote `ci/quality-gate-diagnostic` is success;
-- the probe invokes actual `optimize_sequence()` rather than hand-authoring final selections;
-- selected source windows `1/4 + 1s` and `1/2 + 1s` survive unchanged into canonical EDL;
-- final output is 2.000 s, 320×192, 30 FPS and contains source audio under PRESERVE;
-- final-frame pixel sampling independently proves red → blue visual order in the rendered MP4;
-- no ReframeDecision/Spatial automation is fabricated merely to enrich the gate;
-- the five temporary `tmp-renderer-nav-sync*` branches are gone;
-- reported full Quality Gate: 523 tests plus Ruff/mypy/import contracts/build/diff check.
+Independent review confirms substantial success:
 
-This closes the previous Renderer final-image evidence gap for ordered clip execution. It does not claim a real VisualUnderstanding-driven one-click workflow.
+- one bounded fast-forward commit and remote `ci/quality-gate-diagnostic` success;
+- structured approved cues compile into subtitle-specific canonical EDL payload rather than fake media segments;
+- EDL artifact schema advances to v3 while v2 artifacts remain readable;
+- canonical round-trip preserves exact rational cue ranges, text, language, speaker reference, emphasis and layout intent;
+- validation diagnoses duplicate ID, invalid track/range/text/language/layout/emphasis and same-track overlap without repair;
+- Renderer consumes canonical cues, emits deterministic ASS and burns them through FFmpeg/libass with typed argv and `shell=False`;
+- live Engineering Probe reports 7/7 PASS, with English lower-safe and Chinese upper-safe region pixel changes and zero change between cues;
+- the probe explicitly does not claim semantic Chinese glyph correctness and redistributes no font;
+- reported full Quality Gate: Ruff, mypy 184 files, 538 tests, import contracts, build and diff check all pass; living integration smoke remains 10/10 PASS.
 
-## Active R0.12 frontier
+## Subtitle audit guards before closure
 
-`R0.12-SUBTITLE-001` establishes the first complete structured subtitle execution path.
+Two items are structural execution guards, not Stage-B polish:
 
-CAP-08 requires structured cues before backend rendering, exact EDL timeline authority, ASS/libass baseline, safe-zone layout, keyword emphasis and multilingual coverage. The current EDL exposes a `SUBTITLE` track family but its media `EDLSegment` shape cannot carry cue text/language/layout semantics without inventing fake media source mappings. A narrowly scoped subtitle-specific canonical execution payload is therefore an allowed concrete EDL extension; do not generalize this into a broad overlay/effects framework.
+1. **ASS time representability.** Canonical EDL stores exact rational cue times, but the current ASS writer converts them with `round(time * 100)` to centiseconds. The existing probe uses centisecond-aligned cue boundaries, so it does not expose this. Renderer must not silently retime a non-representable rational boundary; the backend must preserve it or fail closed explicitly.
+2. **Multiple subtitle tracks/layers.** EDL supports typed tracks with composition layers; validation currently rejects overlap per subtitle track, while ASS generation flattens all cues into `Layer 0`. Until a deterministic layer mapping exists, unsupported multi-track/layer subtitle input must fail closed rather than silently lose EDL composition semantics.
 
-After subtitle execution is green, continue Graphics, remaining Renderer operational work, Preview and Proxy/cache. The Stage-A minimum transition vocabulary remains a downstream R0.12/R0.16 structural requirement and must be closed before Stage-A completion, but it is not part of the subtitle batch.
+One additional evidence gap is smaller: the live output filename contains comma/apostrophe, but the generated ASS artifact path does not. The filter-path escaping implementation is plausible and Windows drive-colon execution is real, but punctuation in the actual subtitle filter path should be exercised before claiming that part fully proven.
+
+The default/fallback font and semantic correctness of multilingual glyph shapes remain downstream environment/release/product-quality concerns unless broader evidence turns them into a structural blocker.
+
+## Hold state
+
+Do not start Graphics, transitions, Preview, Proxy/cache or further Renderer expansion while this audit hold is open. No new downstream work order is activated here.
+
+The next Product Owner decision may choose how to sequence the remaining R0.12 surfaces, but subtitle closure should first remove the small execution-authority ambiguity above.
 
 ## Downstream structural constraints
 
-The R0.16 one-click chain must use actual VisualUnderstanding evidence in Retrieval/Resolver; a visual-only automatic-BGM promise requires a concrete rights-aware provider path; Stage A needs a bounded minimum editing-expression/effects floor without a monolithic Effects Engine; and the final Reference/B爆款 → Script Product Probe must show downstream speech/temporal/music/subtitle/transition evidence feeding back into Script/ShootingPlan planning.
+R0.16 one-click execution must use actual VisualUnderstanding evidence in Retrieval/Resolver; a visual-only automatic-BGM promise requires a concrete rights-aware provider path; Stage A needs a bounded minimum editing-expression/effects floor without a monolithic Effects Engine; and the final Reference/B爆款 → Script Product Probe must show downstream speech/temporal/music/subtitle/transition evidence feeding back into Script/ShootingPlan planning.
 
 These are integration requirements, not Stage-B polish.
