@@ -1,0 +1,76 @@
+# Development Stage Model
+
+**Status:** ACTIVE GOVERNANCE PRINCIPLE  
+**Updated:** 2026-08-15
+
+## Purpose
+
+Separate structural product construction from later commercial-grade refinement so progress numbers and acceptance criteria remain honest.
+
+The project is currently building the whole house before polishing every room.
+
+## Stage A — Structural Construction
+
+This is the current 0–100% progress scale.
+
+Goal:
+
+> complete the full product loop with correct authority boundaries, extensible contracts, deterministic execution, compatibility, observability and safe failure behavior.
+
+A Stage-A capability may still have rough defaults, limited corpus tuning, basic UX or known non-blocking quality defects.
+
+Stage A does **not** permit postponing structural defects. The following remain blockers when material:
+
+- wrong ownership or hidden authority;
+- ambiguous/non-deterministic executable semantics;
+- broken compatibility or migration behavior;
+- unsafe destructive behavior;
+- untraceable provenance;
+- hard-coded provider/dependency lock-in that violates architecture;
+- missing fail-closed behavior at a required trust/license boundary;
+- architecture that prevents later quality improvement without demolition.
+
+Stage-A 100% means:
+
+> the planned construction roadmap is structurally closed end to end and ready for systematic refinement.
+
+It does **not** mean commercial perfection or final product maturity.
+
+## Stage B — Product Refinement
+
+Begins only after Stage A reaches 100% and the construction loop is accepted.
+
+Primary work shifts toward:
+
+- real-corpus output quality and editorial taste;
+- UX and interaction polish;
+- defaults, presets and controllability;
+- performance, latency, memory and storage efficiency;
+- visual/audio/subtitle consistency;
+- robustness across difficult media and hardware;
+- error recovery and diagnostics;
+- benchmark-driven tuning;
+- packaging/release experience;
+- commercial-grade fit and finish.
+
+Stage B may replace or tune Stage-A implementations behind preserved contracts. It should improve rooms without moving load-bearing walls unless evidence proves an architectural correction is actually required.
+
+## Debt rule
+
+Record known limitations instead of endlessly polishing them during construction.
+
+Classify them as:
+
+- **structural debt** — threatens architecture, correctness, extensibility, compatibility or safety; fix before advancing when material;
+- **finish debt** — quality/UX/performance/polish limitation that does not threaten the structure; carry into Stage B with evidence.
+
+## Progress reporting
+
+Until Stage A closes, report:
+
+- **Structural construction progress:** 0–100%;
+- **Current roadmap phase progress:** 0–100%.
+
+After Stage A reaches 100%, keep it fixed at 100% and begin a separate Stage-B refinement percentage.
+
+Never reinterpret Stage-A 100% as "commercial quality is 100%".
