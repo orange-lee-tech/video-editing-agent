@@ -1,46 +1,44 @@
 # Current Work Order
 
-**ID:** `CONTROL-PLANE-002`  
+**ID:** `R0.12-EDL-001`  
 **Status:** ACTIVE  
-**Phase:** R0.12 — trigger-first Codex control plane  
+**Phase:** R0.12 — EDL v0.2 foundation  
 **Owner/writer:** Codex
 
 ## Objective
 
-Upgrade foreman v1 from a concise **summary generator** into a **progressive-disclosure router**. Reduce unnecessary model-visible context, not merely prompt length.
+Upgrade the canonical EDL from the current thin segment model into the deterministic typed foundation required by R0.12, without letting Renderer or any model invent timeline decisions.
 
 ## Read
 
-1. `tools/maintenance/foreman.py`
-2. `docs/operations/CONTROL_PLANE_ARCHITECTURE.md`
-3. `docs/operations/CODEX_EXECUTION_ENTRY.md`
-4. `scripts/maintain.ps1`
+1. `src/video_editing_agent/domain/edl/model.py`
+2. `docs/capabilities/CAP-08_EDL_RENDER_PREVIEW_SUBTITLE.md`
+
+Use foreman trigger `location` if existing EDL consumers/persistence/tests are not obvious. Use trigger `architecture` only if ownership semantics are genuinely ambiguous.
 
 ## Required delta
 
-- Default `.private/codex_brief.md` is L0 only: task/phase, one-sentence objective, actual Git state, immediate action, hard blocker/stop conditions, and trigger routes.
-- Do **not** dump full allowed scope, full read set, full stop gate, or explanatory documents into L0 unless required for safe execution.
-- Control state and work order may be machine-parsed without being model-read in full.
-- Add deterministic trigger routes so Codex opens secondary information only when the condition occurs.
-- Add a compact `CODEX_TOOLBOX.md` (or cleaner equivalent) indexing existing work tools and blocked/recovery strategies. It is a toolbox, not a default reading assignment.
-- Prefer route references over copied content. A trigger should point to the smallest relevant file/section/command.
-- Keep foreman deterministic and non-authoritative: no architecture invention, source edits, state rewrites, commit/push, or fake remote-CI claims.
+- Preserve canonical rational `MediaTime` / `MediaTimeRange` semantics and existing source/timeline authority.
+- Replace free-form track semantics with a typed deterministic multi-track foundation covering the CAP-08 track families needed now, while preserving compatibility for existing persisted/constructed EDLs where practical.
+- Make track ordering/composition semantics deterministic and explicit rather than dependent on incidental tuple/string order.
+- Add a deterministic EDL validation surface with structured diagnostics for the invariants that can be proven locally at this layer, including unique identities, legal ranges/mappings, track validity and illegal same-track overlap.
+- Keep existing spatial/audio decision references compatible; do not duplicate SpatialComposer or AudioEditorial authority inside EDL.
+- Preserve backward compatibility deliberately. If existing persistence/serialization or consumers require a migration/read adapter, implement the smallest safe compatibility path rather than silently breaking old revisions.
+- Add focused tests and one small deterministic Engineering Probe/fixture demonstrating a known multi-track EDL validates and a deliberately invalid timeline fails with structured findings.
 
-## Minimum trigger classes
+## Hard boundaries
 
-Cover at least: architecture/contract ambiguity, code-location uncertainty, test/quality failure, Git/repository-state issue, external/license/provider uncertainty, and destructive/high-risk operation.
+- EDL is the sole exact executable timeline authority.
+- Renderer executes EDL; it does not repair or reposition it.
+- No LLM/provider shell fragments or timeline authority.
+- No new third-party dependency unless a real blocker triggers the external/dependency route.
+- Do not implement FFmpeg Renderer productization, subtitles, graphics, preview backend, proxy/cache or UI in this batch.
+- Do not speculatively redesign unrelated R0.7–R0.11 domain entities.
 
 ## Verification
 
-Prove with focused tests that:
-
-- L0 omits secondary detail that is not immediately needed;
-- a trigger exposes the correct route without preloading its target content;
-- unrelated routes stay hidden;
-- malformed/mismatched state still fails closed;
-- dirty Git state remains prominent;
-- full Quality Gate is green.
+Run focused EDL tests/probe, then the repository full Quality Gate. Preserve import contracts and `git diff --check`.
 
 ## Stop gate
 
-Stop after foreman v2 + toolbox routing are green, committed/pushed, and the working tree is clean. Do not start R0.12 product features.
+Stop after the typed EDL v0.2 foundation + deterministic validator are green, committed/pushed, and the working tree is clean. Do not continue into Renderer or other R0.12 deliverables.

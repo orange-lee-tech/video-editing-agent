@@ -2,36 +2,38 @@
 
 ---
 schema: video-editing-agent-control-state/v1
-updated: 2026-08-14
+updated: 2026-08-15
 current_phase: R0.12
-phase_state: ACTIVATION_PROGRESSIVE_DISCLOSURE
-active_work_order: CONTROL-PLANE-002
-accepted_code_baseline: ed6ed6d7e1dc214ea5274d57003b6c9329d2e5e1
-previous_phase: R0.11
-previous_phase_result: PASS_WITH_MINOR_DEFECT
-foreman_baseline: v1-accepted
+phase_state: PRODUCT_IMPLEMENTATION_EDL_V02_FOUNDATION
+active_work_order: R0.12-EDL-001
+accepted_code_baseline: 1012f239aa95899e914ba6091c3b825dfc6302fe
+control_plane_baseline: 1012f239aa95899e914ba6091c3b825dfc6302fe
+previous_work_order: CONTROL-PLANE-002
+previous_work_order_result: PASS
+foreman: v2-trigger-first
 disclosure_policy: trigger-first
 writer: chatgpt
 ---
 
 ## Routing truth
 
-R0.11 is closed. `ed6ed6d7e1dc214ea5274d57003b6c9329d2e5e1` is the accepted foreman-v1 baseline; remote Quality Gate is green.
+Control-plane hardening is complete and accepted. Foreman v2 provides L0-only execution context plus six isolated trigger routes; `CODEX_TOOLBOX.md` remains a route index rather than default reading.
 
-R0.12 product implementation has not started. One control-plane correction remains first: make the foreman routing-first rather than summary-first.
+R0.12 product implementation is now active. The first frontier is the canonical EDL v0.2 foundation because EDL is the sole exact executable timeline authority for Renderer, subtitles, preview and proxy work.
 
 ## Information economy rule
 
-The goal is not the shortest prompt. The goal is the smallest **necessary model-visible context** that preserves execution accuracy.
+Normal Codex work starts from foreman L0. Secondary context opens only when concrete evidence triggers it.
 
-Normal startup should distinguish:
+- code location unclear -> `location`;
+- architecture/ownership ambiguity -> `architecture`;
+- test failure -> `quality`;
+- Git state issue -> `git`;
+- license/provider uncertainty -> `external`;
+- destructive/high-risk operation -> `high-risk`.
 
-- **machine-read state**: control/work-order metadata parsed by foreman;
-- **model-read L0**: immediate task, actual Git state, hard blockers, next action and trigger routes;
-- **L1/L2/L3**: opened only when a named condition occurs.
-
-Do not make Codex read whole control/work-order/architecture/history documents by default merely because they exist.
+Do not preload the toolbox, project history, unrelated CAPs/ADRs, or broad repository surfaces.
 
 ## Current gate
 
-Execute `CONTROL-PLANE-002` only. No R0.12 product feature implementation until the trigger-first router is green and reviewed.
+Execute `R0.12-EDL-001` only. Do not begin Renderer, Subtitle, Preview or Proxy implementation in the same batch.

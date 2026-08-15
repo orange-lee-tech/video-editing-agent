@@ -1,9 +1,9 @@
 # Current Roadmap Phase Status
 
 **Roadmap V2:** ACTIVE  
-**Current phase:** R0.12 — activation / control-plane hardening before product implementation  
-**Engineering state:** ACTIVE — `CONTROL-PLANE-002` trigger-first routing  
-**Updated:** 2026-08-14
+**Current phase:** R0.12 — EDL / Renderer / Subtitle / Preview / Proxy Productization  
+**Engineering state:** ACTIVE — `R0.12-EDL-001`  
+**Updated:** 2026-08-15
 
 ## Closed
 
@@ -14,25 +14,31 @@
 - R0.10 — Music Selection + BeatMap + Audio Editorial.
 - R0.11 — Spatial Composition / Auto Reframe (`PASS_WITH_MINOR_DEFECT`).
 
-## Accepted control-plane baseline
+## Control-plane activation complete
 
-`ed6ed6d7e1dc214ea5274d57003b6c9329d2e5e1` — deterministic foreman v1.
+Accepted control-plane baseline:
 
-Evidence:
+`1012f239aa95899e914ba6091c3b825dfc6302fe` — `feat: route Codex context by trigger`.
 
-- Quality Gate green (`493 passed` reported locally; remote `ci/quality-gate-diagnostic` success);
-- local foreman checks Git state/control consistency and writes ignored `.private/codex_brief.md`;
-- no R0.12 product implementation was started.
+Verified:
 
-## Remaining activation correction
+- remote `ci/quality-gate-diagnostic` success;
+- foreman v2 default output is L0-only;
+- six deterministic trigger classes are available;
+- selected triggers expose only the selected route;
+- `CODEX_TOOLBOX.md` is a compact route index, not default model context;
+- malformed/mismatched state still fails closed;
+- dirty Git state remains visible;
+- reported local Quality Gate: 494 tests plus Ruff, mypy, import contracts, build and diff check green.
 
-Foreman v1 is accepted infrastructure but remains summary-first: its default brief exposes objective, scopes, full read list and stop gate before those details are necessarily needed.
+The control-plane work is complete enough for real product use. Further refinements should be driven by observed construction friction, not by abstract prompt minimization.
 
-`CONTROL-PLANE-002` upgrades the control plane to progressive disclosure:
+## Active R0.12 frontier
 
-- L0 = minimal necessary execution context;
-- secondary information opens only through named triggers;
-- a compact toolbox indexes work tools and blocked/recovery strategies without becoming default reading;
-- control/work-order documents may be machine-parsed without being model-read in full.
+Start with EDL v0.2 because CAP-08 keeps EDL as the sole exact executable timeline authority beneath approved decisions and above deterministic execution.
 
-R0.12 product implementation remains blocked until this control-plane correction is green and reviewed.
+Current implementation already has rational `source_range` / `timeline_range` in `EDLSegment`, but the model remains thin and does not yet provide the typed multi-track and deterministic validation foundation required for Renderer/Subtitle/Preview/Proxy productization.
+
+Active work order: `R0.12-EDL-001`.
+
+Do not begin Renderer, Subtitle, Preview or Proxy feature construction in the same batch.
