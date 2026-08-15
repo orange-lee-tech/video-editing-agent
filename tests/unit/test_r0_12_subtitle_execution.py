@@ -7,7 +7,11 @@ from typing import cast
 import pytest
 
 from video_editing_agent.application.ports.asset_media import ResolvedLocalAssetMedia
-from video_editing_agent.application.ports.renderer import OutputSpec, RenderRequest
+from video_editing_agent.application.ports.renderer import (
+    OutputSpec,
+    RenderDiagnosticCode,
+    RenderRequest,
+)
 from video_editing_agent.application.subtitle_builder import compile_subtitle_cues
 from video_editing_agent.domain.common.entity import (
     EntityEnvelope,
@@ -302,3 +306,60 @@ def test_renderer_compiles_subtitle_artifact_without_fake_media_asset(tmp_path: 
     ]
     assert "subtitles=filename=" in graph and "[vbase]" in graph
     assert len(request.asset_media) == 1
+
+
+def test_renderer_rejects_non_centisecond_cue_timing_without_retiming(tmp_path: Path) -> None:
+    source = tmp_path / "source.mp4"
+    source.touch()
+    cue = StructuredSubtitleCue(
+        "frame-boundary",
+        MediaTimeRange(MediaTime(1, 24), MediaTime(1, 1)),
+        "exact frame boundary",
+        "en",
+    )
+    edl = compile_subtitle_cues(_edl(), (cue,))
+    request = RenderRequest(
+        edl,
+        (ResolvedLocalAssetMedia(EntityRevisionRef("asset", 1), source),),
+        OutputSpec(tmp_path / "result.mp4", 1080, 1920, 30),
+    )
+
+    result = compile_ffmpeg_render(request)
+
+    assert result.plan is None
+    assert result.diagnostics[0].code is RenderDiagnosticCode.SUBTITLE_TIMING_UNREPRESENTABLE
+    assert result.diagnostics[0].segment_ids == ("frame-boundary",)
+    with pytest.raises(ValueError, match="exact centisecond"):
+        build_ass_subtitles(edl, 1080, 1920)
+
+
+@pytest.mark.parametrize(
+    "tracks",
+    (
+        (
+            EDLTrack("subtitle", EDLTrackFamily.SUBTITLE),
+            EDLTrack("subtitle-top", EDLTrackFamily.SUBTITLE, layer=1),
+        ),
+        (EDLTrack("subtitle", EDLTrackFamily.SUBTITLE, layer=1),),
+    ),
+)
+def test_renderer_rejects_unsupported_subtitle_track_layer_shape(
+    tmp_path: Path, tracks: tuple[EDLTrack, ...]
+) -> None:
+    source = tmp_path / "source.mp4"
+    source.touch()
+    edl = compile_subtitle_cues(_edl(), _cues())
+    edl = replace(
+        edl,
+        tracks=(EDLTrack("video", EDLTrackFamily.VIDEO), *tracks),
+    )
+    request = RenderRequest(
+        edl,
+        (ResolvedLocalAssetMedia(EntityRevisionRef("asset", 1), source),),
+        OutputSpec(tmp_path / "result.mp4", 1080, 1920, 30),
+    )
+
+    result = compile_ffmpeg_render(request)
+
+    assert result.plan is None
+    assert result.diagnostics[0].code is RenderDiagnosticCode.SUBTITLE_LAYER_UNSUPPORTED

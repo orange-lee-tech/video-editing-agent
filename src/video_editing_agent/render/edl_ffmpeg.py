@@ -75,7 +75,10 @@ def _contiguous(segments: tuple[EDLSegment, ...]) -> bool:
 
 
 def _ass_time(value: MediaTime) -> str:
-    centiseconds = round(value.as_fraction() * 100)
+    exact_centiseconds = value.as_fraction() * 100
+    if exact_centiseconds.denominator != 1:
+        raise ValueError("ASS baseline requires exact centisecond subtitle boundaries")
+    centiseconds = exact_centiseconds.numerator
     hours, remainder = divmod(centiseconds, 360_000)
     minutes, remainder = divmod(remainder, 6_000)
     seconds, fraction = divmod(remainder, 100)
@@ -144,9 +147,12 @@ def build_ass_subtitles(edl: EDL, width: int, height: int) -> str:
 
 def _ffmpeg_filter_path(path: Path) -> str:
     value = path.resolve(strict=False).as_posix()
-    for character in ("\\", ":", ",", "[", "]", ";"):
-        value = value.replace(character, "\\" + character)
-    return value.replace("'", r"\\\'")
+
+    def escape(raw: str, special: frozenset[str]) -> str:
+        return "".join(f"\\{character}" if character in special else character for character in raw)
+
+    option_value = escape(value, frozenset(("\\", "'", ":")))
+    return escape(option_value, frozenset(("\\", "'", "[", "]", ",", ";")))
 
 
 def _subtitle_artifact_path(request: RenderRequest) -> Path:
@@ -331,6 +337,29 @@ def compile_ffmpeg_render(
             "Stage-A Renderer received unsupported track families",
             unsupported,
         )
+    subtitle_tracks = tuple(
+        track for track in request.edl.effective_tracks if track.family is EDLTrackFamily.SUBTITLE
+    )
+    if len(subtitle_tracks) > 1 or any(track.layer != 0 for track in subtitle_tracks):
+        return _diagnostic(
+            RenderDiagnosticCode.SUBTITLE_LAYER_UNSUPPORTED,
+            "Stage-A ASS execution supports exactly one layer-zero SUBTITLE track",
+            tuple(track.track_id for track in subtitle_tracks),
+        )
+    unrepresentable_cues = tuple(
+        cue.cue_id
+        for cue in request.edl.ordered_subtitle_cues
+        if any(
+            (boundary.as_fraction() * 100).denominator != 1
+            for boundary in (cue.timeline_range.start, cue.timeline_range.end)
+        )
+    )
+    if unrepresentable_cues:
+        return _diagnostic(
+            RenderDiagnosticCode.SUBTITLE_TIMING_UNREPRESENTABLE,
+            "ASS baseline cannot represent non-centisecond cue boundaries without retiming",
+            unrepresentable_cues,
+        )
 
     media: dict[EntityRevisionRef, Path] = {}
     duplicates: set[EntityRevisionRef] = set()
@@ -402,7 +431,7 @@ def compile_ffmpeg_render(
         subtitle_path = _subtitle_artifact_path(request)
         subtitle_content = build_ass_subtitles(request.edl, spec.width, spec.height)
         escaped_path = _ffmpeg_filter_path(subtitle_path)
-        graph.append(f"[vbase]subtitles=filename='{escaped_path}'[vout]")
+        graph.append(f"[vbase]subtitles=filename={escaped_path}[vout]")
 
     audio_track_segments: list[tuple[str, tuple[EDLSegment, ...]]] = []
     for track_id in ("source_audio", "bgm"):

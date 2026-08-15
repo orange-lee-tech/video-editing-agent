@@ -51,6 +51,8 @@ class RenderDiagnosticCode(StrEnum):
     MISSING_ASSET_MEDIA = "missing_asset_media"
     AMBIGUOUS_ASSET_MEDIA = "ambiguous_asset_media"
     OUTPUT_CONFLICT = "output_conflict"
+    SUBTITLE_TIMING_UNREPRESENTABLE = "subtitle_timing_unrepresentable"
+    SUBTITLE_LAYER_UNSUPPORTED = "subtitle_layer_unsupported"
     EXECUTION_FAILED = "execution_failed"
     OUTPUT_VERIFICATION_FAILED = "output_verification_failed"
 

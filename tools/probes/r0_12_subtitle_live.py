@@ -33,7 +33,7 @@ ROOT = Path(__file__).resolve().parents[2]
 BIN = ROOT / ".tools" / "ffmpeg-8.1" / "ffmpeg-8.1-full_build" / "bin"
 FFMPEG = BIN / "ffmpeg.exe"
 FFPROBE = BIN / "ffprobe.exe"
-OUTPUT = ROOT / ".private" / "probes" / "r0_12_subtitle"
+OUTPUT = ROOT / ".private" / "probes" / "r0_12_subtitle" / "filter, path's punctuation"
 WIDTH = 640
 HEIGHT = 360
 
@@ -190,6 +190,11 @@ def main() -> int:
             subtitle_cues=structured.ordered_subtitle_cues,
         ),
         "ASS_ARTIFACT_EMITTED": ass_path.is_file(),
+        "ASS_FILTER_PATH_PUNCTUATION_EXECUTED": (
+            "," in ass_path.parent.name
+            and "'" in ass_path.parent.name
+            and rendered.artifact is not None
+        ),
         "ENGLISH_LOWER_SAFE_PIXELS": lower_english > 100 and lower_english > upper_english,
         "CHINESE_UPPER_SAFE_PIXELS": upper_chinese > 100 and upper_chinese > lower_chinese,
         "NO_CAPTION_OUTSIDE_CUES": gap_difference == 0,
