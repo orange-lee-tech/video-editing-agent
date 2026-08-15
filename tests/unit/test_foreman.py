@@ -170,3 +170,13 @@ def test_missing_referenced_read_file_fails_closed(tmp_path: Path) -> None:
     (root / "docs/task-specific.md").unlink()
     _, errors = build_foreman_brief(root)
     assert errors == ("work-order read reference is missing: docs/task-specific.md",)
+
+
+def test_existing_referenced_read_directory_is_accepted(tmp_path: Path) -> None:
+    work = _work().replace("docs/task-specific.md", "src/example_package/")
+    root = _repo(tmp_path, work=work)
+    (root / "src/example_package").mkdir(parents=True)
+
+    _, errors = build_foreman_brief(root)
+
+    assert errors == ()

@@ -52,6 +52,7 @@ class EDLSpatialAutomation:
 
 class EDLAudioAutomationKind(StrEnum):
     GAIN = "gain"
+    DUCK = "duck"
     MUTE = "mute"
     FADE = "fade"
     LOOP = "loop"

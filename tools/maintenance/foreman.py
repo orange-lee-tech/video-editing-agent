@@ -183,7 +183,7 @@ def _validate_reads(root: Path, work_order: str, errors: list[str]) -> None:
     listed = re.findall(r"^\d+\.\s+`([^`]+)`", _section(work_order, "Read"), re.MULTILINE)
     for item in listed:
         normalized = item.replace("\\", "/")
-        if not (root / normalized).is_file():
+        if not (root / normalized).exists():
             errors.append(f"work-order read reference is missing: {normalized}")
 
 
