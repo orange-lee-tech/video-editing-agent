@@ -867,6 +867,16 @@ This is the first point at which a one-click/full-auto first cut becomes a meani
 
 ## Deliverables
 
+- actual VisualUnderstanding-derived evidence must drive Retrieval/Resolver in the claimed
+  one-click chain; human-entered or confirmed coverage text is advisory, not a substitute;
+- when visual-only input promises automatic BGM, include at least one concrete rights-aware
+  music discovery/acquisition provider path rather than only a Port seam;
+- preserve a bounded Stage-A editing-expression floor without a monolithic Effects Engine:
+  deterministic cuts, minimal transitions, spatial automation, structured subtitle emphasis,
+  basic deterministic title/CTA/price-card graphics, and basic audio fade/duck execution;
+- feed downstream speech/temporal, music/rhythm, and subtitle/transition/execution evidence back
+  into the final Reference/B爆款 → Script Product Probe so post-production learning improves
+  Script/ShootingPlan guidance;
 - workflow resumability;
 - progress/status;
 - cancellation/retry;
