@@ -3,7 +3,7 @@
 **Roadmap V2:** ACTIVE  
 **Development stage:** STRUCTURAL_CONSTRUCTION  
 **Current phase:** R0.12 — EDL / Renderer / Subtitle / Preview / Proxy Productization  
-**Engineering state:** SUBTITLE CLOSED — next R0.12 batch not yet activated  
+**Engineering state:** PARALLEL WORKFLOW SEMANTICS ADOPTED — EditPlan compatibility migration active  
 **Updated:** 2026-08-15
 
 ## Progress meaning
@@ -48,9 +48,38 @@ The accepted subtitle boundary provides:
 
 The multilingual probe remains Engineering Probe evidence only. It proves controlled render-region behavior, not semantic glyph correctness under every installed font environment.
 
+## Parallel workflow architecture correction — ADOPTED
+
+`ADR-009_TWO_CORE_WORKFLOWS_PARALLEL_ENTRY.md` formally adopts the supervisory correction recorded in `docs/architecture/TWO_CORE_WORKFLOWS_PARALLELISM_AND_RISK_GOVERNANCE.md`.
+
+The product now has three explicit workflow meanings:
+
+- **Planning Workflow:** `Brief → ScriptPlan → ShootingPlan` and may stop there;
+- **Editing Workflow:** `Brief/editorial intent + user local footage → the existing Editing Core → final output`, without fabricated Planning artifacts;
+- **Combined Workflow:** Planning outputs enrich the same Editing Workflow as optional exact-revision context.
+
+The single chain shown in Architecture Contract v0.2 Section 1 remains valid as Combined Workflow; it is not the only legal product entry path. `Brief` is the common intent root. Planning may enrich Editing but must not be an activation license for Editing.
+
+Code audit confirms the current coupling is localized in `EditPlan`: Resolver, CandidateWindow generation and EDLBuilder do not require Planning references for their authority. Therefore the active correction is intentionally upstream and bounded. Broad downstream redesign is a stop condition.
+
+## Active R0.12 work order
+
+`R0.12-EDITPLAN-COMPAT-001` is ACTIVE.
+
+Its purpose is a small compatibility migration of `EditPlan` so that:
+
+- Editing-only can carry explicit Brief provenance with no ScriptPlan/ShootingPlan;
+- Combined mode retains exact Planning provenance;
+- legacy combined in-memory/test/probe construction remains readable/usable where required;
+- invalid broken provenance combinations fail closed;
+- no fictitious SQLite/EditPlan persistence migration is introduced where no persisted EditPlan schema currently exists;
+- Resolver, CandidateWindow, EDLBuilder, Canonical EDL, Renderer and Media Understanding remain materially unchanged.
+
+After this closes, a separate bounded Application step will establish a real Editing entry point that reuses the same Editing Core. It must not be represented by an empty wrapper or a duplicate post-production engine.
+
 ## Remaining R0.12 structural terrain
 
-No downstream work order is active yet. Before the next Codex call, ChatGPT should pre-process and bound the remaining surfaces:
+After the compatibility correction, ChatGPT should continue pre-processing and bounding the remaining R0.12 surfaces:
 
 1. bounded Stage-A Graphics + minimal transition vocabulary, without a monolithic Effects Engine;
 2. Preview backend benchmark/ADR using real Windows evidence;
@@ -65,6 +94,7 @@ Before structural construction can reach 100%:
 
 - **Planning core:** real user high-performing/reference/commercial intent must run through the real planning pipeline to persisted, inspectable user-visible `ScriptPlan` + executable `ShootingPlan`.
 - **Editing core:** user-selected local footage must run through actual VisualUnderstanding/evidence, music, Director/Resolver, spatial/audio, subtitle/graphics/minimal transitions, canonical EDL, Renderer and Review/repair to a real final MP4.
+- Planning-only, Editing-only and Combined must all remain legitimate product paths; Combined is composition, not the unique workflow.
 - Hand-authored coverage text, ResolutionDecision, EDL or engineering fixtures must not masquerade as automatic pipeline output in the Product Probe.
 - An ordinary Windows user must be able to create/open a project, select footage files/folder, select or identify an output folder, provide required planning/editing input, start the workflow, observe meaningful progress/failure and locate the produced Script/ShootingPlan/final MP4 without editing repository files.
 - The current Python CLI remains an engineering adapter; CLI-only does not satisfy Stage-A 100%.
@@ -73,4 +103,4 @@ Desktop/frontend technology remains intentionally undecided until Preview/backen
 
 ## Downstream structural constraints
 
-R0.16 one-click execution must use actual VisualUnderstanding-derived evidence in Retrieval/Resolver; visual-only automatic BGM requires at least one concrete rights-aware discovery/acquisition provider path; Stage A needs the bounded editing-expression floor; and the final Reference/B爆款 → Script Product Probe must feed downstream speech/temporal/music/subtitle/transition/execution evidence back into Script/ShootingPlan guidance.
+R0.16 one-click execution must use actual VisualUnderstanding-derived evidence in Retrieval/Resolver; visual-only automatic BGM requires at least one concrete rights-aware discovery/acquisition provider path; Stage A needs the bounded editing-expression floor; and the final Reference/爆款 → Script Product Probe must feed downstream speech/temporal/music/subtitle/transition/execution evidence back into Script/ShootingPlan guidance.
