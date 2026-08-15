@@ -4,11 +4,11 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-15
 current_phase: R0.12
-phase_state: PRODUCT_IMPLEMENTATION_EDITPLAN_COMPAT_ACTIVE
+phase_state: PRODUCT_IMPLEMENTATION_EDITPLAN_COMPAT_CLOSED_HANDOFF
 active_work_order: R0.12-EDITPLAN-COMPAT-001
-accepted_code_baseline: 827b84941e1726bab374f2ffea9a746f49f6e570
+accepted_code_baseline: 1abc185a793d6a73ea55824bd2a036a1a134151a
 control_plane_baseline: 1012f239aa95899e914ba6091c3b825dfc6302fe
-previous_work_order: R0.12-SUBTITLE-001
+previous_work_order: R0.12-EDITPLAN-COMPAT-001
 previous_work_order_result: PASS
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
@@ -18,33 +18,39 @@ writer: chatgpt
 
 ## Routing truth
 
-`R0.12-SUBTITLE-001` remains accepted and closed at code baseline `827b84941e1726bab374f2ffea9a746f49f6e570`.
+`ADR-009_TWO_CORE_WORKFLOWS_PARALLEL_ENTRY.md` is ACCEPTED: Planning Workflow and Editing Workflow are parallel primary-capability entries, while Combined Workflow is their composition. `Brief` is the common intent root; Planning may enrich Editing but is not an activation license for Editing.
 
-The subsequent supervisory architecture audit identified a localized product-semantic defect: current `EditPlan` requires `script_plan_ref` and `shooting_plan_ref`, which incorrectly makes Planning artifacts prerequisites for Editing-only entry even though the Product Constitution defines Planning Core and Editing Core as parallel primary capabilities.
+`R0.12-EDITPLAN-COMPAT-001` is accepted and CLOSED at code baseline `1abc185a793d6a73ea55824bd2a036a1a134151a`.
 
-`ADR-009_TWO_CORE_WORKFLOWS_PARALLEL_ENTRY.md` is now ACCEPTED. The Architecture Contract v0.2 Section 1 chain is interpreted as Combined Workflow, not the unique product path. Planning Workflow and Editing Workflow are independently legitimate; Combined mode composes them and reuses the same Editing Core.
+The accepted Domain boundary now allows explicit Brief-rooted Editing-only `EditPlan` values without fabricated ScriptPlan/ShootingPlan, preserves exact Planning provenance in Combined mode, intentionally retains the prior complete ScriptPlan+ShootingPlan shape for compatibility, and fails closed on broken provenance. Resolver and EDLBuilder authority remains independent of Planning provenance once EditSlots/grounded decisions are fixed.
 
-## Current active boundary
+No production redesign occurred in Resolver, CandidateWindow generation, Retrieval, EDLBuilder, Canonical EDL, Renderer, Media Understanding, subtitle, spatial, music or audio. No fictitious EditPlan persistence migration was added.
 
-`R0.12-EDITPLAN-COMPAT-001` is ACTIVE.
+Durable validation: `docs/validation/R0.12_EDITPLAN_PARALLEL_ENTRY_CLOSURE.md`.
 
-The migration is deliberately narrow:
+## Verification truth
 
-- add explicit Brief-rooted Editing intent/provenance semantics to `EditPlan`;
-- allow Editing-only plans without ScriptPlan/ShootingPlan;
-- retain exact Planning provenance for Combined mode;
-- preserve legacy combined construction where required for compatibility;
-- fail closed on broken provenance shapes;
-- add focused regression evidence that Planning context does not change Resolver/EDL authority for otherwise identical plans;
-- do not invent an EditPlan database migration because the current repository has no persisted EditPlan table/codec.
+Accepted local evidence includes 20 focused PASS, full pytest 551 PASS, Ruff format PASS, Ruff lint PASS, mypy 184 source files PASS, import-linter 3 contracts kept, build PASS, diff-check PASS and the existing living Resolver → EDLBuilder → Renderer smoke 10/10 PASS with verified MP4 output.
 
-Material modification of Resolver, CandidateWindow generation, EDLBuilder, Canonical EDL, Renderer, Media Understanding, subtitle, spatial or audio semantics is outside scope and is a stop/re-audit trigger.
+Remote GitHub independently confirms `ci/quality-gate-diagnostic = success` at `1abc185a793d6a73ea55824bd2a036a1a134151a`.
+
+The first semantic commit exposed a process defect rather than a product defect: local acceptance had omitted the CI formatter gate. Future full local acceptance must include `uv run ruff format --check .` as well as `uv run ruff check .` before code is declared green.
+
+## Current gate
+
+There is intentionally no active downstream implementation task. `CURRENT_WORK_ORDER.md` is CLOSED, so Foreman should block until the next bounded work order is prepared.
+
+The next cross-cutting structural surface to pre-process is a real Editing Application entry/orchestration boundary. It must accept Brief/editorial intent + user footage, permit optional Planning context, and reuse the same existing Editing Core. An empty wrapper, hand-authored EditPlan shortcut, or duplicate Resolver/EDLBuilder/Renderer path is not acceptable closure.
+
+After that bounded correction, continue the remaining R0.12 productization terrain: Graphics/minimal transitions, Preview backend benchmark, Proxy/cache, and Renderer operational controls.
+
+Final Stage-A closure still requires real Planning-only, Editing-only and Combined workflows through an ordinary Windows user-facing path.
 
 ## Execution routing
 
-Current Codex release decision: **NO**.
+Current Codex release decision: **NO ACTIVE CODEX TASK**.
 
-The audited production change is small enough to attempt through ChatGPT-authored deterministic patch + User PowerShell application/verification. Escalate to Codex only on evidence of unexpected multi-file/type/import/runtime complexity.
+Use GitHub for deterministic governance/audit, User PowerShell for simple local deterministic execution, and only release Codex when a bounded task actually requires complex multi-file/runtime/debug iteration.
 
 Normal Foreman routing remains trigger-first:
 
@@ -54,9 +60,3 @@ Normal Foreman routing remains trigger-first:
 - Git state issue -> `git`;
 - license/provider uncertainty -> `external`;
 - destructive/high-risk operation -> `high-risk`.
-
-## Next gate after this work order
-
-After EditPlan compatibility closes, activate a separate bounded Application work order for a real Editing entry point that reuses the same Editing Core. Do not fake that closure with an empty wrapper or by duplicating Resolver/EDLBuilder/Renderer.
-
-Final Stage-A closure still requires real Planning-only, Editing-only and Combined product probes through ordinary user-facing execution; fixtures or hand-authored internal decisions cannot substitute.
