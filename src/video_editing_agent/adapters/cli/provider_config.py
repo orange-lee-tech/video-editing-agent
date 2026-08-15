@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from video_editing_agent.application.ports.director import DirectorPort
 from video_editing_agent.application.ports.preproduction_planning import (
     ScriptPlanningPort,
     ShootingPlanningPort,
@@ -19,6 +20,7 @@ from video_editing_agent.providers.llm.deepseek_chat import (
     DeepSeekShootingPlanningPort,
     UrllibDeepSeekChatTransport,
 )
+from video_editing_agent.providers.llm.deepseek_director import DeepSeekDirectorPort
 from video_editing_agent.providers.llm.deepseek_preproduction_review import (
     REVIEW_INITIAL_MAX_TOKENS,
     DeepSeekScriptProposalReviewPort,
@@ -65,4 +67,23 @@ def deepseek_preproduction_ports(
         DeepSeekScriptProposalReviewPort(transport=transport, config=review),
         DeepSeekShootingPlanningPort(transport=transport, config=generation),
         DeepSeekShootingProposalReviewPort(transport=transport, config=review),
+    )
+
+
+def deepseek_director_port(
+    *, model: str = "deepseek-v4-flash", transport: DeepSeekChatTransport | None = None
+) -> DirectorPort:
+    if transport is None:
+        api_key = os.environ.get("DEEPSEEK_API_KEY", "")
+        if not api_key.strip():
+            raise ProviderConfigurationError("DEEPSEEK_API_KEY is required for provider=deepseek")
+        transport = UrllibDeepSeekChatTransport(api_key=api_key)
+    return DeepSeekDirectorPort(
+        transport=transport,
+        config=DeepSeekChatConfig(
+            model=model,
+            thinking_enabled=False,
+            max_tokens=4_000,
+            temperature=PLANNING_TEMPERATURE,
+        ),
     )

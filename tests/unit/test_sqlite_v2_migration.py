@@ -125,7 +125,7 @@ def test_v1_database_migrates_without_rewriting_legacy_payload(tmp_path: Path) -
 
     database.initialize()
 
-    assert database.schema_version() == 5
+    assert database.schema_version() == 6
     with database.read_connection() as connection:
         row = connection.execute(
             "SELECT payload_json FROM assets WHERE entity_id = 'ast_legacy' AND revision = 1"
@@ -140,6 +140,7 @@ def test_v1_database_migrates_without_rewriting_legacy_payload(tmp_path: Path) -
         (2, 3),
         (3, 4),
         (4, 5),
+        (5, 6),
     ]
 
 
@@ -180,7 +181,7 @@ def test_schema_migration_is_idempotent(tmp_path: Path) -> None:
 
     with database.read_connection() as connection:
         count = int(connection.execute("SELECT COUNT(*) FROM project_migrations").fetchone()[0])
-    assert count == 4
+    assert count == 5
 
 
 def test_schema_migration_rolls_back_transactionally(

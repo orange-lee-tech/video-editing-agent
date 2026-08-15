@@ -12,11 +12,13 @@ from video_editing_agent.adapters.cli.media_config import (
 )
 from video_editing_agent.adapters.cli.provider_config import (
     ProviderConfigurationError,
+    deepseek_director_port,
     deepseek_preproduction_ports,
 )
 from video_editing_agent.application.ports.preproduction_planning import PlanningPolicyGuidance
 from video_editing_agent.application.ports.shot_detector import ShotDetectionOptions
 from video_editing_agent.application.ports.shot_index import ShotCandidate
+from video_editing_agent.application.use_cases.editing_director import GenerateEditPlanRequest
 from video_editing_agent.domain.asset.model import AssetProvenance
 from video_editing_agent.domain.asset.policy import AssetUsageRole
 from video_editing_agent.domain.common.entity import EntityRevisionRef
@@ -42,6 +44,7 @@ from video_editing_agent.planning.policy.guidance import to_planning_policy_guid
 from video_editing_agent.planning.policy.model import CommercialPolicySelection, MarketingObjective
 from video_editing_agent.storage.asset.repository_media import RepositoryLocalAssetMediaResolver
 from video_editing_agent.storage.project import ProjectWorkspace
+from video_editing_agent.storage.repositories.edit_plan_codec import encode_edit_plan
 from video_editing_agent.storage.repositories.preproduction_codec import (
     decode_brief,
     encode_brief,
@@ -174,6 +177,21 @@ def _parser() -> argparse.ArgumentParser:
         command = item_sub.add_parser("list")
         command.add_argument("shot_id")
         command.add_argument("shot_revision", type=int)
+    edit_plan = sub.add_parser("edit-plan")
+    edit_plan_sub = edit_plan.add_subparsers(dest="action", required=True)
+    edit_plan_show = edit_plan_sub.add_parser("show")
+    edit_plan_show.add_argument("entity_id")
+    edit_plan_show.add_argument("revision", type=int)
+    edit_plan_generate = edit_plan_sub.add_parser("generate")
+    edit_plan_generate.add_argument("brief_id")
+    edit_plan_generate.add_argument("brief_revision", type=int)
+    edit_plan_generate.add_argument("--edit-plan-id", required=True)
+    edit_plan_generate.add_argument("--provider", choices=("deepseek",), required=True)
+    edit_plan_generate.add_argument("--model", default="deepseek-v4-flash")
+    edit_plan_generate.add_argument("--script-id")
+    edit_plan_generate.add_argument("--script-revision", type=int)
+    edit_plan_generate.add_argument("--shooting-id")
+    edit_plan_generate.add_argument("--shooting-revision", type=int)
     return parser
 
 
@@ -296,6 +314,34 @@ def _constraints(path: Path) -> ProductionConstraints:
 
 def _run(args: argparse.Namespace) -> object:
     workspace = ProjectWorkspace.open(args.project)
+    if args.resource == "edit-plan":
+        if args.action == "show":
+            return _json(
+                encode_edit_plan(
+                    workspace.edit_plans.load(EntityRevisionRef(args.entity_id, args.revision))
+                )
+            )
+        if (args.script_id is None) != (args.script_revision is None) or (
+            args.shooting_id is None
+        ) != (args.shooting_revision is None):
+            raise ValueError("optional Planning IDs require matching revision arguments")
+        editing_runtime = workspace.editing_runtime(
+            director=deepseek_director_port(model=args.model)
+        )
+        edit_plan_result = editing_runtime.editing.generate_edit_plan(
+            GenerateEditPlanRequest(
+                args.edit_plan_id,
+                EntityRevisionRef(args.brief_id, args.brief_revision),
+                None
+                if args.script_id is None
+                else EntityRevisionRef(args.script_id, args.script_revision),
+                None
+                if args.shooting_id is None
+                else EntityRevisionRef(args.shooting_id, args.shooting_revision),
+                created_by="cli",
+            )
+        )
+        return _json(encode_edit_plan(edit_plan_result))
     if args.resource == "shot" and args.action == "detect":
         ref = EntityRevisionRef(args.asset_id, args.asset_revision)
         detector = transnetv2_detector(
@@ -343,7 +389,7 @@ def _run(args: argparse.Namespace) -> object:
         )
     if args.resource == "script" and args.action in {"generate", "revise"}:
         ports = deepseek_preproduction_ports(model=args.model)
-        runtime = workspace.runtime(
+        preproduction_runtime = workspace.runtime(
             script_planning=ports.script_planning,
             script_review=ports.script_review,
             shooting_planning=ports.shooting_planning,
@@ -351,16 +397,16 @@ def _run(args: argparse.Namespace) -> object:
         )
         ref = EntityRevisionRef(args.entity_id, args.revision)
         script_result = (
-            runtime.preproduction.generate_script(ref, _policy(args.policy_json))
+            preproduction_runtime.preproduction.generate_script(ref, _policy(args.policy_json))
             if args.action == "generate"
-            else runtime.preproduction.revise_script(
+            else preproduction_runtime.preproduction.revise_script(
                 ref, args.instruction, _policy(args.policy_json)
             )
         )
         return _json(encode_script_plan(script_result))
     if args.resource == "shooting" and args.action == "generate":
         ports = deepseek_preproduction_ports(model=args.model)
-        runtime = workspace.runtime(
+        preproduction_runtime = workspace.runtime(
             script_planning=ports.script_planning,
             script_review=ports.script_review,
             shooting_planning=ports.shooting_planning,
@@ -368,7 +414,7 @@ def _run(args: argparse.Namespace) -> object:
         )
         return _json(
             encode_shooting_plan(
-                runtime.preproduction.generate_shooting(
+                preproduction_runtime.preproduction.generate_shooting(
                     EntityRevisionRef(args.entity_id, args.revision),
                     _constraints(args.constraints_json),
                     _policy(args.policy_json),
@@ -430,8 +476,10 @@ def _run(args: argparse.Namespace) -> object:
             _candidate(item) for item in workspace.shot_index.search(args.query, limit=args.limit)
         ]
     if args.resource == "coverage":
-        plan = workspace.shooting_plans.load(EntityRevisionRef(args.shooting_id, args.revision))
-        return _coverage(workspace.coverage.evaluate(plan))
+        shooting_plan = workspace.shooting_plans.load(
+            EntityRevisionRef(args.shooting_id, args.revision)
+        )
+        return _coverage(workspace.coverage.evaluate(shooting_plan))
     if args.resource in {"evidence", "anchor"}:
         ref = EntityRevisionRef(args.shot_id, args.shot_revision)
         values = (

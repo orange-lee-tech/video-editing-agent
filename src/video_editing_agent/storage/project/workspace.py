@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from video_editing_agent.application.ports.director import DirectorPort
 from video_editing_agent.application.ports.preproduction_planning import (
     ScriptPlanningPort,
     ShootingPlanningPort,
@@ -14,9 +15,12 @@ from video_editing_agent.application.ports.preproduction_review import (
 from video_editing_agent.application.ports.shot_detector import ShotDetectionOptions, ShotDetector
 from video_editing_agent.application.ports.shot_index import ShotIndexSource
 from video_editing_agent.application.ports.understanding import UnderstandingService
+from video_editing_agent.application.use_cases.editing_director import EditingDirectorWorkflow
 from video_editing_agent.application.use_cases.runtime import (
     ApplicationRuntime,
     CoverageResult,
+    EditingApplicationRuntime,
+    EditingOperations,
     MediaOperations,
     PreproductionOperations,
 )
@@ -42,6 +46,7 @@ from video_editing_agent.storage.repositories.preproduction_repositories import 
 from video_editing_agent.storage.repositories.sqlite_database import SqliteProjectDatabase
 from video_editing_agent.storage.repositories.sqlite_repositories import (
     SqliteAssetRepository,
+    SqliteEditPlanRepository,
     SqliteShotAnalysisRepository,
     SqliteShotRepository,
 )
@@ -63,6 +68,7 @@ class ProjectWorkspace:
     assets: SqliteAssetRepository
     shots: SqliteShotRepository
     analyses: SqliteShotAnalysisRepository
+    edit_plans: SqliteEditPlanRepository
     temporal: SqliteTemporalEvidenceRepository
     shot_index: LexicalShotIndex
     coverage: CoverageService
@@ -82,6 +88,7 @@ class ProjectWorkspace:
         assets = SqliteAssetRepository(database)
         shots = SqliteShotRepository(database)
         analyses = SqliteShotAnalysisRepository(database)
+        edit_plans = SqliteEditPlanRepository(database)
         temporal = SqliteTemporalEvidenceRepository(database)
         shot_index = LexicalShotIndex()
         shot_by_ref = {
@@ -103,6 +110,7 @@ class ProjectWorkspace:
             assets=assets,
             shots=shots,
             analyses=analyses,
+            edit_plans=edit_plans,
             temporal=temporal,
             shot_index=shot_index,
             coverage=CoverageService(
@@ -128,6 +136,7 @@ class ProjectWorkspace:
                 "briefs": self.briefs.count(),
                 "script_plans": self.scripts.count(),
                 "shooting_plans": self.shooting_plans.count(),
+                "edit_plans": self.edit_plans.count(),
             },
             "capabilities": {
                 "local_persistence": True,
@@ -148,6 +157,19 @@ class ProjectWorkspace:
             for analysis in self.analyses.list_latest()
             if analysis.shot_ref in shot_by_ref
         )
+
+    def editing_runtime(self, *, director: DirectorPort) -> EditingApplicationRuntime:
+        workflow = EditingDirectorWorkflow(
+            briefs=self.briefs,
+            scripts=self.scripts,
+            shooting_plans=self.shooting_plans,
+            assets=self.assets,
+            shots=self.shots,
+            analyses=self.analyses,
+            edit_plans=self.edit_plans,
+            director=director,
+        )
+        return EditingApplicationRuntime(EditingOperations(workflow.generate, self.edit_plans.load))
 
     def runtime(
         self,

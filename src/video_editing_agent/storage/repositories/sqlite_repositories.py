@@ -3,12 +3,18 @@ from __future__ import annotations
 import sqlite3
 
 from video_editing_agent.application.ports.asset_repository import AssetRepository
+from video_editing_agent.application.ports.edit_plan_repository import EditPlanRepository
 from video_editing_agent.application.ports.shot_analysis_repository import ShotAnalysisRepository
 from video_editing_agent.application.ports.shot_repository import ShotPersistenceRepository
 from video_editing_agent.domain.asset.model import Asset
 from video_editing_agent.domain.common.entity import EntityRevisionRef
+from video_editing_agent.domain.edit.model import EditPlan
 from video_editing_agent.domain.shot.analysis import ShotAnalysis
 from video_editing_agent.domain.shot.model import Shot
+from video_editing_agent.storage.repositories.edit_plan_codec import (
+    decode_edit_plan,
+    encode_edit_plan,
+)
 from video_editing_agent.storage.repositories.record_codec import (
     PersistenceIntegrityError,
     decode_asset,
@@ -231,3 +237,73 @@ class SqliteShotAnalysisRepository(ShotAnalysisRepository):
                 """
             ).fetchall()
         return tuple(decode_shot_analysis(str(row["payload_json"])) for row in rows)
+
+
+class SqliteEditPlanRepository(EditPlanRepository):
+    def __init__(self, database: SqliteProjectDatabase) -> None:
+        self._database = database
+
+    def save(self, edit_plan: EditPlan) -> None:
+        if edit_plan.brief_ref is None:
+            raise ValueError("persisted production EditPlan requires exact Brief provenance")
+        payload = encode_edit_plan(edit_plan)
+        identity = (edit_plan.envelope.id, edit_plan.envelope.revision)
+        script = edit_plan.script_plan_ref
+        shooting = edit_plan.shooting_plan_ref
+        with self._database.write_connection() as connection:
+            _save_immutable_record(
+                connection,
+                table="edit_plans",
+                identity_columns=("entity_id", "revision"),
+                identity_values=identity,
+                insert_columns=(
+                    "entity_id",
+                    "revision",
+                    "brief_entity_id",
+                    "brief_revision",
+                    "script_plan_entity_id",
+                    "script_plan_revision",
+                    "shooting_plan_entity_id",
+                    "shooting_plan_revision",
+                    "payload_json",
+                ),
+                insert_values=(
+                    *identity,
+                    edit_plan.brief_ref.entity_id,
+                    edit_plan.brief_ref.revision,
+                    None if script is None else script.entity_id,
+                    None if script is None else script.revision,
+                    None if shooting is None else shooting.entity_id,
+                    None if shooting is None else shooting.revision,
+                    payload,
+                ),
+                payload_json=payload,
+            )
+
+    def load(self, edit_plan_ref: EntityRevisionRef) -> EditPlan:
+        with self._database.read_connection() as connection:
+            row = connection.execute(
+                "SELECT payload_json FROM edit_plans WHERE entity_id = ? AND revision = ?",
+                (edit_plan_ref.entity_id, edit_plan_ref.revision),
+            ).fetchone()
+        if row is None:
+            raise KeyError(edit_plan_ref)
+        plan = decode_edit_plan(str(row["payload_json"]))
+        actual = EntityRevisionRef(plan.envelope.id, plan.envelope.revision)
+        if actual != edit_plan_ref:
+            raise PersistenceIntegrityError(
+                f"EditPlan row identity {edit_plan_ref!r} disagrees with payload {actual!r}"
+            )
+        return plan
+
+    def latest_revision(self, entity_id: str) -> int | None:
+        with self._database.read_connection() as connection:
+            row = connection.execute(
+                "SELECT MAX(revision) AS revision FROM edit_plans WHERE entity_id = ?",
+                (entity_id,),
+            ).fetchone()
+        return None if row is None or row["revision"] is None else int(row["revision"])
+
+    def count(self) -> int:
+        with self._database.read_connection() as connection:
+            return int(connection.execute("SELECT COUNT(*) FROM edit_plans").fetchone()[0])
