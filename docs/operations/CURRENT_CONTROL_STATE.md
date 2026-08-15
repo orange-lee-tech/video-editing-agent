@@ -4,12 +4,11 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-15
 current_phase: R0.12
-phase_state: PRODUCT_IMPLEMENTATION_SUBTITLE_AUDIT_GUARD
+phase_state: PRODUCT_IMPLEMENTATION_SUBTITLE_CLOSED_HANDOFF
 active_work_order: R0.12-SUBTITLE-001
-accepted_code_baseline: 9f06386f9f311fe241f250f4679fa6b2042699b0
-candidate_code_baseline: 12e4049c53a9597fba2a6654701d779d496b9433
+accepted_code_baseline: 827b84941e1726bab374f2ffea9a746f49f6e570
 control_plane_baseline: 1012f239aa95899e914ba6091c3b825dfc6302fe
-previous_work_order: R0.12-SMOKE-001
+previous_work_order: R0.12-SUBTITLE-001
 previous_work_order_result: PASS
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
@@ -19,22 +18,23 @@ writer: chatgpt
 
 ## Routing truth
 
-`R0.12-SMOKE-001` remains the latest fully accepted code baseline at `9f06386f9f311fe241f250f4679fa6b2042699b0`.
+`R0.12-SUBTITLE-001` is accepted and closed at `827b84941e1726bab374f2ffea9a746f49f6e570`.
 
-`12e4049c53a9597fba2a6654701d779d496b9433` is a strong `R0.12-SUBTITLE-001` implementation candidate. Independent GitHub review confirms one bounded fast-forward commit, remote `ci/quality-gate-diagnostic` success, structured subtitle cue payloads in canonical EDL, v3 deterministic serialization with v2 backward read support, fail-closed subtitle validation, deterministic ASS/libass burn-in, English/Chinese region-pixel evidence, and the existing living Resolver → EDLBuilder → Renderer smoke remaining green.
+Independent GitHub review confirms that the closure commit is one bounded fast-forward commit from the previous governance baseline, changes only the four expected subtitle/renderer test-probe files, and has remote `ci/quality-gate-diagnostic = success`.
 
-The candidate is **not yet recorded as a fully accepted subtitle baseline** because independent review found two execution-authority guards that must be resolved before closure:
+The accepted Stage-A subtitle boundary now has explicit fail-closed execution semantics:
 
-1. the ASS writer currently converts exact rational `MediaTime` to centiseconds with `round(time * 100)`, so cue times outside the ASS centisecond grid are silently retimed even though the work order requires Renderer not to retime canonical EDL cues;
-2. canonical EDL may contain multiple SUBTITLE tracks/layers, while the baseline ASS writer flattens all subtitle cues into the same ASS `Layer 0`; the baseline must either preserve an explicitly supported layer mapping or fail closed on unsupported multi-track subtitle semantics.
+- canonical non-centisecond subtitle cue boundaries are rejected before FFmpeg invocation instead of silently rounded/retimed;
+- Stage-A ASS execution accepts at most one layer-zero SUBTITLE track and rejects unsupported multi-track/nonzero-layer semantics before invocation;
+- the live Windows/libass probe executes an actual ASS filter path whose parent directory contains both comma and apostrophe punctuation;
+- structured subtitle cues, exact rational canonical EDL, schema-v3 round-trip/v2 backward read, bounded emphasis/safe-zone intent and the prior multilingual engineering evidence remain preserved;
+- semantic correctness of fallback multilingual glyph shapes remains a downstream font/environment/Human-Gate concern, not a claim made by this Engineering Probe.
 
-A smaller verification gap also remains: the live probe proves a final output filename containing comma/apostrophe works, but the generated ASS filter path itself does not contain those punctuation characters. If path escaping is retained as a claimed gate, exercise punctuation in the actual subtitle-artifact parent path rather than only the output filename.
-
-The multilingual probe correctly does **not** claim semantic Chinese glyph correctness without OCR/Human Gate and does not redistribute a font. That limitation is not a current structural blocker.
+Reported local closure verification: focused tests 39 PASS, subtitle live probe 8/8 PASS, living Resolver → EDLBuilder → Renderer smoke 10/10 PASS, Ruff PASS, mypy PASS, pytest 541 PASS, import-linter 3 contracts kept, `uv build` PASS and `git diff --check` PASS.
 
 ## Information economy rule
 
-Normal Codex work starts from foreman L0. Open secondary context only when a concrete trigger occurs.
+Normal Codex work starts from foreman L0 only after a new ACTIVE work order exists. Open secondary context only on a concrete trigger.
 
 - code location unclear -> `location`;
 - architecture/ownership ambiguity -> `architecture`;
@@ -43,10 +43,8 @@ Normal Codex work starts from foreman L0. Open secondary context only when a con
 - license/provider uncertainty -> `external`;
 - destructive/high-risk operation -> `high-risk`.
 
-Do not preload unrelated CAPs, project history or broad repository surfaces.
-
 ## Current gate
 
-Hold `R0.12-SUBTITLE-001` at its existing boundary. Do not advance into Graphics, transitions, Preview, Proxy/cache or later R0.12 work until the subtitle execution-authority guards above are explicitly resolved and reverified.
+There is intentionally no active downstream implementation task yet. `CURRENT_WORK_ORDER.md` is CLOSED, so Foreman should block until ChatGPT/Product Owner pre-processes the next coherent R0.12 batch and activates a new work order.
 
-No new downstream work order is active. Resume only on a new Product Owner instruction; when resumed, finish this existing subtitle work order rather than opening a speculative new subsystem.
+Do not reopen Subtitle or expand its system without new evidence. The next planning surface is the remaining R0.12 execution/productization terrain: bounded Graphics/minimal transitions, Preview backend, Proxy/cache and remaining Renderer operational needs. ChatGPT should first decide what can be handled through GitHub/User PowerShell and reserve Codex for local runtime, benchmark or complex multi-file work.

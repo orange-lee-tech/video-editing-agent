@@ -1,62 +1,45 @@
 # Current Work Order
 
 **ID:** `R0.12-SUBTITLE-001`  
-**Status:** ACTIVE  
+**Status:** CLOSED  
 **Phase:** R0.12 — structured subtitle execution audit closure  
-**Owner/writer:** Codex
+**Owner/writer:** Codex + ChatGPT acceptance
 
-## Objective
+## Result
 
-Finish the existing structured-subtitle boundary by resolving the remaining execution-authority audit guards without broadening scope. Preserve the accepted body of the `12e4049c53a9597fba2a6654701d779d496b9433` candidate; do not advance into another R0.12 subsystem until subtitle execution is fail-closed and faithful to canonical EDL semantics.
+PASS at accepted code baseline `827b84941e1726bab374f2ffea9a746f49f6e570`.
 
-## Read
+The existing structured subtitle implementation was preserved and only the recorded execution-authority guards were closed:
 
-1. `docs/capabilities/CAP-08_EDL_RENDER_PREVIEW_SUBTITLE.md`
-2. `src/video_editing_agent/domain/edl/subtitle.py`
-3. `src/video_editing_agent/domain/edl/validation.py`
-4. `src/video_editing_agent/render/edl_ffmpeg.py`
-5. `tests/unit/test_r0_12_subtitle_execution.py`
-6. `tools/probes/r0_12_subtitle_live.py`
+- non-centisecond canonical cue boundaries fail closed before FFmpeg invocation;
+- unsupported multiple SUBTITLE tracks or nonzero subtitle layers fail closed before invocation;
+- the real ASS/libass filter path is exercised under a parent directory containing comma and apostrophe punctuation.
 
-Use foreman `architecture` only if exact EDL→backend timing/layer ownership is genuinely ambiguous. Use `quality` only after a concrete verification failure. Do not preload unrelated R0.12 areas.
+No Graphics, transitions, Preview, Proxy/cache, hardware-routing, packaging or UI work was entered.
 
-## Accepted candidate body
+## Verification accepted
 
-The implementation candidate already provides the intended Stage-A shape and should not be redesigned without evidence:
+- Focused subtitle/EDL/Renderer tests: 39 PASS.
+- Subtitle live Engineering Probe: 8/8 PASS.
+- Living Resolver → EDLBuilder → Renderer smoke: 10/10 PASS.
+- Ruff: PASS.
+- mypy: PASS.
+- Full pytest: 541 PASS.
+- import-linter: 3 contracts kept.
+- `uv build`: PASS.
+- `git diff --check`: PASS.
+- Remote `ci/quality-gate-diagnostic`: success.
+- GitHub independent review: one bounded commit, four expected files only, `main` aligned to the accepted commit.
 
-- approved `StructuredSubtitleCue` → canonical `EDLSubtitleCue` without fake media Assets;
-- exact rational cue ranges retained in canonical EDL;
-- language, optional speaker reference, bounded emphasis and upper/lower safe-zone intent;
-- deterministic EDL schema v3 codec with v2 backward reading;
-- validator diagnostics for duplicate IDs, track/range/text/language/layout/emphasis/overlap errors;
-- deterministic ASS/libass burn-in through the existing EDL-driven Renderer;
-- escaped subtitle text, typed process invocation and `shell=False`;
-- English + Chinese region-pixel Engineering Probe with no unsupported semantic-glyph claim;
-- living Resolver → EDLBuilder → Renderer smoke remains green.
-
-## Required audit closure delta
-
-- **Exact-time execution:** canonical EDL remains exact rational authority. The ASS backend must not silently `round()` arbitrary cue boundaries and thereby retime them. Either preserve exact semantics through an explicitly supported backend representation, or detect cue times that cannot be represented by the current ASS baseline and fail closed with a stable structured diagnostic before invocation. Do not change canonical cue timing to make the backend happy.
-- **Subtitle track/layer semantics:** the Stage-A baseline must have one explicit deterministic rule for multiple SUBTITLE tracks. Either map supported EDL subtitle track/layer ordering into backend layer semantics without losing authority, or explicitly reject unsupported multi-track/layer input. Do not silently flatten distinct canonical layers into one ASS layer.
-- **Path-escaping evidence:** keep the current escaping implementation if correct, but make the live/contract evidence exercise punctuation in the actual ASS filter path (for example a controlled parent directory containing comma/apostrophe) rather than treating a punctuated final MP4 filename as proof of filter-path escaping.
-- Preserve the current v2 backward-read behavior and canonical v3 round-trip.
-- Preserve the multilingual glyph limitation honestly: render/pixel evidence is engineering evidence; semantic glyph correctness remains a separate font/environment/Human-Gate question.
-- Rerun focused subtitle tests/probe, the living integration smoke, and the full repository Quality Gate after the bounded closure repair.
-
-## Hard boundaries
+## Durable boundary
 
 - EDL remains sole exact executable timeline authority.
-- Renderer may encode supported backend syntax; it may not retime, relayer, rewrite or repair canonical subtitle decisions silently.
-- Do not redesign the subtitle model, add a general typography engine, or expand EDL beyond a concrete closure blocker.
-- No ASR rewriting/translation, karaoke, font redistribution, Graphics/CTA/price cards, transitions, Preview, Proxy/cache, hardware routing, packaging or UI.
-- No new third-party dependency unless a concrete blocker proves it necessary.
+- Renderer must not silently retime, relayer, rewrite or repair canonical subtitle decisions.
+- Stage-A subtitle execution remains deliberately small: one layer-zero subtitle track, ASS/libass burn-in, bounded emphasis/layout intent.
+- Rich typography, karaoke, multi-layer subtitles and font-packaging quality are not silently implied by this closure.
 
-## Verification
+## Stop state
 
-Focused subtitle/EDL/Renderer tests must cover non-centisecond rational cue timing and multi-SUBTITLE-track/layer behavior explicitly. Run the multilingual subtitle Engineering Probe, the living Resolver → EDLBuilder → Renderer smoke, the full repository Quality Gate, import contracts and `git diff --check`.
+This work order is finished. Do not run Foreman against it as though it were active.
 
-## Stop gate
-
-Stop when the existing subtitle candidate is faithful or explicitly fail-closed for backend time/layer representability, the actual ASS filter-path punctuation case is exercised, all required checks are green, changes are committed/pushed, and the working tree is clean.
-
-Do not continue into Graphics, transitions, Preview, Proxy/cache or another roadmap phase. Await Product Owner direction after subtitle closure.
+ChatGPT/Product Owner must pre-process the next coherent R0.12 batch, decide whether GitHub/User PowerShell can complete it without Codex, then replace this file with a new ACTIVE work order only when execution is ready.
