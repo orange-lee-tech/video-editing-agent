@@ -14,6 +14,7 @@ ADRs record important concrete choices that should not be hidden inside implemen
 - `ADR-006_RIGHTS_AWARE_AUDIO_SELECTION.md`
 - `ADR-007_SPATIAL_COMPOSER_AUTO_REFRAME.md`
 - `ADR-008_DEPENDENCY_LICENSE_CHAIN_GATE.md`
+- `ADR-009_TWO_CORE_WORKFLOWS_PARALLEL_ENTRY.md`
 
 ## Status meanings
 
