@@ -79,6 +79,7 @@ def test_explicit_slot_can_resolve_to_multiple_grounded_selections() -> None:
     assert len(decision.selections) == 2
     assert tuple(x.order for x in decision.selections) == (0, 1)
 
+
 def test_planning_context_does_not_change_resolution_authority() -> None:
     slot = _slot("one", 0)
     envelope = EntityEnvelope(

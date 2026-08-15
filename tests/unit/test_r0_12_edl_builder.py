@@ -304,6 +304,7 @@ def test_builder_refuses_unmappable_spatial_and_audio_decisions() -> None:
         EDLBuildDiagnosticCode.SPATIAL_DECISION_INVALID,
     }
 
+
 def test_builder_timeline_is_independent_of_planning_provenance() -> None:
     legacy_plan, decisions, shots = _fixture()
     brief_ref = EntityRevisionRef("brief", 1)
