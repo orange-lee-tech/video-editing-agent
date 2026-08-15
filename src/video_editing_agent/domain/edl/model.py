@@ -6,6 +6,7 @@ from enum import StrEnum
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTimeRange
 from video_editing_agent.domain.edl.automation import EDLAudioAutomation, EDLSpatialAutomation
+from video_editing_agent.domain.edl.subtitle import EDLSubtitleCue
 
 
 class EDLTrackFamily(StrEnum):
@@ -173,6 +174,7 @@ class EDL:
     edit_plan_ref: EntityRevisionRef
     segments: tuple[EDLSegment, ...]
     tracks: tuple[EDLTrack, ...] = ()
+    subtitle_cues: tuple[EDLSubtitleCue, ...] = ()
 
     @property
     def effective_tracks(self) -> tuple[EDLTrack, ...]:
@@ -198,6 +200,20 @@ class EDL:
                     segment.timeline_range.start.as_fraction(),
                     segment.timeline_range.end.as_fraction(),
                     segment.segment_id,
+                ),
+            )
+        )
+
+    @property
+    def ordered_subtitle_cues(self) -> tuple[EDLSubtitleCue, ...]:
+        return tuple(
+            sorted(
+                self.subtitle_cues,
+                key=lambda cue: (
+                    cue.timeline_range.start.as_fraction(),
+                    cue.timeline_range.end.as_fraction(),
+                    cue.track_id,
+                    cue.cue_id,
                 ),
             )
         )

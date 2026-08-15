@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -9,6 +10,11 @@ from video_editing_agent.domain.edl.automation import (
     ExactRational,
 )
 from video_editing_agent.domain.edl.model import EDL, EDLSegment, EDLTrackFamily
+from video_editing_agent.domain.edl.subtitle import (
+    EDLSubtitleCue,
+    SubtitleEmphasisStyle,
+    SubtitleLayoutRegion,
+)
 
 
 class EDLDiagnosticCode(StrEnum):
@@ -25,6 +31,15 @@ class EDLDiagnosticCode(StrEnum):
     AUDIO_LOOP_INVALID = "audio_loop_invalid"
     AUTOMATION_TIME_MAPPING_INVALID = "automation_time_mapping_invalid"
     AUDIO_KIND_UNSUPPORTED = "audio_kind_unsupported"
+    DUPLICATE_SUBTITLE_CUE_ID = "duplicate_subtitle_cue_id"
+    SUBTITLE_IDENTITY_INVALID = "subtitle_identity_invalid"
+    SUBTITLE_TRACK_INVALID = "subtitle_track_invalid"
+    SUBTITLE_RANGE_INVALID = "subtitle_range_invalid"
+    SUBTITLE_TEXT_INVALID = "subtitle_text_invalid"
+    SUBTITLE_LANGUAGE_INVALID = "subtitle_language_invalid"
+    SUBTITLE_LAYOUT_INVALID = "subtitle_layout_invalid"
+    SUBTITLE_EMPHASIS_INVALID = "subtitle_emphasis_invalid"
+    SUBTITLE_OVERLAP_UNSUPPORTED = "subtitle_overlap_unsupported"
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,8 +141,132 @@ def validate_edl(edl: EDL) -> EDLValidationResult:
         diagnostics.extend(_automation_findings(segment, track_families.get(segment.track_id)))
 
     diagnostics.extend(_overlap_findings(edl.segments))
+    diagnostics.extend(_subtitle_findings(edl, track_families))
     diagnostics.sort(key=lambda item: (item.code.value, item.track_id or "", item.segment_ids))
     return EDLValidationResult(diagnostics=tuple(diagnostics))
+
+
+_LANGUAGE = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
+
+
+def _cue_diagnostic(cue: EDLSubtitleCue, code: EDLDiagnosticCode, message: str) -> EDLDiagnostic:
+    return EDLDiagnostic(code, message, (cue.cue_id,), cue.track_id)
+
+
+def _subtitle_findings(edl: EDL, track_families: dict[str, EDLTrackFamily]) -> list[EDLDiagnostic]:
+    findings: list[EDLDiagnostic] = []
+    seen: set[str] = set()
+    video_end = max(
+        (
+            segment.timeline_range.end.as_fraction()
+            for segment in edl.segments
+            if track_families.get(segment.track_id) is EDLTrackFamily.VIDEO
+        ),
+        default=None,
+    )
+    by_track: dict[str, list[EDLSubtitleCue]] = {}
+    for cue in edl.subtitle_cues:
+        if not cue.cue_id.strip() or (cue.speaker_ref is not None and not cue.speaker_ref.strip()):
+            findings.append(
+                _cue_diagnostic(
+                    cue,
+                    EDLDiagnosticCode.SUBTITLE_IDENTITY_INVALID,
+                    "cue identity and optional speaker reference must not be empty",
+                )
+            )
+        if cue.cue_id in seen:
+            findings.append(
+                _cue_diagnostic(
+                    cue,
+                    EDLDiagnosticCode.DUPLICATE_SUBTITLE_CUE_ID,
+                    "subtitle cue IDs must be unique",
+                )
+            )
+        seen.add(cue.cue_id)
+        if track_families.get(cue.track_id) is not EDLTrackFamily.SUBTITLE:
+            findings.append(
+                _cue_diagnostic(
+                    cue,
+                    EDLDiagnosticCode.SUBTITLE_TRACK_INVALID,
+                    "subtitle cues require a defined SUBTITLE track",
+                )
+            )
+        start = cue.timeline_range.start.as_fraction()
+        end = cue.timeline_range.end.as_fraction()
+        if start < 0 or video_end is None or end > video_end:
+            findings.append(
+                _cue_diagnostic(
+                    cue,
+                    EDLDiagnosticCode.SUBTITLE_RANGE_INVALID,
+                    "subtitle cue must remain inside the executable VIDEO timeline",
+                )
+            )
+        if not cue.text.strip() or "\x00" in cue.text:
+            findings.append(
+                _cue_diagnostic(
+                    cue,
+                    EDLDiagnosticCode.SUBTITLE_TEXT_INVALID,
+                    "subtitle text must be non-empty and safe",
+                )
+            )
+        if not _LANGUAGE.fullmatch(cue.language):
+            findings.append(
+                _cue_diagnostic(
+                    cue,
+                    EDLDiagnosticCode.SUBTITLE_LANGUAGE_INVALID,
+                    "subtitle language must be a bounded BCP-47-style tag",
+                )
+            )
+        if not isinstance(cue.layout, SubtitleLayoutRegion):
+            findings.append(
+                _cue_diagnostic(
+                    cue,
+                    EDLDiagnosticCode.SUBTITLE_LAYOUT_INVALID,
+                    "subtitle layout intent is unsupported",
+                )
+            )
+        previous_end = -1
+        for span in cue.emphasis:
+            if (
+                not isinstance(span.style, SubtitleEmphasisStyle)
+                or span.start < 0
+                or span.start >= span.end
+                or span.end > len(cue.text)
+                or span.start < previous_end
+            ):
+                findings.append(
+                    _cue_diagnostic(
+                        cue,
+                        EDLDiagnosticCode.SUBTITLE_EMPHASIS_INVALID,
+                        "emphasis spans must be ordered, non-overlapping character ranges",
+                    )
+                )
+                break
+            previous_end = span.end
+        by_track.setdefault(cue.track_id, []).append(cue)
+    for track_id, values in by_track.items():
+        ordered = sorted(
+            values,
+            key=lambda cue: (
+                cue.timeline_range.start.as_fraction(),
+                cue.timeline_range.end.as_fraction(),
+                cue.cue_id,
+            ),
+        )
+        for previous, current in zip(ordered, ordered[1:], strict=False):
+            if (
+                current.timeline_range.start.as_fraction()
+                < previous.timeline_range.end.as_fraction()
+            ):
+                findings.append(
+                    EDLDiagnostic(
+                        EDLDiagnosticCode.SUBTITLE_OVERLAP_UNSUPPORTED,
+                        "overlapping subtitle cues are unsupported by the baseline",
+                        (previous.cue_id, current.cue_id),
+                        track_id,
+                    )
+                )
+    return findings
 
 
 def _automation_findings(

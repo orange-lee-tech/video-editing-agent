@@ -225,7 +225,7 @@ def test_unsupported_or_incomplete_execution_fails_closed(
             request,
             edl=replace(
                 request.edl,
-                tracks=(*request.edl.tracks, EDLTrack("subtitle", EDLTrackFamily.SUBTITLE)),
+                tracks=(*request.edl.tracks, EDLTrack("graphics", EDLTrackFamily.GRAPHICS)),
             ),
         )
     elif mutate == "spatial":

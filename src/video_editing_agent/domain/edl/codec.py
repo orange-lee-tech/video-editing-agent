@@ -20,9 +20,16 @@ from video_editing_agent.domain.edl.automation import (
     ExactRational,
 )
 from video_editing_agent.domain.edl.model import EDL, EDLSegment, EDLTrack, EDLTrackFamily
+from video_editing_agent.domain.edl.subtitle import (
+    EDLSubtitleCue,
+    SubtitleEmphasisSpan,
+    SubtitleEmphasisStyle,
+    SubtitleLayoutRegion,
+)
 from video_editing_agent.domain.edl.validation import validate_edl
 
-EDL_SCHEMA_VERSION = "r0.12-edl-v2"
+EDL_SCHEMA_VERSION = "r0.12-edl-v3"
+_LEGACY_SCHEMA_VERSION = "r0.12-edl-v2"
 
 
 def _time(value: MediaTime) -> dict[str, int]:
@@ -119,6 +126,22 @@ def encode_edl(edl: EDL) -> bytes:
                     "audio_automations": [_audio(value) for value in item.audio_automations],
                 }
                 for item in edl.ordered_segments
+            ],
+            "subtitle_cues": [
+                {
+                    "cue_id": item.cue_id,
+                    "track_id": item.track_id,
+                    "timeline_range": _range(item.timeline_range),
+                    "text": item.text,
+                    "language": item.language,
+                    "speaker_ref": item.speaker_ref,
+                    "layout": item.layout.value,
+                    "emphasis": [
+                        {"start": span.start, "end": span.end, "style": span.style.value}
+                        for span in item.emphasis
+                    ],
+                }
+                for item in edl.ordered_subtitle_cues
             ],
         },
     }
@@ -236,7 +259,8 @@ def _decode_audio(value: Any, name: str) -> EDLAudioAutomation:
 
 def decode_edl(content: bytes) -> EDL:
     root = _object(json.loads(content), "root")
-    if root.get("schema_version") != EDL_SCHEMA_VERSION:
+    schema_version = root.get("schema_version")
+    if schema_version not in (EDL_SCHEMA_VERSION, _LEGACY_SCHEMA_VERSION):
         raise ValueError("unsupported EDL artifact schema")
     raw = _object(root.get("edl"), "edl")
     envelope_raw = _object(raw.get("envelope"), "edl.envelope")
@@ -297,11 +321,44 @@ def decode_edl(content: bytes) -> EDL:
                 ),
             )
         )
+    subtitle_cues = []
+    cue_values = (
+        []
+        if schema_version == _LEGACY_SCHEMA_VERSION
+        else _list(raw.get("subtitle_cues"), "edl.subtitle_cues")
+    )
+    for index, value in enumerate(cue_values):
+        item = _object(value, f"subtitle_cue[{index}]")
+        emphasis = tuple(
+            SubtitleEmphasisSpan(
+                _integer(span.get("start"), "subtitle_cue.emphasis.start"),
+                _integer(span.get("end"), "subtitle_cue.emphasis.end"),
+                SubtitleEmphasisStyle(_string(span.get("style"), "subtitle_cue.emphasis.style")),
+            )
+            for raw_span in _list(item.get("emphasis"), "subtitle_cue.emphasis")
+            for span in (_object(raw_span, "subtitle_cue.emphasis"),)
+        )
+        speaker_value = item.get("speaker_ref")
+        subtitle_cues.append(
+            EDLSubtitleCue(
+                _string(item.get("cue_id"), "subtitle_cue.cue_id"),
+                _string(item.get("track_id"), "subtitle_cue.track_id"),
+                _decode_range(item.get("timeline_range"), "subtitle_cue.timeline_range"),
+                _string(item.get("text"), "subtitle_cue.text"),
+                _string(item.get("language"), "subtitle_cue.language"),
+                None
+                if speaker_value is None
+                else _string(speaker_value, "subtitle_cue.speaker_ref"),
+                emphasis,
+                SubtitleLayoutRegion(_string(item.get("layout"), "subtitle_cue.layout")),
+            )
+        )
     edl = EDL(
         envelope,
         _decode_ref(raw.get("edit_plan_ref"), "edl.edit_plan_ref"),
         tuple(segments),
         tracks,
+        tuple(subtitle_cues),
     )
     validation = validate_edl(edl)
     if not validation.is_valid:

@@ -25,7 +25,12 @@ from video_editing_agent.domain.edl.automation import (
     EDLSpatialAutomation,
     ExactRational,
 )
-from video_editing_agent.domain.edl.model import EDLSegment, EDLTrackFamily
+from video_editing_agent.domain.edl.model import EDL, EDLSegment, EDLTrackFamily
+from video_editing_agent.domain.edl.subtitle import (
+    EDLSubtitleCue,
+    SubtitleEmphasisStyle,
+    SubtitleLayoutRegion,
+)
 from video_editing_agent.domain.edl.validation import validate_edl
 
 
@@ -34,6 +39,8 @@ class FFmpegRenderPlan:
     invocation: DeterministicToolInvocation
     expected_duration: MediaTime
     expects_audio: bool
+    subtitle_artifact_path: Path | None = None
+    subtitle_artifact_content: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +72,94 @@ def _contiguous(segments: tuple[EDLSegment, ...]) -> bool:
             return False
         cursor = segment.timeline_range.end
     return bool(segments)
+
+
+def _ass_time(value: MediaTime) -> str:
+    centiseconds = round(value.as_fraction() * 100)
+    hours, remainder = divmod(centiseconds, 360_000)
+    minutes, remainder = divmod(remainder, 6_000)
+    seconds, fraction = divmod(remainder, 100)
+    return f"{hours}:{minutes:02d}:{seconds:02d}.{fraction:02d}"
+
+
+def _ass_text(value: str) -> str:
+    return (
+        value.replace("\\", r"\\")
+        .replace("{", r"\{")
+        .replace("}", r"\}")
+        .replace("\r\n", r"\N")
+        .replace("\r", r"\N")
+        .replace("\n", r"\N")
+    )
+
+
+def _ass_cue_text(cue: EDLSubtitleCue) -> str:
+    cursor = 0
+    pieces: list[str] = []
+    for span in cue.emphasis:
+        pieces.append(_ass_text(cue.text[cursor : span.start]))
+        if span.style is SubtitleEmphasisStyle.BOLD:
+            pieces.extend((r"{\b1}", _ass_text(cue.text[span.start : span.end]), r"{\b0}"))
+        else:
+            pieces.extend(
+                (
+                    r"{\c&H00FFFF&}",
+                    _ass_text(cue.text[span.start : span.end]),
+                    r"{\c&HFFFFFF&}",
+                )
+            )
+        cursor = span.end
+    pieces.append(_ass_text(cue.text[cursor:]))
+    alignment = "8" if cue.layout is SubtitleLayoutRegion.UPPER_SAFE else "2"
+    return rf"{{\an{alignment}}}" + "".join(pieces)
+
+
+def build_ass_subtitles(edl: EDL, width: int, height: int) -> str:
+    cues = edl.ordered_subtitle_cues
+    font_size = max(18, (height * 6 + 50) // 100)
+    margin = max(12, (height * 8 + 50) // 100)
+    header = (
+        "[Script Info]\n"
+        "ScriptType: v4.00+\n"
+        f"PlayResX: {width}\nPlayResY: {height}\n"
+        "WrapStyle: 0\nScaledBorderAndShadow: yes\n\n"
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, "
+        "OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, "
+        "ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, "
+        "MarginR, MarginV, Encoding\n"
+        f"Style: Default,Arial,{font_size},&H00FFFFFF,&H0000FFFF,&H00000000,"
+        f"&H64000000,0,0,0,0,100,100,0,0,1,2,1,2,{margin},{margin},{margin},1\n\n"
+        "[Events]\n"
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+    )
+    events = "".join(
+        "Dialogue: 0,"
+        f"{_ass_time(cue.timeline_range.start)},{_ass_time(cue.timeline_range.end)},"
+        f"Default,,0,0,0,,{_ass_cue_text(cue)}\n"
+        for cue in cues
+    )
+    return header + events
+
+
+def _ffmpeg_filter_path(path: Path) -> str:
+    value = path.resolve(strict=False).as_posix()
+    for character in ("\\", ":", ",", "[", "]", ";"):
+        value = value.replace(character, "\\" + character)
+    return value.replace("'", r"\\\'")
+
+
+def _subtitle_artifact_path(request: RenderRequest) -> Path:
+    identity = (
+        "".join(
+            character if character.isascii() and character.isalnum() else "-"
+            for character in request.edl.envelope.id
+        ).strip("-")
+        or "edl"
+    )
+    spec = request.output_spec
+    name = f".{identity}.r{request.edl.envelope.revision}.{spec.width}x{spec.height}.subtitles.ass"
+    return spec.path.parent / name
 
 
 def _hold_expression(automation: EDLSpatialAutomation, attribute: str, start: MediaTime) -> str:
@@ -221,7 +316,12 @@ def compile_ffmpeg_render(
             RenderDiagnosticCode.UNSUPPORTED_OUTPUT,
             "Stage-A supports only explicit libx264/AAC MP4 output",
         )
-    supported = {EDLTrackFamily.VIDEO, EDLTrackFamily.SOURCE_AUDIO, EDLTrackFamily.BGM}
+    supported = {
+        EDLTrackFamily.VIDEO,
+        EDLTrackFamily.SOURCE_AUDIO,
+        EDLTrackFamily.BGM,
+        EDLTrackFamily.SUBTITLE,
+    }
     unsupported = tuple(
         track.track_id for track in request.edl.effective_tracks if track.family not in supported
     )
@@ -291,9 +391,18 @@ def compile_ffmpeg_render(
         label = f"v{index}"
         graph.append(f"[{input_index[segment.asset_ref]}:v:0]{compiled}[{label}]")
         video_labels.append(f"[{label}]")
+    subtitle_path: Path | None = None
+    subtitle_content: str | None = None
+    video_output = "vbase" if request.edl.subtitle_cues else "vout"
     graph.append(
-        f"{''.join(video_labels)}concat=n={len(video_labels)}:v=1:a=0,fps={spec.frames_per_second}[vout]"
+        f"{''.join(video_labels)}concat=n={len(video_labels)}:v=1:a=0,"
+        f"fps={spec.frames_per_second}[{video_output}]"
     )
+    if request.edl.subtitle_cues:
+        subtitle_path = _subtitle_artifact_path(request)
+        subtitle_content = build_ass_subtitles(request.edl, spec.width, spec.height)
+        escaped_path = _ffmpeg_filter_path(subtitle_path)
+        graph.append(f"[vbase]subtitles=filename='{escaped_path}'[vout]")
 
     audio_track_segments: list[tuple[str, tuple[EDLSegment, ...]]] = []
     for track_id in ("source_audio", "bgm"):
@@ -370,7 +479,14 @@ def compile_ffmpeg_render(
         (str(spec.path),),
     )
     return FFmpegCompilationResult(
-        FFmpegRenderPlan(invocation, expected_duration, bool(audio_outputs)), ()
+        FFmpegRenderPlan(
+            invocation,
+            expected_duration,
+            bool(audio_outputs),
+            subtitle_path,
+            subtitle_content,
+        ),
+        (),
     )
 
 
@@ -433,6 +549,11 @@ class FFmpegEDLRenderer(Renderer):
             return RenderResult(None, compilation.diagnostics)
         plan = compilation.plan
         request.output_spec.path.parent.mkdir(parents=True, exist_ok=True)
+        if plan.subtitle_artifact_path is not None:
+            assert plan.subtitle_artifact_content is not None
+            plan.subtitle_artifact_path.write_text(
+                plan.subtitle_artifact_content, encoding="utf-8", newline="\n"
+            )
         try:
             completed = _run(plan.invocation)
         except OSError as exc:
