@@ -4,8 +4,8 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-15
 current_phase: R0.12
-phase_state: PRODUCT_IMPLEMENTATION_SUBTITLE_CLOSED_HANDOFF
-active_work_order: R0.12-SUBTITLE-001
+phase_state: PRODUCT_IMPLEMENTATION_EDITPLAN_COMPAT_ACTIVE
+active_work_order: R0.12-EDITPLAN-COMPAT-001
 accepted_code_baseline: 827b84941e1726bab374f2ffea9a746f49f6e570
 control_plane_baseline: 1012f239aa95899e914ba6091c3b825dfc6302fe
 previous_work_order: R0.12-SUBTITLE-001
@@ -18,23 +18,35 @@ writer: chatgpt
 
 ## Routing truth
 
-`R0.12-SUBTITLE-001` is accepted and closed at `827b84941e1726bab374f2ffea9a746f49f6e570`.
+`R0.12-SUBTITLE-001` remains accepted and closed at code baseline `827b84941e1726bab374f2ffea9a746f49f6e570`.
 
-Independent GitHub review confirms that the closure commit is one bounded fast-forward commit from the previous governance baseline, changes only the four expected subtitle/renderer test-probe files, and has remote `ci/quality-gate-diagnostic = success`.
+The subsequent supervisory architecture audit identified a localized product-semantic defect: current `EditPlan` requires `script_plan_ref` and `shooting_plan_ref`, which incorrectly makes Planning artifacts prerequisites for Editing-only entry even though the Product Constitution defines Planning Core and Editing Core as parallel primary capabilities.
 
-The accepted Stage-A subtitle boundary now has explicit fail-closed execution semantics:
+`ADR-009_TWO_CORE_WORKFLOWS_PARALLEL_ENTRY.md` is now ACCEPTED. The Architecture Contract v0.2 Section 1 chain is interpreted as Combined Workflow, not the unique product path. Planning Workflow and Editing Workflow are independently legitimate; Combined mode composes them and reuses the same Editing Core.
 
-- canonical non-centisecond subtitle cue boundaries are rejected before FFmpeg invocation instead of silently rounded/retimed;
-- Stage-A ASS execution accepts at most one layer-zero SUBTITLE track and rejects unsupported multi-track/nonzero-layer semantics before invocation;
-- the live Windows/libass probe executes an actual ASS filter path whose parent directory contains both comma and apostrophe punctuation;
-- structured subtitle cues, exact rational canonical EDL, schema-v3 round-trip/v2 backward read, bounded emphasis/safe-zone intent and the prior multilingual engineering evidence remain preserved;
-- semantic correctness of fallback multilingual glyph shapes remains a downstream font/environment/Human-Gate concern, not a claim made by this Engineering Probe.
+## Current active boundary
 
-Reported local closure verification: focused tests 39 PASS, subtitle live probe 8/8 PASS, living Resolver → EDLBuilder → Renderer smoke 10/10 PASS, Ruff PASS, mypy PASS, pytest 541 PASS, import-linter 3 contracts kept, `uv build` PASS and `git diff --check` PASS.
+`R0.12-EDITPLAN-COMPAT-001` is ACTIVE.
 
-## Information economy rule
+The migration is deliberately narrow:
 
-Normal Codex work starts from foreman L0 only after a new ACTIVE work order exists. Open secondary context only on a concrete trigger.
+- add explicit Brief-rooted Editing intent/provenance semantics to `EditPlan`;
+- allow Editing-only plans without ScriptPlan/ShootingPlan;
+- retain exact Planning provenance for Combined mode;
+- preserve legacy combined construction where required for compatibility;
+- fail closed on broken provenance shapes;
+- add focused regression evidence that Planning context does not change Resolver/EDL authority for otherwise identical plans;
+- do not invent an EditPlan database migration because the current repository has no persisted EditPlan table/codec.
+
+Material modification of Resolver, CandidateWindow generation, EDLBuilder, Canonical EDL, Renderer, Media Understanding, subtitle, spatial or audio semantics is outside scope and is a stop/re-audit trigger.
+
+## Execution routing
+
+Current Codex release decision: **NO**.
+
+The audited production change is small enough to attempt through ChatGPT-authored deterministic patch + User PowerShell application/verification. Escalate to Codex only on evidence of unexpected multi-file/type/import/runtime complexity.
+
+Normal Foreman routing remains trigger-first:
 
 - code location unclear -> `location`;
 - architecture/ownership ambiguity -> `architecture`;
@@ -43,8 +55,8 @@ Normal Codex work starts from foreman L0 only after a new ACTIVE work order exis
 - license/provider uncertainty -> `external`;
 - destructive/high-risk operation -> `high-risk`.
 
-## Current gate
+## Next gate after this work order
 
-There is intentionally no active downstream implementation task yet. `CURRENT_WORK_ORDER.md` is CLOSED, so Foreman should block until ChatGPT/Product Owner pre-processes the next coherent R0.12 batch and activates a new work order.
+After EditPlan compatibility closes, activate a separate bounded Application work order for a real Editing entry point that reuses the same Editing Core. Do not fake that closure with an empty wrapper or by duplicating Resolver/EDLBuilder/Renderer.
 
-Do not reopen Subtitle or expand its system without new evidence. The next planning surface is the remaining R0.12 execution/productization terrain: bounded Graphics/minimal transitions, Preview backend, Proxy/cache and remaining Renderer operational needs. ChatGPT should first decide what can be handled through GitHub/User PowerShell and reserve Codex for local runtime, benchmark or complex multi-file work.
+Final Stage-A closure still requires real Planning-only, Editing-only and Combined product probes through ordinary user-facing execution; fixtures or hand-authored internal decisions cannot substitute.
