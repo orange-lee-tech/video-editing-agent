@@ -81,5 +81,16 @@ A paid Product Probe requires a question that deterministic/local evidence canno
 - Live Engineering Probe: 8/8 PASS; it invokes `DeterministicEDLBuilder` → `FFmpegEDLRenderer` → real MP4 → ffprobe rather than bypassing the Renderer.
 - Verified output characteristics: 2.000 s, 180×320, 30 FPS; PRESERVE output has audio while MUTE output has no audio.
 - Focused tests: 22 PASS; reported full Quality Gate: 522 tests plus Ruff/mypy/import contracts/build/diff check.
-- Current spatial evidence checks the emitted LINEAR crop/filter semantics rather than pixel-level final-frame motion. Add final-image spatial evidence to the living integration smoke later; this is not a Stage-A Renderer-foundation blocker.
-- Durable conclusion: canonical EDL is now physically executable into a locally verifiable MP4 while missing/unsupported semantics remain fail-closed.
+- Durable conclusion: canonical EDL is physically executable into a locally verifiable MP4 while missing/unsupported semantics remain fail-closed.
+
+### R0.12 living Resolver → Renderer integration smoke — ACCEPTED ENGINEERING BASELINE
+
+- `9f06386f9f311fe241f250f4679fa6b2042699b0` — `test: add living Resolver to Renderer smoke`.
+- Remote `ci/quality-gate-diagnostic`: success.
+- Actual `optimize_sequence()` output selects `candidate-red` at source start `1/4` for 1 s and `candidate-blue` at source start `1/2` for 1 s; those exact ranges survive EDLBuilder unchanged.
+- Final ignored/private MP4: 2.000 s, 320×192, 30 FPS, source audio present under PRESERVE.
+- Final-frame pixel sampling at 0.25 s and 1.25 s proves red → blue visual order after real Renderer execution; this closes the previous ordered-final-image evidence gap without inventing a spatial decision.
+- Named Engineering Probe gates: 10/10 PASS; reported full Quality Gate: 523 tests plus Ruff/mypy/import contracts/build/diff check.
+- Temporary `tmp-renderer-nav-sync*` branches were removed and independently confirmed absent.
+- Classification remains `ENGINEERING_FOUNDATION_ONLY`; it is not a substitute for R0.16 VisualUnderstanding-driven one-click Product Probe evidence.
+- Durable conclusion: a cheap living cross-phase execution spine now catches Resolver/EDLBuilder/Renderer contract drift before final integration.

@@ -3,7 +3,7 @@
 **Roadmap V2:** ACTIVE  
 **Development stage:** STRUCTURAL CONSTRUCTION  
 **Current phase:** R0.12 — EDL / Renderer / Subtitle / Preview / Proxy Productization  
-**Engineering state:** ACTIVE — `R0.12-SMOKE-001`  
+**Engineering state:** ACTIVE — `R0.12-SUBTITLE-001`  
 **Updated:** 2026-08-15
 
 ## Progress meaning
@@ -17,7 +17,7 @@ Reaching 100% will begin a separate product-refinement stage; it will not mean c
 ## Closed
 
 - R0.7A — Architecture v0.2 Migration Foundation.
-- R0.7B — Pre-production Planning + Commercial Skill Foundation.
+- R0.7B — Brief → ScriptPlan → ShootingPlan + commercial-authority baseline.
 - R0.8 — Media Evidence Foundation.
 - R0.9 — Director → Retrieval → Resolver → Deterministic Optimizer.
 - R0.10 — Music Selection + BeatMap + Audio Editorial.
@@ -33,29 +33,34 @@ Reaching 100% will begin a separate product-refinement stage; it will not mean c
 - `4b2522ae1a6838517baf4c5bcf36d30026f86912` — exact rational spatial/audio automation plus deterministic EDL v0.2 codec/round-trip.
 - `b6c5684a9b07d79f20a10d28886cd087eaeecf10` — deterministic grounded decision-to-EDL assembly.
 - `83fc2999297023f828fa77719cd357fe82eab5de` — deterministic EDL-driven FFmpeg Renderer.
+- `9f06386f9f311fe241f250f4679fa6b2042699b0` — living Resolver → EDLBuilder → Renderer → ffprobe/final-pixel integration smoke.
 
-Renderer verification from GitHub/source audit:
+## Living smoke accepted
 
-- remote `ci/quality-gate-diagnostic` success;
-- EDL is sole timeline/spatial/audio execution authority;
-- missing media, ambiguous Asset mappings, timeline gaps and unsupported semantics fail closed;
-- deterministic argv, `shell=False`;
-- live probe executes EDLBuilder → Renderer → actual MP4 → ffprobe;
-- observed output: 2.000 s, 180×320, 30 FPS; PRESERVE contains audio, MUTE does not;
-- reported focused tests 22 PASS and full gate 522 tests plus Ruff/mypy/import contracts/build/diff check.
+Independent review confirms:
 
-Current known integration evidence gap: spatial live-probe proof checks the generated LINEAR crop/filter semantics rather than final-frame pixel motion. This is carried into the living smoke path, not treated as a reason to reopen the Renderer foundation.
+- `main` is exactly `9f06386f9f311fe241f250f4679fa6b2042699b0` and is one commit ahead of the previous docs baseline;
+- remote `ci/quality-gate-diagnostic` is success;
+- the probe invokes actual `optimize_sequence()` rather than hand-authoring final selections;
+- selected source windows `1/4 + 1s` and `1/2 + 1s` survive unchanged into canonical EDL;
+- final output is 2.000 s, 320×192, 30 FPS and contains source audio under PRESERVE;
+- final-frame pixel sampling independently proves red → blue visual order in the rendered MP4;
+- no ReframeDecision/Spatial automation is fabricated merely to enrich the gate;
+- the five temporary `tmp-renderer-nav-sync*` branches are gone;
+- reported full Quality Gate: 523 tests plus Ruff/mypy/import contracts/build/diff check.
+
+This closes the previous Renderer final-image evidence gap for ordered clip execution. It does not claim a real VisualUnderstanding-driven one-click workflow.
 
 ## Active R0.12 frontier
 
-`R0.12-SMOKE-001` establishes a durable bounded integration regression path using actual Resolver/optimizer output → EDLBuilder → EDL-driven Renderer → ffprobe.
+`R0.12-SUBTITLE-001` establishes the first complete structured subtitle execution path.
 
-This smoke must use real module outputs at each linked boundary rather than hand-authoring downstream truth, but it remains controlled Engineering Probe evidence. It must not be mislabeled as the later R0.16 real one-click Product Probe.
+CAP-08 requires structured cues before backend rendering, exact EDL timeline authority, ASS/libass baseline, safe-zone layout, keyword emphasis and multilingual coverage. The current EDL exposes a `SUBTITLE` track family but its media `EDLSegment` shape cannot carry cue text/language/layout semantics without inventing fake media source mappings. A narrowly scoped subtitle-specific canonical execution payload is therefore an allowed concrete EDL extension; do not generalize this into a broad overlay/effects framework.
 
-After the smoke path is green, continue R0.12 Subtitle/Graphics/Preview/Proxy productization without expanding EDL/Renderer internals unless a concrete blocker appears.
+After subtitle execution is green, continue Graphics, remaining Renderer operational work, Preview and Proxy/cache. The Stage-A minimum transition vocabulary remains a downstream R0.12/R0.16 structural requirement and must be closed before Stage-A completion, but it is not part of the subtitle batch.
 
 ## Downstream structural constraints
 
-The R0.16 one-click chain must eventually use actual VisualUnderstanding evidence in Retrieval/Resolver; a visual-only automatic-BGM promise requires a concrete rights-aware provider path; Stage A needs a bounded minimum editing-expression/effects floor without a monolithic Effects Engine; and the final Reference/B爆款 → Script Product Probe must show downstream speech/temporal/music/subtitle/transition evidence feeding back into Script/ShootingPlan planning.
+The R0.16 one-click chain must use actual VisualUnderstanding evidence in Retrieval/Resolver; a visual-only automatic-BGM promise requires a concrete rights-aware provider path; Stage A needs a bounded minimum editing-expression/effects floor without a monolithic Effects Engine; and the final Reference/B爆款 → Script Product Probe must show downstream speech/temporal/music/subtitle/transition evidence feeding back into Script/ShootingPlan planning.
 
 These are integration requirements, not Stage-B polish.

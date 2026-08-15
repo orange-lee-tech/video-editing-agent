@@ -1,50 +1,53 @@
 # Current Work Order
 
-**ID:** `R0.12-SMOKE-001`  
+**ID:** `R0.12-SUBTITLE-001`  
 **Status:** ACTIVE  
-**Phase:** R0.12 — living cross-phase integration smoke  
+**Phase:** R0.12 — structured subtitle execution  
 **Owner/writer:** Codex
 
 ## Objective
 
-Create a durable low-cost integration smoke that uses actual Resolver/optimizer output, assembles it through the canonical EDLBuilder, renders it through the EDL-driven FFmpeg Renderer, and verifies the resulting MP4 so cross-phase contract drift is caught long before R0.16.
+Build one complete deterministic subtitle path in which approved structured cues become canonical exact-time EDL execution data and are burned into a real MP4 through the existing EDL-driven FFmpeg Renderer using an ASS/libass baseline. Prove timing, escaping, layout intent and multilingual execution without moving subtitle wording policy or creative decisions into Renderer.
 
 ## Read
 
-1. `tools/probes/r0_9b_resolver_live.py`
-2. `tools/probes/r0_12_edl_renderer_live.py`
-3. `src/video_editing_agent/application/edl_builder.py`
-4. `docs/roadmap/ROADMAP_V2.md`
+1. `docs/capabilities/CAP-08_EDL_RENDER_PREVIEW_SUBTITLE.md`
+2. `src/video_editing_agent/domain/edl/model.py`
+3. `src/video_editing_agent/domain/edl/codec.py`
+4. `src/video_editing_agent/domain/edl/validation.py`
+5. `src/video_editing_agent/render/edl_ffmpeg.py`
 
-Use foreman trigger `location` only if the exact current Resolver/optimizer or fixture-media interfaces are unclear. Use `architecture` only for a genuine ownership ambiguity. Use `quality` only after a concrete verification failure.
+Use foreman `location` only if existing speech/transcript or EDL codec interfaces are unclear. Use `architecture` only for a genuine ownership ambiguity. Use `external` if FFmpeg/libass/font distribution licensing becomes a release-boundary question; do not block local engineering merely because a redistributable font is not yet selected.
 
 ## Required delta
 
-- Build one bounded reusable Engineering Probe path in which the existing deterministic Resolver/optimizer implementation produces `ResolutionDecision` / `ResolvedSelection` from grounded `CandidateWindow` inputs. Do not hand-author the final selected source ranges merely to satisfy the downstream path.
-- Feed those actual Resolver outputs into `DeterministicEDLBuilder`, with authoritative synthetic/local Shot/Asset mapping, then feed the resulting canonical EDL into `FFmpegEDLRenderer`.
-- Produce a real ignored/private MP4 and verify it with ffprobe. Assert that Resolver-selected source windows and deterministic ordering survive unchanged through EDL timeline allocation and final render duration/order.
-- Preserve at least one observable current audio-policy case through the chain. Carry spatial execution when an already-approved decision is available naturally; do not invent a ReframeDecision just to make the gate look richer.
-- Add bounded final-output visual evidence for spatial execution if it can be done deterministically and cheaply with generated fixture media. If not, keep the existing filter-semantic check and record the precise remaining evidence limitation rather than expanding the batch.
-- Keep this probe cheap enough to remain a living regression route as later R0.12/R0.13/R0.16 layers are attached. It is Engineering Probe evidence, not a Product Probe and not a claim of finished one-click orchestration.
-- Do not substitute human-confirmed coverage text for automatic visual understanding and do not fake a VisualUnderstanding stage. This smoke may start from grounded Resolver candidates; the actual VisualUnderstanding → Retrieval/Resolver requirement remains an explicit R0.16 integration gate.
-- Minimally update the existing R0.16 section of `docs/roadmap/ROADMAP_V2.md` to encode the four already-approved structural integration constraints already summarized in `docs/roadmap/README.md`: actual VisualUnderstanding in the one-click chain; concrete rights-aware music acquisition when visual-only input promises automatic BGM; a bounded Stage-A editing-expression/effects floor without a monolithic Effects Engine; and downstream speech/temporal/music/subtitle/transition evidence feeding back into the final Reference/B爆款 → Script Product Probe. Do not create a new roadmap or governance system.
-- Repository hygiene: delete remote temporary branches `tmp-renderer-nav-sync`, `tmp-renderer-nav-sync-2`, `tmp-renderer-nav-sync-3`, `tmp-renderer-nav-sync-4`, and `tmp-renderer-nav-sync-5` after syncing `main`; they were created during the navigation-sync write path and contain no product work.
-- Add focused deterministic tests only where the reusable smoke plumbing needs regression coverage, then run the full repository Quality Gate.
+- Add a small typed structured subtitle cue value/model sufficient for current CAP-08 semantics: stable cue identity, exact `MediaTimeRange`, text, language, optional speaker/ref, bounded emphasis spans/tokens and deterministic layout/safe-zone intent. Do not create a new top-level Domain Entity.
+- Preserve the rule that ASR transcript is evidence/input, not automatically final subtitle wording. This batch consumes approved/structured cue text; it does not invent rewriting, translation or summarization policy.
+- Extend canonical EDL only as much as required to make subtitle execution truth self-contained. Do **not** fake subtitle cues as media `EDLSegment`s with invented `asset_ref`/`source_range`. Prefer a subtitle-specific typed execution payload associated with an `EDLTrackFamily.SUBTITLE` track and exact EDL timeline ranges.
+- Extend deterministic EDL v0.2 serialization/deserialization and validation for the subtitle payload. Canonical serialize → deserialize → canonical serialize must remain stable. Preserve rational time; no binary-float timing authority.
+- Validator must diagnose rather than repair: duplicate cue IDs, invalid/unknown subtitle track, illegal timeline ranges, malformed emphasis spans, invalid language/layout data, unsupported overlap/shape semantics selected for this baseline, and any other locally provable invariant.
+- Add a deterministic subtitle builder/compiler boundary that maps approved structured cues into canonical EDL subtitle execution data without changing cue wording or timing unless an explicit deterministic layout/splitting rule is owned there. If no splitting is needed for the baseline, keep it out rather than inventing policy.
+- Extend the existing FFmpeg Renderer so it consumes canonical EDL subtitle data, emits a deterministic ASS artifact/filter invocation, and burns captions into the final MP4. Renderer may format/escape execution syntax; it must not rewrite text, retime cues or choose editorial emphasis.
+- ASS generation must safely escape user text and paths so braces, backslashes, commas, colons, quotes, line breaks or shell-like text cannot escape typed execution. Keep `shell=False`; no raw model/provider shell fragments.
+- Implement a bounded safe-zone/layout mapping and bounded keyword-emphasis representation consistent with CAP-08. Avoid a general typography engine, karaoke engine or motion-graphics system.
+- Add deterministic unit/contract tests for cue model, EDL codec round-trip, validation, ASS escaping/timing and Renderer compilation.
+- Add one small local Engineering Probe that generates/uses controlled video, burns at least English + Chinese structured cues, runs FFmpeg/libass, ffprobes the result, and proves captions altered pixels in the intended subtitle region at expected cue times. The probe may accept/use an explicitly supplied local Windows font if necessary; do not commit or redistribute proprietary font files. Record missing font/glyph support honestly rather than substituting OCR or claiming semantic glyph correctness from a render-success code alone.
+- Keep the existing living Resolver → EDLBuilder → Renderer smoke green. Do not force subtitles into that smoke unless the integration is natural and low-cost; the living smoke should remain cheap.
 
 ## Hard boundaries
 
-- Resolver owns grounded source selection; EDLBuilder owns exact timeline assembly; EDL remains sole executable timeline authority; Renderer only executes it.
-- No human-authored final selection masquerading as Resolver output.
-- No Renderer or EDL creative repair/fallback.
-- No automatic stock/generative visual fallback.
-- Do not build a workflow/orchestration framework merely for this smoke.
-- Do not claim R0.16 one-click completeness or Product Probe success from controlled synthetic/local fixtures.
-- Do not implement Subtitle, Graphics, Preview, Proxy/cache, hardware routing, packaging or UI in this batch.
+- EDL remains sole exact executable timeline authority.
+- Subtitle builder/planner owns structured caption preparation; Renderer owns execution only.
+- Do not use fake media Assets for text cues.
+- Do not add Graphics/CTA/price cards, transitions, Preview, Proxy/cache, hardware routing, packaging or UI in this batch.
+- Do not implement ASR transcription, translation, LLM rewriting, caption summarization, broad style recommendation, karaoke animation or a monolithic Effects Engine.
+- No new third-party dependency unless a concrete blocker requires it; FFmpeg/libass baseline should use the existing toolchain where possible.
+- Do not bundle a font or alter project licensing in this batch.
 
 ## Verification
 
-Run the living smoke with actual Resolver → EDLBuilder → Renderer → ffprobe execution, any focused tests, then the repository full Quality Gate. Preserve import contracts and `git diff --check`.
+Run focused subtitle/EDL/Renderer tests, the multilingual subtitle Engineering Probe, the existing living integration smoke if practical under the configured local toolchain, and the full repository Quality Gate. Preserve import contracts and `git diff --check`.
 
 ## Stop gate
 
-Stop after the living integration smoke is reproducible and green, the R0.16 hard constraints are minimally synchronized into Roadmap V2, temporary navigation-sync branches are deleted, required checks are green, changes are committed/pushed, and the working tree is clean. Do not continue into Subtitle/Graphics/Preview/Proxy work.
+Stop when structured cues → canonical exact-time EDL subtitle payload → deterministic ASS/libass Renderer → real MP4 is reproducible and green; deterministic codec/validation tests pass; multilingual probe evidence is recorded honestly; full Quality Gate passes; bounded reusable changes are committed/pushed; and the working tree is clean. Do not continue into Graphics, transitions, Preview or Proxy/cache.

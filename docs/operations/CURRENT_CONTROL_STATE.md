@@ -4,11 +4,11 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-15
 current_phase: R0.12
-phase_state: PRODUCT_IMPLEMENTATION_LIVING_INTEGRATION_SMOKE
-active_work_order: R0.12-SMOKE-001
-accepted_code_baseline: 83fc2999297023f828fa77719cd357fe82eab5de
+phase_state: PRODUCT_IMPLEMENTATION_STRUCTURED_SUBTITLE
+active_work_order: R0.12-SUBTITLE-001
+accepted_code_baseline: 9f06386f9f311fe241f250f4679fa6b2042699b0
 control_plane_baseline: 1012f239aa95899e914ba6091c3b825dfc6302fe
-previous_work_order: R0.12-RENDERER-001
+previous_work_order: R0.12-SMOKE-001
 previous_work_order_result: PASS
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
@@ -18,11 +18,11 @@ writer: chatgpt
 
 ## Routing truth
 
-`R0.12-RENDERER-001` is accepted after independent GitHub review. The canonical EDL-driven FFmpeg Renderer validates EDL before execution, rejects unsupported/missing/ambiguous execution semantics, uses deterministic argv with `shell=False`, and has produced ffprobe-verified local MP4 artifacts. Remote `ci/quality-gate-diagnostic` for `83fc2999297023f828fa77719cd357fe82eab5de` is green.
+`R0.12-SMOKE-001` is accepted after independent GitHub review. Baseline `9f06386f9f311fe241f250f4679fa6b2042699b0` runs the actual deterministic Resolver/optimizer, feeds its selected grounded source ranges into `DeterministicEDLBuilder`, renders the resulting canonical EDL through `FFmpegEDLRenderer`, and verifies the produced MP4 with ffprobe plus final-frame pixel sampling. Remote `ci/quality-gate-diagnostic` is green.
 
-The live Renderer probe genuinely executes `DeterministicEDLBuilder → FFmpegEDLRenderer → MP4 → ffprobe`. Current spatial proof is filter-graph semantic evidence rather than pixel-level final-frame verification; carry that as an integration-smoke enhancement, not a Renderer-foundation blocker.
+The living smoke proves actual selected ranges survive Resolver → EDLBuilder → Renderer, exact two-segment order survives into the final image, PRESERVE audio remains audible/present, and no fake spatial decision is introduced. It remains controlled Engineering Probe evidence, not R0.16 one-click Product Probe evidence.
 
-Do not continue expanding EDL or Renderer abstractions without a concrete execution blocker. The next structural risk is cross-phase wiring drift.
+Do not expand EDL/Renderer internals speculatively. A minimal EDL extension is permitted only where the next execution feature cannot be represented without violating EDL timeline authority. Structured subtitle execution is such a concrete blocker because the current EDL has a subtitle track family but no canonical cue text/style/layout execution payload.
 
 ## Information economy rule
 
@@ -39,4 +39,6 @@ Do not preload unrelated CAPs, project history or broad repository surfaces.
 
 ## Current gate
 
-Execute `R0.12-SMOKE-001` only: establish a durable low-cost actual-module integration smoke from Resolver output through EDLBuilder and Renderer to ffprobe, and minimally synchronize the already-approved R0.16 integration hard constraints into Roadmap V2. Do not claim this synthetic/local Engineering Probe is the final R0.16 one-click Product Probe, and do not begin Subtitle/Graphics/Preview/Proxy work in the same batch.
+Execute `R0.12-SUBTITLE-001` only: establish one complete deterministic structured-caption path from approved subtitle cues through canonical EDL execution semantics to ASS/libass/FFmpeg burn-in, including exact rational timing, safe-zone/layout intent, bounded keyword emphasis, deterministic serialization/validation, multilingual engineering coverage, and fail-closed escaping/path behavior.
+
+Do not begin Graphics, Preview, Proxy/cache, transition expansion, hardware routing, packaging, UI, ASR rewriting/translation or broad caption-style polish in the same batch.
