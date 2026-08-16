@@ -4,15 +4,15 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-16
 current_phase: R0.12
-phase_state: STAGE_A_PRODUCT_IO_CONTRACT_ACTIVE
-active_work_order: R0.12-STAGE-A-PRODUCT-IO-CONTRACT-001
+phase_state: MIXED_SOURCE_AUDIO_QC_IMPLEMENTATION_ACTIVE
+active_work_order: R0.12-MIXED-SOURCE-AUDIO-QC-001
 accepted_code_baseline: 500c8563e3686a5aaef055ffb5301553aa999fd9
-control_plane_baseline: 0229f102a4016d942e6ea9f05d7b43d5191e2215
+control_plane_baseline: cc5cd0206cfc26f5f6076014bdfe69e7463e63f5
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
 core_1_planning_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
 core_2_editing_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
-previous_work_order: R0.12-PREVIEW-BACKEND-BENCHMARK-001
+previous_work_order: R0.12-STAGE-A-PRODUCT-IO-CONTRACT-001
 previous_work_order_result: PASS
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
@@ -28,7 +28,7 @@ The accepted two-core architecture remains unchanged:
 - Editing-only: `Brief/editorial intent + user local footage → Editing Core`;
 - Combined: Planning artifacts optionally enrich the same Editing Core.
 
-Accepted production-code baseline remains `500c8563e3686a5aaef055ffb5301553aa999fd9`.
+Accepted production-code baseline entering the active implementation remains `500c8563e3686a5aaef055ffb5301553aa999fd9`.
 
 ## Stage-A completion truth
 
@@ -46,119 +46,121 @@ Live state:
 
 100% remains forbidden until both core Product Gates and the overall Stage-A gate are `PASS`.
 
-## Preview decision — CLOSED
+## Closed control boundaries
 
-`R0.12-PREVIEW-BACKEND-BENCHMARK-001` is PASS/CLOSED.
+### Preview backend benchmark — PASS/CLOSED
 
 Accepted ADR:
 
 `docs/adr/ADR-010_GSTREAMER_PRIMARY_PREVIEW_BACKEND.md`
 
-Decision:
+- GStreamer primary Stage-A Preview family;
+- libVLC validated alternative;
+- libmpv Stage-A hard-gate exclusion;
+- Preview playback-only; EDL authority unchanged.
 
-- primary Stage-A Preview backend family: **GStreamer**;
-- initial accepted evidence baseline: GStreamer `1.28.6` Windows x86_64 MSVC private runtime;
-- normal path: high-level GstPlay/playbin3 with D3D11 acceleration when available;
-- degraded path: explicit software video decode with observable diagnostics;
-- libVLC `3.0.23`: validated alternative adapter family, not default dual-bundled fallback;
-- libmpv: hard-gate excluded for Stage A because the required auditable LGPL Windows D3D11 distribution path would make the project own a disproportionate custom build/transitive-license maintenance surface.
+Do not reopen backend-family benchmarking without a concrete Product Probe failure/new hard requirement.
 
-Durable libmpv gate record:
+### Stage-A Product I/O Contract — PASS/CLOSED
 
-`docs/validation/R0.12_PREVIEW_LIBMPV_LGPL_HARD_GATE_EXCLUSION.md`
+Canonical contract:
 
-PreviewBackend remains playback-only. EDL remains sole exact timeline authority.
+`docs/product/STAGE_A_PRODUCT_IO_CONTRACT.md`
 
-### Preview evidence retained
+Validation:
 
-Accepted evidence includes:
+`docs/validation/R0.12_STAGE_A_PRODUCT_IO_CONTRACT_EVIDENCE.md`
 
-- Class-A Windows environment/device capability;
-- GStreamer/VLC official/private runtime provenance;
-- actual deterministic windowed playback for both families;
-- VLC D3D11VA hardware decode proof;
-- GStreamer actual `playbin3 → decodebin3 → d3d11h264dec → D3D11Memory/NV12 → d3d11videosink` path;
-- GstPlay/libVLC start-pause-eight-seek-resume-release control PASS;
-- three real phone HEVC files: GStreamer normal 3/3 PASS, libVLC normal 3/3 PASS;
-- GStreamer explicit software decode 3/3 PASS;
-- libVLC explicit software decode PASS using per-media `:avcodec-hw=none`.
+Accepted ordinary-user semantics now freeze:
 
-Retained gaps:
+- project create/open → existing `ProjectWorkspace`;
+- selected local files/folders → per-file local Asset ingest;
+- Planning-only → persisted ScriptPlan/ShootingPlan owner workflows;
+- Editing-only → independent Brief + local footage path;
+- Combined → same Editing Core enriched by exact Planning revisions;
+- Reference URL → controlled local `REFERENCE_ANALYSIS_ONLY` file/Asset before planning analysis;
+- public music → rights-aware acquisition → controlled local `MUSIC` Asset before Music/BeatMap/Audio;
+- final MP4 → explicit Renderer output path;
+- no frontend framework decision yet.
 
-- no actual VFR file in the real-phone corpus;
-- no Class-B/Class-C host evidence;
-- no total no-GPU/no-presentation-device simulation.
+## Current active boundary — mixed source-audio / voice / audible QC
 
-These are integration/Product-Probe risks, not reasons to reopen backend-family selection.
+`R0.12-MIXED-SOURCE-AUDIO-QC-001` is ACTIVE.
 
-## Current active boundary — Stage-A Product I/O Contract
+The current implementation defect is concrete:
 
-`R0.12-STAGE-A-PRODUCT-IO-CONTRACT-001` is ACTIVE.
+- `AudioMixDecision` has one whole-EditPlan `source_audio_policy`;
+- `plan_basic_mix()` chooses whole-plan PRESERVE when speech exists and MUTE otherwise;
+- `DeterministicEDLBuilder` clones every selected video segment onto SOURCE_AUDIO for global PRESERVE;
+- whole-plan DUCK is unsupported;
+- mixed selected source ranges therefore cannot independently preserve/duck/mute their original audio.
 
-The project now focuses on the actual ordinary-user path:
+### Frozen implementation ownership
 
-`user-visible inputs`
-`→ owned application/domain transformations`
-`→ persisted/inspectable outputs`
-`→ understandable progress/failure/retry`
+Resolver / `ResolvedSelection` retains authoritative selected Shot/source range.
 
-The contract must cover Planning-only, Editing-only and Combined while preserving Brief as the shared root and Planning artifacts as optional Editing enrichment.
+Audio Editorial owns treatment intent at grounded selection/source-range granularity.
 
-### Product I/O gap corridor
+Required source treatment:
 
-The immediate sequence is:
+- PRESERVE
+- DUCK
+- MUTE
 
-1. freeze Stage-A Product I/O Contract;
-2. implement mixed source-audio semantics + speech protection + audible-lane QC;
-3. implement Reference URL acquisition into controlled local reference media;
-4. implement rights-aware public music discovery/acquisition into controlled local governed Assets;
-5. finish remaining bounded R0.12 productization and production GStreamer Preview integration where justified;
-6. minimum Review/repair loop;
-7. ordinary-user Windows runtime / Environment Doctor;
-8. practical product-facing integration;
-9. real Product Probes / Human Gate.
+Required VoiceTreatment policy:
 
-## Known Product I/O risks carried into the active Work Order
+- PRESERVE
+- CLEAN
+- ALLOW_REVOICE
+- DO_NOT_USE_ORIGINAL
 
-### Mixed source audio — P0
+EDLBuilder deterministically maps approved treatment to exact SOURCE_AUDIO selections/ranges.
 
-A whole-EditPlan `MUTE/PRESERVE/DUCK` meaning is insufficient for a folder containing speech clips, environment clips and clips whose source audio should not be used. Ownership must move to source-selection/source-range semantics without giving Renderer editorial authority.
+Renderer executes validated EDL only and must not infer/rewrite treatment.
 
-### VoiceTreatment — P1
+For non-silent intent, final technical QC must fail closed when no approved audible lane exists. Renderer must not invent audio to repair that condition.
 
-The product must distinguish preserve / clean / allow-revoice / do-not-use-original. Poor source quality alone must not authorize replacement or deletion of user speech.
+### Codex
 
-### Reference URL acquisition — P1
+**ACTIVE RELEASE — SINGLE COMPLEX BATCH.**
 
-Target semantic route:
+Codex is primary writer for the implementation/test surface described by `CURRENT_WORK_ORDER.md` until it stops and reports.
 
-`supported URL → acquisition adapter → controlled local file → REFERENCE_ANALYSIS_ONLY → existing analysis/planning`
+ChatGPT must not concurrently edit those same source/test files during the batch.
 
-Login/DRM/unsupported/auth-required inputs fail closed.
+After Codex report:
 
-### Public music provider — P0
+`reobserve origin/main → inspect commit/diff → inspect CI/governance → verify required audio/EDL/QC cases → accept/repair → sync control plane`
 
-Search is not sufficient. Product semantics require rights-aware selection + acquisition + controlled local governed Asset before the existing Music/BeatMap/audio chain can consume the result.
+Codex does not self-authorize the next Work Order.
 
-### Non-silent audible-lane QC
+## Immediate corridor after the active batch
 
-Final technical QC must reject an unintentionally silent result when the intent requires audible content. Renderer must not invent audio to repair this condition.
+1. accept/repair mixed source-audio + VoiceTreatment + audible-lane QC;
+2. Reference URL acquisition;
+3. rights-aware public music acquisition;
+4. remaining bounded R0.12 productization including production GStreamer Preview integration;
+5. minimum Review/repair loop;
+6. ordinary-user Windows runtime / Environment Doctor;
+7. practical product-facing integration;
+8. real Product Probes / Human Gate.
 
 ## Tool routing
 
 ### ChatGPT + GitHub
 
-Primary for the active Product I/O contract and governance synchronization.
+- current-state/CI observation;
+- architecture/acceptance review;
+- Work Order/control-plane synchronization;
+- small independent governance writes.
 
 ### User PowerShell
 
-Use only when a genuine Windows/private-media/runtime boundary appears. No local benchmark is required merely to write the Product I/O contract.
+Use only for genuine local/private-media/runtime boundaries. This implementation batch itself belongs to Codex's local repo edit/test loop.
 
 ### Codex
 
-**NO ACTIVE RELEASE** for the contract.
-
-The first expected next release is the bounded mixed source-audio + speech protection + audible-QC implementation batch after the contract freezes exact ownership and tests.
+Primary writer for the active bounded implementation batch.
 
 ## Constitutional constraints
 
@@ -168,9 +170,9 @@ The first expected next release is the bounded mixed source-audio + speech prote
 - original user media is never overwritten.
 - commercial output visual material remains user-supplied local media.
 - reference media defaults to analysis-only.
-- remote/public visual replacement footage is not silently acquired.
-- CPU/software degraded strategies remain part of supported product direction.
-- no temporary shortcut may fabricate Planning artifacts, source timestamps, Domain decisions or a Product Gate PASS.
+- Editing-only remains independent of fabricated Planning artifacts.
+- poor source speech quality does not authorize semantic deletion/replacement/revoice.
+- no temporary shortcut may fabricate source timestamps, Domain decisions or a Product Gate PASS.
 
 ## Documentation synchronization rule
 
@@ -184,6 +186,6 @@ Dynamic state is canonical only in:
 
 ## STOP boundary
 
-Do not reopen Preview family benchmarking after ADR-010 without a concrete Product Probe failure or new hard requirement.
+Do not concurrently open Reference URL, music acquisition, GUI/frontend or production Preview implementation while Codex owns the current mixed-audio/QC batch.
 
-Do not concurrently implement GUI/frontend, Reference URL, music acquisition or mixed-audio code until the active Product I/O contract locates their ownership boundaries precisely enough to issue bounded implementation work.
+Do not increase structural progress from 90% merely because this batch adds tests or typed decisions.
