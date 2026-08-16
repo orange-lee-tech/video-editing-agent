@@ -194,40 +194,46 @@ Observed:
 - GStreamer first-observed-window proxy approximately `518 ms`, max working set approximately `139.7 MiB`, average machine CPU estimate approximately `10.2%`;
 - VLC first-observed-window proxy approximately `838 ms`, max working set approximately `291 MiB`, average machine CPU estimate approximately `6.0%`;
 - VLC logs directly prove D3D11VA hardware decode on Intel HD Graphics 520;
-- GStreamer logs prove active D3D11 device/presentation activity, while Wave 2 must directly prove the selected H.264 decoder before the auto-decoder path is claimed as hardware decode;
 - one enumerated GStreamer D3D11 device reported unsupported video-device interface, but playback completed; retain this as degraded-environment diagnostic evidence rather than hiding it by removing Oray;
 - no backend winner is declared from Wave 1.
 
-Measurement caveats:
+Measurement caveat: `FirstWindowMs` is not exact first-frame latency.
 
-- `FirstWindowMs` is not exact first-frame latency;
-- the Wave-1 PowerShell wrapper did not reliably retain child ExitCode and must be corrected;
-- local untracked `vlc-help.txt` is benchmark residue and must be removed rather than committed.
+### Wave 2A — GStreamer actual hardware path — PASS
 
-### Wave 2 — deterministic control / seek / scrub — NEXT
+The brittle manual `filesrc/qtdemux` proof pipeline is retired and does not define candidate acceptance.
+
+Actual high-level playback proof used canonical file URI, `playbin3`, `uridecodebin3/decodebin3`, `GST_PLUGIN_FEATURE_RANK=d3d11h264dec:MAX`, `d3d11videosink`, private runtime, and DOT graph capture.
+
+Observed:
+
+- process exit code `0`;
+- five pipeline state-transition DOT graphs captured;
+- actual graph contains `GstD3D11H264Dec:d3d11h264dec0`;
+- actual graph contains `GstD3D11VideoSink:d3d11videosink0`;
+- decoder context reports `Intel(R) HD Graphics 520`, vendor `8086`, device `1916`, `hardware=true`;
+- 1920x1080@30 H.264 constrained-baseline input enters `d3d11h264dec0`;
+- output remains NV12 `video/x-raw(memory:D3D11Memory)` through the playback graph into the D3D11 sink.
+
+GStreamer hardware decode/presentation proof is closed. Do not reopen manual demux experiments.
+
+### Wave 2B — deterministic API control / seek / scrub — ACTIVE NEXT
 
 Each candidate must, or be excluded by a documented hard-gate reason:
 
-- open/play media reliably;
-- provide deterministic external seek/control suitable for a thin adapter;
-- remain subordinate to canonical EDL authority;
-- have an acceptable license/distribution path;
-- support a practical deployment story without assuming a developer workstation;
-- fail diagnosably;
-- expose practical software/hardware fallback where feasible.
+- provide deterministic non-GUI playback control suitable for a thin adapter;
+- pause and resume without uncontrolled timeline drift;
+- accept repeated absolute seeks on the same deterministic fixture;
+- recover to the requested region consistently under scrub-like randomized seeks;
+- remain stable after repeated control operations;
+- expose failures/unsupported operations diagnosably.
 
-Wave 2 must:
+Official API contracts checked before the next harness:
 
-1. remove `vlc-help.txt` local residue and verify clean working tree;
-2. directly prove GStreamer `d3d11h264dec → d3d11videosink` playback on the fixture;
-3. preserve reliable child exit status;
-4. exercise pause/resume and repeated absolute/random seeks using non-GUI control surfaces;
-5. record seek completion/recovery, process stability, CPU/RAM and diagnostics;
-6. keep Oray enabled unless a repeatable adapter-selection defect requires an explicit isolation experiment.
+- GstPlay exposes play, pause, stop, absolute nanosecond `gst_play_seek()`, absolute nanosecond `gst_play_get_position()`, and `SEEK_DONE` parsing since 1.26;
+- libVLC 3.0 exposes `libvlc_media_player_set_pause()`, millisecond `libvlc_media_player_get_time()`, and millisecond `libvlc_media_player_set_time()`; do not accidentally use LibVLC 4 signatures/units against the 3.0.23 runtime.
 
-Official control semantics are adequate for a thin adapter: GstPlay exposes absolute nanosecond seek plus seek-done messages; libVLC 3 exposes media-player time/position setters. GUI clicking is not accepted as sole control evidence.
-
-Do not invent a universal weighted score. Prefer hard gates plus transparent trade-offs.
+The seek-recovery metric must remain explicitly labelled a proxy unless tied to a documented seek-complete/render event. Do not represent it as exact photon-to-screen latency.
 
 Representative user/VFR footage follows only after deterministic control is stable.
 
@@ -266,11 +272,12 @@ PASS only when:
 
 ## Immediate next action
 
-Run Wave 2 on the deterministic fixture:
+Run Wave 2B on the deterministic fixture through the actual C APIs:
 
-1. remove local `vlc-help.txt` benchmark residue;
-2. prove explicit GStreamer D3D11 H.264 decode + D3D11 presentation;
-3. run deterministic pause/resume and repeated seek/scrub control for GStreamer and VLC/libVLC through non-GUI control surfaces;
-4. collect reliable exit status, recovery/stability, CPU/RAM and diagnostic evidence;
-5. after deterministic control is stable, add representative user/VFR footage;
-6. keep libmpv on its separate LGPL provenance/build gate until an auditable candidate is prepared.
+1. GStreamer: `GstPlay` pause/resume + repeated absolute nanosecond seek and position recovery;
+2. VLC: libVLC 3.0.23 pause/resume + repeated absolute millisecond seek and position recovery;
+3. use private runtimes only and keep Oray enabled;
+4. preserve reliable child process exit status and separated native stderr;
+5. record seek-recovery proxy, process stability and diagnostics without claiming exact rendered-frame latency;
+6. after deterministic control is stable, add representative user/VFR footage and explicit software-fallback evidence;
+7. keep libmpv on its separate LGPL provenance/build gate until an auditable candidate is prepared.
