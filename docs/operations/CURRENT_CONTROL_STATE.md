@@ -4,15 +4,15 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-16
 current_phase: R0.12
-phase_state: PREVIEW_LIBMPV_LGPL_GATE_ACTIVE
-active_work_order: R0.12-PREVIEW-BACKEND-BENCHMARK-001
+phase_state: STAGE_A_PRODUCT_IO_CONTRACT_ACTIVE
+active_work_order: R0.12-STAGE-A-PRODUCT-IO-CONTRACT-001
 accepted_code_baseline: 500c8563e3686a5aaef055ffb5301553aa999fd9
-control_plane_baseline: ca271e41ffc6eb9e4258d14059297dc0fadf1ccb
+control_plane_baseline: 0229f102a4016d942e6ea9f05d7b43d5191e2215
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
 core_1_planning_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
 core_2_editing_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
-previous_work_order: R0.12-EDITING-DIRECTOR-ENTRY-001
+previous_work_order: R0.12-PREVIEW-BACKEND-BENCHMARK-001
 previous_work_order_result: PASS
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
@@ -28,7 +28,7 @@ The accepted two-core architecture remains unchanged:
 - Editing-only: `Brief/editorial intent + user local footage → Editing Core`;
 - Combined: Planning artifacts optionally enrich the same Editing Core.
 
-Accepted production-code baseline remains `500c8563e3686a5aaef055ffb5301553aa999fd9`. The active Work Order remains evidence/ADR-only; no production Preview implementation is authorized yet.
+Accepted production-code baseline remains `500c8563e3686a5aaef055ffb5301553aa999fd9`.
 
 ## Stage-A completion truth
 
@@ -46,135 +46,130 @@ Live state:
 
 100% remains forbidden until both core Product Gates and the overall Stage-A gate are `PASS`.
 
-## Current active boundary
+## Preview decision — CLOSED
 
-`R0.12-PREVIEW-BACKEND-BENCHMARK-001` is ACTIVE.
+`R0.12-PREVIEW-BACKEND-BENCHMARK-001` is PASS/CLOSED.
 
-Current state:
+Accepted ADR:
 
-`private candidate runtimes + deterministic playback/control PASS`
-`→ real phone HEVC + explicit software fallback ACCEPTED`
-`→ auditable libmpv LGPL gate ACTIVE`
-`→ final candidate comparison`
-`→ Preview backend ADR`
-`→ close benchmark`
+`docs/adr/ADR-010_GSTREAMER_PRIMARY_PREVIEW_BACKEND.md`
+
+Decision:
+
+- primary Stage-A Preview backend family: **GStreamer**;
+- initial accepted evidence baseline: GStreamer `1.28.6` Windows x86_64 MSVC private runtime;
+- normal path: high-level GstPlay/playbin3 with D3D11 acceleration when available;
+- degraded path: explicit software video decode with observable diagnostics;
+- libVLC `3.0.23`: validated alternative adapter family, not default dual-bundled fallback;
+- libmpv: hard-gate excluded for Stage A because the required auditable LGPL Windows D3D11 distribution path would make the project own a disproportionate custom build/transitive-license maintenance surface.
+
+Durable libmpv gate record:
+
+`docs/validation/R0.12_PREVIEW_LIBMPV_LGPL_HARD_GATE_EXCLUSION.md`
 
 PreviewBackend remains playback-only. EDL remains sole exact timeline authority.
 
-## Current Preview evidence state
+### Preview evidence retained
 
-### Stage 0 — environment/device capability — PASS
+Accepted evidence includes:
 
-Durable evidence:
-
-`docs/validation/R0.12_PREVIEW_STAGE0_WINDOWS_ENVIRONMENT_EVIDENCE.md`
-
-Accepted Class-A host evidence includes ThinkPad T470s / Intel HD Graphics 520, restored Lenovo OEM driver `27.20.100.8854`, Oray retained, FFmpeg software H.264 decode PASS and D3D11VA H.264 decode PASS.
-
-### Stage 1 — GStreamer/VLC provenance/private runtime — PASS
-
-Durable evidence:
-
-`docs/validation/R0.12_PREVIEW_STAGE1_CANDIDATE_PREPARATION_EVIDENCE.md`
-
-Accepted:
-
-- GStreamer 1.28.6 official MSVC private runtime with D3D11 decoder/sink capability;
-- VLC/libVLC 3.0.23 official static win64 private runtime;
-- no global executable PATH dependency required by the benchmark.
-
-### Stage 3 — GStreamer/VLC real playback/control/fallback — ACCEPTED FOR CURRENT CLASS-A SCOPE
-
-Durable evidence:
-
-- `docs/validation/R0.12_PREVIEW_REAL_PLAYBACK_BENCHMARK_EVIDENCE.md`
-- `docs/validation/R0.12_PREVIEW_WAVE3_REAL_MEDIA_SOFTWARE_FALLBACK_EVIDENCE.md`
-
-Accepted evidence:
-
-- both GStreamer and VLC completed actual windowed playback on the deterministic fixture;
-- VLC directly proved D3D11VA hardware decode on Intel HD Graphics 520;
-- GStreamer directly proved the real high-level hardware path `playbin3 → decodebin3 → d3d11h264dec → D3D11Memory/NV12 → d3d11videosink`;
-- GStreamer GstPlay and libVLC both passed pause, eight randomized absolute seeks, resume and clean release;
+- Class-A Windows environment/device capability;
+- GStreamer/VLC official/private runtime provenance;
+- actual deterministic windowed playback for both families;
+- VLC D3D11VA hardware decode proof;
+- GStreamer actual `playbin3 → decodebin3 → d3d11h264dec → D3D11Memory/NV12 → d3d11videosink` path;
+- GstPlay/libVLC start-pause-eight-seek-resume-release control PASS;
 - three real phone HEVC files: GStreamer normal 3/3 PASS, libVLC normal 3/3 PASS;
-- GStreamer explicit software decode fallback: 3/3 PASS with DOT evidence;
-- libVLC explicit software decode fallback: PASS using per-media `:avcodec-hw=none`;
-- libVLC instance/global `--avcodec-hw=none` alone is recorded as unreliable for this tested embedding path because it still selected D3D11VA;
-- per-media and combined libVLC runs logged `matching "none"` and `no hw decoder modules matched` while control remained PASS.
+- GStreamer explicit software decode 3/3 PASS;
+- libVLC explicit software decode PASS using per-media `:avcodec-hw=none`.
 
-Evidence gaps retained honestly:
+Retained gaps:
 
-- no actual VFR behavior was present in the accepted real-phone corpus;
-- Class-B ordinary-current-Windows evidence is missing;
-- Class-C newer-accelerated evidence is missing;
-- total no-GPU/no-presentation-device behavior was not simulated.
+- no actual VFR file in the real-phone corpus;
+- no Class-B/Class-C host evidence;
+- no total no-GPU/no-presentation-device simulation.
 
-These gaps do not reopen the accepted deterministic, real-HEVC or explicit software-decode evidence.
+These are integration/Product-Probe risks, not reasons to reopen backend-family selection.
 
-### Current action — libmpv LGPL provenance/build gate
+## Current active boundary — Stage-A Product I/O Contract
 
-The third candidate family is now the active boundary.
+`R0.12-STAGE-A-PRODUCT-IO-CONTRACT-001` is ACTIVE.
 
-Required outcome is one of:
+The project now focuses on the actual ordinary-user path:
 
-1. an auditable Windows libmpv candidate configured for the approved LGPL path, with dependency/subproject build/license review; or
-2. a documented hard-gate exclusion if a reproducible acceptable Windows LGPL build/distribution path cannot be established without disproportionate product/license/deployment risk.
+`user-visible inputs`
+`→ owned application/domain transformations`
+`→ persisted/inspectable outputs`
+`→ understandable progress/failure/retry`
 
-Hard rules:
+The contract must cover Planning-only, Editing-only and Combined while preserving Brief as the shared root and Planning artifacts as optional Editing enrichment.
 
-- upstream/default GPL builds are not silently adopted;
-- arbitrary common third-party Windows binaries are not accepted as product evidence;
-- build flags alone are insufficient without dependency/subproject review;
-- Codex remains unreleased for provenance/build research.
+### Product I/O gap corridor
 
-### After libmpv
+The immediate sequence is:
 
-`GStreamer / libVLC / libmpv final comparison → Preview ADR → close benchmark`
+1. freeze Stage-A Product I/O Contract;
+2. implement mixed source-audio semantics + speech protection + audible-lane QC;
+3. implement Reference URL acquisition into controlled local reference media;
+4. implement rights-aware public music discovery/acquisition into controlled local governed Assets;
+5. finish remaining bounded R0.12 productization and production GStreamer Preview integration where justified;
+6. minimum Review/repair loop;
+7. ordinary-user Windows runtime / Environment Doctor;
+8. practical product-facing integration;
+9. real Product Probes / Human Gate.
 
-Do not continue open-ended player benchmarking after the ADR.
+## Known Product I/O risks carried into the active Work Order
+
+### Mixed source audio — P0
+
+A whole-EditPlan `MUTE/PRESERVE/DUCK` meaning is insufficient for a folder containing speech clips, environment clips and clips whose source audio should not be used. Ownership must move to source-selection/source-range semantics without giving Renderer editorial authority.
+
+### VoiceTreatment — P1
+
+The product must distinguish preserve / clean / allow-revoice / do-not-use-original. Poor source quality alone must not authorize replacement or deletion of user speech.
+
+### Reference URL acquisition — P1
+
+Target semantic route:
+
+`supported URL → acquisition adapter → controlled local file → REFERENCE_ANALYSIS_ONLY → existing analysis/planning`
+
+Login/DRM/unsupported/auth-required inputs fail closed.
+
+### Public music provider — P0
+
+Search is not sufficient. Product semantics require rights-aware selection + acquisition + controlled local governed Asset before the existing Music/BeatMap/audio chain can consume the result.
+
+### Non-silent audible-lane QC
+
+Final technical QC must reject an unintentionally silent result when the intent requires audible content. Renderer must not invent audio to repair this condition.
 
 ## Tool routing
 
 ### ChatGPT + GitHub
 
-- current-state/CI observation;
-- official dependency/license/runtime verification;
-- benchmark/ADR reasoning;
-- small deterministic governance/validation writes;
-- Preview Work Order closure.
+Primary for the active Product I/O contract and governance synchronization.
 
 ### User PowerShell
 
-- private runtime execution where a local Windows build/probe is actually required;
-- private media and hardware/runtime evidence.
+Use only when a genuine Windows/private-media/runtime boundary appears. No local benchmark is required merely to write the Product I/O contract.
 
 ### Codex
 
-**NO ACTIVE RELEASE.** Preserve quota for bounded production integration or difficult multi-file runtime debugging after the backend decision.
+**NO ACTIVE RELEASE** for the contract.
 
-## Final-10-percent execution corridor
-
-After Preview closure, return immediately to the product I/O/productization corridor rather than expanding player research:
-
-1. Stage-A Product I/O Contract;
-2. mixed source-audio semantics + speech protection + audible QC;
-3. Reference URL acquisition;
-4. rights-aware public music provider/acquisition;
-5. remaining bounded R0.12 productization and production Preview integration;
-6. minimum Review/repair loop;
-7. ordinary-user Windows runtime / Environment Doctor;
-8. practical product-facing integration for both cores;
-9. real Product Probes / Human Gate, then and only then structural 100%.
+The first expected next release is the bounded mixed source-audio + speech protection + audible-QC implementation batch after the contract freezes exact ownership and tests.
 
 ## Constitutional constraints
 
 - EDL remains sole exact timeline authority.
+- Renderer executes canonical EDL and does not make editorial decisions.
 - PreviewBackend is playback-only.
-- final rendering remains canonical EDL → Renderer.
 - original user media is never overwritten.
-- CPU/software fallback remains supported; GPU is optional routing.
-- no unreviewed third-party binary becomes a product distribution dependency.
-- GUI/desktop framework remains undecided during this benchmark.
+- commercial output visual material remains user-supplied local media.
+- reference media defaults to analysis-only.
+- remote/public visual replacement footage is not silently acquired.
+- CPU/software degraded strategies remain part of supported product direction.
 - no temporary shortcut may fabricate Planning artifacts, source timestamps, Domain decisions or a Product Gate PASS.
 
 ## Documentation synchronization rule
@@ -189,4 +184,6 @@ Dynamic state is canonical only in:
 
 ## STOP boundary
 
-Do not concurrently implement Graphics/transitions, Proxy/cache, Renderer operational controls, GUI/desktop frontend, packaging or EDL redesign while the Preview benchmark remains active unless the Work Order is explicitly revised.
+Do not reopen Preview family benchmarking after ADR-010 without a concrete Product Probe failure or new hard requirement.
+
+Do not concurrently implement GUI/frontend, Reference URL, music acquisition or mixed-audio code until the active Product I/O contract locates their ownership boundaries precisely enough to issue bounded implementation work.
