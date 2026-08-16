@@ -75,8 +75,18 @@ $upstreamHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $upstreamScript).Ha
 $patchedScript = Join-Path $env:RUNNER_TEMP "mpv-build-win32-lgpl-v0.41.0.ps1"
 $text = Get-Content -LiteralPath $upstreamScript -Raw
 
-# Keep the upstream-supported Windows/Clang build route, but convert its normal
-# GPL/full-player CI configuration into a benchmark-only shared libmpv LGPL candidate.
+# Preserve the upstream Windows/Clang route while replacing moving shader
+# dependencies with the versions the v0.41.0 script was written against.
+# shaderc v2024.1 exactly matches the historical patch context embedded in the
+# upstream script. SPIRV-Cross is pinned to the Vulkan SDK 1.3.290.0 release.
+$text = Replace-Required `
+    $text `
+    'git clone https://github.com/google/shaderc --depth 1 $subprojects/shaderc_cmake' `
+    'git clone --branch v2024.1 https://github.com/google/shaderc --depth 1 $subprojects/shaderc_cmake'
+
+# Convert upstream's normal GPL/full-player CI configuration into a benchmark-only
+# shared libmpv candidate. D3D11 in mpv v0.41.0 requires BOTH shaderc and
+# SPIRV-Cross; Vulkan itself remains disabled.
 $text = Replace-Required $text '-Ddefault_library=static `' '-Ddefault_library=both `'
 $text = Replace-Required $text '-Dlibmpv=true `' @'
 -Dlibmpv=true `
@@ -92,6 +102,7 @@ $text = Replace-Required $text '-Dlibmpv=true `' @'
     -Dlibavdevice=disabled `
     -Dlibbluray=disabled `
     -Dlua=disabled `
+    -Dsixel=disabled `
     -Duchardet=disabled `
     -Dvapoursynth=disabled `
     -Dzimg=disabled `
@@ -100,8 +111,8 @@ $text = Replace-Required $text '-Dlibmpv=true `' @'
     -Dd3d-hwaccel=enabled `
     -Dd3d9-hwaccel=disabled `
     -Ddirect3d=disabled `
-    -Dshaderc=disabled `
-    -Dspirv-cross=disabled `
+    -Dshaderc=enabled `
+    -Dspirv-cross=enabled `
     -Dwin32-smtc=disabled `
 '@
 $text = Replace-Required $text '-Dtests=true `' '-Dtests=false `'
@@ -129,9 +140,9 @@ $text = Replace-Required $text 'cp ./build/subprojects/vulkan-loader/vulkan.dll 
 $text = Replace-Required $text 'cp ./etc/mpv-*.bat ./build' '# cplayer intentionally disabled; no launcher artifacts.'
 $text = Replace-Required $text './build/mpv.com -v --no-config' '# libmpv DLL is validated below.'
 
-# Pin the two always-required higher-level multimedia dependencies to stable tags
-# instead of upstream CI's moving master branches. The FFmpeg Meson port stays on
-# upstream's v0.41.0-tested meson-8.0 branch; its exact resolved commit is recorded.
+# Pin higher-level multimedia dependencies rather than inheriting moving branches.
+# The FFmpeg Meson port remains on the v0.41.0-tested meson-8.0 branch for this
+# benchmark, with the resolved commit captured in provenance.
 $text = [regex]::Replace(
     $text,
     '(URL = "https://github\.com/libass/libass"\s+Revision = )"master"',
@@ -142,6 +153,12 @@ $text = [regex]::Replace(
     $text,
     '(URL = "https://code\.videolan\.org/videolan/libplacebo\.git"\s+Revision = )"master"',
     '$1"v7.360.1"',
+    1
+)
+$text = [regex]::Replace(
+    $text,
+    '(URL = "https://github\.com/KhronosGroup/SPIRV-Cross"\s+Revision = )"main"',
+    '$1"vulkan-sdk-1.3.290.0"',
     1
 )
 
@@ -163,8 +180,13 @@ windows_video=d3d11 enabled
 windows_hwdecode=d3d11va enabled
 software_decode=FFmpeg native path retained
 vulkan=disabled
+shaderc=enabled
+shaderc_pin=v2024.1
+spirv_cross=enabled
+spirv_cross_pin=vulkan-sdk-1.3.290.0
 lua=disabled
 javascript=disabled
+sixel=disabled
 libarchive=disabled (upstream script)
 libbluray=disabled
 libass_pin=0.17.5
@@ -267,6 +289,16 @@ $preferStatic = $options | Where-Object { $_.name -eq "prefer_static" } | Select
 if ($null -eq $preferStatic -or $preferStatic.value -ne $false) {
     Stop-Harness "Meson introspection did not prove prefer_static=false."
 }
+foreach ($featureName in @("d3d11", "shaderc", "spirv-cross")) {
+    $feature = $options | Where-Object { $_.name -eq $featureName } | Select-Object -First 1
+    if ($null -eq $feature -or $feature.value -ne "enabled") {
+        Stop-Harness "Meson introspection did not prove $featureName=enabled."
+    }
+}
+$vulkanFeature = $options | Where-Object { $_.name -eq "vulkan" } | Select-Object -First 1
+if ($null -eq $vulkanFeature -or $vulkanFeature.value -ne "disabled") {
+    Stop-Harness "Meson introspection did not prove vulkan=disabled."
+}
 
 # FFmpeg's generated config is the strongest local build proof that GPL/nonfree
 # components were not enabled by the selected Meson subproject configuration.
@@ -281,8 +313,9 @@ $ffmpegConfigText = Get-Content -LiteralPath $ffmpegConfig.FullName -Raw
 if ($ffmpegConfigText -match '#define\s+CONFIG_GPL\s+1') { Stop-Harness "FFmpeg CONFIG_GPL=1; candidate is not acceptable." }
 if ($ffmpegConfigText -match '#define\s+CONFIG_NONFREE\s+1') { Stop-Harness "FFmpeg CONFIG_NONFREE=1; candidate is not redistributable." }
 
-# Capture exact subproject revisions and license files. Moving branches may be used
-# during this benchmark build, but their resolved SHAs become part of the evidence.
+# Capture exact top-level subproject revisions and license files. Shaderc's
+# git-sync-deps children are audited recursively below because they are part of
+# the linked shader compiler closure.
 $subprojects = @()
 $licenseRoot = Join-Path $out "licenses"
 New-Item -ItemType Directory -Force -Path $licenseRoot | Out-Null
@@ -296,6 +329,29 @@ if (Test-Path -LiteralPath $subRoot) {
         $subprojects += [ordered]@{ name = $dir.Name; sha = $sha; remote = $remote }
 
         $dst = Join-Path $licenseRoot $dir.Name
+        $copied = $false
+        foreach ($f in Get-ChildItem -LiteralPath $dir.FullName -File -ErrorAction SilentlyContinue) {
+            if ($f.Name -match '^(LICENSE|LICENCE|COPYING|COPYRIGHT|NOTICE)(\.|$|[-_])') {
+                if (-not $copied) { New-Item -ItemType Directory -Force -Path $dst | Out-Null; $copied = $true }
+                Copy-Item -LiteralPath $f.FullName -Destination $dst -Force
+            }
+        }
+    }
+}
+
+$nestedRepos = @()
+$shadercRoot = Join-Path $subRoot "shaderc_cmake"
+if (Test-Path -LiteralPath $shadercRoot) {
+    $candidateDirs = Get-ChildItem -LiteralPath $shadercRoot -Directory -Recurse -Force -ErrorAction SilentlyContinue
+    foreach ($dir in $candidateDirs) {
+        if (-not (Test-Path -LiteralPath (Join-Path $dir.FullName ".git"))) { continue }
+        $sha = (git -C $dir.FullName rev-parse HEAD 2>$null).Trim()
+        $remote = (git -C $dir.FullName remote get-url origin 2>$null).Trim()
+        $relative = $dir.FullName.Substring($shadercRoot.Length).TrimStart('\')
+        $nestedRepos += [ordered]@{ name = "shaderc/$relative"; sha = $sha; remote = $remote }
+
+        $safeName = ($relative -replace '[^A-Za-z0-9._-]', '_')
+        $dst = Join-Path $licenseRoot "shaderc-nested-$safeName"
         $copied = $false
         foreach ($f in Get-ChildItem -LiteralPath $dir.FullName -File -ErrorAction SilentlyContinue) {
             if ($f.Name -match '^(LICENSE|LICENCE|COPYING|COPYRIGHT|NOTICE)(\.|$|[-_])') {
@@ -349,6 +405,10 @@ $provenance = [ordered]@{
         ffmpeg_nonfree_proven_disabled = -not ($ffmpegConfigText -match '#define\s+CONFIG_NONFREE\s+1')
         d3d11 = "enabled"
         d3d11_hwaccel = "enabled"
+        shaderc = "enabled"
+        shaderc_pin = "v2024.1"
+        spirv_cross = "enabled"
+        spirv_cross_pin = "vulkan-sdk-1.3.290.0"
         vulkan = "disabled"
     }
     artifact = [ordered]@{
@@ -359,9 +419,10 @@ $provenance = [ordered]@{
         runtime_files = $runtimeFiles
     }
     subprojects = $subprojects
+    nested_shaderc_dependencies = $nestedRepos
     limitations = @(
         "Benchmark candidate only; packaging/notices/source-offer obligations are not closed here.",
-        "Subproject exact SHAs are recorded; moving upstream branches are not accepted as future production pins.",
+        "The FFmpeg Meson port remains on the v0.41.0-tested meson-8.0 branch; its resolved SHA is evidence, not a production pin.",
         "A successful build does not by itself prove playback/control compatibility on the target Windows host."
     )
 }
