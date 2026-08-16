@@ -95,10 +95,49 @@ def _time(value: object, name: str) -> MediaTime | None:
         return None
     if not isinstance(value, dict) or set(value) != {"value", "scale"}:
         raise DeepSeekPlanningResponseError(f"{name} must be an exact time object or null")
+    raw_value = value["value"]
+    raw_scale = value["scale"]
+    if (
+        isinstance(raw_value, bool)
+        or not isinstance(raw_value, int)
+        or isinstance(raw_scale, bool)
+        or not isinstance(raw_scale, int)
+    ):
+        raise DeepSeekPlanningResponseError(f"{name} value/scale must be integers")
     try:
-        return MediaTime(int(value["value"]), int(value["scale"]))
-    except (TypeError, ValueError) as exc:
+        return MediaTime(raw_value, raw_scale)
+    except ValueError as exc:
         raise DeepSeekPlanningResponseError(f"invalid {name}") from exc
+
+
+def _text(item: dict[str, Any], name: str, *, default: str | None = None) -> str:
+    value = item.get(name, default)
+    if not isinstance(value, str):
+        raise DeepSeekPlanningResponseError(f"{name} must be a string")
+    return value
+
+
+def _optional_text(item: dict[str, Any], name: str) -> str | None:
+    value = item.get(name)
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise DeepSeekPlanningResponseError(f"{name} must be a string or null")
+    return value
+
+
+def _integer(item: dict[str, Any], name: str, *, default: int | None = None) -> int:
+    value = item.get(name, default)
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise DeepSeekPlanningResponseError(f"{name} must be an integer")
+    return value
+
+
+def _boolean(item: dict[str, Any], name: str, *, default: bool = False) -> bool:
+    value = item.get(name, default)
+    if not isinstance(value, bool):
+        raise DeepSeekPlanningResponseError(f"{name} must be a boolean")
+    return value
 
 
 def _parse(value: dict[str, Any]) -> DirectorProposal:
@@ -117,17 +156,17 @@ def _parse(value: dict[str, Any]) -> DirectorProposal:
         try:
             slots.append(
                 EditSlotProposal(
-                    str(item["slot_id"]),
-                    int(item["order"]),
-                    str(item["narrative_role"]),
-                    str(item["purpose"]),
-                    str(item["semantic_query"]),
+                    _text(item, "slot_id"),
+                    _integer(item, "order"),
+                    _text(item, "narrative_role"),
+                    _text(item, "purpose"),
+                    _text(item, "semantic_query"),
                     _time(item.get("minimum_duration"), "minimum_duration"),
                     _time(item.get("maximum_duration"), "maximum_duration"),
-                    str(item.get("pacing", "neutral")),
-                    None if item.get("continuity_hint") is None else str(item["continuity_hint"]),
-                    bool(item.get("allow_reuse", False)),
-                    int(item.get("importance", 1)),
+                    _text(item, "pacing", default="neutral"),
+                    _optional_text(item, "continuity_hint"),
+                    _boolean(item, "allow_reuse"),
+                    _integer(item, "importance", default=1),
                 )
             )
         except (KeyError, TypeError, ValueError) as exc:

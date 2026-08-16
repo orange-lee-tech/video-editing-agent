@@ -30,10 +30,9 @@ def _duration_constraint(
 ) -> DurationConstraint | None:
     if minimum is None and maximum is None:
         return None
-    lower = maximum if minimum is None else minimum
-    upper = minimum if maximum is None else maximum
-    assert lower is not None and upper is not None
-    return DurationConstraint(lower, upper)
+    if minimum is None or maximum is None:
+        raise ValueError("Director duration bounds must be both provided or both omitted")
+    return DurationConstraint(minimum, maximum)
 
 
 class AssetCatalog(AssetRepository, Protocol):

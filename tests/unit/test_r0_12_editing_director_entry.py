@@ -278,3 +278,111 @@ def test_deepseek_adapter_rejects_authority_bearing_extra_fields() -> None:
     )
     with pytest.raises(DeepSeekPlanningResponseError, match="authority-bearing"):
         port.propose(request)
+
+
+def test_director_proposal_contract_rejects_malformed_values() -> None:
+    with pytest.raises(ValueError, match="both provided"):
+        EditSlotProposal(
+            "proof",
+            0,
+            "proof",
+            "show proof",
+            "bottle pour",
+            minimum_duration=MediaTime(1, 1),
+        )
+
+    first = EditSlotProposal("one", 0, "proof", "one", "one")
+    second = EditSlotProposal("two", 0, "support", "two", "two")
+    with pytest.raises(ValueError, match="unique slot order"):
+        DirectorProposal((first, second))
+
+    with pytest.raises(TypeError, match="allow_reuse"):
+        EditSlotProposal(
+            "proof",
+            0,
+            "proof",
+            "show proof",
+            "proof",
+            allow_reuse="false",  # type: ignore[arg-type]
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "bad_value", "message"),
+    (
+        ("allow_reuse", "false", "allow_reuse must be a boolean"),
+        ("order", 0.5, "order must be an integer"),
+        ("purpose", 123, "purpose must be a string"),
+        ("importance", 1.5, "importance must be an integer"),
+    ),
+)
+def test_deepseek_adapter_rejects_malformed_scalar_types(
+    field: str, bad_value: object, message: str
+) -> None:
+    slot: dict[str, object] = {
+        "slot_id": "proof",
+        "order": 0,
+        "narrative_role": "proof",
+        "purpose": "show proof",
+        "semantic_query": "bottle pour",
+    }
+    slot[field] = bad_value
+    port = DeepSeekDirectorPort(
+        transport=FakeTransport({"slots": [slot]}),
+        config=DeepSeekChatConfig(),
+    )
+    request = DirectorRequest(
+        _brief(),
+        (
+            DirectorFootageEvidence(
+                EntityRevisionRef("shot", 1),
+                EntityRevisionRef("asset", 1),
+                1,
+                AnalysisProfile.SEMANTIC,
+                "summary",
+                (),
+                (),
+                (),
+            ),
+        ),
+    )
+    with pytest.raises(DeepSeekPlanningResponseError, match=message):
+        port.propose(request)
+
+
+def test_deepseek_adapter_rejects_non_integral_exact_time() -> None:
+    port = DeepSeekDirectorPort(
+        transport=FakeTransport(
+            {
+                "slots": [
+                    {
+                        "slot_id": "proof",
+                        "order": 0,
+                        "narrative_role": "proof",
+                        "purpose": "show proof",
+                        "semantic_query": "bottle pour",
+                        "minimum_duration": {"value": 1.5, "scale": 1},
+                        "maximum_duration": {"value": 2, "scale": 1},
+                    }
+                ]
+            }
+        ),
+        config=DeepSeekChatConfig(),
+    )
+    request = DirectorRequest(
+        _brief(),
+        (
+            DirectorFootageEvidence(
+                EntityRevisionRef("shot", 1),
+                EntityRevisionRef("asset", 1),
+                1,
+                AnalysisProfile.SEMANTIC,
+                "summary",
+                (),
+                (),
+                (),
+            ),
+        ),
+    )
+    with pytest.raises(DeepSeekPlanningResponseError, match="value/scale must be integers"):
+        port.propose(request)
