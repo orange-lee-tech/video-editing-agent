@@ -3,8 +3,8 @@
 **Roadmap V2:** ACTIVE  
 **Development stage:** STRUCTURAL_CONSTRUCTION  
 **Current phase:** R0.12 — EDL / Renderer / Subtitle / Preview / Proxy Productization  
-**Engineering state:** EDITPLAN COMPAT CLOSED — real Editing Director/Application entry active  
-**Updated:** 2026-08-15
+**Engineering state:** EDITING DIRECTOR/APPLICATION ENTRY CLOSED — next R0.12 bounded work selection pending  
+**Updated:** 2026-08-16
 
 ## Progress meaning
 
@@ -32,6 +32,7 @@ Stage-A 100% requires both core product workflows to work through an ordinary Wi
 - `9f06386f9f311fe241f250f4679fa6b2042699b0` — living Resolver → EDLBuilder → Renderer integration smoke.
 - `827b84941e1726bab374f2ffea9a746f49f6e570` — structured subtitle execution with fail-closed backend representability.
 - `1abc185a793d6a73ea55824bd2a036a1a134151a` — EditPlan parallel-entry compatibility: Editing-only Brief provenance without mandatory ScriptPlan/ShootingPlan, with downstream Resolver/EDL authority invariance.
+- `500c8563e3686a5aaef055ffb5301553aa999fd9` — real Editing Director/Application entry: provider-neutral Director proposal seam, independent Editing composition root, SQLite v6 EditPlan persistence, bounded DeepSeek adapter, fail-closed proposal validation and generated EditPlan → existing Retrieval/CandidateWindow/Resolver integration.
 
 ## Parallel workflow architecture — ACTIVE BASELINE
 
@@ -43,21 +44,13 @@ Stage-A 100% requires both core product workflows to work through an ordinary Wi
 
 `Brief` is the common intent root. Planning may enrich Editing but is not its activation license.
 
-The Domain compatibility correction is CLOSED. The current gap is one layer higher: production Application/Director entry.
+Both the Domain compatibility correction and the upstream production Director/Application entry are now CLOSED.
 
-## Active R0.12 work order
+## Closed R0.12 Editing Director/Application entry
 
-`R0.12-EDITING-DIRECTOR-ENTRY-001` is ACTIVE.
+`R0.12-EDITING-DIRECTOR-ENTRY-001` is `CLOSED — PASS` at accepted code baseline `500c8563e3686a5aaef055ffb5301553aa999fd9`.
 
-Repository audit establishes:
-
-- `ApplicationRuntime` currently exposes only preproduction/media operations;
-- `ProjectWorkspace.runtime()` requires preproduction provider ports and cannot serve as an independent Editing-only composition root;
-- `editing/director/` has CandidateWindow/retrieval helpers but no production Brief+media-evidence → EditPlan workflow;
-- the R0.9 Product Probe manually authored EditSlots/EditPlan before correctly exercising the grounded retrieval/resolution kernel;
-- SQLite schema v5 has no EditPlan repository/table.
-
-The active work will add the smallest real upstream producer:
+Accepted path:
 
 `exact persisted Brief`
 `+ persisted Resolver-eligible local Shot/ShotAnalysis evidence`
@@ -67,26 +60,34 @@ The active work will add the smallest real upstream producer:
 `→ persisted revisioned EditPlan`
 `→ existing Retrieval/CandidateWindow/Resolver kernel`
 
-Because EditPlan is a top-level durable Domain Entity and a production producer will now exist, first official EditPlan persistence and a deterministic SQLite v5→v6 migration are part of this bounded structural step. There are no historical persisted EditPlan rows to fabricate or rewrite.
+Key closure facts:
 
-The concrete DeepSeek Director adapter remains replaceable behind a neutral port and may only return bounded editorial-intent proposal DTOs. It may not commit Shot IDs, source timestamps, CandidateWindows, ResolutionDecisions or EDL coordinates.
+- Editing-only generation does not require or fabricate Planning artifacts;
+- Combined mode preserves exact optional Planning lineage;
+- `ProjectWorkspace.editing_runtime(...)` is independent from preproduction provider requirements;
+- the Director provider does not receive or commit Shot IDs, Asset IDs, source timestamps, CandidateWindows, ResolutionDecisions or EDL coordinates;
+- malformed provider scalar/time values and one-sided duration bounds fail closed;
+- proposal slot identity is unique while existing Domain ordering semantics are preserved, including deterministic handling of equal `order` values;
+- SQLite v5→v6 adds durable immutable EditPlan persistence without inventing legacy EditPlan rows;
+- the generated EditPlan is proven to enter the existing Retrieval/CandidateWindow/Resolver kernel rather than a duplicate editing engine;
+- downstream Resolver/EDLBuilder/Renderer authority was not materially redesigned.
 
-An independent Editing composition surface must not require dummy Planning providers. Existing planning/media behavior remains backward-compatible.
+Formal evidence: `docs/validation/R0.12_EDITING_DIRECTOR_ENTRY_CLOSURE.md`.
 
-Codex is released for one bounded implementation/test session because this coherent change spans persistence, Application workflow, workspace/provider/CLI wiring and migration/integration tests. ChatGPT will independently review its resulting commit and CI before acceptance.
+## Current active implementation work
 
-## Explicit boundary
+NONE.
 
-This work does **not** reopen R0.9 and does not authorize redesign of Resolver/optimizer, CandidateWindow ownership, retrieval algorithms, EDLBuilder, Canonical EDL, Renderer, VisualUnderstanding, subtitle, spatial, music/audio, Preview, Proxy/cache, Graphics/transitions, Review, packaging or GUI.
+A new bounded Work Order must be activated before substantive production-code construction resumes.
 
-The active Director work should use the currently implemented EditSlot fields. Full future CAP-04 intent vocabulary is not a reason to broaden this task.
-
-## Remaining R0.12 structural terrain after this correction
+## Remaining R0.12 structural terrain
 
 1. bounded Stage-A Graphics + minimal transition vocabulary, without a monolithic Effects Engine;
 2. Preview backend benchmark/ADR using real Windows evidence;
 3. edit-friendly derivative media / Proxy + range-aware cache with exact source-time mapping and affected-only invalidation;
 4. remaining Renderer operational needs such as progress/cancellation, diagnostics and controlled CPU/hardware routing where structurally required.
+
+These are not automatically concurrent. The next task should be selected only after re-observing the roadmap and dependency order.
 
 ## Stage-A 100% product-operability gate
 
