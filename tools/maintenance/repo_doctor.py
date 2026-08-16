@@ -175,7 +175,9 @@ def _check_stage_a_gate(control: dict[str, str], progress: int | None, errors: l
                 "false Stage-A 100% claim: these gates are not PASS: " + ", ".join(not_pass)
             )
     elif stage_gate == "PASS":
-        errors.append("stage_a_completion_gate cannot be PASS while structural progress is below 100")
+        errors.append(
+            "stage_a_completion_gate cannot be PASS while structural progress is below 100"
+        )
 
 
 def _check_live_state(errors: list[str]) -> None:
