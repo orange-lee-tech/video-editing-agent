@@ -201,8 +201,6 @@ Measurement caveat: `FirstWindowMs` is not exact first-frame latency.
 
 ### Wave 2A — GStreamer actual hardware path — PASS
 
-The brittle manual `filesrc/qtdemux` proof pipeline is retired and does not define candidate acceptance.
-
 Actual high-level playback proof used canonical file URI, `playbin3`, `uridecodebin3/decodebin3`, `GST_PLUGIN_FEATURE_RANK=d3d11h264dec:MAX`, `d3d11videosink`, private runtime, and DOT graph capture.
 
 Observed:
@@ -217,27 +215,39 @@ Observed:
 
 GStreamer hardware decode/presentation proof is closed. Do not reopen manual demux experiments.
 
-### Wave 2B — deterministic API control / seek / scrub — ACTIVE NEXT
+### Wave 2B — deterministic API control / seek / scrub — PASS
 
-Each candidate must, or be excluded by a documented hard-gate reason:
+The accepted file-based harness validated Windows PowerShell 5.1, Python 3.13.14, the private GStreamer MSVC GstPlay runtime, the private VLC/libVLC runtime, the deterministic fixture and a clean repository working tree before candidate execution.
 
-- provide deterministic non-GUI playback control suitable for a thin adapter;
-- pause and resume without uncontrolled timeline drift;
-- accept repeated absolute seeks on the same deterministic fixture;
-- recover to the requested region consistently under scrub-like randomized seeks;
-- remain stable after repeated control operations;
-- expose failures/unsupported operations diagnosably.
+Observed:
 
-Official API contracts checked before the next harness:
+- GStreamer GstPlay control process exit code `0`;
+- VLC/libVLC 3 control process exit code `0`;
+- `GStreamer API control PASS = True`;
+- `VLC API control PASS = True`;
+- final `WAVE 2B API CONTROL PASS` marker;
+- repository remained clean.
 
-- GstPlay exposes play, pause, stop, absolute nanosecond `gst_play_seek()`, absolute nanosecond `gst_play_get_position()`, and `SEEK_DONE` parsing since 1.26;
-- libVLC 3.0 exposes `libvlc_media_player_set_pause()`, millisecond `libvlc_media_player_get_time()`, and millisecond `libvlc_media_player_set_time()`; do not accidentally use LibVLC 4 signatures/units against the 3.0.23 runtime.
+The candidate PASS markers are emitted only after start, pause with bounded drift, eight repeated absolute randomized seeks with target recovery, resume with timeline advancement, and clean stop/release checks complete.
 
-The seek-recovery metric must remain explicitly labelled a proxy unless tied to a documented seek-complete/render event. Do not represent it as exact photon-to-screen latency.
+The terminal summary did not expose the individual numeric seek-proxy payloads, so no mean/max seek latency ranking is accepted from this run. Behavioral control reliability is accepted; precise numeric comparison remains optional evidence if it becomes decision-critical.
 
-Representative user/VFR footage follows only after deterministic control is stable.
+### Wave 3 — real/VFR + software fallback — NEXT
+
+Next evidence:
+
+- representative real phone/camera footage, preferably including VFR;
+- explicit software/fallback behavior and diagnostics for the leading candidates;
+- preserve Oray unless a repeatable adapter-selection issue requires isolation;
+- keep Class-B/Class-C evidence gaps explicit;
+- compare runtime/deployment burden only with observed artifacts and official license/build facts.
 
 ## Stage 4 — decision / ADR
+
+Before ADR acceptance, resolve the third candidate family:
+
+- prepare an auditable LGPL-configured libmpv candidate, or
+- document a hard-gate exclusion if a reproducible, acceptable Windows distribution/build path cannot be established without disproportionate product risk.
 
 The Preview ADR must record exact tested versions/builds, environment class, corpus, commands/methodology, measurements, limitations, primary winner, rejected alternatives, fallback policy, packaging/license caveats and the invariant that PreviewBackend remains an adapter while EDL remains authority.
 
@@ -255,7 +265,7 @@ This Work Order does **not** authorize production implementation of:
 - Domain authority changes;
 - installer/packaging.
 
-A small benchmark-only harness is allowed when justified; prefer private PowerShell tooling first.
+A small benchmark-only harness is allowed when justified; prefer private file-based PowerShell/Python tooling over giant interactive blocks.
 
 ## Exit gate
 
@@ -272,12 +282,10 @@ PASS only when:
 
 ## Immediate next action
 
-Run Wave 2B on the deterministic fixture through the actual C APIs:
-
-1. GStreamer: `GstPlay` pause/resume + repeated absolute nanosecond seek and position recovery;
-2. VLC: libVLC 3.0.23 pause/resume + repeated absolute millisecond seek and position recovery;
-3. use private runtimes only and keep Oray enabled;
-4. preserve reliable child process exit status and separated native stderr;
-5. record seek-recovery proxy, process stability and diagnostics without claiming exact rendered-frame latency;
-6. after deterministic control is stable, add representative user/VFR footage and explicit software-fallback evidence;
-7. keep libmpv on its separate LGPL provenance/build gate until an auditable candidate is prepared.
+1. run representative real/VFR footage through GStreamer and VLC/libVLC using the now-proven playback/control surfaces;
+2. exercise explicit software/fallback behavior and record diagnostic quality;
+3. inspect persisted Wave-2B stdout only if precise seek-proxy numbers become decision-critical;
+4. resolve the libmpv LGPL provenance/build gate through official build/license evidence;
+5. compare deployment/runtime footprint and embedding/control burden;
+6. write and accept the Preview backend ADR;
+7. keep Codex unreleased until a bounded production integration Work Order exists.
