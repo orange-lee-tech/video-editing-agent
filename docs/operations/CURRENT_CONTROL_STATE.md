@@ -7,7 +7,7 @@ current_phase: R0.12
 phase_state: PREVIEW_REAL_PLAYBACK_BENCHMARK_ACTIVE
 active_work_order: R0.12-PREVIEW-BACKEND-BENCHMARK-001
 accepted_code_baseline: 500c8563e3686a5aaef055ffb5301553aa999fd9
-control_plane_baseline: 42466d2a49e6cd11c0f19c6b45ba230c72609bc8
+control_plane_baseline: 4901067df74553a121e3ec5978b3e999a91cb9a2
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
 core_1_planning_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
@@ -85,7 +85,7 @@ Project FFmpeg capability probe:
 
 The software-vs-D3D11VA null-output throughput numbers are capability evidence only and are not used to rank Preview backends.
 
-### Stage 1 — candidate preparation — GStreamer/VLC ACCEPTED, FINAL PATH OBSERVATION PENDING
+### Stage 1 — candidate provenance/private runtime — PASS FOR GSTREAMER + VLC
 
 Durable evidence:
 
@@ -106,7 +106,33 @@ VLC/libVLC 3.0.23:
 - private runtime contains `vlc.exe`, `libvlc.dll`, plugins;
 - `--ignore-config --intf dummy` isolated startup exits `0` with no `vlcrc` load failure.
 
-One final Stage-1 housekeeping observation remains: confirm candidate preparation did not introduce a required persistent global executable PATH dependency. This does not block real-playback benchmarking because both runtimes are addressed by absolute private paths.
+Wave-1 preflight confirmed:
+
+- no GStreamer/VLC executable is available from global PATH;
+- benchmark root is absent from User PATH and Machine PATH;
+- both candidates are therefore exercised through explicit private paths rather than developer-machine global setup.
+
+### Stage 3 — real playback/control benchmark — ACTIVE
+
+Durable evidence:
+
+`docs/validation/R0.12_PREVIEW_REAL_PLAYBACK_BENCHMARK_EVIDENCE.md`
+
+Wave 1 on the deterministic 1080p H.264/AAC fixture:
+
+- both GStreamer 1.28.6 and VLC 3.0.23 completed actual windowed playback;
+- GStreamer first-observed window proxy approximately `518 ms`, max working set approximately `139.7 MiB`, average machine CPU estimate approximately `10.2%`;
+- VLC first-observed window proxy approximately `838 ms`, max working set approximately `291 MiB`, average machine CPU estimate approximately `6.0%`;
+- VLC logs explicitly prove D3D11VA hardware decode on Intel HD Graphics 520;
+- GStreamer logs prove active D3D11 presentation/device activity, while auto-selected H.264 decoder still needs direct Wave-2 proof before claiming hardware-decode selection from this playback run;
+- one GStreamer-enumerated D3D11 device reported unsupported video-device interface on this host; playback nevertheless completed and the diagnostic remains retained rather than hidden by removing Oray;
+- no backend winner is declared from Wave 1.
+
+Measurement caveats:
+
+- `FirstWindowMs` is a window-handle appearance proxy, not exact first-frame latency;
+- the first PowerShell process wrapper did not reliably preserve the displayed child `ExitCode` on this host and must be corrected for Wave 2;
+- local benchmark residue `vlc-help.txt` appeared as an untracked repository file and must be removed, not committed.
 
 ### libmpv
 
@@ -122,20 +148,20 @@ Class-B ordinary-current-Windows and Class-C accelerated evidence remain missing
 
 ## Current benchmark action
 
-The deterministic playback/control wave is now active.
+Wave 2 is next.
 
-Measure on the same H.264/AAC fixture:
+On the same deterministic fixture:
 
-- actual rendered playback;
-- pause/resume;
-- absolute seek and repeated random seek/scrub-like control;
-- startup and process working-set/CPU evidence;
-- hardware/decode/presentation path where observable;
-- stability/recovery and diagnostics.
+- remove local `vlc-help.txt` benchmark residue;
+- obtain direct GStreamer `d3d11h264dec → d3d11videosink` playback evidence;
+- preserve reliable child exit status;
+- run deterministic repeated absolute seek and scrub-like random-seek control for both candidates;
+- observe post-seek playback/A-V recovery, stability, CPU/RAM and diagnostics;
+- do not disable Oray unless a repeatable adapter-selection defect requires an isolation experiment.
 
-GStreamer control semantics may use the official GstPlay playback API / equivalent benchmark surface. VLC evidence should use a deterministic CLI/libVLC-facing control surface rather than GUI clicking as sole proof.
+Official control surfaces are sufficient for this decision: GstPlay supports absolute time seek and seek-done messages; libVLC 3 exposes time/position control. GUI clicking is not accepted as sole control evidence.
 
-Representative user/VFR footage follows only after the deterministic control benchmark is stable.
+Representative user/VFR footage follows only after deterministic control is stable.
 
 ## Tool routing
 
