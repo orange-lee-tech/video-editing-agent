@@ -16,7 +16,6 @@ jobs:
     timeout-minutes: 90
     env:
       MPV_TAG: v0.41.0
-      VS: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise'
       CC: clang
       CXX: clang++
       CC_LD: lld-link
@@ -76,8 +75,21 @@ jobs:
           }) -join ';'
           $env:PATH = "$env:MPV_SOURCE\cmake\bin;" + $env:PATH + ';C:\Program Files\NASM'
 
-          Import-Module "$env:VS\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
-          Enter-VsDevShell -VsInstallPath $env:VS -SkipAutomaticLocation -DevCmdArguments "-arch=x64 -host_arch=x64"
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (-not (Test-Path -LiteralPath $vswhere)) { throw "vswhere not found: $vswhere" }
+          $vs = (& $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath).Trim()
+          if (-not $vs) { throw "No Visual Studio installation with x64 C++ tools found." }
+          $devShell = Join-Path $vs 'Common7\Tools\Microsoft.VisualStudio.DevShell.dll'
+          if (-not (Test-Path -LiteralPath $devShell)) { throw "Visual Studio DevShell module not found: $devShell" }
+          Write-Host "Using Visual Studio: $vs"
+          Import-Module $devShell
+          Enter-VsDevShell -VsInstallPath $vs -SkipAutomaticLocation -DevCmdArguments "-arch=x64 -host_arch=x64"
+
+          foreach ($tool in @('clang.exe', 'clang++.exe', 'lld-link.exe', 'llvm-rc.exe', 'nasm.exe', 'meson.exe')) {
+            $resolved = Get-Command $tool -ErrorAction SilentlyContinue
+            if ($null -eq $resolved) { throw "Required build tool not found after DevShell setup: $tool" }
+            Write-Host "$tool -> $($resolved.Source)"
+          }
 
           $out = Join-Path $env:RUNNER_TEMP "libmpv-lgpl-candidate"
           ./tools/probes/preview/build_libmpv_lgpl_candidate.ps1 `
