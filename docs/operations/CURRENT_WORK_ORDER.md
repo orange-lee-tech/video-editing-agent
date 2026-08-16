@@ -10,224 +10,194 @@
 
 ## Why this work exists
 
-R0.12 still requires an interactive Windows execution experience. Roadmap V2 and CAP-08 explicitly leave the Preview backend unfrozen and require a real Windows benchmark rather than selecting a player by README familiarity or framework preference.
+R0.12 requires a practical interactive Windows Preview path, but Roadmap V2 and CAP-08 intentionally leave the backend family unfrozen. Selection must come from real Windows evidence rather than familiarity or UI preference.
 
-The candidate families are:
+Candidate families:
 
 1. GStreamer with D3D11 paths;
-2. an approved LGPL-configured libmpv build;
+2. an auditable LGPL-configured libmpv build;
 3. libVLC.
 
-Preview is an adapter concern only. It must not gain EDL/timeline authority, rewrite source mappings, or determine final render semantics.
+Preview is an adapter concern only. It must not gain EDL/timeline authority, rewrite source mappings, or determine final-render semantics.
 
-The result of this Work Order is a benchmark-backed ADR and a bounded integration recommendation. It is not yet a GUI implementation and is not permission to redesign Renderer, EDL, Proxy/cache or Domain models.
+## Product decision principle
 
-## Product principle for this decision
-
-The Preview choice is a product-deployment decision, not a single-machine speed contest.
-
-Priority is:
+Priority:
 
 `deployability / compatibility / diagnosable degradation`
 `>`
 `stable external control / simple user operation`
 `>`
-`resource efficiency / peak acceleration`
+`resource efficiency / acceleration`
 `>`
 `UI richness`
 
-The product does not require a flashy interface at Stage A. It does require a practical, understandable and controllable path that can be extended later without forcing ordinary users to manually prepare a developer workstation.
+Stage A does not require a flashy interface. It requires a practical, understandable and replaceable playback component that works across realistic Windows capability classes and admits a bounded packaging story later.
 
-A backend does not win because it is fastest on one machine. It must remain predictable across hardware classes, support software fallback where feasible, expose enough diagnostics to explain unavailable acceleration, and admit a bounded packaging story for later R0.14.
-
-## Goal
-
-Choose the Windows Preview backend family using reproducible evidence from real Windows environments, with enough confidence to unblock later Preview integration, Proxy/cache design, packaging/runtime decisions and eventually the desktop/frontend ADR.
-
-The benchmark must distinguish backend quality from host-environment quality. Driver defects, unsupported acceleration or virtual-display interference are recorded as environment capability states rather than silently attributed to the backend.
+A backend does not win because it is fastest on one machine.
 
 ## Tool routing
 
-### ChatGPT + GitHub — primary control plane
+### ChatGPT + GitHub
 
-- inspect current architecture/roadmap/capability constraints;
-- verify candidate official documentation, license/distribution posture and supported Windows integration surfaces before installation instructions are given;
-- define the benchmark matrix and hard gates;
-- interpret PowerShell evidence;
-- distinguish backend defects from driver/OS/hardware capability defects;
-- write the final Preview ADR and closure evidence;
-- keep repository governance synchronized.
+Primary control plane:
 
-### User PowerShell — primary execution plane
+- current GitHub/CI observation;
+- official runtime/license/provenance verification;
+- benchmark design and evidence interpretation;
+- small deterministic benchmark/governance writes;
+- ADR and closure evidence;
+- synchronization of live control documents.
 
-Use real Windows machines/environments for:
+### User PowerShell
 
-- environment inventory;
-- candidate runtime/version discovery;
-- controlled installation only after exact sources are approved;
-- standardized playback/seek/scrub stress runs;
-- CPU/RAM/GPU/process evidence collection;
-- real phone-footage and deterministic fixture checks;
-- logs and screenshots where useful.
+Primary local evidence plane:
 
-Temporary benchmark outputs should stay outside durable Domain state and should not be confused with product artifacts.
+- Windows hardware/driver/runtime observation;
+- controlled candidate preparation;
+- playback/seek/scrub probes;
+- CPU/RAM/GPU/process evidence;
+- real private footage;
+- local logs/screenshots when useful.
 
-### Codex — NOT RELEASED
+### Codex
 
-Do not spend Codex quota on discovery, package installation, benchmark observation or ADR reasoning.
+**NOT RELEASED.**
 
-Codex may be reconsidered only after a backend winner exists and a later bounded implementation requires coherent multi-file integration or repeated modify→run→observe loops that are inefficient through PowerShell/manual patches.
+Do not spend Codex quota on package discovery, installation, benchmarking, documentation or ADR reasoning. Reconsider only after a backend winner exists and bounded production integration materially benefits from repeated multi-file edit/test/repair loops.
 
-## Constitutional/architecture constraints
+## Constitutional / architecture constraints
 
 1. EDL remains sole exact timeline authority.
-2. PreviewBackend is playback-only; it does not move clips, select source timestamps, repair EDL or mutate authoritative decisions.
-3. Final render quality remains owned by the canonical EDL + Renderer path; low-resolution proxy/preview media is not final source authority.
-4. Original user media must never be overwritten.
-5. CPU-only operation remains a supported baseline; GPU acceleration is optional capability routing, not a mandatory product assumption.
-6. Missing/broken GPU acceleration must produce a diagnosable degraded state rather than an unexplained hard failure where software fallback is practical.
-7. No arbitrary third-party binary may be adopted for commercial distribution without exact build/license/transitive/runtime evidence.
-8. GUI/desktop framework remains intentionally undecided during this Work Order.
-9. Preview integration must remain thin enough that replacing the backend later does not rewrite Domain, EDL or product workflow semantics.
+2. PreviewBackend is playback-only.
+3. Final render remains canonical EDL → Renderer; preview/proxy media is not quality authority.
+4. Original user media is never overwritten.
+5. CPU/software fallback remains part of the product strategy; GPU acceleration is optional capability routing.
+6. Missing/broken acceleration must be diagnosable rather than an unexplained hard failure where fallback is practical.
+7. No arbitrary third-party binary may become a product-distribution dependency without exact provenance/license/build evidence.
+8. GUI/desktop framework remains undecided during this Work Order.
+9. Proxy/cache, Graphics/transitions, Renderer operational controls and packaging are outside this Work Order.
 
 ## Environment classes
 
-Do not treat one development laptop as the product hardware definition.
+### Class A — degraded / low-end / fallback
 
-Evidence should be classified into at least these capability classes as practical:
+Old CPU/iGPU, missing/basic driver, virtual-display interference or software-only decode/render. Tests degraded behavior and diagnosability.
 
-### Class A — degraded / low-end / fallback environment
+### Class B — ordinary supported Windows
 
-Examples:
+Current normal Windows hardware with functioning vendor GPU driver. This is the intended default-user performance class.
 
-- old CPU/iGPU;
-- missing or basic display driver;
-- hardware decode unavailable;
-- virtual display/remote-display interference;
-- software-decode/render fallback.
+### Class C — newer / accelerated
 
-This class tests whether the product fails clearly or remains usefully operable at reduced performance.
+Newer Intel/AMD/NVIDIA hardware with modern decode/render acceleration.
 
-### Class B — ordinary supported Windows environment
+Missing Class-B/Class-C evidence must be recorded honestly rather than inferred from Class A.
 
-A normal current Windows machine with a functioning vendor GPU driver and common integrated/discrete GPU capability.
+## Stage 0 — environment and device capability — PASS
 
-This is the main default-user performance class.
+Durable evidence:
 
-### Class C — newer/accelerated environment
+`docs/validation/R0.12_PREVIEW_STAGE0_WINDOWS_ENVIRONMENT_EVIDENCE.md`
 
-A newer Intel/AMD/NVIDIA system where modern hardware decode/render paths are available.
+Observed host:
 
-This class tests whether the architecture can benefit from acceleration without making it mandatory.
+- Lenovo ThinkPad T470s type 20JT / i5-6300U / Intel HD Graphics 520;
+- Windows 11 build family 26100;
+- approximately 19.88 GiB RAM;
+- Oray virtual display present.
 
-Not all three classes must be physically available before the first ADR, but missing evidence must be recorded explicitly and must not be disguised as universal proof.
+The same host has been preserved in two useful states:
 
-## Stage 0 — environment inventory
+1. degraded: Microsoft Basic Display Adapter;
+2. restored vendor driver: Intel HD Graphics 520 `27.20.100.8854` from the Lenovo OEM path.
 
-Before installing anything, capture:
+Project FFmpeg 8.1 confirms:
 
-- Windows version/build and architecture;
-- CPU model / logical cores;
-- RAM;
-- GPU adapter(s), driver version(s), dedicated/shared memory where available;
-- whether vendor GPU drivers or only generic/basic display drivers are active;
-- virtual/remote display devices that may affect D3D adapter selection;
-- current FFmpeg/ffprobe path + version/build configuration;
-- Python/uv project baseline;
-- presence/version/path of GStreamer, mpv/libmpv and VLC/libVLC if already installed;
-- package-manager availability relevant to controlled candidate installation.
+- deterministic fixture generation: PASS;
+- software H.264 decode fallback: PASS;
+- D3D11VA adapter initialization: PASS;
+- adapter selected as `8086:1916 Intel(R) HD Graphics 520`;
+- H.264 D3D11VA decode: 360/360 frames, 0 errors, exit 0.
 
-No candidate receives credit merely for already being installed.
+The software-vs-hardware throughput values from the null-output capability probe are **not** Preview performance rankings; real playback/presentation/seek must be benchmarked through each candidate's actual path.
 
-## Stage 1 — candidate provenance / install gate
+This host remains Class-A restored-vendor-driver evidence, not universal Class-B proof.
 
-For each candidate, ChatGPT must verify against current official sources:
+## Stage 1 — candidate provenance / preparation — ACTIVE
 
-- supported Windows build/distribution channel;
-- relevant license/build configuration;
-- whether the runtime can be embedded/controlled without forcing timeline ownership upstream;
-- hardware decode / D3D11 support expectations;
-- software fallback behavior where documented;
-- Python/native/IPC integration options relevant to this architecture;
-- private/side-by-side deployment feasibility versus machine-wide prerequisites;
-- redistribution/package implications that affect later R0.14.
+Current official-source gate:
 
-Do not install from random mirrors or unreviewed binary bundles.
+### GStreamer
 
-Prefer product-owned/private runtime deployment over requiring users to manually configure global PATH or preinstall developer SDKs, unless evidence shows a shared prerequisite is materially safer/simpler.
+- current stable family observed: 1.28.6;
+- official Windows x86_64 MSVC distribution exists;
+- Windows 11 supported;
+- 1.28 installers support current-user/private-directory installation and runtime-only mode;
+- benchmark should use official MSVC x86_64 runtime, not a random third-party bundle;
+- D3D11 capability and fallback/diagnostics will be tested directly.
+
+### libVLC
+
+- current stable Windows release observed: VLC 3.0.23;
+- official VideoLAN 64-bit ZIP is available and suitable for isolated side-by-side benchmark preparation;
+- libVLC/VLC codebase is published under LGPL 2.1 terms, but later product packaging still requires notices/runtime provenance review;
+- benchmark should use official VideoLAN distribution only.
+
+### libmpv
+
+- upstream mpv is GPLv2-or-later by default;
+- LGPLv2.1-or-later mode requires `-Dgpl=false`;
+- official upstream Windows compilation documentation supports building shared libmpv and explicitly notes `-Dgpl=false` plus dependency review;
+- common Windows mpv binaries are not automatically accepted as an LGPL product baseline;
+- libmpv therefore remains a separate provenance/build gate and must not be represented by an arbitrary prebuilt binary.
 
 ## Stage 2 — benchmark corpus
 
 Use both:
 
-### Deterministic fixture
+1. deterministic project-generated H.264/AAC fixture;
+2. representative real user phone/camera footage, preferably including difficult/VFR material when available.
 
-A reproducible local fixture generated/validated by the project-controlled FFmpeg runtime, suitable for measuring startup, repeated seek and A/V playback behavior without content ambiguity.
+HDR/4K is tested only when suitable source/hardware exists; absence is recorded.
 
-### Real user footage
+## Stage 3 — hard gates and comparative evidence
 
-At least one representative phone/camera source from the user's actual target workflow. Prefer difficult material when available, such as high-resolution phone footage or VFR source.
+Each candidate must, or be excluded by a documented hard-gate reason:
 
-HDR/4K cases are tested when the local hardware/source corpus makes them practical; absence of such a source is recorded rather than fabricated.
+- open/play media reliably;
+- provide deterministic external seek/control suitable for a thin adapter;
+- remain subordinate to canonical EDL authority;
+- have an acceptable license/distribution path;
+- support a practical deployment story without assuming a developer workstation;
+- fail diagnosably;
+- expose practical software/hardware fallback where feasible.
 
-## Stage 3 — benchmark dimensions
+Compare:
 
-### Hard gates
+- cold startup / first frame;
+- repeated seek and scrub-like random seeks;
+- stability after repeated control operations;
+- CPU, RAM and GPU behavior;
+- A/V behavior;
+- difficult/VFR footage;
+- hardware acceleration and fallback;
+- external-control/API/IPC burden;
+- runtime/package footprint;
+- private deployment burden;
+- diagnostic quality.
 
-A candidate must:
+Do not invent a universal weighted score. Prefer hard gates plus transparent trade-offs.
 
-- open and play the benchmark media reliably on Windows;
-- support deterministic external seek/control suitable for a future application adapter;
-- not require ownership of canonical timeline semantics;
-- have an acceptable license/distribution path for the intended product direction;
-- support a practical deployment story that does not assume a preconfigured developer machine;
-- fail diagnosably rather than hanging or silently corrupting playback state;
-- expose or permit a clear fallback path when preferred hardware acceleration is unavailable, where technically practical.
+## Stage 4 — decision / ADR
 
-### Comparative evidence
+The Preview ADR must record exact tested versions/builds, environment class, corpus, commands/methodology, measurements, limitations, primary winner, rejected alternatives, fallback policy, packaging/license caveats and the invariant that PreviewBackend remains an adapter while EDL remains authority.
 
-Record where measurable:
-
-- cold/startup latency;
-- first-frame latency;
-- repeated seek latency and seek stability;
-- scrub-like repeated random-seek behavior;
-- CPU utilization;
-- process memory;
-- GPU decode/3D utilization where observable;
-- playback smoothness / dropped-frame or equivalent diagnostic evidence;
-- audio/video behavior after repeated seeks;
-- VFR/difficult-codec behavior;
-- hardware acceleration behavior/fallback;
-- behavior with generic/basic display driver versus functioning vendor driver when such evidence is available;
-- integration/control complexity;
-- runtime/package footprint and redistribution burden;
-- amount of host-machine setup required;
-- quality of diagnostics for missing codecs/drivers/runtime components.
-
-Do not invent a universal weighted score unless the evidence later justifies one. Prefer hard gates + transparent trade-offs.
-
-## Stage 4 — decision
-
-Produce a Preview ADR that records:
-
-- exact candidate versions/builds tested;
-- Windows/hardware/driver environment class;
-- test corpus;
-- commands/methodology;
-- raw or summarized measurements;
-- known measurement limitations;
-- winner and rejected alternatives;
-- fallback policy if the preferred acceleration path is unavailable;
-- minimum/recommended environment implications without prematurely freezing final system requirements;
-- packaging/license caveats deferred to R0.14;
-- integration boundary: PreviewBackend remains an adapter and EDL remains authority.
-
-The ADR may select one primary backend plus a defined fallback strategy. It must not pretend all hardware behaves identically.
+The ADR may select one primary backend plus a defined fallback strategy.
 
 ## Explicit STOP scope
 
-This Work Order does **not** authorize substantive production implementation of:
+This Work Order does **not** authorize production implementation of:
 
 - GUI/desktop frontend;
 - Proxy/cache;
@@ -235,31 +205,25 @@ This Work Order does **not** authorize substantive production implementation of:
 - Graphics/transitions;
 - EDL schema redesign;
 - Domain authority changes;
-- packaging/installer.
+- installer/packaging.
 
-If useful benchmarking requires a small temporary harness, prefer PowerShell/private tooling first. Any durable repository code must be separately justified and remain benchmark-only.
+A small benchmark-only harness is allowed when justified; prefer private PowerShell tooling first.
 
 ## Exit gate
 
 PASS only when:
 
-- all three candidate families have either reproducible real-Windows benchmark evidence or a documented hard-gate reason for exclusion;
-- environment capability state is separated from backend capability state;
-- the preferred backend is selected by compatibility/deployment evidence plus performance, not preference or single-machine peak speed;
-- software/hardware fallback behavior and diagnostic expectations are recorded;
+- all three candidate families have reproducible Windows evidence or a documented hard-gate exclusion;
+- environment capability is separated from backend capability;
+- selection is based on deployment/compatibility/degradation plus playback performance;
+- fallback/diagnostic behavior is recorded;
 - exact license/build/runtime caveats are recorded;
 - a Preview ADR is accepted;
-- the chosen boundary leaves EDL/Renderer authority intact;
-- the result is sufficient to define the next bounded Preview integration or Proxy/cache Work Order without reopening the backend-family question.
-
-## Current Stage 0 evidence
-
-The first observed machine is a Lenovo-class low-end/legacy Windows environment with Intel hardware ID `VEN_8086&DEV_1916`, but Windows currently loads `Microsoft Basic Display Adapter` instead of a vendor Intel display driver. An `OrayIddDriver` virtual display device is also present. This environment is therefore classified as **Class A degraded/fallback evidence**, not a valid sole basis for comparing D3D11 hardware-acceleration performance.
-
-The repository also contains its own FFmpeg runtime under `.tools`; absence of global `ffmpeg`/`ffprobe` on PATH is therefore not by itself a project-environment defect. Product deployment should not assume users configure a global FFmpeg PATH.
+- EDL/Renderer authority remains intact;
+- the result is sufficient to define the next bounded Preview integration Work Order without reopening the backend-family question.
 
 ## Immediate next action
 
-Do not install Preview candidates yet.
+Prepare **GStreamer 1.28.6 MSVC x86_64 runtime** and **VLC/libVLC 3.0.23 win64** in isolated benchmark directories using official distributions and checksum verification. Do not alter global PATH.
 
-First confirm the display/driver capability state and preserve this machine as a useful degraded/fallback sample. Then decide whether to restore a normal vendor Intel driver for an additional Class B-like run or obtain ordinary-supported hardware evidence elsewhere. Candidate installation and benchmark commands will be prepared only from reviewed official sources.
+After runtime verification, run the same deterministic fixture through both actual playback paths and collect startup/seek/scrub/resource/fallback evidence. Keep libmpv on its separate LGPL provenance/build gate until an auditable candidate is prepared.
