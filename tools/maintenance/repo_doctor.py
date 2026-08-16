@@ -133,20 +133,23 @@ def _check_retired_locations(errors: list[str]) -> None:
             errors.append(f"retired path still present in active tree: {relative_path}")
 
 
-def _check_stage_a_gate(control: dict[str, str], errors: list[str]) -> None:
+def _control_progress(control: dict[str, str], errors: list[str]) -> int | None:
     raw_progress = control.get("structural_progress_percent")
     if raw_progress is None:
         errors.append("CURRENT_CONTROL_STATE.md missing structural_progress_percent")
-        return
+        return None
     try:
         progress = int(raw_progress)
     except ValueError:
         errors.append("structural_progress_percent must be an integer")
-        return
+        return None
     if not 0 <= progress <= 100:
         errors.append("structural_progress_percent must be between 0 and 100")
-        return
+        return None
+    return progress
 
+
+def _check_stage_a_gate(control: dict[str, str], progress: int | None, errors: list[str]) -> None:
     stage_gate = control.get("stage_a_completion_gate")
     planning_gate = control.get("core_1_planning_product_gate")
     editing_gate = control.get("core_2_editing_product_gate")
@@ -158,6 +161,8 @@ def _check_stage_a_gate(control: dict[str, str], errors: list[str]) -> None:
         if not value:
             errors.append(f"CURRENT_CONTROL_STATE.md missing {field}")
 
+    if progress is None:
+        return
     if progress == 100:
         required = {
             "stage_a_completion_gate": stage_gate,
@@ -227,12 +232,28 @@ def _check_live_state(errors: list[str]) -> None:
             errors.append(
                 "closed CURRENT_WORK_ORDER.md must not remain active in CURRENT_CONTROL_STATE.md"
             )
+        if active_work_order != "NONE" and active_work_order not in status:
+            errors.append("CURRENT_PHASE_STATUS.md does not mention active_work_order")
 
     accepted_baseline = control.get("accepted_code_baseline")
     if not accepted_baseline or not re.fullmatch(r"[0-9a-f]{40}", accepted_baseline):
         errors.append("CURRENT_CONTROL_STATE.md accepted_code_baseline must be a 40-char SHA")
 
-    _check_stage_a_gate(control, errors)
+    progress = _control_progress(control, errors)
+    status_progress_raw = _bold_field(status, "Structural progress")
+    if status_progress_raw is None:
+        errors.append("CURRENT_PHASE_STATUS.md has no parseable Structural progress")
+    else:
+        match = re.fullmatch(r"(\d{1,3})%", status_progress_raw)
+        if match is None:
+            errors.append("CURRENT_PHASE_STATUS.md Structural progress must be an integer percent")
+        elif progress is not None and int(match.group(1)) != progress:
+            errors.append(
+                "structural progress mismatch: "
+                f"CURRENT_CONTROL_STATE={progress}, CURRENT_PHASE_STATUS={match.group(1)}"
+            )
+
+    _check_stage_a_gate(control, progress, errors)
 
     docs_readme = _read("docs/README.md")
     operations_readme = _read("docs/operations/README.md")
@@ -288,6 +309,7 @@ def main() -> int:
     print("- navigation/required README paths present")
     print("- retired documents isolated under docs/archive")
     print("- phase/work-order/control-state pointers agree")
+    print("- structural progress is synchronized across live state")
     print("- Stage-A 100% product-gate invariant preserved")
     print("- no tracked private/cache/noise paths detected")
     return 0
