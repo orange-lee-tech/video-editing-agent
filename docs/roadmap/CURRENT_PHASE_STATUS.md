@@ -2,13 +2,23 @@
 
 **Roadmap V2:** ACTIVE  
 **Development stage:** STRUCTURAL_CONSTRUCTION  
+**Structural progress:** 90%  
 **Current phase:** R0.12 — EDL / Renderer / Subtitle / Preview / Proxy Productization  
 **Engineering state:** PREVIEW BACKEND BENCHMARK ACTIVE — production Preview implementation not yet authorized  
 **Updated:** 2026-08-16
 
 ## Progress meaning
 
-The structural percentage measures real end-to-end product construction, not file count or backend module completion. Stage-A 100% still requires both product cores to work through an ordinary Windows user-facing path.
+The structural percentage measures real end-to-end product construction, not file count or backend module completion.
+
+The hard 100% contract is `STAGE_A_COMPLETION_GATE.md`.
+
+Current Product Gate state is recorded machine-readably in `../operations/CURRENT_CONTROL_STATE.md`:
+
+- Planning foundation accepted; ordinary-user Planning product flow still open.
+- Editing foundation accepted; ordinary-user automatic final-MP4 product flow still open.
+
+Stage-A 100% is forbidden until both core Product Gates are PASS.
 
 ## Accepted R0.12 structural baselines
 
@@ -45,7 +55,7 @@ CAP-08 defines PreviewBackend as interactive playback only. It has no EDL/timeli
 2. current official source/license/runtime verification;
 3. controlled candidate installation where needed;
 4. deterministic fixture + representative real-footage benchmark;
-5. compare startup/seek/scrub/resource/stability/integration/distribution evidence;
+5. compare deployment/compatibility/degradation first, then startup/seek/scrub/resource/stability/integration evidence;
 6. record Preview ADR;
 7. only then authorize a production Preview integration Work Order.
 
@@ -64,14 +74,28 @@ After the Preview decision, re-evaluate the most efficient order among:
 
 These remain bounded tasks, not one giant final refactor.
 
+## Final Stage-A corridor after R0.12
+
+The remaining structural path is intentionally narrow:
+
+1. minimum Review/repair loop with deterministic technical QC and localized repair routing;
+2. ordinary-user Windows runtime/Environment Doctor and bounded private dependency strategy;
+3. plain practical product-facing surface for both core workflows;
+4. full real Planning-only / Editing-only / Combined integration;
+5. final Product Probes + Human Gate.
+
+Do not confuse later visual polish with structural closure. A basic interface is acceptable; an unusable or developer-only workflow is not.
+
 ## Stage-A 100% product-operability gate
+
+See `STAGE_A_COMPLETION_GATE.md` for the canonical contract.
 
 Before structural construction reaches 100%:
 
-- Planning core must run real reference/commercial intent to persisted inspectable ScriptPlan + executable ShootingPlan;
-- Editing core must run user-selected local footage through real understanding/evidence, Director/Resolver, music, spatial/audio, subtitle/graphics/minimal transitions, canonical EDL, Renderer and Review/repair to a final MP4;
+- Planning core must run real reference/high-performing/commercial intent to persisted inspectable ScriptPlan + executable ShootingPlan through an ordinary-user path;
+- Editing core must run user-selected local footage through real understanding/evidence, Director/Resolver, music, spatial/audio, subtitle/graphics/minimal transitions, canonical EDL, Renderer and Review/repair to a real final MP4;
 - Planning-only, Editing-only and Combined must all remain valid;
 - the final Product Probe must not hand-author EditPlan/ResolutionDecision/EDL;
-- an ordinary Windows user must be able to create/open a project, select footage and output location, provide intent, start, observe progress/failure and locate outputs without editing repository files.
+- an ordinary Windows user must be able to create/open a project, select required inputs and output location, provide intent, start, observe progress/failure and locate outputs without editing repository files.
 
 Desktop/frontend technology remains intentionally undecided until the Preview backend and later Windows packaging evidence justify a commitment.
