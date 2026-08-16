@@ -4,10 +4,10 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-16
 current_phase: R0.12
-phase_state: PREVIEW_API_CONTROL_BENCHMARK_ACTIVE
+phase_state: PREVIEW_REAL_MEDIA_FALLBACK_BENCHMARK_ACTIVE
 active_work_order: R0.12-PREVIEW-BACKEND-BENCHMARK-001
 accepted_code_baseline: 500c8563e3686a5aaef055ffb5301553aa999fd9
-control_plane_baseline: 05cd53cfe6d1c6cd87776c1a27ae06ac80e6d90b
+control_plane_baseline: fbb9260f87a4ce91dbd187993269c52f0a011e47
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
 core_1_planning_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
@@ -52,8 +52,8 @@ Live state:
 
 Current state:
 
-`private candidate runtimes + actual hardware playback proof`
-`→ deterministic API pause/seek/scrub benchmark`
+`private candidate runtimes + hardware playback proof`
+`→ deterministic API control PASS`
 `→ real/VFR + software-fallback evidence`
 `→ auditable libmpv gate`
 `→ Preview backend ADR`
@@ -95,7 +95,7 @@ Durable evidence:
 GStreamer 1.28.6:
 
 - official SHA-256 matched;
-- private current-user runtime prepared;
+- private current-user MSVC runtime prepared;
 - `d3d11videosink` registered;
 - `d3d11h264dec` registered against Intel HD Graphics 520;
 - D3D11-memory decode/presentation surface present;
@@ -115,41 +115,45 @@ Durable evidence:
 
 `docs/validation/R0.12_PREVIEW_REAL_PLAYBACK_BENCHMARK_EVIDENCE.md`
 
-Wave 1:
+Wave 1 — actual playback:
 
 - both GStreamer 1.28.6 and VLC 3.0.23 completed actual windowed playback;
 - GStreamer first-observed-window proxy approximately `518 ms`, max working set approximately `139.7 MiB`, average machine CPU estimate approximately `10.2%`;
 - VLC first-observed-window proxy approximately `838 ms`, max working set approximately `291 MiB`, average machine CPU estimate approximately `6.0%`;
 - VLC directly proved D3D11VA hardware decode on Intel HD Graphics 520;
-- no backend winner is declared from Wave 1.
+- no backend winner declared.
 
 Wave 2A — GStreamer actual hardware path — PASS:
 
 - canonical file URI + `playbin3/uridecodebin3/decodebin3` playback process exited `0`;
 - five DOT graphs captured;
-- actual graph includes `GstD3D11H264Dec:d3d11h264dec0` and `GstD3D11VideoSink:d3d11videosink0`;
-- decoder context reports `Intel(R) HD Graphics 520`, vendor `8086`, device `1916`, `hardware=true`;
+- graph includes `GstD3D11H264Dec:d3d11h264dec0` and `GstD3D11VideoSink:d3d11videosink0`;
+- decoder context reports Intel HD Graphics 520 with `hardware=true`;
 - H.264 1920x1080@30 enters the D3D11 decoder;
 - NV12 `video/x-raw(memory:D3D11Memory)` remains in the downstream path into the D3D11 sink.
 
-The GStreamer hardware decoder/presentation proof gate is closed. Prior manual-pipeline failures are classified as benchmark harness defects and are not candidate failures.
+Wave 2B — deterministic API control — PASS:
 
-### Current action — Wave 2B API control
+- environment gate PASS on Windows PowerShell `5.1.26100.9168` + Python `3.13.14`;
+- official MSVC GstPlay runtime DLL resolved as `gstplay-1.0-0.dll`;
+- GStreamer GstPlay control process exit code `0`;
+- VLC/libVLC 3 control process exit code `0`;
+- runner reported `GStreamer API control PASS = True`;
+- runner reported `VLC API control PASS = True`;
+- final `WAVE 2B API CONTROL PASS` marker;
+- repository remained clean.
 
-Next evidence must compare actual non-GUI control surfaces on the same deterministic fixture:
+The PASS markers are emitted only after pause with bounded drift, eight randomized absolute seeks with target recovery, resume with timeline advancement and clean stop/release checks. The terminal summary did not expose per-seek numeric proxy payloads, so no invented latency ranking is accepted.
 
-- GstPlay play/pause/resume and absolute nanosecond seek;
-- libVLC 3.0.23 play/pause/resume and absolute millisecond seek;
-- repeated randomized seek/scrub-like operations;
-- clearly named seek-recovery proxy rather than exact rendered-frame latency;
-- process stability and diagnostics.
+### Current action — real/VFR + software fallback
 
-Important API-version guard:
+Next evidence must:
 
-- use LibVLC **3.0** signatures and millisecond units against VLC 3.0.23;
-- do not copy LibVLC 4 `set_time(..., bool fast)` or microsecond contracts into this harness.
-
-Representative real/VFR footage and explicit software-fallback evidence follow only after deterministic API control is stable.
+- use representative real phone/camera footage, preferably including VFR;
+- exercise explicit software/fallback playback and diagnostic behavior for GStreamer and VLC/libVLC;
+- preserve Oray unless a repeatable adapter-selection defect requires an explicit isolation experiment;
+- keep Class-B/Class-C evidence gaps explicit;
+- compare deployment/runtime burden only from observed artifacts and official license/build facts.
 
 ### libmpv
 
@@ -157,7 +161,8 @@ Still separately gated:
 
 - GPL by default;
 - LGPL path requires `-Dgpl=false` plus dependency/build review;
-- arbitrary common Windows binaries remain unapproved.
+- arbitrary common Windows binaries remain unapproved;
+- must either produce an auditable Windows candidate or be excluded by a documented hard-gate reason before ADR closure.
 
 ### Missing hardware classes
 
