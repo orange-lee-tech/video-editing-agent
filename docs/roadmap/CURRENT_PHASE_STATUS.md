@@ -4,12 +4,12 @@
 **Development stage:** STRUCTURAL_CONSTRUCTION  
 **Structural progress:** 90%  
 **Current phase:** R0.12 — EDL / Renderer / Subtitle / Preview / Proxy Productization  
-**Engineering state:** PREVIEW LIBMPV LGPL GATE ACTIVE — production Preview implementation not yet authorized  
+**Engineering state:** STAGE-A PRODUCT I/O CONTRACT ACTIVE — Preview backend benchmark closed  
 **Updated:** 2026-08-16
 
 ## Progress meaning
 
-The structural percentage measures real end-to-end product construction, not file count or backend module completion.
+The structural percentage measures real end-to-end product construction, not file count, backend count or benchmark completion.
 
 The hard 100% contract is `STAGE_A_COMPLETION_GATE.md`.
 
@@ -31,76 +31,68 @@ Stage-A 100% remains forbidden until both core Product Gates are PASS.
 - `1abc185a793d6a73ea55824bd2a036a1a134151a` — EditPlan parallel-entry compatibility.
 - `500c8563e3686a5aaef055ffb5301553aa999fd9` — real Editing Director/Application entry with SQLite v6 EditPlan persistence and generated EditPlan → existing Retrieval/CandidateWindow/Resolver integration.
 
-Accepted production-code baseline remains `500c8563e3686a5aaef055ffb5301553aa999fd9`; current Preview work remains evidence/ADR-only.
+Accepted production-code baseline remains `500c8563e3686a5aaef055ffb5301553aa999fd9`.
 
 ## Parallel workflow architecture
 
 Planning-only, Editing-only and Combined remain parallel legitimate product meanings. Brief is the shared intent root; Planning artifacts enrich Editing only when present.
 
-## Active R0.12 Work Order
+## Preview backend benchmark — CLOSED
 
-`R0.12-PREVIEW-BACKEND-BENCHMARK-001` is ACTIVE.
+`R0.12-PREVIEW-BACKEND-BENCHMARK-001` is PASS/CLOSED.
 
-CAP-08 still defines PreviewBackend as interactive playback only. It has no EDL/timeline authority, does not repair EDL and does not define final-render quality.
+Accepted decision:
 
-### Accepted Preview evidence so far
+`docs/adr/ADR-010_GSTREAMER_PRIMARY_PREVIEW_BACKEND.md`
 
-- Windows Class-A environment/device capability: PASS;
-- GStreamer 1.28.6 and VLC/libVLC 3.0.23 provenance/private runtimes: PASS;
-- actual deterministic windowed playback for GStreamer + VLC: PASS;
-- VLC Intel HD 520 D3D11VA decode proof: PASS;
-- GStreamer actual `playbin3 → decodebin3 → d3d11h264dec → D3D11Memory/NV12 → d3d11videosink` hardware path: PASS;
-- GstPlay + libVLC deterministic play/pause/eight-seek/resume/release control: PASS;
-- three real phone HEVC files: GStreamer normal 3/3 PASS, libVLC normal 3/3 PASS;
-- GStreamer explicit software decode fallback on the real HEVC corpus: 3/3 PASS;
-- libVLC explicit software decode fallback: PASS using per-media `:avcodec-hw=none`; global-only `--avcodec-hw=none` is recorded as unreliable for the tested embedding path.
+- GStreamer is the primary Stage-A Preview backend family;
+- libVLC remains a validated replaceable alternative, not default dual-bundled fallback;
+- libmpv is hard-gate excluded for Stage A because an auditable LGPL Windows D3D11 distribution path would require disproportionate custom build/dependency/license maintenance;
+- PreviewBackend remains playback-only;
+- EDL remains sole exact timeline authority.
 
-Durable Wave-3 evidence:
+Durable libmpv gate record:
 
-`docs/validation/R0.12_PREVIEW_WAVE3_REAL_MEDIA_SOFTWARE_FALLBACK_EVIDENCE.md`
+`docs/validation/R0.12_PREVIEW_LIBMPV_LGPL_HARD_GATE_EXCLUSION.md`
 
-Evidence gaps remain explicit:
+### Preview STOP rule
 
-- the real-phone corpus did not contain observed VFR behavior;
-- Class-B ordinary-current-Windows host evidence is missing;
-- Class-C newer-accelerated host evidence is missing;
-- total no-GPU/no-presentation-device behavior was not simulated.
+Do not reopen player benchmarking merely to collect more codecs/machines/metrics. A new backend-family investigation requires a concrete Product Probe failure or a new hard product requirement.
 
-These gaps do not reopen already accepted hardware, control or real-HEVC/software-fallback evidence.
+Known Preview evidence gaps — real VFR, Class-B/Class-C hosts and total no-GPU presentation — remain ordinary integration/Product-Probe risks rather than reasons to keep the family-selection benchmark active.
 
-### Current sequence
+## Active Work Order
 
-1. **ACTIVE:** resolve auditable LGPL-configured libmpv Windows candidate or hard-gate exclusion;
-2. compare GStreamer / libVLC / libmpv using hard gates and transparent trade-offs;
-3. write and accept Preview ADR;
-4. close Preview benchmark;
-5. only then authorize bounded production Preview integration.
+`R0.12-STAGE-A-PRODUCT-IO-CONTRACT-001` is ACTIVE.
 
-### Codex
+The project now returns to the real Stage-A product boundary:
 
-NOT RELEASED for this benchmark. Preserve remaining quota for later production integration where local multi-file edit/test/repair creates real leverage.
+`ordinary-user inputs`
+`→ owned application/domain chain`
+`→ understandable progress/failure`
+`→ persisted plans and/or final MP4`
 
-## Preview STOP rule
+The contract must freeze the product-facing input/output semantics for Planning-only, Editing-only and Combined without choosing a desktop/frontend framework.
 
-After the Preview ADR, do not continue expanding player benchmarking merely because more tests are possible. The benchmark exists to choose a replaceable playback adapter, not to become the project.
-
-The product priority immediately returns to the Stage-A input→black-box→output corridor after Preview closure.
-
-## Remaining R0.12 / Stage-A corridor
-
-After Preview closure, prioritize the bounded productization work needed for ordinary-user usefulness, including the already identified Product I/O gaps:
+### Immediate corridor
 
 1. Stage-A Product I/O Contract;
-2. mixed source-audio semantics + speech protection + audible QC;
-3. reference URL acquisition;
+2. mixed source-audio semantics + speech protection + final audible-lane QC;
+3. Reference URL acquisition;
 4. rights-aware public music provider/acquisition;
-5. remaining bounded R0.12 productization, including production Preview integration where justified;
+5. remaining bounded R0.12 productization, including production GStreamer Preview integration where justified;
 6. minimum Review/repair loop;
 7. ordinary-user Windows runtime / Environment Doctor;
 8. practical product-facing integration for both real cores;
 9. real Planning/Editing Product Probes + Human Gate.
 
-Do not confuse later visual polish with structural closure. A basic interface is acceptable; a developer-only workflow is not.
+This is the preferred final-10-percent route. Do not divert back into optional backend research without a dependency from this corridor.
+
+### Codex
+
+NOT RELEASED for the Product I/O contract itself.
+
+The first expected post-contract Codex-worthy batch is mixed source-audio + speech protection + audible QC.
 
 ## Stage-A 100% product-operability gate
 
@@ -112,4 +104,4 @@ Before structural construction reaches 100%:
 - normal Product Probes must not hand-author EditPlan/ResolutionDecision/EDL;
 - an ordinary Windows user must be able to create/open a project, select inputs/output, provide intent, start, observe progress/failure and locate outputs without repository-file editing.
 
-Desktop/frontend technology remains intentionally undecided until Preview/backend and later Windows packaging evidence justify a commitment.
+Desktop/frontend technology remains intentionally undecided until the product I/O contract and later Windows packaging evidence justify a commitment.
