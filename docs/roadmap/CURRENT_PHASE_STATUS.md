@@ -4,7 +4,7 @@
 **Development stage:** STRUCTURAL_CONSTRUCTION  
 **Structural progress:** 90%  
 **Current phase:** R0.12 — EDL / Renderer / Subtitle / Preview / Proxy Productization  
-**Engineering state:** PREVIEW BACKEND BENCHMARK ACTIVE — production Preview implementation not yet authorized  
+**Engineering state:** PREVIEW LIBMPV LGPL GATE ACTIVE — production Preview implementation not yet authorized  
 **Updated:** 2026-08-16
 
 ## Progress meaning
@@ -13,12 +13,12 @@ The structural percentage measures real end-to-end product construction, not fil
 
 The hard 100% contract is `STAGE_A_COMPLETION_GATE.md`.
 
-Current Product Gate state is recorded machine-readably in `../operations/CURRENT_CONTROL_STATE.md`:
+Current Product Gate state remains:
 
 - Planning foundation accepted; ordinary-user Planning product flow still open.
 - Editing foundation accepted; ordinary-user automatic final-MP4 product flow still open.
 
-Stage-A 100% is forbidden until both core Product Gates are PASS.
+Stage-A 100% remains forbidden until both core Product Gates are PASS.
 
 ## Accepted R0.12 structural baselines
 
@@ -31,6 +31,8 @@ Stage-A 100% is forbidden until both core Product Gates are PASS.
 - `1abc185a793d6a73ea55824bd2a036a1a134151a` — EditPlan parallel-entry compatibility.
 - `500c8563e3686a5aaef055ffb5301553aa999fd9` — real Editing Director/Application entry with SQLite v6 EditPlan persistence and generated EditPlan → existing Retrieval/CandidateWindow/Resolver integration.
 
+Accepted production-code baseline remains `500c8563e3686a5aaef055ffb5301553aa999fd9`; current Preview work remains evidence/ADR-only.
+
 ## Parallel workflow architecture
 
 Planning-only, Editing-only and Combined remain parallel legitimate product meanings. Brief is the shared intent root; Planning artifacts enrich Editing only when present.
@@ -39,63 +41,75 @@ Planning-only, Editing-only and Combined remain parallel legitimate product mean
 
 `R0.12-PREVIEW-BACKEND-BENCHMARK-001` is ACTIVE.
 
-This Work Order is intentionally evidence-first and code-light.
+CAP-08 still defines PreviewBackend as interactive playback only. It has no EDL/timeline authority, does not repair EDL and does not define final-render quality.
 
-Roadmap V2 requires Preview selection from real Windows evidence among:
+### Accepted Preview evidence so far
 
-- GStreamer D3D11;
-- approved LGPL-configured libmpv;
-- libVLC.
+- Windows Class-A environment/device capability: PASS;
+- GStreamer 1.28.6 and VLC/libVLC 3.0.23 provenance/private runtimes: PASS;
+- actual deterministic windowed playback for GStreamer + VLC: PASS;
+- VLC Intel HD 520 D3D11VA decode proof: PASS;
+- GStreamer actual `playbin3 → decodebin3 → d3d11h264dec → D3D11Memory/NV12 → d3d11videosink` hardware path: PASS;
+- GstPlay + libVLC deterministic play/pause/eight-seek/resume/release control: PASS;
+- three real phone HEVC files: GStreamer normal 3/3 PASS, libVLC normal 3/3 PASS;
+- GStreamer explicit software decode fallback on the real HEVC corpus: 3/3 PASS;
+- libVLC explicit software decode fallback: PASS using per-media `:avcodec-hw=none`; global-only `--avcodec-hw=none` is recorded as unreliable for the tested embedding path.
 
-CAP-08 defines PreviewBackend as interactive playback only. It has no EDL/timeline authority, does not repair EDL and does not define final render quality.
+Durable Wave-3 evidence:
+
+`docs/validation/R0.12_PREVIEW_WAVE3_REAL_MEDIA_SOFTWARE_FALLBACK_EVIDENCE.md`
+
+Evidence gaps remain explicit:
+
+- the real-phone corpus did not contain observed VFR behavior;
+- Class-B ordinary-current-Windows host evidence is missing;
+- Class-C newer-accelerated host evidence is missing;
+- total no-GPU/no-presentation-device behavior was not simulated.
+
+These gaps do not reopen already accepted hardware, control or real-HEVC/software-fallback evidence.
 
 ### Current sequence
 
-1. user Windows environment inventory;
-2. current official source/license/runtime verification;
-3. controlled candidate installation where needed;
-4. deterministic fixture + representative real-footage benchmark;
-5. compare deployment/compatibility/degradation first, then startup/seek/scrub/resource/stability/integration evidence;
-6. record Preview ADR;
-7. only then authorize a production Preview integration Work Order.
+1. **ACTIVE:** resolve auditable LGPL-configured libmpv Windows candidate or hard-gate exclusion;
+2. compare GStreamer / libVLC / libmpv using hard gates and transparent trade-offs;
+3. write and accept Preview ADR;
+4. close Preview benchmark;
+5. only then authorize bounded production Preview integration.
 
 ### Codex
 
-NOT RELEASED for this benchmark. Preserve remaining quota for later integration work where it provides real execution leverage.
+NOT RELEASED for this benchmark. Preserve remaining quota for later production integration where local multi-file edit/test/repair creates real leverage.
 
-## Remaining R0.12 terrain
+## Preview STOP rule
 
-After the Preview decision, re-evaluate the most efficient order among:
+After the Preview ADR, do not continue expanding player benchmarking merely because more tests are possible. The benchmark exists to choose a replaceable playback adapter, not to become the project.
 
-1. bounded Stage-A Graphics + minimal transitions;
-2. production Preview integration;
-3. edit-friendly derivative media / Proxy + range-aware cache;
-4. Renderer operational controls: progress/cancellation/diagnostics and controlled CPU/hardware routing.
+The product priority immediately returns to the Stage-A input→black-box→output corridor after Preview closure.
 
-These remain bounded tasks, not one giant final refactor.
+## Remaining R0.12 / Stage-A corridor
 
-## Final Stage-A corridor after R0.12
+After Preview closure, prioritize the bounded productization work needed for ordinary-user usefulness, including the already identified Product I/O gaps:
 
-The remaining structural path is intentionally narrow:
+1. Stage-A Product I/O Contract;
+2. mixed source-audio semantics + speech protection + audible QC;
+3. reference URL acquisition;
+4. rights-aware public music provider/acquisition;
+5. remaining bounded R0.12 productization, including production Preview integration where justified;
+6. minimum Review/repair loop;
+7. ordinary-user Windows runtime / Environment Doctor;
+8. practical product-facing integration for both real cores;
+9. real Planning/Editing Product Probes + Human Gate.
 
-1. minimum Review/repair loop with deterministic technical QC and localized repair routing;
-2. ordinary-user Windows runtime/Environment Doctor and bounded private dependency strategy;
-3. plain practical product-facing surface for both core workflows;
-4. full real Planning-only / Editing-only / Combined integration;
-5. final Product Probes + Human Gate.
-
-Do not confuse later visual polish with structural closure. A basic interface is acceptable; an unusable or developer-only workflow is not.
+Do not confuse later visual polish with structural closure. A basic interface is acceptable; a developer-only workflow is not.
 
 ## Stage-A 100% product-operability gate
-
-See `STAGE_A_COMPLETION_GATE.md` for the canonical contract.
 
 Before structural construction reaches 100%:
 
 - Planning core must run real reference/high-performing/commercial intent to persisted inspectable ScriptPlan + executable ShootingPlan through an ordinary-user path;
-- Editing core must run user-selected local footage through real understanding/evidence, Director/Resolver, music, spatial/audio, subtitle/graphics/minimal transitions, canonical EDL, Renderer and Review/repair to a real final MP4;
+- Editing core must run user-selected local footage through the real automatic pipeline to canonical EDL/Renderer/Review and a real final MP4;
 - Planning-only, Editing-only and Combined must all remain valid;
-- the final Product Probe must not hand-author EditPlan/ResolutionDecision/EDL;
-- an ordinary Windows user must be able to create/open a project, select required inputs and output location, provide intent, start, observe progress/failure and locate outputs without editing repository files.
+- normal Product Probes must not hand-author EditPlan/ResolutionDecision/EDL;
+- an ordinary Windows user must be able to create/open a project, select inputs/output, provide intent, start, observe progress/failure and locate outputs without repository-file editing.
 
-Desktop/frontend technology remains intentionally undecided until the Preview backend and later Windows packaging evidence justify a commitment.
+Desktop/frontend technology remains intentionally undecided until Preview/backend and later Windows packaging evidence justify a commitment.
