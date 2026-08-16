@@ -91,6 +91,14 @@ jobs:
             Write-Host "$tool -> $($resolved.Source)"
           }
 
+          # mpv v0.41.0's Windows CI bootstraps shaderc unconditionally from a moving
+          # upstream checkout. This candidate explicitly disables shaderc/Vulkan, so
+          # create the directory sentinel the upstream script checks and skip that
+          # irrelevant bootstrap without modifying the audited upstream script itself.
+          $shadercSentinel = Join-Path $env:MPV_SOURCE 'subprojects\shaderc_cmake'
+          New-Item -ItemType Directory -Force -Path $shadercSentinel | Out-Null
+          Write-Host "Unused shaderc bootstrap disabled for this candidate: $shadercSentinel"
+
           $out = Join-Path $env:RUNNER_TEMP "libmpv-lgpl-candidate"
           ./tools/probes/preview/build_libmpv_lgpl_candidate.ps1 `
             -MpvSource $env:MPV_SOURCE `
