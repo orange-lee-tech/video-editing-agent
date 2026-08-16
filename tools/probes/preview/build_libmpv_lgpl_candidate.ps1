@@ -22,7 +22,7 @@ function Replace-Required {
     param(
         [Parameter(Mandatory = $true)][string]$Text,
         [Parameter(Mandatory = $true)][string]$Old,
-        [Parameter(Mandatory = $true)][string]$New,
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$New,
         [int]$Expected = 1
     )
 
