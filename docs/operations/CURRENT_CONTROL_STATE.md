@@ -4,10 +4,10 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-16
 current_phase: R0.12
-phase_state: PREVIEW_REAL_MEDIA_FALLBACK_BENCHMARK_ACTIVE
+phase_state: PREVIEW_LIBMPV_LGPL_GATE_ACTIVE
 active_work_order: R0.12-PREVIEW-BACKEND-BENCHMARK-001
 accepted_code_baseline: 500c8563e3686a5aaef055ffb5301553aa999fd9
-control_plane_baseline: fbb9260f87a4ce91dbd187993269c52f0a011e47
+control_plane_baseline: ca271e41ffc6eb9e4258d14059297dc0fadf1ccb
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
 core_1_planning_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
@@ -28,7 +28,7 @@ The accepted two-core architecture remains unchanged:
 - Editing-only: `Brief/editorial intent + user local footage → Editing Core`;
 - Combined: Planning artifacts optionally enrich the same Editing Core.
 
-Accepted production-code baseline remains `500c8563e3686a5aaef055ffb5301553aa999fd9`. The active Work Order is evidence/ADR work only; no new Preview production implementation is authorized yet.
+Accepted production-code baseline remains `500c8563e3686a5aaef055ffb5301553aa999fd9`. The active Work Order remains evidence/ADR-only; no production Preview implementation is authorized yet.
 
 ## Stage-A completion truth
 
@@ -52,11 +52,12 @@ Live state:
 
 Current state:
 
-`private candidate runtimes + hardware playback proof`
-`→ deterministic API control PASS`
-`→ real/VFR + software-fallback evidence`
-`→ auditable libmpv gate`
+`private candidate runtimes + deterministic playback/control PASS`
+`→ real phone HEVC + explicit software fallback ACCEPTED`
+`→ auditable libmpv LGPL gate ACTIVE`
+`→ final candidate comparison`
 `→ Preview backend ADR`
+`→ close benchmark`
 
 PreviewBackend remains playback-only. EDL remains sole exact timeline authority.
 
@@ -68,105 +69,69 @@ Durable evidence:
 
 `docs/validation/R0.12_PREVIEW_STAGE0_WINDOWS_ENVIRONMENT_EVIDENCE.md`
 
-Observed Class-A host:
+Accepted Class-A host evidence includes ThinkPad T470s / Intel HD Graphics 520, restored Lenovo OEM driver `27.20.100.8854`, Oray retained, FFmpeg software H.264 decode PASS and D3D11VA H.264 decode PASS.
 
-- ThinkPad T470s type 20JT, i5-6300U, Intel HD Graphics 520;
-- Windows 11 build family 26100;
-- Oray virtual display present;
-- earlier degraded state preserved with Microsoft Basic Display Adapter;
-- Lenovo OEM Intel driver successfully restored to `27.20.100.8854` without removing Oray.
-
-Project FFmpeg capability probe:
-
-- deterministic 1080p H.264/AAC fixture generation: PASS;
-- software decode fallback: PASS;
-- D3D11VA device initialization: PASS;
-- selected physical adapter: `8086:1916 Intel(R) HD Graphics 520`;
-- H.264 D3D11VA decode: 360/360 frames, 0 errors, exit 0.
-
-The software-vs-D3D11VA null-output throughput numbers are capability evidence only and are not used to rank Preview backends.
-
-### Stage 1 — candidate provenance/private runtime — PASS FOR GSTREAMER + VLC
+### Stage 1 — GStreamer/VLC provenance/private runtime — PASS
 
 Durable evidence:
 
 `docs/validation/R0.12_PREVIEW_STAGE1_CANDIDATE_PREPARATION_EVIDENCE.md`
 
-GStreamer 1.28.6:
+Accepted:
 
-- official SHA-256 matched;
-- private current-user MSVC runtime prepared;
-- `d3d11videosink` registered;
-- `d3d11h264dec` registered against Intel HD Graphics 520;
-- D3D11-memory decode/presentation surface present;
-- plugin reports LGPL.
+- GStreamer 1.28.6 official MSVC private runtime with D3D11 decoder/sink capability;
+- VLC/libVLC 3.0.23 official static win64 private runtime;
+- no global executable PATH dependency required by the benchmark.
 
-VLC/libVLC 3.0.23:
-
-- official static ZIP size and SHA-256 matched;
-- private runtime contains `vlc.exe`, `libvlc.dll`, plugins;
-- `--ignore-config --intf dummy` isolated startup exits `0` with no `vlcrc` load failure.
-
-Wave-1 preflight confirmed no required global executable PATH dependency for either candidate.
-
-### Stage 3 — real playback/control benchmark — ACTIVE
+### Stage 3 — GStreamer/VLC real playback/control/fallback — ACCEPTED FOR CURRENT CLASS-A SCOPE
 
 Durable evidence:
 
-`docs/validation/R0.12_PREVIEW_REAL_PLAYBACK_BENCHMARK_EVIDENCE.md`
+- `docs/validation/R0.12_PREVIEW_REAL_PLAYBACK_BENCHMARK_EVIDENCE.md`
+- `docs/validation/R0.12_PREVIEW_WAVE3_REAL_MEDIA_SOFTWARE_FALLBACK_EVIDENCE.md`
 
-Wave 1 — actual playback:
+Accepted evidence:
 
-- both GStreamer 1.28.6 and VLC 3.0.23 completed actual windowed playback;
-- GStreamer first-observed-window proxy approximately `518 ms`, max working set approximately `139.7 MiB`, average machine CPU estimate approximately `10.2%`;
-- VLC first-observed-window proxy approximately `838 ms`, max working set approximately `291 MiB`, average machine CPU estimate approximately `6.0%`;
+- both GStreamer and VLC completed actual windowed playback on the deterministic fixture;
 - VLC directly proved D3D11VA hardware decode on Intel HD Graphics 520;
-- no backend winner declared.
+- GStreamer directly proved the real high-level hardware path `playbin3 → decodebin3 → d3d11h264dec → D3D11Memory/NV12 → d3d11videosink`;
+- GStreamer GstPlay and libVLC both passed pause, eight randomized absolute seeks, resume and clean release;
+- three real phone HEVC files: GStreamer normal 3/3 PASS, libVLC normal 3/3 PASS;
+- GStreamer explicit software decode fallback: 3/3 PASS with DOT evidence;
+- libVLC explicit software decode fallback: PASS using per-media `:avcodec-hw=none`;
+- libVLC instance/global `--avcodec-hw=none` alone is recorded as unreliable for this tested embedding path because it still selected D3D11VA;
+- per-media and combined libVLC runs logged `matching "none"` and `no hw decoder modules matched` while control remained PASS.
 
-Wave 2A — GStreamer actual hardware path — PASS:
+Evidence gaps retained honestly:
 
-- canonical file URI + `playbin3/uridecodebin3/decodebin3` playback process exited `0`;
-- five DOT graphs captured;
-- graph includes `GstD3D11H264Dec:d3d11h264dec0` and `GstD3D11VideoSink:d3d11videosink0`;
-- decoder context reports Intel HD Graphics 520 with `hardware=true`;
-- H.264 1920x1080@30 enters the D3D11 decoder;
-- NV12 `video/x-raw(memory:D3D11Memory)` remains in the downstream path into the D3D11 sink.
+- no actual VFR behavior was present in the accepted real-phone corpus;
+- Class-B ordinary-current-Windows evidence is missing;
+- Class-C newer-accelerated evidence is missing;
+- total no-GPU/no-presentation-device behavior was not simulated.
 
-Wave 2B — deterministic API control — PASS:
+These gaps do not reopen the accepted deterministic, real-HEVC or explicit software-decode evidence.
 
-- environment gate PASS on Windows PowerShell `5.1.26100.9168` + Python `3.13.14`;
-- official MSVC GstPlay runtime DLL resolved as `gstplay-1.0-0.dll`;
-- GStreamer GstPlay control process exit code `0`;
-- VLC/libVLC 3 control process exit code `0`;
-- runner reported `GStreamer API control PASS = True`;
-- runner reported `VLC API control PASS = True`;
-- final `WAVE 2B API CONTROL PASS` marker;
-- repository remained clean.
+### Current action — libmpv LGPL provenance/build gate
 
-The PASS markers are emitted only after pause with bounded drift, eight randomized absolute seeks with target recovery, resume with timeline advancement and clean stop/release checks. The terminal summary did not expose per-seek numeric proxy payloads, so no invented latency ranking is accepted.
+The third candidate family is now the active boundary.
 
-### Current action — real/VFR + software fallback
+Required outcome is one of:
 
-Next evidence must:
+1. an auditable Windows libmpv candidate configured for the approved LGPL path, with dependency/subproject build/license review; or
+2. a documented hard-gate exclusion if a reproducible acceptable Windows LGPL build/distribution path cannot be established without disproportionate product/license/deployment risk.
 
-- use representative real phone/camera footage, preferably including VFR;
-- exercise explicit software/fallback playback and diagnostic behavior for GStreamer and VLC/libVLC;
-- preserve Oray unless a repeatable adapter-selection defect requires an explicit isolation experiment;
-- keep Class-B/Class-C evidence gaps explicit;
-- compare deployment/runtime burden only from observed artifacts and official license/build facts.
+Hard rules:
 
-### libmpv
+- upstream/default GPL builds are not silently adopted;
+- arbitrary common third-party Windows binaries are not accepted as product evidence;
+- build flags alone are insufficient without dependency/subproject review;
+- Codex remains unreleased for provenance/build research.
 
-Still separately gated:
+### After libmpv
 
-- GPL by default;
-- LGPL path requires `-Dgpl=false` plus dependency/build review;
-- arbitrary common Windows binaries remain unapproved;
-- must either produce an auditable Windows candidate or be excluded by a documented hard-gate reason before ADR closure.
+`GStreamer / libVLC / libmpv final comparison → Preview ADR → close benchmark`
 
-### Missing hardware classes
-
-Class-B ordinary-current-Windows and Class-C accelerated evidence remain missing and must not be implied from the T470s host.
+Do not continue open-ended player benchmarking after the ADR.
 
 ## Tool routing
 
@@ -174,32 +139,32 @@ Class-B ordinary-current-Windows and Class-C accelerated evidence remain missing
 
 - current-state/CI observation;
 - official dependency/license/runtime verification;
-- benchmark design and evidence interpretation;
+- benchmark/ADR reasoning;
 - small deterministic governance/validation writes;
-- Preview ADR and Work Order closure.
+- Preview Work Order closure.
 
 ### User PowerShell
 
-- private runtime execution;
-- real Windows playback/seek/scrub/resource probes;
-- private media evidence;
-- hardware/runtime diagnostics.
+- private runtime execution where a local Windows build/probe is actually required;
+- private media and hardware/runtime evidence.
 
 ### Codex
 
-**NO ACTIVE RELEASE.** Preserve remaining quota for later bounded production integration or difficult multi-file runtime debugging.
+**NO ACTIVE RELEASE.** Preserve quota for bounded production integration or difficult multi-file runtime debugging after the backend decision.
 
 ## Final-10-percent execution corridor
 
-Do not open these concurrently without an explicit dependency:
+After Preview closure, return immediately to the product I/O/productization corridor rather than expanding player research:
 
-1. finish R0.12 productization floor;
-2. minimum Review/repair loop;
-3. ordinary-user Windows runtime / Environment Doctor;
-4. plain product-facing integration for both real cores;
-5. real Stage-A Product Probes / Human Gate, then and only then structural 100%.
-
-The Stage-A product I/O impact audit remains recorded separately and does not interrupt the current Preview Work Order.
+1. Stage-A Product I/O Contract;
+2. mixed source-audio semantics + speech protection + audible QC;
+3. Reference URL acquisition;
+4. rights-aware public music provider/acquisition;
+5. remaining bounded R0.12 productization and production Preview integration;
+6. minimum Review/repair loop;
+7. ordinary-user Windows runtime / Environment Doctor;
+8. practical product-facing integration for both cores;
+9. real Product Probes / Human Gate, then and only then structural 100%.
 
 ## Constitutional constraints
 
@@ -207,8 +172,8 @@ The Stage-A product I/O impact audit remains recorded separately and does not in
 - PreviewBackend is playback-only.
 - final rendering remains canonical EDL → Renderer.
 - original user media is never overwritten.
-- CPU/software fallback remains a supported strategy; GPU is optional routing.
-- no unreviewed third-party binary is adopted for product distribution.
+- CPU/software fallback remains supported; GPU is optional routing.
+- no unreviewed third-party binary becomes a product distribution dependency.
 - GUI/desktop framework remains undecided during this benchmark.
 - no temporary shortcut may fabricate Planning artifacts, source timestamps, Domain decisions or a Product Gate PASS.
 
@@ -220,8 +185,8 @@ Dynamic state is canonical only in:
 - `docs/operations/CURRENT_WORK_ORDER.md`;
 - `docs/roadmap/CURRENT_PHASE_STATUS.md`.
 
-`tools/maintenance/repo_doctor.py` + `repository-governance` check machine-detectable consistency. Stable entry files point here instead of duplicating phase snapshots.
+`tools/maintenance/repo_doctor.py` + `repository-governance` check machine-detectable consistency.
 
 ## STOP boundary
 
-Do not concurrently implement Graphics/transitions, Proxy/cache, Renderer operational controls, GUI/desktop frontend, packaging or EDL redesign while the Preview benchmark is active unless the Work Order is explicitly revised.
+Do not concurrently implement Graphics/transitions, Proxy/cache, Renderer operational controls, GUI/desktop frontend, packaging or EDL redesign while the Preview benchmark remains active unless the Work Order is explicitly revised.
