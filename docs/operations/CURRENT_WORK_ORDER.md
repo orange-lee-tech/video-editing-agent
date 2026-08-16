@@ -10,7 +10,7 @@
 
 ## Why this work exists
 
-R0.12 requires a practical interactive Windows Preview path, but Roadmap V2 and CAP-08 intentionally leave the backend family unfrozen. Selection must come from real Windows evidence rather than familiarity or UI preference.
+R0.12 requires a practical interactive Windows Preview path, while Roadmap V2 and CAP-08 intentionally leave the backend family unfrozen. Selection must come from reproducible Windows evidence rather than familiarity or UI preference.
 
 Candidate families:
 
@@ -32,260 +32,171 @@ Priority:
 `>`
 `UI richness`
 
-Stage A does not require a flashy interface. It requires a practical, understandable and replaceable playback component that works across realistic Windows capability classes and admits a bounded packaging story later.
-
 A backend does not win because it is fastest on one machine.
 
 ## Tool routing
 
 ### ChatGPT + GitHub
 
-Primary control plane:
-
-- current GitHub/CI observation;
-- official runtime/license/provenance verification;
-- benchmark design and evidence interpretation;
-- small deterministic benchmark/governance writes;
-- ADR and closure evidence;
-- synchronization of live control documents.
+Primary control plane for current-state/CI observation, official runtime/license/provenance verification, benchmark design/evidence interpretation, deterministic governance/validation writes, ADR and Work Order closure.
 
 ### User PowerShell
 
-Primary local evidence plane:
-
-- Windows hardware/driver/runtime observation;
-- controlled candidate preparation;
-- playback/seek/scrub probes;
-- CPU/RAM/GPU/process evidence;
-- real private footage;
-- local logs/screenshots when useful.
+Primary local evidence plane for Windows hardware/runtime behavior, private media, real playback/control probes and local diagnostics.
 
 ### Codex
 
-**NOT RELEASED.**
-
-Do not spend Codex quota on package discovery, installation, benchmarking, documentation or ADR reasoning. Reconsider only after a backend winner exists and bounded production integration materially benefits from repeated multi-file edit/test/repair loops.
+**NOT RELEASED.** Preserve quota for a later bounded production integration or difficult multi-file runtime problem.
 
 ## Constitutional / architecture constraints
 
 1. EDL remains sole exact timeline authority.
 2. PreviewBackend is playback-only.
-3. Final render remains canonical EDL → Renderer; preview/proxy media is not quality authority.
+3. Final render remains canonical EDL → Renderer.
 4. Original user media must never be overwritten.
 5. CPU/software fallback remains part of the product strategy; GPU acceleration is optional capability routing.
-6. Missing/broken acceleration must be diagnosable rather than an unexplained hard failure where fallback is practical.
+6. Missing/broken acceleration must be diagnosable where fallback is practical.
 7. No arbitrary third-party binary may become a product-distribution dependency without exact provenance/license/build evidence.
 8. GUI/desktop framework remains undecided during this Work Order.
-9. Proxy/cache, Graphics/transitions, Renderer operational controls and packaging are outside this Work Order.
+9. Proxy/cache, Graphics/transitions, Renderer operational controls and packaging remain outside this Work Order.
 
 ## Environment classes
 
-### Class A — degraded / low-end / fallback
+- **Class A — degraded / low-end / fallback:** old CPU/iGPU, missing/basic driver, virtual-display interference or software decode/render.
+- **Class B — ordinary supported Windows:** current normal Windows hardware with functioning vendor GPU driver.
+- **Class C — newer / accelerated:** newer Intel/AMD/NVIDIA hardware.
 
-Old CPU/iGPU, missing/basic driver, virtual-display interference or software-only decode/render. Tests degraded behavior and diagnosability.
+Current accepted host is Class-A restored-vendor-driver evidence. Missing Class-B/Class-C evidence must not be inferred from it.
 
-### Class B — ordinary supported Windows
-
-Current normal Windows hardware with functioning vendor GPU driver. This is the intended default-user performance class.
-
-### Class C — newer / accelerated
-
-Newer Intel/AMD/NVIDIA hardware with modern decode/render acceleration.
-
-Missing Class-B/Class-C evidence must be recorded honestly rather than inferred from Class A.
-
-## Stage 0 — environment and device capability — PASS
+## Stage 0 — environment/device capability — PASS
 
 Durable evidence:
 
 `docs/validation/R0.12_PREVIEW_STAGE0_WINDOWS_ENVIRONMENT_EVIDENCE.md`
 
-Observed host:
+Accepted host/evidence includes Intel HD Graphics 520, restored Lenovo OEM driver `27.20.100.8854`, Oray retained, project FFmpeg software H.264 decode PASS, D3D11VA initialization PASS and 360/360 H.264 D3D11VA frames with zero errors.
 
-- Lenovo ThinkPad T470s type 20JT / i5-6300U / Intel HD Graphics 520;
-- Windows 11 build family 26100;
-- approximately 19.88 GiB RAM;
-- Oray virtual display present.
-
-The same host has been preserved in two useful states:
-
-1. degraded: Microsoft Basic Display Adapter;
-2. restored vendor driver: Intel HD Graphics 520 `27.20.100.8854` from the Lenovo OEM path.
-
-Project FFmpeg 8.1 confirms:
-
-- deterministic fixture generation: PASS;
-- software H.264 decode fallback: PASS;
-- D3D11VA adapter initialization: PASS;
-- adapter selected as `8086:1916 Intel(R) HD Graphics 520`;
-- H.264 D3D11VA decode: 360/360 frames, 0 errors, exit 0.
-
-The software-vs-hardware throughput values from the null-output capability probe are **not** Preview performance rankings; real playback/presentation/seek must be benchmarked through each candidate's actual path.
-
-This host remains Class-A restored-vendor-driver evidence, not universal Class-B proof.
-
-## Stage 1 — candidate provenance / preparation — PASS FOR GSTREAMER + VLC
+## Stage 1 — candidate provenance/private runtime — PASS FOR GSTREAMER + VLC
 
 Durable evidence:
 
 `docs/validation/R0.12_PREVIEW_STAGE1_CANDIDATE_PREPARATION_EVIDENCE.md`
 
-### GStreamer 1.28.6
+Accepted:
 
-Preparation accepted:
+- GStreamer 1.28.6 official Windows x86_64 MSVC runtime, checksum/provenance checked, D3D11 decoder/sink present, private runtime;
+- VLC/libVLC 3.0.23 official static win64 ZIP, size/SHA-256 checked, private runtime;
+- benchmark execution does not depend on global executable PATH entries.
 
-- official Windows x86_64 MSVC installer SHA-256 matched official sidecar;
-- current-user private runtime installation succeeded;
-- `gst-launch-1.0` / `gst-inspect-1.0` present;
-- `d3d11videosink` present;
-- `d3d11h264dec` present and identifies Intel HD Graphics 520;
-- D3D11-memory NV12 output path exposed;
-- plugin reports LGPL.
-
-Packaging caveat retained: the downloaded official installer reports Authenticode `NotSigned`; product packaging later requires explicit provenance/notices policy rather than assuming installer signing.
-
-### VLC/libVLC 3.0.23
-
-Preparation accepted:
-
-- official static VideoLAN win64 ZIP size and SHA-256 matched exactly;
-- ZIP magic validation and extraction PASS;
-- private runtime contains `vlc.exe`, `libvlc.dll`, and plugins;
-- isolated startup with `--ignore-config --intf dummy` exits `0` without a `vlcrc` load error.
-
-### Runtime isolation
-
-Wave-1 preflight confirms:
-
-- `gst-play-1.0`, `gst-launch-1.0`, `gst-inspect-1.0`, and `vlc` are not available through global PATH;
-- benchmark root is absent from User PATH and Machine PATH;
-- both candidates are exercised through absolute private-runtime paths.
-
-### libmpv
-
-Still separately gated:
-
-- upstream mpv is GPLv2-or-later by default;
-- LGPLv2.1-or-later mode requires `-Dgpl=false` plus dependency/build review;
-- arbitrary prebuilt Windows binaries are not accepted as product evidence.
+libmpv remains separately gated.
 
 ## Stage 2 — benchmark corpus
 
-Use both:
+Accepted corpus now includes:
 
 1. deterministic project-generated H.264/AAC fixture;
-2. representative real user phone/camera footage, preferably including difficult/VFR material when available.
+2. three real user phone HEVC files.
 
-HDR/4K is tested only when suitable source/hardware exists; absence is recorded.
+The three real-phone files did not contain observable VFR behavior in sampled frame timestamps. This is recorded as an evidence gap, not fabricated away.
 
-## Stage 3 — hard gates and comparative evidence — ACTIVE
+## Stage 3 — hard gates and comparative evidence — COMPLETE FOR GSTREAMER + VLC ON CURRENT CLASS-A SCOPE
 
 Durable evidence:
 
-`docs/validation/R0.12_PREVIEW_REAL_PLAYBACK_BENCHMARK_EVIDENCE.md`
+- `docs/validation/R0.12_PREVIEW_REAL_PLAYBACK_BENCHMARK_EVIDENCE.md`
+- `docs/validation/R0.12_PREVIEW_WAVE3_REAL_MEDIA_SOFTWARE_FALLBACK_EVIDENCE.md`
 
-### Wave 1 — actual windowed playback — COMPLETE
+### Wave 1 — actual playback — PASS
 
-Same deterministic 1080p H.264/AAC fixture and same Class-A restored-vendor-driver host.
-
-Observed:
-
-- both GStreamer 1.28.6 and VLC 3.0.23 completed actual windowed playback;
-- GStreamer first-observed-window proxy approximately `518 ms`, max working set approximately `139.7 MiB`, average machine CPU estimate approximately `10.2%`;
-- VLC first-observed-window proxy approximately `838 ms`, max working set approximately `291 MiB`, average machine CPU estimate approximately `6.0%`;
-- VLC logs directly prove D3D11VA hardware decode on Intel HD Graphics 520;
-- one enumerated GStreamer D3D11 device reported unsupported video-device interface, but playback completed; retain this as degraded-environment diagnostic evidence rather than hiding it by removing Oray;
-- no backend winner is declared from Wave 1.
-
-Measurement caveat: `FirstWindowMs` is not exact first-frame latency.
+Both GStreamer 1.28.6 and VLC 3.0.23 completed actual windowed playback on the deterministic fixture. No winner was declared from process/resource proxies.
 
 ### Wave 2A — GStreamer actual hardware path — PASS
 
-Actual high-level playback proof used canonical file URI, `playbin3`, `uridecodebin3/decodebin3`, `GST_PLUGIN_FEATURE_RANK=d3d11h264dec:MAX`, `d3d11videosink`, private runtime, and DOT graph capture.
+Actual high-level path proven:
+
+`playbin3 → decodebin3 → d3d11h264dec → D3D11Memory/NV12 → d3d11videosink`
+
+Manual `filesrc/qtdemux` proof experiments are retired and must not be reopened.
+
+### Wave 2B — deterministic API control — PASS
+
+GStreamer GstPlay and libVLC 3 both passed start, pause, eight randomized absolute seeks with target recovery, resume and clean release.
+
+### Wave 3 — real phone HEVC + explicit software fallback — ACCEPTED WITH VFR GAP
 
 Observed:
 
-- process exit code `0`;
-- five pipeline state-transition DOT graphs captured;
-- actual graph contains `GstD3D11H264Dec:d3d11h264dec0`;
-- actual graph contains `GstD3D11VideoSink:d3d11videosink0`;
-- decoder context reports `Intel(R) HD Graphics 520`, vendor `8086`, device `1916`, `hardware=true`;
-- 1920x1080@30 H.264 constrained-baseline input enters `d3d11h264dec0`;
-- output remains NV12 `video/x-raw(memory:D3D11Memory)` through the playback graph into the D3D11 sink.
+- GStreamer normal/auto: **3/3 PASS**;
+- GStreamer explicit software-decode mode: **3/3 PASS**, with DOT evidence showing software decoder path and no discovered D3D hardware decoder factory active;
+- libVLC normal/auto: **3/3 PASS**;
+- libVLC explicit software-decode fallback: **PASS** after targeted configuration diagnosis.
 
-GStreamer hardware decode/presentation proof is closed. Do not reopen manual demux experiments.
+Important libVLC configuration evidence:
 
-### Wave 2B — deterministic API control / seek / scrub — PASS
+- instance/global `--avcodec-hw=none` alone remained unreliable on this embedding path and still selected D3D11VA;
+- per-media `:avcodec-hw=none` completed control successfully and logs showed `matching "none"` followed by `no hw decoder modules matched`;
+- global + per-media also proved software decode;
+- therefore future libVLC adapter work must use the tested per-media control rather than assume the global option is sufficient.
 
-The accepted file-based harness validated Windows PowerShell 5.1, Python 3.13.14, the private GStreamer MSVC GstPlay runtime, the private VLC/libVLC runtime, the deterministic fixture and a clean repository working tree before candidate execution.
+D3D11 presentation/output is not treated as hardware decoding.
 
-Observed:
+Known Stage-3 evidence gaps retained:
 
-- GStreamer GstPlay control process exit code `0`;
-- VLC/libVLC 3 control process exit code `0`;
-- `GStreamer API control PASS = True`;
-- `VLC API control PASS = True`;
-- final `WAVE 2B API CONTROL PASS` marker;
-- repository remained clean.
+- no actual VFR sample in the real-phone corpus;
+- no Class-B/Class-C host evidence;
+- no total no-GPU/no-presentation-device simulation.
 
-The candidate PASS markers are emitted only after start, pause with bounded drift, eight repeated absolute randomized seeks with target recovery, resume with timeline advancement, and clean stop/release checks complete.
+These gaps do not justify reopening already accepted deterministic or real-HEVC playback/control evidence.
 
-The terminal summary did not expose the individual numeric seek-proxy payloads, so no mean/max seek latency ranking is accepted from this run. Behavioral control reliability is accepted; precise numeric comparison remains optional evidence if it becomes decision-critical.
+## Stage 4 — libmpv LGPL provenance/build gate — ACTIVE / NEXT
 
-### Wave 3 — real/VFR + software fallback — NEXT
+Before Preview ADR acceptance, resolve the third candidate family by one of two evidence-backed outcomes:
 
-Next evidence:
+1. prepare an auditable Windows libmpv candidate configured for the approved LGPL path, including dependency/subproject license/build review; or
+2. document a hard-gate exclusion if a reproducible acceptable Windows LGPL build/distribution path cannot be established without disproportionate product/license/deployment risk.
 
-- representative real phone/camera footage, preferably including VFR;
-- explicit software/fallback behavior and diagnostics for the leading candidates;
-- preserve Oray unless a repeatable adapter-selection issue requires isolation;
-- keep Class-B/Class-C evidence gaps explicit;
-- compare runtime/deployment burden only with observed artifacts and official license/build facts.
+Hard rules:
 
-## Stage 4 — decision / ADR
+- upstream/default GPL builds are not silently accepted for the product;
+- arbitrary common third-party Windows mpv binaries are not product evidence;
+- build flags alone are insufficient without dependency/subproject review;
+- do not spend Codex quota on this provenance/build investigation.
 
-Before ADR acceptance, resolve the third candidate family:
+## Final comparison / ADR after libmpv resolution
 
-- prepare an auditable LGPL-configured libmpv candidate, or
-- document a hard-gate exclusion if a reproducible, acceptable Windows distribution/build path cannot be established without disproportionate product risk.
+Compare with hard gates + transparent trade-offs, not a universal weighted score:
 
-The Preview ADR must record exact tested versions/builds, environment class, corpus, commands/methodology, measurements, limitations, primary winner, rejected alternatives, fallback policy, packaging/license caveats and the invariant that PreviewBackend remains an adapter while EDL remains authority.
+- deployability/private-runtime burden;
+- compatibility/degraded behavior;
+- software/hardware fallback and diagnostics;
+- external control/embedding burden;
+- observed resource behavior where comparable;
+- licensing/distribution obligations;
+- future proxy/cache compatibility.
 
-The ADR may select one primary backend plus a defined fallback strategy.
+The Preview ADR must select the primary backend, rejected alternatives/fallback policy, packaging/license caveats, tested environment/version scope and preserve the invariant that PreviewBackend is playback-only while EDL remains authority.
 
 ## Explicit STOP scope
 
-This Work Order does **not** authorize production implementation of:
+This Work Order does **not** authorize production implementation of GUI/frontend, Proxy/cache, Renderer operational controls, Graphics/transitions, EDL redesign, installer/packaging or Domain authority changes.
 
-- GUI/desktop frontend;
-- Proxy/cache;
-- Renderer progress/cancellation/encoding routing;
-- Graphics/transitions;
-- EDL schema redesign;
-- Domain authority changes;
-- installer/packaging.
-
-A small benchmark-only harness is allowed when justified; prefer private file-based PowerShell/Python tooling over giant interactive blocks.
+After the Preview ADR, do **not** continue expanding player benchmarking without a specific unresolved product gate. Close the benchmark and return to Stage-A Product I/O/productization work.
 
 ## Exit gate
 
 PASS only when:
 
-- all three candidate families have reproducible Windows evidence or a documented hard-gate reason for exclusion;
+- all three candidate families have reproducible Windows evidence or a documented hard-gate exclusion;
 - environment capability is separated from backend capability;
-- selection is based on deployment/compatibility/degradation plus playback performance;
-- fallback/diagnostic behavior is recorded;
-- exact license/build/runtime caveats are recorded;
+- fallback/diagnostic behavior and license/runtime caveats are recorded;
 - a Preview ADR is accepted;
 - EDL/Renderer authority remains intact;
 - the result is sufficient to define the next bounded Preview integration Work Order without reopening the backend-family question.
 
 ## Immediate next action
 
-1. run representative real/VFR footage through GStreamer and VLC/libVLC using the now-proven playback/control surfaces;
-2. exercise explicit software/fallback behavior and record diagnostic quality;
-3. inspect persisted Wave-2B stdout only if precise seek-proxy numbers become decision-critical;
-4. resolve the libmpv LGPL provenance/build gate through official build/license evidence;
-5. compare deployment/runtime footprint and embedding/control burden;
-6. write and accept the Preview backend ADR;
-7. keep Codex unreleased until a bounded production integration Work Order exists.
+1. resolve the libmpv LGPL provenance/build gate;
+2. perform the final GStreamer/VLC/libmpv comparison;
+3. write and accept the Preview backend ADR;
+4. close this benchmark;
+5. keep Codex unreleased until a bounded production integration Work Order exists.
