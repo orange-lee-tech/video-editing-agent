@@ -4,7 +4,59 @@ A **local-first, evidence-grounded AI Director + AI Video Editor** for user-supp
 
 Initial product focus: Windows desktop, commercial short-form video, ecommerce/product advertising and Vlog, primarily under 60 seconds.
 
-The durable product pipeline is:
+## Two core product functions
+
+The project is not considered structurally complete until both of these are genuinely usable by an ordinary Windows user.
+
+### 1. Planning
+
+`reference/high-performing/commercial intent`
+`→ Brief`
+`→ persisted inspectable ScriptPlan`
+`→ executable ShootingPlan`
+
+The user should be able to obtain a practical shooting script/plan without editing repository files or constructing internal Domain objects.
+
+### 2. Editing
+
+`user-selected local footage + editing intent`
+`→ media understanding/evidence`
+`→ Director/EditPlan`
+`→ Retrieval/Resolver`
+`→ music/spatial/audio/subtitle/graphics/minimal transitions`
+`→ canonical EDL`
+`→ Renderer/Review`
+`→ final MP4`
+
+The automatic product path must not depend on a human hand-authoring EditPlan, ResolutionDecision or EDL.
+
+Planning-only, Editing-only and Combined are all legitimate product paths. Combined uses Planning artifacts as optional exact-revision enrichment; Planning is not an activation license for Editing.
+
+## Product boundary
+
+This is **not** a generic text-to-video or autonomous stock-footage generator. Missing visual coverage is surfaced to the user instead of silently replaced with downloaded/generated imagery.
+
+Final visual media comes from user-supplied local footage under the active Product Constitution. Provider/LLM output may propose/reason, but it does not own source timestamps, Domain authority or final timeline placement.
+
+## Current state — do not duplicate stale snapshots here
+
+The project is in **Stage A — Structural Construction**.
+
+Current phase, exact Work Order, accepted code baseline, structural progress and Stage-A Product Gates are live in:
+
+- [`docs/operations/CURRENT_CONTROL_STATE.md`](docs/operations/CURRENT_CONTROL_STATE.md)
+- [`docs/roadmap/CURRENT_PHASE_STATUS.md`](docs/roadmap/CURRENT_PHASE_STATUS.md)
+- [`docs/operations/CURRENT_WORK_ORDER.md`](docs/operations/CURRENT_WORK_ORDER.md)
+
+The hard structural 100% contract is:
+
+- [`docs/roadmap/STAGE_A_COMPLETION_GATE.md`](docs/roadmap/STAGE_A_COMPLETION_GATE.md)
+
+Do not infer current progress from old commit notes, dated README prose, chat history or phase-specific source-pack snapshots.
+
+Repository governance machine-checks the live-state pointers and rejects a false Stage-A 100% claim when either core Product Gate is not PASS.
+
+## Durable product pipeline
 
 ```text
 Brief
@@ -24,33 +76,7 @@ Brief
 → final MP4
 ```
 
-This is **not** a generic text-to-video or autonomous stock-footage generator. Missing visual coverage is surfaced to the user instead of silently replaced with downloaded/generated imagery.
-
-## Current repository state
-
-The project is in **Stage A — Structural Construction**. Stage-A progress measures end-to-end structural closure, not commercial polish; Stage B begins after structural construction reaches 100%.
-
-Completed/accepted milestones:
-
-- R0.1–R0.6 — media/domain foundations, persistence, retrieval and provider seams;
-- R0.7A — Architecture v0.2 migration foundation;
-- R0.7B — Brief → ScriptPlan → ShootingPlan + commercial-authority baseline;
-- R0.8 — real-footage speech, motion, temporal evidence, tracking and dense retrieval foundation;
-- R0.9 — grounded Director → retrieval → CandidateWindow → Resolver/optimizer source-selection plan;
-- R0.10 — Music Selection + BeatMap + Audio Editorial, closed after real-music Product Probe/Human Gate;
-- R0.11 — Spatial Composition / Auto Reframe, closed `PASS_WITH_MINOR_DEFECT`;
-- R0.12 accepted foundations — typed/exact EDL v0.2, deterministic EDLBuilder, and canonical-EDL-driven FFmpeg Renderer.
-
-Accepted R0.12 Renderer baseline:
-
-`83fc2999297023f828fa77719cd357fe82eab5de` — `feat: add deterministic EDL-driven renderer`.
-
-That baseline provides the first verified path from canonical EDL to an actual local MP4. R0.12 remains open for integration smoke, Subtitle/Graphics, Preview, Proxy/cache and later bounded renderer/productization work.
-
-Live state is always recorded in:
-
-- [`docs/roadmap/CURRENT_PHASE_STATUS.md`](docs/roadmap/CURRENT_PHASE_STATUS.md)
-- [`docs/operations/CURRENT_WORK_ORDER.md`](docs/operations/CURRENT_WORK_ORDER.md)
+The parallel-entry architecture means Editing-only may begin from Brief/editorial intent + local footage without fabricated ScriptPlan/ShootingPlan.
 
 ## Authority and navigation
 
@@ -63,11 +89,10 @@ Normative order:
 3. [`docs/capabilities/`](docs/capabilities/) — active capability specifications;
 4. [`docs/adr/`](docs/adr/) — active architecture decisions;
 5. [`docs/roadmap/ROADMAP_V2.md`](docs/roadmap/ROADMAP_V2.md) — active construction map;
-6. implementation/tests/provider behavior.
+6. live control state / Work Order;
+7. implementation/tests/provider behavior.
 
-The development-stage meaning is defined by [`docs/roadmap/DEVELOPMENT_STAGE_MODEL.md`](docs/roadmap/DEVELOPMENT_STAGE_MODEL.md).
-
-Retired documents are centralized under [`docs/archive/`](docs/archive/). They are provenance only and never override the active authority chain.
+Retired documents live under [`docs/archive/`](docs/archive/) and are provenance only.
 
 ## Product rules that do not drift
 
@@ -81,11 +106,13 @@ Retired documents are centralized under [`docs/archive/`](docs/archive/). They a
 - Renderer executes validated EDL; it does not create, repair or reposition editorial decisions.
 - Engineering Probe and Product Probe evidence are different: synthetic fixtures may prove machinery, not real editing usefulness.
 - Rights/provenance remain explicit; unknown rights are never silently promoted to verified rights.
+- Stage-A UI may be visually plain, but must be practical, understandable, controllable and extensible.
+- Normal user operation must not require repository-file editing or manual Domain/EDL construction.
 
 ## Repository map
 
 - `.github/` — CI and reproducible probe/maintenance workflows.
-- `docs/` — active product/architecture/roadmap/ADR/validation/log/operations documentation.
+- `docs/` — product/architecture/roadmap/ADR/validation/log/operations control plane.
 - `docs/archive/` — retired documentation preserved for provenance only.
 - `LICENSES/` — third-party license-text staging/retention policy, not the project license.
 - `scripts/` — repository/developer helper scripts and historical standalone probes.
@@ -117,7 +144,13 @@ uv build
 git diff --check
 ```
 
-At a new conversation, reobserve `origin/main` and use the active foreman/work-order path; do not reconstruct current work from chat memory alone.
+Repository/control-plane health:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/maintain.ps1 doctor
+```
+
+At a new conversation, reobserve `origin/main` and use the live control-state/Work-Order path; do not reconstruct current work from chat memory alone.
 
 ## Upstream strategy
 
