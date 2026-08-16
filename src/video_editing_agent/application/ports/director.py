@@ -109,11 +109,8 @@ class DirectorProposal:
         if not self.slots:
             raise ValueError("Director proposal must contain slots")
         slot_ids = tuple(item.slot_id for item in self.slots)
-        orders = tuple(item.order for item in self.slots)
         if len(set(slot_ids)) != len(slot_ids):
             raise ValueError("Director proposal requires unique slot_id values")
-        if len(set(orders)) != len(orders):
-            raise ValueError("Director proposal requires unique slot order values")
 
 
 class DirectorPort(Protocol):

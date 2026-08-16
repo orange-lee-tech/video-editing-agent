@@ -291,11 +291,6 @@ def test_director_proposal_contract_rejects_malformed_values() -> None:
             minimum_duration=MediaTime(1, 1),
         )
 
-    first = EditSlotProposal("one", 0, "proof", "one", "one")
-    second = EditSlotProposal("two", 0, "support", "two", "two")
-    with pytest.raises(ValueError, match="unique slot order"):
-        DirectorProposal((first, second))
-
     with pytest.raises(TypeError, match="allow_reuse"):
         EditSlotProposal(
             "proof",
