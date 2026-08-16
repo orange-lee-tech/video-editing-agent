@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 90
     env:
       MPV_TAG: v0.41.0
-      VS: "C:\Program Files\Microsoft Visual Studio\2022\Enterprise"
+      VS: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise'
       CC: clang
       CXX: clang++
       CC_LD: lld-link
