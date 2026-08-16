@@ -4,12 +4,12 @@
 **Development stage:** STRUCTURAL_CONSTRUCTION  
 **Structural progress:** 90%  
 **Current phase:** R0.12 — EDL / Renderer / Subtitle / Preview / Proxy Productization  
-**Engineering state:** STAGE-A PRODUCT I/O CONTRACT ACTIVE — Preview backend benchmark closed  
+**Engineering state:** MIXED SOURCE-AUDIO / VOICE / AUDIBLE-QC IMPLEMENTATION ACTIVE  
 **Updated:** 2026-08-16
 
 ## Progress meaning
 
-The structural percentage measures real end-to-end product construction, not file count, backend count or benchmark completion.
+The structural percentage measures real end-to-end product construction, not file count, backend count, benchmark completion or test count.
 
 The hard 100% contract is `STAGE_A_COMPLETION_GATE.md`.
 
@@ -20,7 +20,7 @@ Current Product Gate state remains:
 
 Stage-A 100% remains forbidden until both core Product Gates are PASS.
 
-## Accepted R0.12 structural baselines
+## Accepted R0.12 production-code baselines
 
 - `ff343833deb9296c1df0b6fc944735388d5c8296` — typed EDL tracks and deterministic validation.
 - `4b2522ae1a6838517baf4c5bcf36d30026f86912` — exact rational spatial/audio automation.
@@ -31,7 +31,7 @@ Stage-A 100% remains forbidden until both core Product Gates are PASS.
 - `1abc185a793d6a73ea55824bd2a036a1a134151a` — EditPlan parallel-entry compatibility.
 - `500c8563e3686a5aaef055ffb5301553aa999fd9` — real Editing Director/Application entry with SQLite v6 EditPlan persistence and generated EditPlan → existing Retrieval/CandidateWindow/Resolver integration.
 
-Accepted production-code baseline remains `500c8563e3686a5aaef055ffb5301553aa999fd9`.
+Accepted production-code baseline entering the active implementation remains `500c8563e3686a5aaef055ffb5301553aa999fd9` until a new code commit is semantically accepted.
 
 ## Parallel workflow architecture
 
@@ -47,52 +47,72 @@ Accepted decision:
 
 - GStreamer is the primary Stage-A Preview backend family;
 - libVLC remains a validated replaceable alternative, not default dual-bundled fallback;
-- libmpv is hard-gate excluded for Stage A because an auditable LGPL Windows D3D11 distribution path would require disproportionate custom build/dependency/license maintenance;
+- libmpv is hard-gate excluded for Stage A;
 - PreviewBackend remains playback-only;
 - EDL remains sole exact timeline authority.
 
-Durable libmpv gate record:
+Preview family benchmarking remains under STOP unless a concrete Product Probe failure/new hard requirement appears.
 
-`docs/validation/R0.12_PREVIEW_LIBMPV_LGPL_HARD_GATE_EXCLUSION.md`
+## Stage-A Product I/O Contract — CLOSED
 
-### Preview STOP rule
+`R0.12-STAGE-A-PRODUCT-IO-CONTRACT-001` is PASS/CLOSED.
 
-Do not reopen player benchmarking merely to collect more codecs/machines/metrics. A new backend-family investigation requires a concrete Product Probe failure or a new hard product requirement.
+Canonical contract:
 
-Known Preview evidence gaps — real VFR, Class-B/Class-C hosts and total no-GPU presentation — remain ordinary integration/Product-Probe risks rather than reasons to keep the family-selection benchmark active.
+`docs/product/STAGE_A_PRODUCT_IO_CONTRACT.md`
+
+Validation:
+
+`docs/validation/R0.12_STAGE_A_PRODUCT_IO_CONTRACT_EVIDENCE.md`
+
+Accepted product boundary:
+
+- project create/open maps to existing `ProjectWorkspace` composition;
+- local footage is ingested into immutable local Assets; original media is never overwritten;
+- Planning-only persists ScriptPlan/ShootingPlan through existing owner workflows;
+- Editing-only remains independently activatable from Brief + local footage;
+- Combined enriches the same Editing Core;
+- Reference URL must first become controlled local `REFERENCE_ANALYSIS_ONLY` media;
+- public music discovery must proceed through rights-aware acquisition into a controlled local `MUSIC` Asset;
+- final MP4 uses explicit local Renderer output path;
+- frontend technology remains undecided.
 
 ## Active Work Order
 
-`R0.12-STAGE-A-PRODUCT-IO-CONTRACT-001` is ACTIVE.
+`R0.12-MIXED-SOURCE-AUDIO-QC-001` is ACTIVE.
 
-The project now returns to the real Stage-A product boundary:
+This is a bounded implementation batch covering one shared authority surface:
 
-`ordinary-user inputs`
-`→ owned application/domain chain`
-`→ understandable progress/failure`
-`→ persisted plans and/or final MP4`
+1. source-audio treatment at grounded selection/source-range granularity;
+2. explicit VoiceTreatment semantics and speech protection;
+3. deterministic EDL mapping for mixed PRESERVE / DUCK / MUTE source audio;
+4. intent-aware non-silent audible-lane QC;
+5. preservation of Renderer as execution-only.
 
-The contract must freeze the product-facing input/output semantics for Planning-only, Editing-only and Combined without choosing a desktop/frontend framework.
+### Why now
 
-### Immediate corridor
+Current `AudioMixDecision` exposes only one whole-EditPlan `source_audio_policy`. Current `plan_basic_mix()` selects whole-plan PRESERVE or MUTE based on speech presence, and EDLBuilder clones all source audio for global PRESERVE while global DUCK is unsupported.
 
-1. Stage-A Product I/O Contract;
-2. mixed source-audio semantics + speech protection + final audible-lane QC;
-3. Reference URL acquisition;
-4. rights-aware public music provider/acquisition;
-5. remaining bounded R0.12 productization, including production GStreamer Preview integration where justified;
-6. minimum Review/repair loop;
-7. ordinary-user Windows runtime / Environment Doctor;
-8. practical product-facing integration for both real cores;
-9. real Planning/Editing Product Probes + Human Gate.
-
-This is the preferred final-10-percent route. Do not divert back into optional backend research without a dependency from this corridor.
+That is insufficient for ordinary mixed footage containing speech, environment sound and unwanted source audio.
 
 ### Codex
 
-NOT RELEASED for the Product I/O contract itself.
+**AUTHORIZED — SINGLE COMPLEX BATCH.**
 
-The first expected post-contract Codex-worthy batch is mixed source-audio + speech protection + audible QC.
+Codex is primary writer for the implementation surface until it stops/reports. ChatGPT remains control plane and will reobserve `main`, review the diff/CI and accept/reject the batch.
+
+## Immediate corridor after the active batch
+
+1. accept/repair mixed source-audio + VoiceTreatment + audible QC;
+2. Reference URL acquisition;
+3. rights-aware public music provider/acquisition;
+4. remaining bounded R0.12 productization including production GStreamer Preview integration;
+5. minimum Review/repair loop;
+6. ordinary-user Windows runtime / Environment Doctor;
+7. practical product-facing integration for both real cores;
+8. real Planning/Editing Product Probes + Human Gate.
+
+Do not expand the current batch into Reference URL, music-provider, GUI or Preview implementation.
 
 ## Stage-A 100% product-operability gate
 
@@ -104,4 +124,4 @@ Before structural construction reaches 100%:
 - normal Product Probes must not hand-author EditPlan/ResolutionDecision/EDL;
 - an ordinary Windows user must be able to create/open a project, select inputs/output, provide intent, start, observe progress/failure and locate outputs without repository-file editing.
 
-Desktop/frontend technology remains intentionally undecided until the product I/O contract and later Windows packaging evidence justify a commitment.
+Official structural progress remains **90%**.
