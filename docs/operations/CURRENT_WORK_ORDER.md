@@ -71,7 +71,7 @@ Do not spend Codex quota on package discovery, installation, benchmarking, docum
 1. EDL remains sole exact timeline authority.
 2. PreviewBackend is playback-only.
 3. Final render remains canonical EDL → Renderer; preview/proxy media is not quality authority.
-4. Original user media is never overwritten.
+4. Original user media must never be overwritten.
 5. CPU/software fallback remains part of the product strategy; GPU acceleration is optional capability routing.
 6. Missing/broken acceleration must be diagnosable rather than an unexplained hard failure where fallback is practical.
 7. No arbitrary third-party binary may become a product-distribution dependency without exact provenance/license/build evidence.
@@ -124,7 +124,7 @@ The software-vs-hardware throughput values from the null-output capability probe
 
 This host remains Class-A restored-vendor-driver evidence, not universal Class-B proof.
 
-## Stage 1 — candidate provenance / preparation — NEAR PASS
+## Stage 1 — candidate provenance / preparation — PASS FOR GSTREAMER + VLC
 
 Durable evidence:
 
@@ -153,6 +153,14 @@ Preparation accepted:
 - private runtime contains `vlc.exe`, `libvlc.dll`, and plugins;
 - isolated startup with `--ignore-config --intf dummy` exits `0` without a `vlcrc` load error.
 
+### Runtime isolation
+
+Wave-1 preflight confirms:
+
+- `gst-play-1.0`, `gst-launch-1.0`, `gst-inspect-1.0`, and `vlc` are not available through global PATH;
+- benchmark root is absent from User PATH and Machine PATH;
+- both candidates are exercised through absolute private-runtime paths.
+
 ### libmpv
 
 Still separately gated:
@@ -160,8 +168,6 @@ Still separately gated:
 - upstream mpv is GPLv2-or-later by default;
 - LGPLv2.1-or-later mode requires `-Dgpl=false` plus dependency/build review;
 - arbitrary prebuilt Windows binaries are not accepted as product evidence.
-
-Stage 1 has one remaining housekeeping observation: verify successful candidate preparation did not persist a required global executable PATH dependency. Real playback benchmarking may proceed because both prepared runtimes are addressed by absolute private paths.
 
 ## Stage 2 — benchmark corpus
 
@@ -172,7 +178,33 @@ Use both:
 
 HDR/4K is tested only when suitable source/hardware exists; absence is recorded.
 
-## Stage 3 — hard gates and comparative evidence — ACTIVE NEXT
+## Stage 3 — hard gates and comparative evidence — ACTIVE
+
+Durable evidence:
+
+`docs/validation/R0.12_PREVIEW_REAL_PLAYBACK_BENCHMARK_EVIDENCE.md`
+
+### Wave 1 — actual windowed playback — COMPLETE
+
+Same deterministic 1080p H.264/AAC fixture and same Class-A restored-vendor-driver host.
+
+Observed:
+
+- both GStreamer 1.28.6 and VLC 3.0.23 completed actual windowed playback;
+- GStreamer first-observed-window proxy approximately `518 ms`, max working set approximately `139.7 MiB`, average machine CPU estimate approximately `10.2%`;
+- VLC first-observed-window proxy approximately `838 ms`, max working set approximately `291 MiB`, average machine CPU estimate approximately `6.0%`;
+- VLC logs directly prove D3D11VA hardware decode on Intel HD Graphics 520;
+- GStreamer logs prove active D3D11 device/presentation activity, while Wave 2 must directly prove the selected H.264 decoder before the auto-decoder path is claimed as hardware decode;
+- one enumerated GStreamer D3D11 device reported unsupported video-device interface, but playback completed; retain this as degraded-environment diagnostic evidence rather than hiding it by removing Oray;
+- no backend winner is declared from Wave 1.
+
+Measurement caveats:
+
+- `FirstWindowMs` is not exact first-frame latency;
+- the Wave-1 PowerShell wrapper did not reliably retain child ExitCode and must be corrected;
+- local untracked `vlc-help.txt` is benchmark residue and must be removed rather than committed.
+
+### Wave 2 — deterministic control / seek / scrub — NEXT
 
 Each candidate must, or be excluded by a documented hard-gate reason:
 
@@ -184,23 +216,20 @@ Each candidate must, or be excluded by a documented hard-gate reason:
 - fail diagnosably;
 - expose practical software/hardware fallback where feasible.
 
-Compare:
+Wave 2 must:
 
-- cold startup / first frame;
-- repeated seek and scrub-like random seeks;
-- stability after repeated control operations;
-- CPU, RAM and GPU behavior;
-- A/V behavior;
-- difficult/VFR footage;
-- hardware acceleration and fallback;
-- external-control/API/IPC burden;
-- runtime/package footprint;
-- private deployment burden;
-- diagnostic quality.
+1. remove `vlc-help.txt` local residue and verify clean working tree;
+2. directly prove GStreamer `d3d11h264dec → d3d11videosink` playback on the fixture;
+3. preserve reliable child exit status;
+4. exercise pause/resume and repeated absolute/random seeks using non-GUI control surfaces;
+5. record seek completion/recovery, process stability, CPU/RAM and diagnostics;
+6. keep Oray enabled unless a repeatable adapter-selection defect requires an explicit isolation experiment.
+
+Official control semantics are adequate for a thin adapter: GstPlay exposes absolute nanosecond seek plus seek-done messages; libVLC 3 exposes media-player time/position setters. GUI clicking is not accepted as sole control evidence.
 
 Do not invent a universal weighted score. Prefer hard gates plus transparent trade-offs.
 
-For GStreamer, the benchmark should use the actual playback stack and `GstPlay`/equivalent control semantics, not FFmpeg null-output throughput. For VLC/libVLC, control evidence should use a deterministic CLI/libVLC-facing control path rather than GUI clicking as the sole proof.
+Representative user/VFR footage follows only after deterministic control is stable.
 
 ## Stage 4 — decision / ADR
 
@@ -226,7 +255,7 @@ A small benchmark-only harness is allowed when justified; prefer private PowerSh
 
 PASS only when:
 
-- all three candidate families have reproducible Windows evidence or a documented hard-gate exclusion;
+- all three candidate families have reproducible Windows evidence or a documented hard-gate reason for exclusion;
 - environment capability is separated from backend capability;
 - selection is based on deployment/compatibility/degradation plus playback performance;
 - fallback/diagnostic behavior is recorded;
@@ -237,13 +266,11 @@ PASS only when:
 
 ## Immediate next action
 
-Run the first real-playback benchmark wave on the deterministic 1080p H.264/AAC fixture using the already-prepared private runtimes:
+Run Wave 2 on the deterministic fixture:
 
-1. verify no required global executable PATH dependency was introduced;
-2. GStreamer: actual D3D11-presented playback, pause/resume and absolute seek control;
-3. VLC/libVLC: actual Windows playback, pause/resume and absolute seek control through a deterministic non-GUI control surface;
-4. collect process startup, CPU and working-set evidence plus logs;
-5. repeat randomized seeks to approximate scrub pressure and observe recovery/stability;
-6. only after deterministic control is stable, add representative user/VFR footage.
-
-Keep libmpv on its separate LGPL provenance/build gate until an auditable candidate is prepared.
+1. remove local `vlc-help.txt` benchmark residue;
+2. prove explicit GStreamer D3D11 H.264 decode + D3D11 presentation;
+3. run deterministic pause/resume and repeated seek/scrub control for GStreamer and VLC/libVLC through non-GUI control surfaces;
+4. collect reliable exit status, recovery/stability, CPU/RAM and diagnostic evidence;
+5. after deterministic control is stable, add representative user/VFR footage;
+6. keep libmpv on its separate LGPL provenance/build gate until an auditable candidate is prepared.
