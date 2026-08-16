@@ -7,7 +7,7 @@ current_phase: R0.12
 phase_state: PREVIEW_BACKEND_BENCHMARK_ACTIVE
 active_work_order: R0.12-PREVIEW-BACKEND-BENCHMARK-001
 accepted_code_baseline: 500c8563e3686a5aaef055ffb5301553aa999fd9
-control_plane_baseline: 21abe0130dce6d0ccdfefd52f181babb18aa33b9
+control_plane_baseline: 4e968ef60a8cf466ac7a622389226a0485d7b877
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
 core_1_planning_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
@@ -28,23 +28,23 @@ The accepted two-core architecture remains unchanged:
 - Editing-only: `Brief/editorial intent + user local footage → Editing Core`;
 - Combined: Planning artifacts optionally enrich the same Editing Core.
 
-Accepted code baseline remains `500c8563e3686a5aaef055ffb5301553aa999fd9`. No new production code is authorized beyond the active benchmark Work Order.
+Accepted production-code baseline remains `500c8563e3686a5aaef055ffb5301553aa999fd9`. The active Work Order is evidence/ADR work only; no new Preview production implementation is authorized yet.
 
 ## Stage-A completion truth
 
-Structural progress is currently **90%**.
+Structural progress remains **90%**.
 
-This percentage is not allowed to reach 100 merely because backend modules, tests or a GUI exist. The hard closure contract is:
+Canonical hard gate:
 
 `docs/roadmap/STAGE_A_COMPLETION_GATE.md`
 
-Live gate state:
+Live state:
 
 - `stage_a_completion_gate: OPEN`;
-- Core 1 Planning: foundation is structurally accepted, but the ordinary-user product flow is still open;
-- Core 2 Editing: foundation is structurally accepted, but the ordinary-user automatic final-MP4 product flow is still open.
+- Core 1 Planning: foundation accepted, ordinary-user product flow still open;
+- Core 2 Editing: foundation accepted, ordinary-user automatic final-MP4 flow still open.
 
-At 100%, both core gates must be `PASS`. Repository governance must reject a false 100% state.
+100% remains forbidden until both core Product Gates and the overall Stage-A gate are `PASS`.
 
 ## Current active boundary
 
@@ -52,99 +52,105 @@ At 100%, both core gates must be `PASS`. Repository governance must reject a fal
 
 Goal:
 
-`real Windows environment + standardized media corpus`
-`→ GStreamer D3D11 / approved LGPL libmpv / libVLC evidence`
+`real Windows evidence + standardized media corpus`
+`→ GStreamer / auditable LGPL libmpv / libVLC comparison`
 `→ Preview backend ADR`
 
-The benchmark exists to unblock later interactive Preview integration and downstream desktop/frontend decisions without giving any playback library EDL/timeline authority.
+PreviewBackend remains playback-only. EDL remains sole exact timeline authority.
+
+## Current Preview evidence state
+
+Stage 0 environment/device capability is now sufficiently characterized to enter candidate preparation.
+
+Durable evidence:
+
+`docs/validation/R0.12_PREVIEW_STAGE0_WINDOWS_ENVIRONMENT_EVIDENCE.md`
+
+Observed Class-A host:
+
+- ThinkPad T470s type 20JT, i5-6300U, Intel HD Graphics 520;
+- Windows 11 build family 26100;
+- Oray virtual display present;
+- earlier degraded state preserved with Microsoft Basic Display Adapter;
+- Lenovo OEM Intel driver successfully restored to `27.20.100.8854` without removing Oray.
+
+Project FFmpeg capability probe:
+
+- deterministic 1080p H.264/AAC fixture generation: PASS;
+- software decode fallback: PASS;
+- D3D11VA device initialization: PASS;
+- selected physical adapter: `8086:1916 Intel(R) HD Graphics 520`;
+- H.264 D3D11VA decode: 360/360 frames, 0 errors, exit 0.
+
+The software-vs-D3D11VA null-output throughput numbers are capability evidence only and are not used to rank Preview backends. Real playback presentation and repeated seek/scrub remain to be measured.
+
+Class-B ordinary-current-Windows and Class-C accelerated evidence remain missing and must not be implied from this host.
+
+## Current candidate provenance gate
+
+### GStreamer
+
+- current stable observed: 1.28.6;
+- official Windows x86_64 MSVC distribution;
+- current-user/private-directory and runtime-only installation supported;
+- approved to proceed to isolated benchmark preparation.
+
+### libVLC
+
+- current stable Windows release observed: VLC 3.0.23;
+- official VideoLAN win64 ZIP allows isolated side-by-side preparation;
+- approved to proceed to isolated benchmark preparation.
+
+### libmpv
+
+- GPL by default;
+- LGPL path requires `-Dgpl=false` plus dependency/build review;
+- arbitrary common Windows binaries are not approved as the product candidate;
+- remains on a separate auditable build/provenance gate.
 
 ## Tool routing
 
 ### ChatGPT + GitHub
 
-Primary control/analysis channel:
-
-- architecture/product boundary decisions;
-- current GitHub/CI observation;
-- small deterministic repository/governance writes;
+- current-state/CI observation;
 - official dependency/license/runtime verification;
 - benchmark design and evidence interpretation;
-- Work Order activation/closure and durable validation records;
-- final semantic acceptance after Codex reports.
+- small deterministic governance/validation writes;
+- Preview ADR and Work Order closure.
 
 ### User PowerShell
 
-Primary machine/environment evidence channel:
-
-- Windows environment/runtime/hardware observation;
-- private media and credentials;
-- controlled installation/runtime probes;
-- local synchronization;
-- deterministic commands where the user's actual machine is the evidence source.
-
-Do not turn PowerShell into manual CI when GitHub/Codex can perform the same deterministic repository verification more efficiently.
+- isolated runtime preparation;
+- real Windows playback/seek/scrub/resource probes;
+- private media evidence;
+- hardware/runtime diagnostics.
 
 ### Codex
 
-**NO ACTIVE RELEASE** for the current Preview evidence/ADR work.
-
-Remaining Plus/Codex quota is intentionally preserved. Do not spend Codex on environment discovery, package installation, benchmarking, GitHub observation, documentation or already-known small fixes.
-
-Reconsider Codex only for a bounded implementation batch that materially benefits from coherent multi-file local execution and repeated edit → test → repair loops.
+**NO ACTIVE RELEASE.** Preserve remaining quota for later bounded production integration or difficult multi-file runtime debugging.
 
 ## Final-10-percent execution corridor
 
-The final structural corridor is deliberately narrow. Do not open these concurrently unless a dependency requires it.
+Do not open these concurrently without an explicit dependency:
 
-1. **Finish R0.12 productization floor**
-   - evidence-backed Preview backend ADR, then thin Preview integration;
-   - bounded Stage-A Graphics + minimal transitions;
-   - Proxy/edit-friendly media + range-aware cache where required for practical preview;
-   - Renderer progress/cancellation/diagnostics and controlled execution routing.
+1. finish R0.12 productization floor;
+2. minimum Review/repair loop;
+3. ordinary-user Windows runtime / Environment Doctor;
+4. plain product-facing integration for both real cores;
+5. real Stage-A Product Probes / Human Gate, then and only then structural 100%.
 
-2. **Close the minimum Review/repair loop**
-   - deterministic technical QC first;
-   - machine-actionable findings routed to the smallest owner/range;
-   - avoid whole-project recompute for local defects.
-
-3. **Make the Windows runtime ordinary-user operable**
-   - Environment Doctor/capability report;
-   - product-owned/private dependencies where practical;
-   - understandable degraded/failure states;
-   - no normal requirement for repository-file editing, global developer PATH setup or manual Domain construction.
-
-4. **Integrate the two real product cores through a plain product-facing surface**
-   - Planning-only product path to persisted visible ScriptPlan + ShootingPlan;
-   - Editing-only product path from selected local footage to real final MP4;
-   - Combined path reuses the same Editing Core;
-   - basic, practical UI is sufficient; extensibility and clarity matter more than visual richness.
-
-5. **Run Stage-A closure Product Probes / Human Gate**
-   - real planning target/reference/commercial input;
-   - real user footage;
-   - actual automatic chain, no hand-authored EditPlan/ResolutionDecision/EDL;
-   - real final MP4 and visible plans;
-   - Windows usability evidence;
-   - only then may structural progress become 100%.
+The Stage-A product I/O impact audit remains recorded separately and does not interrupt the current Preview Work Order.
 
 ## Constitutional constraints
 
 - EDL remains sole exact timeline authority.
 - PreviewBackend is playback-only.
-- final rendering remains canonical EDL → Renderer; preview/proxy media is not quality authority.
+- final rendering remains canonical EDL → Renderer.
 - original user media is never overwritten.
-- CPU-capable/degraded behavior remains part of the supported product strategy; GPU acceleration is optional routing.
+- CPU/software fallback remains a supported strategy; GPU is optional routing.
 - no unreviewed third-party binary is adopted for product distribution.
-- GUI/desktop framework remains undecided during the Preview benchmark.
-- no temporary integration shortcut may fabricate Planning artifacts, source timestamps, Domain decisions or a final-product PASS.
-
-## Current environment evidence
-
-The first Preview benchmark machine is a Lenovo-class low-end/legacy Windows environment with Intel hardware ID `VEN_8086&DEV_1916`, but Windows currently loads `Microsoft Basic Display Adapter` instead of a vendor Intel display driver. An `OrayIddDriver` virtual display device is also present.
-
-Treat it as **Class A degraded/fallback evidence**, not as the sole performance basis for D3D11/hardware-acceleration choice.
-
-The repository owns an FFmpeg runtime under `.tools`; absence of global `ffmpeg`/`ffprobe` on PATH is not by itself a product defect and reinforces the private-runtime deployment direction.
+- GUI/desktop framework remains undecided during this benchmark.
+- no temporary shortcut may fabricate Planning artifacts, source timestamps, Domain decisions or a Product Gate PASS.
 
 ## Documentation synchronization rule
 
@@ -154,12 +160,8 @@ Dynamic state is canonical only in:
 - `docs/operations/CURRENT_WORK_ORDER.md`;
 - `docs/roadmap/CURRENT_PHASE_STATUS.md`.
 
-Stable navigation/authority files must point to those live documents instead of duplicating fragile phase snapshots.
-
-`tools/maintenance/repo_doctor.py` + `repository-governance` are responsible for machine-checkable consistency. A phase/work-order/control-state transition is incomplete until the corresponding governance checks pass.
+`tools/maintenance/repo_doctor.py` + `repository-governance` check machine-detectable consistency. Stable entry files point here instead of duplicating phase snapshots.
 
 ## STOP boundary
 
-Do not concurrently implement Graphics/transitions, Proxy/cache, Renderer operational controls, GUI/desktop frontend, packaging or EDL redesign while the current Preview benchmark is active unless the Work Order is explicitly revised.
-
-The next implementation writer is chosen per batch: ChatGPT/GitHub for exact low-risk changes; Codex for complex local iteration; PowerShell for genuine local-machine evidence.
+Do not concurrently implement Graphics/transitions, Proxy/cache, Renderer operational controls, GUI/desktop frontend, packaging or EDL redesign while the Preview benchmark is active unless the Work Order is explicitly revised.
