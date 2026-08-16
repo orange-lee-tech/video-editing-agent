@@ -124,33 +124,44 @@ The software-vs-hardware throughput values from the null-output capability probe
 
 This host remains Class-A restored-vendor-driver evidence, not universal Class-B proof.
 
-## Stage 1 — candidate provenance / preparation — ACTIVE
+## Stage 1 — candidate provenance / preparation — NEAR PASS
 
-Current official-source gate:
+Durable evidence:
 
-### GStreamer
+`docs/validation/R0.12_PREVIEW_STAGE1_CANDIDATE_PREPARATION_EVIDENCE.md`
 
-- current stable family observed: 1.28.6;
-- official Windows x86_64 MSVC distribution exists;
-- Windows 11 supported;
-- 1.28 installers support current-user/private-directory installation and runtime-only mode;
-- benchmark should use official MSVC x86_64 runtime, not a random third-party bundle;
-- D3D11 capability and fallback/diagnostics will be tested directly.
+### GStreamer 1.28.6
 
-### libVLC
+Preparation accepted:
 
-- current stable Windows release observed: VLC 3.0.23;
-- official VideoLAN 64-bit ZIP is available and suitable for isolated side-by-side benchmark preparation;
-- libVLC/VLC codebase is published under LGPL 2.1 terms, but later product packaging still requires notices/runtime provenance review;
-- benchmark should use official VideoLAN distribution only.
+- official Windows x86_64 MSVC installer SHA-256 matched official sidecar;
+- current-user private runtime installation succeeded;
+- `gst-launch-1.0` / `gst-inspect-1.0` present;
+- `d3d11videosink` present;
+- `d3d11h264dec` present and identifies Intel HD Graphics 520;
+- D3D11-memory NV12 output path exposed;
+- plugin reports LGPL.
+
+Packaging caveat retained: the downloaded official installer reports Authenticode `NotSigned`; product packaging later requires explicit provenance/notices policy rather than assuming installer signing.
+
+### VLC/libVLC 3.0.23
+
+Preparation accepted:
+
+- official static VideoLAN win64 ZIP size and SHA-256 matched exactly;
+- ZIP magic validation and extraction PASS;
+- private runtime contains `vlc.exe`, `libvlc.dll`, and plugins;
+- isolated startup with `--ignore-config --intf dummy` exits `0` without a `vlcrc` load error.
 
 ### libmpv
 
+Still separately gated:
+
 - upstream mpv is GPLv2-or-later by default;
-- LGPLv2.1-or-later mode requires `-Dgpl=false`;
-- official upstream Windows compilation documentation supports building shared libmpv and explicitly notes `-Dgpl=false` plus dependency review;
-- common Windows mpv binaries are not automatically accepted as an LGPL product baseline;
-- libmpv therefore remains a separate provenance/build gate and must not be represented by an arbitrary prebuilt binary.
+- LGPLv2.1-or-later mode requires `-Dgpl=false` plus dependency/build review;
+- arbitrary prebuilt Windows binaries are not accepted as product evidence.
+
+Stage 1 has one remaining housekeeping observation: verify successful candidate preparation did not persist a required global executable PATH dependency. Real playback benchmarking may proceed because both prepared runtimes are addressed by absolute private paths.
 
 ## Stage 2 — benchmark corpus
 
@@ -161,7 +172,7 @@ Use both:
 
 HDR/4K is tested only when suitable source/hardware exists; absence is recorded.
 
-## Stage 3 — hard gates and comparative evidence
+## Stage 3 — hard gates and comparative evidence — ACTIVE NEXT
 
 Each candidate must, or be excluded by a documented hard-gate reason:
 
@@ -188,6 +199,8 @@ Compare:
 - diagnostic quality.
 
 Do not invent a universal weighted score. Prefer hard gates plus transparent trade-offs.
+
+For GStreamer, the benchmark should use the actual playback stack and `GstPlay`/equivalent control semantics, not FFmpeg null-output throughput. For VLC/libVLC, control evidence should use a deterministic CLI/libVLC-facing control path rather than GUI clicking as the sole proof.
 
 ## Stage 4 — decision / ADR
 
@@ -224,6 +237,13 @@ PASS only when:
 
 ## Immediate next action
 
-Prepare **GStreamer 1.28.6 MSVC x86_64 runtime** and **VLC/libVLC 3.0.23 win64** in isolated benchmark directories using official distributions and checksum verification. Do not alter global PATH.
+Run the first real-playback benchmark wave on the deterministic 1080p H.264/AAC fixture using the already-prepared private runtimes:
 
-After runtime verification, run the same deterministic fixture through both actual playback paths and collect startup/seek/scrub/resource/fallback evidence. Keep libmpv on its separate LGPL provenance/build gate until an auditable candidate is prepared.
+1. verify no required global executable PATH dependency was introduced;
+2. GStreamer: actual D3D11-presented playback, pause/resume and absolute seek control;
+3. VLC/libVLC: actual Windows playback, pause/resume and absolute seek control through a deterministic non-GUI control surface;
+4. collect process startup, CPU and working-set evidence plus logs;
+5. repeat randomized seeks to approximate scrub pressure and observe recovery/stability;
+6. only after deterministic control is stable, add representative user/VFR footage.
+
+Keep libmpv on its separate LGPL provenance/build gate until an auditable candidate is prepared.
