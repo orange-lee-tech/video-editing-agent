@@ -82,7 +82,6 @@ $text = Replace-Required $text '-Dlibmpv=true `' @'
 -Dlibmpv=true `
     -Dcplayer=false `
     -Dbuild-date=false `
-    -Dprefer_static=true `
     -Dcplugins=disabled `
     -Dcdda=disabled `
     -Ddvbin=disabled `
@@ -159,7 +158,7 @@ ffmpeg_gpl=disabled
 cplayer=false
 libmpv=true
 default_library=both
-prefer_static=true
+prefer_static=false
 windows_video=d3d11 enabled
 windows_hwdecode=d3d11va enabled
 software_decode=FFmpeg native path retained
@@ -264,6 +263,10 @@ $topGpl = $options | Where-Object { $_.name -eq "gpl" } | Select-Object -First 1
 if ($null -eq $topGpl -or $topGpl.value -ne $false) {
     Stop-Harness "Meson introspection did not prove top-level gpl=false."
 }
+$preferStatic = $options | Where-Object { $_.name -eq "prefer_static" } | Select-Object -First 1
+if ($null -eq $preferStatic -or $preferStatic.value -ne $false) {
+    Stop-Harness "Meson introspection did not prove prefer_static=false."
+}
 
 # FFmpeg's generated config is the strongest local build proof that GPL/nonfree
 # components were not enabled by the selected Meson subproject configuration.
@@ -338,7 +341,7 @@ $provenance = [ordered]@{
         compiler = $compiler
         meson = $mesonVersion
         default_library = "both"
-        prefer_static = $true
+        prefer_static = $false
         cplayer = $false
         libmpv = $true
         gpl = $false
