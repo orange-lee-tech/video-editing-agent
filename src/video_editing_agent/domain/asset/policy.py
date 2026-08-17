@@ -8,6 +8,7 @@ class AssetOrigin(StrEnum):
 
     CAPTURED_LOCAL = "captured_local"
     IMPORTED_LOCAL = "imported_local"
+    REFERENCE_ACQUIRED = "reference_acquired"
     PROVIDER_ACQUIRED_AUDIO = "provider_acquired_audio"
 
 
@@ -48,6 +49,7 @@ _REMOTE_VISUAL_ORIGIN_ALIASES = frozenset(
         "remote_only",
         "public_stock",
         "stock",
+        "reference_acquired",
     }
 )
 _GENERATED_VISUAL_ORIGIN_ALIASES = frozenset(
