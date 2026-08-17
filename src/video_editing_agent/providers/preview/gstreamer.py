@@ -245,15 +245,11 @@ class _CtypesGStreamerApi:
                 self._play.gst_play_message_parse_type(message, ctypes.byref(message_type))
                 if message_type.value == _GST_PLAY_MESSAGE_STATE_CHANGED:
                     state = ctypes.c_int()
-                    self._play.gst_play_message_parse_state_changed(
-                        message, ctypes.byref(state)
-                    )
+                    self._play.gst_play_message_parse_state_changed(message, ctypes.byref(state))
                     events.append(_NativeEvent(state=state.value))
                 elif message_type.value == _GST_PLAY_MESSAGE_ERROR:
                     missing = bool(
-                        self._play.gst_play_message_parse_error_missing_plugin(
-                            message, None, None
-                        )
+                        self._play.gst_play_message_parse_error_missing_plugin(message, None, None)
                     )
                     error_pointer = ctypes.c_void_p()
                     self._play.gst_play_message_parse_error(
@@ -262,9 +258,7 @@ class _CtypesGStreamerApi:
                     text = "GStreamer playback reported an error"
                     if error_pointer.value:
                         try:
-                            error = ctypes.cast(
-                                error_pointer, ctypes.POINTER(_GError)
-                            ).contents
+                            error = ctypes.cast(error_pointer, ctypes.POINTER(_GError)).contents
                             if error.message:
                                 text = error.message.decode("utf-8", errors="replace")
                         finally:
@@ -625,13 +619,9 @@ class GStreamerPreviewBackend(PreviewBackend):
                 pass
         self._api = None
 
-    def _configure_environment(
-        self, bin_dir: Path, plugin_dir: Path, registry_path: Path
-    ) -> None:
+    def _configure_environment(self, bin_dir: Path, plugin_dir: Path, registry_path: Path) -> None:
         changes = {
-            "PATH": str(bin_dir)
-            + os.pathsep
-            + self._environment.get("PATH", ""),
+            "PATH": str(bin_dir) + os.pathsep + self._environment.get("PATH", ""),
             "GST_PLUGIN_SYSTEM_PATH_1_0": str(plugin_dir),
             "GST_PLUGIN_PATH_1_0": "",
             "GST_REGISTRY_1_0": str(registry_path),
@@ -654,8 +644,6 @@ class GStreamerPreviewBackend(PreviewBackend):
         self._diagnostics = (PreviewDiagnostic(code, message),)
         return self.status()
 
-    def _operation_failure(
-        self, code: PreviewDiagnosticCode, message: str
-    ) -> PreviewStatus:
+    def _operation_failure(self, code: PreviewDiagnosticCode, message: str) -> PreviewStatus:
         self._diagnostics = (PreviewDiagnostic(code, message),)
         return self.status()
