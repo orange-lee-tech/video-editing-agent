@@ -27,7 +27,10 @@ class EnvironmentDoctor:
     def _repair_report(report: EnvironmentReport) -> str:
         lines = [
             "video-editing-agent Environment Doctor",
-            "Use official/product-approved sources for repairs and do not disable security controls.",
+            (
+                "Use official/product-approved sources for repairs and do not disable "
+                "security controls."
+            ),
         ]
         for item in report.checks:
             lines.append(
@@ -37,5 +40,7 @@ class EnvironmentDoctor:
                 lines.append(f"  evidence: {evidence}")
             if item.repair_guidance is not None:
                 lines.append(f"  repair: {item.repair_guidance}")
-        lines.append("After any repair, rerun video-editing-agent doctor to verify actual capability.")
+        lines.append(
+            "After any repair, rerun video-editing-agent doctor to verify actual capability."
+        )
         return "\n".join(lines)
