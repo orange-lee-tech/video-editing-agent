@@ -200,9 +200,7 @@ def test_redirect_revalidates_target_and_rejects_private_destination(tmp_path: P
 
 
 def test_redirect_limit_is_fail_closed(tmp_path: Path) -> None:
-    queue = ConnectionQueue(
-        FakeResponse(302, headers={"Location": "https://public.example/next"})
-    )
+    queue = ConnectionQueue(FakeResponse(302, headers={"Location": "https://public.example/next"}))
     result = DirectHttpsReferenceAcquirer(
         tmp_path / "reference_media",
         policy=DirectHttpsAcquisitionPolicy(max_redirects=0),

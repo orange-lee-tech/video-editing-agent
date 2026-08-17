@@ -13,7 +13,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, cast
 from urllib.parse import SplitResult, urljoin, urlsplit
 
 from video_editing_agent.application.ports.reference_acquisition import (
@@ -108,7 +108,6 @@ class _PinnedHTTPSConnection(http.client.HTTPSConnection):
         raw_socket = socket.create_connection(
             (self._pinned_ip, self.port),
             self.timeout,
-            self.source_address,
         )
         try:
             self.sock = self._tls_context.wrap_socket(raw_socket, server_hostname=self.host)
@@ -125,7 +124,7 @@ class _PinnedConnection:
         self._connection.request(method, target, headers=headers)
 
     def getresponse(self) -> _ResponseLike:
-        return self._connection.getresponse()
+        return cast(_ResponseLike, self._connection.getresponse())
 
     def close(self) -> None:
         self._connection.close()
@@ -134,7 +133,7 @@ class _PinnedConnection:
 def _default_resolver(hostname: str, port: int) -> tuple[str, ...]:
     addresses: list[str] = []
     for info in socket.getaddrinfo(hostname, port, type=socket.SOCK_STREAM):
-        address = info[4][0]
+        address = str(info[4][0])
         if address not in addresses:
             addresses.append(address)
     return tuple(addresses)
@@ -324,7 +323,7 @@ class DirectHttpsReferenceAcquirer:
                     content_type=content_type,
                     deadline=deadline,
                 )
-            except (socket.timeout, TimeoutError) as error:
+            except TimeoutError as error:
                 raise _AcquisitionFailure(
                     ReferenceAcquisitionDiagnosticCode.TIME_LIMIT_EXCEEDED,
                     f"reference network operation timed out: {error}",
@@ -501,13 +500,13 @@ class DirectHttpsReferenceAcquirer:
             self._cleanup_partial(temporary_path, failure)
             raise
         except OSError as error:
-            failure = _AcquisitionFailure(
+            write_failure = _AcquisitionFailure(
                 ReferenceAcquisitionDiagnosticCode.TRANSPORT_FAILED,
                 f"reference media write failed: {error}",
                 retryable=True,
             )
-            self._cleanup_partial(temporary_path, failure)
-            raise failure from error
+            self._cleanup_partial(temporary_path, write_failure)
+            raise write_failure from error
 
     @staticmethod
     def _cleanup_partial(path: Path | None, failure: _AcquisitionFailure) -> None:
