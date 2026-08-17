@@ -35,6 +35,10 @@ _CHUNK_SIZE = 64 * 1024
 _REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
 _ALLOWED_HOST = "upload.wikimedia.org"
 _ALLOWED_GENERIC_AUDIO_TYPES = frozenset({"application/ogg", "application/octet-stream"})
+_USER_AGENT = (
+    "video-editing-agent-bot/0.1 "
+    "(https://github.com/orange-lee-tech/video-editing-agent)"
+)
 Clock = Callable[[], datetime]
 Monotonic = Callable[[], float]
 
@@ -170,7 +174,7 @@ class WikimediaAudioAcquirer:
                         "Accept": "audio/*,application/ogg;q=0.9,application/octet-stream;q=0.5",
                         "Accept-Encoding": "identity",
                         "Connection": "close",
-                        "User-Agent": "video-editing-agent/public-music-r0.12",
+                        "User-Agent": _USER_AGENT,
                     },
                 )
                 response = connection.getresponse()
@@ -195,6 +199,14 @@ class WikimediaAudioAcquirer:
                     raise _AcquisitionFailure(
                         AudioAcquisitionDiagnosticCode.SOURCE_FILE_MISSING,
                         "verified Wikimedia audio file is no longer available",
+                    )
+                if response.status == 429:
+                    retry_after = response.getheader("Retry-After")
+                    suffix = "" if retry_after is None else f"; Retry-After={retry_after.strip()}"
+                    raise _AcquisitionFailure(
+                        AudioAcquisitionDiagnosticCode.TRANSPORT_FAILED,
+                        f"Wikimedia audio server throttled the request with HTTP 429{suffix}",
+                        retryable=True,
                     )
                 if response.status != 200:
                     raise _AcquisitionFailure(
