@@ -33,18 +33,18 @@ class AudioMaterialCandidate:
     title: str | None = None
     source_page: str | None = None
     license_snapshot_id: str | None = None
-    is_generated_audio: bool = False
+    is_generated_audio: bool | None = None
 
     def __post_init__(self) -> None:
         if not self.provider.strip():
             raise ValueError("provider must not be empty")
         if not self.provider_item_id.strip():
             raise ValueError("provider_item_id must not be empty")
-        if not isinstance(self.is_generated_audio, bool):
-            raise TypeError("is_generated_audio must be a bool")
+        if self.is_generated_audio is not None and not isinstance(self.is_generated_audio, bool):
+            raise TypeError("is_generated_audio must be a bool or None")
 
 
 class AudioMaterialProvider(Protocol):
-    """Future rights-aware audio discovery seam. It cannot create Assets or visual candidates."""
+    """Rights-aware audio discovery seam. It cannot create Assets or timeline authority."""
 
     def search_music(self, query: MusicDiscoveryQuery) -> tuple[AudioMaterialCandidate, ...]: ...
