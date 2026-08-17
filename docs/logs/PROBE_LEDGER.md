@@ -89,3 +89,13 @@ A paid Product Probe requires a question that deterministic/local evidence canno
 - Reported closure verification: focused tests 39 PASS; subtitle live probe 8/8 PASS; living integration smoke 10/10 PASS; Ruff PASS; mypy PASS; full pytest 541 PASS; import-linter 3 contracts kept; `uv build` PASS; `git diff --check` PASS.
 - Evidence remains Engineering Probe only; it does not claim universal semantic CJK glyph correctness or font-packaging completeness.
 - Durable conclusion: the bounded Stage-A subtitle execution boundary is structurally closed without expanding into a typography/layer engine.
+
+### R0.12 Reference URL acquisition + owner-seam probes — CLOSED
+
+- Date: 2026-08-17.
+- Accepted production baseline: `d15abf9258c0a080e37d666cd1112358723e823a`.
+- Evidence: `docs/validation/R0.12_REFERENCE_URL_ACQUISITION_CLOSURE.md`.
+- Real acquisition probe: direct public HTTPS sample → 1,128,375 bytes → SHA-256 preserved → real ffprobe H.264 960x540 → persisted `reference_acquired + reference_analysis_only` Asset → Resolver ineligible; PASS.
+- Focused owner-seam probe: same real acquisition/ingest class reached the existing `ReferenceStyleEvidenceService`, created a content-addressed reference-style artifact and nine Planning guidance entries; PASS.
+- The owner-seam probe used an explicitly labeled `SYNTHETIC_SEAM_FIXTURE` only for Shot + VisualSemantics and made no claim of real Gemini/OpenAI visual-model execution.
+- Durable conclusion: supported Reference URLs can become governed project-local analysis-only media and reach existing reference guidance without becoming editable visual footage or Resolver authority.
