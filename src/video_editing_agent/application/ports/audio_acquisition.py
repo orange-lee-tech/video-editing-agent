@@ -42,15 +42,19 @@ class AudioAcquisitionRequest:
     provider: str
     provider_item_id: str
     approved_source_url: str
+    source_page: str
     license_snapshot_ref: str
     rights_eligibility: RightsEligibility
     expected_source_sha1: str | None = None
+    expected_byte_size: int | None = None
+    expected_content_type: str | None = None
 
     def __post_init__(self) -> None:
         for name, value in (
             ("provider", self.provider),
             ("provider_item_id", self.provider_item_id),
             ("approved_source_url", self.approved_source_url),
+            ("source_page", self.source_page),
             ("license_snapshot_ref", self.license_snapshot_ref),
         ):
             if not value.strip():
@@ -59,6 +63,13 @@ class AudioAcquisitionRequest:
             normalized = self.expected_source_sha1.strip().casefold()
             if len(normalized) != 40 or any(ch not in "0123456789abcdef" for ch in normalized):
                 raise ValueError("expected_source_sha1 must be a 40-character hexadecimal SHA-1")
+        if self.expected_byte_size is not None:
+            if isinstance(self.expected_byte_size, bool) or not isinstance(self.expected_byte_size, int):
+                raise TypeError("expected_byte_size must be an int or None")
+            if self.expected_byte_size <= 0:
+                raise ValueError("expected_byte_size must be > 0")
+        if self.expected_content_type is not None and not self.expected_content_type.strip():
+            raise ValueError("expected_content_type must not be blank")
 
 
 @dataclass(frozen=True, slots=True)
