@@ -4,15 +4,15 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-17
 current_phase: R0.12
-phase_state: PUBLIC_MUSIC_ACQUISITION_GATE_ACTIVE
-active_work_order: R0.12-PUBLIC-MUSIC-ACQUISITION-001
-accepted_code_baseline: d15abf9258c0a080e37d666cd1112358723e823a
-control_plane_baseline: e8df24910de5ce3c862fd800a15750b085ace41f
+phase_state: PRODUCTION_GSTREAMER_PREVIEW_INTEGRATION_ACTIVE
+active_work_order: R0.12-PRODUCTION-PREVIEW-INTEGRATION-001
+accepted_code_baseline: 72ec275c1e72e876c4bcf828a44e7852208bab29
+control_plane_baseline: 9c340e3770c312c8745699c12e442538b8b20963
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
 core_1_planning_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
 core_2_editing_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
-previous_work_order: R0.12-REFERENCE-URL-ACQUISITION-001
+previous_work_order: R0.12-PUBLIC-MUSIC-ACQUISITION-001
 previous_work_order_result: PASS
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
@@ -30,7 +30,7 @@ The accepted two-core architecture remains unchanged:
 
 Current accepted production-code baseline is:
 
-`d15abf9258c0a080e37d666cd1112358723e823a`
+`72ec275c1e72e876c4bcf828a44e7852208bab29`
 
 ## Stage-A completion truth
 
@@ -54,7 +54,7 @@ Live state:
 
 `docs/adr/ADR-010_GSTREAMER_PRIMARY_PREVIEW_BACKEND.md`
 
-GStreamer primary; Preview playback-only; EDL authority unchanged.
+GStreamer primary; Preview playback-only; EDL authority unchanged. Backend-family selection is closed and must not be reopened without a concrete Product Probe failure/new hard requirement.
 
 ### Stage-A Product I/O Contract — PASS/CLOSED
 
@@ -90,106 +90,127 @@ Accepted durable semantics:
 - synthetic Shot/VisualSemantics used only for the owner-seam mechanism were explicitly disclosed and are not a real visual-model claim;
 - social/authenticated/cookie/CAPTCHA/DRM/bulk/live/universal downloader behavior remains outside the Stage-A boundary.
 
-## Current active boundary — rights-aware public music acquisition
+### Rights-aware public music acquisition — PASS/CLOSED
 
-`R0.12-PUBLIC-MUSIC-ACQUISITION-001` is ACTIVE.
+`R0.12-PUBLIC-MUSIC-ACQUISITION-001`
 
-The accepted CAP-06/ADR-006 route is:
+Closure evidence:
+
+`docs/validation/R0.12_PUBLIC_MUSIC_ACQUISITION_EVIDENCE.md`
+
+Accepted production baseline:
+
+`72ec275c1e72e876c4bcf828a44e7852208bab29`
+
+Deterministic quality-gate baseline:
+
+`97c9ba838b169a99fb50deb0aa13029209592dff`
+
+Final bounded Windows provider run:
+
+`32026331114` — PASS.
+
+Accepted durable semantics:
+
+- Openverse is discovery-only and discovery results remain rights-unverified until current source verification;
+- current Wikimedia Commons metadata is the rights-verification authority for this Stage-A provider adapter;
+- accepted automatic pool is intentionally narrow: CC0 / accepted Public Domain / CC BY semantics; NC / ND / BY-SA / NonFree / restricted / unknown fail closed;
+- raw and normalized rights evidence is content-addressed through ArtifactStore;
+- `upload.wikimedia.org` acquisition is provider-specific, bounded and public-host constrained;
+- identified bot User-Agent and typed HTTP 429 / `Retry-After` evidence are preserved without automatic hammering;
+- source SHA-1 / byte size and local SHA-256 integrity are checked;
+- only exact FLAC/Ogg MIME aliases are canonicalized for comparison, while actual HTTP MIME remains evidence;
+- real FFprobe 8.1 classified the acquired 83,141,176-byte file as FLAC audio;
+- normal Asset ingest produced `provider_acquired_audio + music` with content hash equal to acquisition SHA-256;
+- no Codex release was used;
+- local user music remains a valid Stage-A fallback.
+
+## Current active boundary — production GStreamer Preview integration
+
+`R0.12-PRODUCTION-PREVIEW-INTEGRATION-001` is ACTIVE.
+
+This boundary integrates the already-selected GStreamer family behind the existing/accepted Preview seam. It does **not** reopen backend-family benchmarking.
+
+Accepted decision:
+
+`docs/adr/ADR-010_GSTREAMER_PRIMARY_PREVIEW_BACKEND.md`
+
+### Ownership remains frozen
 
 ```text
-provider-neutral MusicDiscoveryQuery
-→ AudioMaterialCandidate metadata
-→ rights/license eligibility gate
-→ approved single-item acquisition
-→ project-controlled local audio file
-→ AssetIngestService
-→ authoritative local audio Asset
-→ existing BeatMap / MusicSelection / AudioEditorial
-→ canonical EDL / Renderer
+canonical EDL  = sole exact executable timeline authority
+Renderer       = final render/execution authority
+PreviewBackend = playback-only adapter
+GStreamer      = Stage-A production implementation family behind PreviewBackend
 ```
 
-### Existing downstream owners are already valid
+Preview cannot repair, reinterpret, retime or silently replace EDL decisions.
 
-Do not redesign R0.10 music selection/audio editorial.
+### Immediate control action
 
-Existing reusable primitives include:
+ChatGPT + GitHub first audit:
 
-- `AudioMaterialProvider`;
-- `MusicDiscoveryQuery`;
-- `AudioMaterialCandidate`;
-- `RightsEligibility`;
-- `LicenseSnapshot`;
-- local Asset ingest/provenance;
-- BeatMap / MusicSelection / AudioEditorial;
-- canonical EDL audio execution.
+- existing PreviewBackend / preview application ports;
+- current preview adapters or benchmark-only code;
+- time/seek and local-media request types;
+- runtime/configuration composition seams;
+- reusable GStreamer benchmark/probe mechanisms that do not leak benchmark authority into production;
+- tests/import contracts around application ↔ provider/infrastructure ownership.
 
-The active gap is provider discovery/acquisition + durable rights evidence, not another music architecture.
+Only after this audit may the exact production edit be frozen.
 
-### Rights/provider direction
+### Accepted production direction
 
-- current official primary-source terms/API evidence is required before provider promotion;
-- technical downloadability is not product authorization;
-- `royalty-free` alone is not sufficient rights proof;
-- `UNKNOWN` rights are not silently upgraded to `ELIGIBLE`;
-- provider discovery/acquisition must be programmatically permitted, not HTML scraping by convenience;
-- acquire only the specifically approved item, not bulk catalogs;
-- preserve source page/provider/item/license snapshot/integrity/provenance;
-- generated-audio status is used only when the provider actually supplies evidence;
-- local user music remains the safe fallback if no automatic provider clears the hard gate.
+- GStreamer 1.28.6 Windows x86_64 MSVC private runtime is the initial accepted evidence baseline;
+- high-level GstPlay/playbin3 control direction;
+- normal path allows valid D3D11 acceleration;
+- explicit software video-decode fallback remains supported and diagnosable;
+- missing/broken runtime/plugin/device conditions need typed application diagnostics;
+- private runtime is supplied deliberately rather than assuming arbitrary global PATH;
+- no silent automatic libVLC cross-backend fallback;
+- libmpv remains Stage-A hard-gate excluded;
+- no new player benchmark without a concrete hard product trigger.
 
-Existing provider backlog:
+### Scope split
 
-`docs/research/AUDIO_PROVIDER_CANDIDATES_2026-08-14.md`
+This Work Order may integrate the adapter's private-runtime lookup/configuration contract and enough capability reporting to prove the adapter can run.
 
-is informative only and must be revalidated before implementation.
+The full ordinary-user Windows Environment Doctor / installer / repair UX remains a later dedicated productization boundary unless a minimal piece is unavoidable for production adapter proof.
 
 ## Codex quota constraint
 
-The user reports approximately **9% Codex quota remaining**.
-
-Treat this as a hard resource constraint.
+Approximately **9% Codex quota remains**.
 
 ### ChatGPT + GitHub
 
-Primary for the active gate:
+Primary initially for:
 
-- existing audio/rights seam audit;
-- current official provider/API/terms/license research;
-- provider comparison;
-- discovery/rights/acquisition/diagnostics contract reduction;
-- control-plane/validation docs;
-- small deterministic GitHub work.
+- code/repository audit;
+- exact port/adapter contract reduction;
+- small deterministic implementation where connector-first work remains reliable;
+- focused tests;
+- CI/probe review;
+- governance/validation.
 
 ### Codex
 
 **NO ACTIVE RELEASE.**
 
-Do not use Codex for provider browsing, docs, repository reading, speculative adapters, or API/terms research.
+Release only if the audit proves a bounded local Windows/runtime/multi-file implementation or repair materially benefits from Codex enough to justify the remaining quota.
 
-Release Codex only after one provider path and the exact bounded implementation are frozen and local multi-file edit/test/repair value justifies the remaining quota.
+Do not spend Codex on renewed GStreamer/libVLC/libmpv comparison, documentation, or benchmark archaeology.
 
 ### User PowerShell
 
-Use only when a real Windows/network/provider/API/audio boundary requires evidence after provider choice and contract are frozen.
-
-## Immediate active investigation
-
-1. audit `AudioMaterialProvider`, rights models, Asset ingest/provenance and R0.10 music seams;
-2. revalidate Pixabay and other serious provider candidates using current official primary sources;
-3. locate at least one provider with explicit programmatic music discovery **and** acquisition permission, or establish a hard-gate exclusion truthfully;
-4. freeze provider-neutral rights snapshot/acquisition/diagnostic semantics;
-5. determine minimal production changes;
-6. release Codex only if that concrete edit genuinely requires local multi-file execution;
-7. use one real provider/API Engineering Probe only where deterministic/local evidence cannot answer the external behavior question.
+Use only if GitHub-hosted Windows evidence cannot represent the real private-runtime production adapter boundary or a Human Gate is genuinely required.
 
 ## Immediate corridor after active work
 
-1. close rights-aware public music acquisition or record a truthful hard-gate exclusion with local-user fallback;
-2. remaining bounded R0.12 productization including production GStreamer Preview integration where justified;
-3. minimum Review/repair loop;
-4. ordinary-user Windows runtime / Environment Doctor;
-5. practical product-facing integration;
-6. real Planning/Editing Product Probes + Human Gate.
+1. production GStreamer Preview adapter integration behind the existing PreviewBackend seam;
+2. minimum Review/repair loop;
+3. ordinary-user Windows runtime / Environment Doctor;
+4. practical product-facing integration;
+5. real Planning/Editing Product Probes + Human Gate.
 
 ## Constitutional constraints
 
@@ -216,8 +237,12 @@ Dynamic state is canonical only in:
 
 ## STOP boundary
 
-Do not concurrently start GUI/frontend, SFX-provider expansion, generated-music integration, or further Preview benchmarking.
+Do not reopen player benchmarks.
 
-Do not implement HTML scraping merely because a provider web page can be downloaded manually.
+Do not silently bundle or switch to libVLC.
 
-Do not release Codex until the public-music provider and rights boundary is demonstrably small, precise and worth the remaining quota.
+Do not reopen libmpv Stage-A exclusion without a new hard requirement.
+
+Do not expand this Work Order into full GUI/frontend, SFX-provider expansion, generated music, Proxy redesign, or generic media downloading.
+
+Do not let Preview become EDL/final-render authority.
