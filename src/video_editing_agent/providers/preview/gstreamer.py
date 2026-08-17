@@ -28,11 +28,6 @@ _GST_RANK_NONE = 0
 _GST_ELEMENT_FACTORY_TYPE_DECODER = 1 << 0
 _GST_ELEMENT_FACTORY_TYPE_HARDWARE = 1 << 12
 _GST_ELEMENT_FACTORY_TYPE_MEDIA_VIDEO = 1 << 49
-_GST_HARDWARE_VIDEO_DECODER_TYPE = (
-    _GST_ELEMENT_FACTORY_TYPE_DECODER
-    | _GST_ELEMENT_FACTORY_TYPE_HARDWARE
-    | _GST_ELEMENT_FACTORY_TYPE_MEDIA_VIDEO
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -130,8 +125,16 @@ class _CtypesGStreamerApi:
         self._gst.gst_mini_object_unref.restype = None
         self._gst.gst_element_factory_find.argtypes = [ctypes.c_char_p]
         self._gst.gst_element_factory_find.restype = ctypes.c_void_p
-        self._gst.gst_element_factory_list_get_elements.argtypes = [ctypes.c_uint64, ctypes.c_uint]
+        self._gst.gst_element_factory_list_get_elements.argtypes = [
+            ctypes.c_uint64,
+            ctypes.c_uint,
+        ]
         self._gst.gst_element_factory_list_get_elements.restype = ctypes.c_void_p
+        self._gst.gst_element_factory_list_is_type.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_uint64,
+        ]
+        self._gst.gst_element_factory_list_is_type.restype = ctypes.c_int
         self._gst.gst_plugin_feature_list_free.argtypes = [ctypes.c_void_p]
         self._gst.gst_plugin_feature_list_free.restype = None
         self._gst.gst_object_get_name.argtypes = [ctypes.c_void_p]
@@ -233,7 +236,7 @@ class _CtypesGStreamerApi:
 
     def hardware_video_decoder_features(self) -> tuple[str, ...]:
         list_pointer = self._gst.gst_element_factory_list_get_elements(
-            _GST_HARDWARE_VIDEO_DECODER_TYPE,
+            _GST_ELEMENT_FACTORY_TYPE_DECODER,
             _GST_RANK_NONE,
         )
         if not list_pointer:
@@ -243,12 +246,22 @@ class _CtypesGStreamerApi:
         try:
             while node_pointer:
                 node = ctypes.cast(node_pointer, ctypes.POINTER(_GList)).contents
-                if node.data:
+                if (
+                    node.data
+                    and self._gst.gst_element_factory_list_is_type(
+                        node.data, _GST_ELEMENT_FACTORY_TYPE_HARDWARE
+                    )
+                    and self._gst.gst_element_factory_list_is_type(
+                        node.data, _GST_ELEMENT_FACTORY_TYPE_MEDIA_VIDEO
+                    )
+                ):
                     name_pointer = self._gst.gst_object_get_name(node.data)
                     if name_pointer:
                         try:
                             names.append(
-                                ctypes.string_at(name_pointer).decode("utf-8", errors="replace")
+                                ctypes.string_at(name_pointer).decode(
+                                    "utf-8", errors="replace"
+                                )
                             )
                         finally:
                             self._glib.g_free(name_pointer)
@@ -283,7 +296,9 @@ class _CtypesGStreamerApi:
                     events.append(_NativeEvent(state=state.value))
                 elif message_type.value == _GST_PLAY_MESSAGE_ERROR:
                     missing = bool(
-                        self._play.gst_play_message_parse_error_missing_plugin(message, None, None)
+                        self._play.gst_play_message_parse_error_missing_plugin(
+                            message, None, None
+                        )
                     )
                     error_pointer = ctypes.c_void_p()
                     self._play.gst_play_message_parse_error(
@@ -292,7 +307,9 @@ class _CtypesGStreamerApi:
                     text = "GStreamer playback reported an error"
                     if error_pointer.value:
                         try:
-                            error = ctypes.cast(error_pointer, ctypes.POINTER(_GError)).contents
+                            error = ctypes.cast(
+                                error_pointer, ctypes.POINTER(_GError)
+                            ).contents
                             if error.message:
                                 text = error.message.decode("utf-8", errors="replace")
                         finally:
@@ -653,7 +670,9 @@ class GStreamerPreviewBackend(PreviewBackend):
                 pass
         self._api = None
 
-    def _configure_environment(self, bin_dir: Path, plugin_dir: Path, registry_path: Path) -> None:
+    def _configure_environment(
+        self, bin_dir: Path, plugin_dir: Path, registry_path: Path
+    ) -> None:
         changes = {
             "PATH": str(bin_dir) + os.pathsep + self._environment.get("PATH", ""),
             "GST_PLUGIN_SYSTEM_PATH_1_0": str(plugin_dir),
@@ -678,6 +697,8 @@ class GStreamerPreviewBackend(PreviewBackend):
         self._diagnostics = (PreviewDiagnostic(code, message),)
         return self.status()
 
-    def _operation_failure(self, code: PreviewDiagnosticCode, message: str) -> PreviewStatus:
+    def _operation_failure(
+        self, code: PreviewDiagnosticCode, message: str
+    ) -> PreviewStatus:
         self._diagnostics = (PreviewDiagnostic(code, message),)
         return self.status()
