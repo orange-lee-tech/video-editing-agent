@@ -69,6 +69,9 @@ class FakeGStreamerApi:
         assert player is self.player
         self.operations.append(("stop", player))
 
+    def hardware_video_decoder_features(self) -> tuple[str, ...]:
+        return tuple(sorted(self.feature_ranks))
+
     def set_feature_rank(self, name: str, rank: int) -> int | None:
         previous = self.feature_ranks.get(name)
         if previous is None:
@@ -172,7 +175,7 @@ def test_gstreamer_preview_lifecycle_and_exact_seek(tmp_path: Path) -> None:
     assert environment == {"PATH": "original-path"}
 
 
-def test_software_video_mode_demotes_and_restores_known_hardware_decoders(
+def test_software_video_mode_demotes_and_restores_discovered_hardware_decoders(
     tmp_path: Path,
 ) -> None:
     root = tmp_path / "gst"
@@ -180,8 +183,8 @@ def test_software_video_mode_demotes_and_restores_known_hardware_decoders(
     api = FakeGStreamerApi(
         feature_ranks={
             "d3d11h264dec": 257,
-            "d3d11h265dec": 257,
-            "d3d12h264dec": 258,
+            "d3d11h264device1dec": 256,
+            "nvh264dec": 257,
         }
     )
     backend = GStreamerPreviewBackend(
@@ -197,18 +200,18 @@ def test_software_video_mode_demotes_and_restores_known_hardware_decoders(
     assert status.decode_mode is PreviewDecodeMode.SOFTWARE_VIDEO
     assert status.disabled_hardware_features == (
         "d3d11h264dec",
-        "d3d11h265dec",
-        "d3d12h264dec",
+        "d3d11h264device1dec",
+        "nvh264dec",
     )
-    assert api.feature_ranks["d3d11h264dec"] == 0
-    assert api.feature_ranks["d3d11h265dec"] == 0
-    assert api.feature_ranks["d3d12h264dec"] == 0
+    assert all(rank == 0 for rank in api.feature_ranks.values())
 
     backend.release()
 
-    assert api.feature_ranks["d3d11h264dec"] == 257
-    assert api.feature_ranks["d3d11h265dec"] == 257
-    assert api.feature_ranks["d3d12h264dec"] == 258
+    assert api.feature_ranks == {
+        "d3d11h264dec": 257,
+        "d3d11h264device1dec": 256,
+        "nvh264dec": 257,
+    }
 
 
 def test_missing_runtime_and_version_mismatch_are_typed(tmp_path: Path) -> None:
