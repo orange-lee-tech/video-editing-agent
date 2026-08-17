@@ -91,4 +91,8 @@ def main(argv: list[str] | None = None) -> int:
     arguments = list(sys.argv[1:] if argv is None else argv)
     if arguments and arguments[0] == "doctor":
         return _doctor_main(arguments[1:])
+    if arguments and arguments[0] == "run":
+        from video_editing_agent.adapters.cli.product_run import main as product_run_main
+
+        return product_run_main(arguments[1:])
     return project_main(arguments)
