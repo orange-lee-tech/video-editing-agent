@@ -32,7 +32,7 @@ Current accepted production-code baseline:
 
 `1e90e2dd3d235271ef48bb7a708a1899ce5b87a4`
 
-This baseline contains the accepted ProductFlow implementation plus the bounded Engineering Probe surface and the evidence-backed DeepSeek Director scalar-schema prompt repair.
+This baseline contains the accepted ProductFlow implementation plus its bounded Engineering evidence and the evidence-backed DeepSeek Director scalar-schema prompt repair.
 
 ## Stage-A completion truth
 
@@ -42,7 +42,7 @@ Structural progress remains **90%**.
 - Planning: Engineering mechanism PASS; Product Probe / Human Gate OPEN.
 - Editing: Engineering mechanism PASS; Product Probe / Human Gate OPEN.
 
-Engineering evidence does not authorize 100%. Stage-A 100% remains forbidden until both real ordinary-user Product Gates and the global gate are PASS.
+Engineering evidence or launcher implementation does not authorize 100%. Stage-A 100% remains forbidden until both real ordinary-user Product Gates and the global gate are PASS.
 
 ## Closed R0.12 boundaries
 
@@ -76,68 +76,68 @@ These facts are Engineering evidence only.
 
 `R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001` is ACTIVE.
 
-The remaining problem is no longer whether the owner chain can execute. It is whether an ordinary Windows user can practically enter, understand and complete the two real product workflows without repository editing or hand-authoring internal objects.
+Ordinary-user surface audit:
 
-### Planning Product Gate target
+`docs/validation/R0.12_STAGE_A_PRODUCT_SURFACE_AUDIT.md`
 
-```text
-real user intent / reference / commercial target
-→ ordinary Windows product surface
-→ Brief
-→ persisted inspectable ScriptPlan
-→ usable ShootingPlan
-→ Human Gate judgment
-```
+Audit result: **IMPLEMENTATION REQUIRED**.
 
-### Editing Product Gate target
+The accepted mechanisms work, but the product surface still lacks the complete reference-guidance bridge and a practical ordinary Windows launch/presentation layer.
 
-```text
-user-selected real local footage
-+ editing intent / output destination
-→ ordinary Windows product surface
-→ actual automatic Editing Core
-→ canonical EDL / Renderer / Review
-→ real final MP4
-→ Human Gate judgment
-```
+### Audit-proven gaps
 
-### Minimum user-facing floor
+- ordinary Planning input does not expose accepted authoritative facts/references;
+- ProductFlow / ProjectWorkspace drop existing `ReferenceStyleGuidance` before Script/Shooting workflows;
+- current ProductFlow launch requires hand-written JSON;
+- Editing exposes model/TransNet/tool plumbing as launch arguments;
+- no ordinary Windows launcher/file chooser exists;
+- Planning exact results are not directly presented to the user;
+- progress events exist but are not observable live;
+- Editing folder selection convenience is absent;
+- Environment Doctor lacks mandatory Shot-detection runtime readiness.
 
-Do not build a feature-rich NLE. Provide only what the Stage-A gate genuinely requires:
+### Frozen implementation direction
 
-- create/open project;
-- provide Planning inputs/references or select Editing footage;
-- choose/identify output;
-- start the workflow;
-- see understandable progress/failure;
-- inspect/locate plans and final MP4;
-- avoid repository editing and manual Domain/EDL construction.
+Reuse the existing owner chain. Add only:
 
-Before implementing a new frontend, audit and reuse any existing CLI/launcher/UI capability that already satisfies part of this floor.
+1. product-facing reference input → accepted reference-only acquisition/analysis → `ReferenceStyleGuidance` plumbing;
+2. authoritative-fact/reference ProductFlow support;
+3. optional live `ProductFlowEvent` observation;
+4. reviewed runtime defaults/TransNet auto-resolution + minimal Doctor coverage;
+5. a thin ordinary Windows launcher/presentation layer;
+6. readable exact Planning outputs and discoverable Editing result.
+
+No new Editing architecture, NLE timeline or media authority is authorized.
+
+## Codex/resource policy
+
+The audit crossed the threshold for one complex local batch.
+
+Codex: **ACTIVE RELEASE — SINGLE COMPLEX BATCH** for the exact implementation surface frozen in `CURRENT_WORK_ORDER.md` and `R0.12_STAGE_A_PRODUCT_SURFACE_AUDIT.md`.
+
+Complex-batch single-writer rule is active:
+
+- Codex owns this implementation surface until it commits/pushes and stops;
+- ChatGPT must not concurrently modify the same source area;
+- ChatGPT may continue remote observation and independent governance only;
+- after Codex stops, ChatGPT independently reobserves GitHub/CI before acceptance.
 
 ## Product evidence boundary
 
 Synthetic hosted Engineering media cannot close either Product Gate.
 
-Product closure requires real user conditions and Human Gate evidence. The user machine/private-media boundary may therefore be used for the final Product Probes once the ordinary-user surface is ready.
+After the Codex batch is accepted and `main` is green, closure requires real user conditions and Human Gate evidence on the ordinary Windows surface.
 
 Do not loosen Planning Review, Resolver grounding, EDL authority, Review policy or commercial constraints merely to obtain a PASS.
 
-## Codex/resource policy
-
-ChatGPT + GitHub remain primary for audit, control state, bounded deterministic changes and evidence review.
-
-Codex: **NO ACTIVE RELEASE** by default. Release one coherent batch only if the ordinary-user-surface audit exposes a substantial multi-file implementation/runtime loop that materially benefits from local execution.
-
 ## Immediate corridor
 
-1. audit current ordinary-user entry surface against `STAGE_A_COMPLETION_GATE.md`;
-2. implement only the missing minimum Windows usability surface;
-3. keep deterministic `main` green;
+1. Codex implements the bounded Stage-A product surface batch and stops;
+2. ChatGPT reobserves exact `main`, diff and CI;
+3. repair only concrete implementation defects;
 4. run real Planning Product Probe + Human Gate;
 5. run real Editing automatic-final-MP4 Product Probe + Human Gate;
-6. repair only evidence-backed defects;
-7. set both core gates and Stage-A gate to PASS, and structural progress to 100%, only if all hard evidence passes.
+6. set both core gates and Stage-A gate to PASS, and structural progress to 100%, only if all hard evidence passes.
 
 ## Constitutional constraints
 
@@ -145,6 +145,7 @@ Codex: **NO ACTIVE RELEASE** by default. Release one coherent batch only if the 
 - Renderer executes; Review classifies/routes only;
 - Preview remains playback-only;
 - Planning-only / Editing-only / Combined remain legitimate parallel entry modes;
+- reference-only media remains Resolver-ineligible;
 - originals remain protected;
 - no LLM-generated source timestamps or internal IDs as authority;
 - no Product/Human PASS inferred from Engineering Probe success;
