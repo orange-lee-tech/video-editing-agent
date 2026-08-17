@@ -62,6 +62,7 @@ class ProjectWorkspace:
     root: Path
     database: SqliteProjectDatabase
     artifacts: LocalArtifactStore
+    provider_audio: Path
     briefs: SqliteBriefRepository
     scripts: SqliteScriptPlanRepository
     shooting_plans: SqliteShootingPlanRepository
@@ -80,6 +81,8 @@ class ProjectWorkspace:
     def open(cls, root: Path) -> ProjectWorkspace:
         resolved = root.expanduser().resolve()
         resolved.mkdir(parents=True, exist_ok=True)
+        provider_audio = resolved / "provider_audio"
+        provider_audio.mkdir(parents=True, exist_ok=True)
         database = SqliteProjectDatabase(resolved / "project.sqlite3")
         database.initialize()
         briefs = SqliteBriefRepository(database)
@@ -104,6 +107,7 @@ class ProjectWorkspace:
             root=resolved,
             database=database,
             artifacts=LocalArtifactStore(resolved / "artifacts"),
+            provider_audio=provider_audio,
             briefs=briefs,
             scripts=scripts,
             shooting_plans=shooting,
@@ -129,6 +133,7 @@ class ProjectWorkspace:
             "database": str(self.database.path),
             "schema_version": self.database.schema_version(),
             "artifacts": str(self.root / "artifacts"),
+            "provider_audio": str(self.provider_audio),
             "counts": {
                 "assets": len(self.assets.list_all()),
                 "shots": len(self.shots.list_all()),
