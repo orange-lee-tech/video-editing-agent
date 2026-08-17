@@ -2,6 +2,11 @@ name: Public Music Provider Live Probe
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "tools/probes/public_music_provider_live.trigger"
 
 permissions:
   contents: read
