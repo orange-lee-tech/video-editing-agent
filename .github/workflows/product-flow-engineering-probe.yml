@@ -91,21 +91,23 @@ jobs:
               target_duration_seconds = 8
               style_emotion = @("clear", "concise")
               success_criteria = @("separate visuals are easy to distinguish", "shootable in one simple setup")
-              user_notes = "This is a neutral filming exercise using separate pre-existing reference cards or patterns. Do not imply that one product changes color or has any commercial capability. Keep the plan minimal."
+              user_notes = "This is a neutral filming exercise using four separate pre-existing reference cards or patterns. One operator may handle the cards. A phone may stay locked on a tripod; if the phone itself must appear in a setup shot, one fixed secondary camera is also available. Do not imply that one product changes color or has any commercial capability."
             }
             production_constraints = [ordered]@{
-              camera_or_phone = "phone"
-              people_count = 0
+              camera_or_phone = "one phone camera plus one fixed secondary camera if the phone itself must appear in frame"
+              stabilizer = "tripod"
+              lighting = "normal room lighting"
+              people_count = 1
               locations = @(
                 [ordered]@{
                   location_id = "simple_setup"
                   label = "simple tabletop or plain background"
-                  notes = "No special equipment required."
+                  notes = "Four separate red, green, blue, and printed reference cards or patterns are already available as props."
                 }
               )
               available_time_notes = "single short setup"
               user_skill_level = "beginner"
-              notes = @("Record the separate reference visuals as they already exist; do not invent product behavior.")
+              notes = @("One operator may use hands to place the separate reference visuals. Tripod and the declared secondary camera are available. Do not invent product behavior or additional equipment.")
             }
           }
 
