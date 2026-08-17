@@ -219,7 +219,7 @@ def test_v6_codec_migration_and_immutable_conflict(tmp_path: Path) -> None:
         connection.execute("DROP TABLE edit_plans")
         connection.execute("PRAGMA user_version = 5")
     workspace.database.initialize()
-    assert workspace.database.schema_version() == 6
+    assert workspace.database.schema_version() == 7
     assert workspace.briefs.load(EntityRevisionRef("brief", 1)) == brief
     assert workspace.edit_plans.count() == 0
     with workspace.database.read_connection() as connection:

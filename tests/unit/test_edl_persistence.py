@@ -12,7 +12,9 @@ from video_editing_agent.domain.edit.model import EditPlan, EditSlot
 from video_editing_agent.domain.edl.model import EDL, EDLSegment, EDLTrack, EDLTrackFamily
 from video_editing_agent.storage.project.workspace import ProjectWorkspace
 from video_editing_agent.storage.repositories.edl_repository import SqliteEDLRepository
-from video_editing_agent.storage.repositories.preproduction_repositories import SqliteBriefRepository
+from video_editing_agent.storage.repositories.preproduction_repositories import (
+    SqliteBriefRepository,
+)
 from video_editing_agent.storage.repositories.sqlite_database import SqliteProjectDatabase
 from video_editing_agent.storage.repositories.sqlite_repositories import (
     RevisionConflictError,
@@ -27,7 +29,9 @@ def _envelope(identity: str, revision: int = 1) -> EntityEnvelope:
 
 
 def _brief() -> Brief:
-    return Brief(_envelope("brf_edl_store"), "Title", "Objective", "Audience", "Platform", "Message")
+    return Brief(
+        _envelope("brf_edl_store"), "Title", "Objective", "Audience", "Platform", "Message"
+    )
 
 
 def _edit_plan() -> EditPlan:

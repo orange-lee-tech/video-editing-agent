@@ -31,6 +31,7 @@ def test_workspace_open_reopen_and_read_are_deterministic(tmp_path) -> None:
         "script_plans": 0,
         "shooting_plans": 0,
         "edit_plans": 0,
+        "edls": 0,
     }
     assert reopened.status()["capabilities"]["external_provider_configured"] is False
 
@@ -39,7 +40,7 @@ def test_cli_init_create_show_and_failure_without_mutation(tmp_path, capsys) -> 
     root = tmp_path / "cli-project"
     assert main(["--project", str(root), "project", "init"]) == 0
     status = json.loads(capsys.readouterr().out)
-    assert status["schema_version"] == 6
+    assert status["schema_version"] == 7
 
     args = [
         "--project",
