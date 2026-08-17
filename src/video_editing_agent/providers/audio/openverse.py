@@ -14,6 +14,7 @@ from video_editing_agent.domain.asset.rights import RightsEligibility
 
 _OPENVERSE_AUDIO_ENDPOINT = "https://api.openverse.org/v1/audio/"
 _WIKIMEDIA_AUDIO_SOURCE = "wikimedia_audio"
+_COMMONS_PAGE_ID_PREFIX = "commons_pageid:"
 _USER_AGENT = "video-editing-agent/public-music-r0.12"
 JsonObject = dict[str, object]
 JsonFetcher = Callable[[str], JsonObject]
@@ -41,7 +42,7 @@ def _text(value: object) -> str | None:
     return normalized or None
 
 
-def _commons_title(result: JsonObject) -> str | None:
+def _commons_identity(result: JsonObject) -> str | None:
     landing = _text(result.get("foreign_landing_url"))
     if landing is not None:
         parts = urlsplit(landing)
@@ -51,6 +52,10 @@ def _commons_title(result: JsonObject) -> str | None:
                 title = unquote(parts.path.removeprefix(prefix)).replace("_", " ")
                 if title.casefold().startswith("file:"):
                     return title
+            if parts.path == "/w/index.php":
+                curids = parse_qs(parts.query).get("curid", [])
+                if len(curids) == 1 and curids[0].isdigit() and int(curids[0]) > 0:
+                    return f"{_COMMONS_PAGE_ID_PREFIX}{curids[0]}"
 
     foreign_identifier = _text(result.get("foreign_identifier"))
     if foreign_identifier is None:
@@ -98,13 +103,13 @@ class OpenverseWikimediaAudioProvider:
             result = cast(JsonObject, raw)
             if _text(result.get("source")) != _WIKIMEDIA_AUDIO_SOURCE:
                 continue
-            file_title = _commons_title(result)
-            if file_title is None:
+            commons_identity = _commons_identity(result)
+            if commons_identity is None:
                 continue
             candidates.append(
                 AudioMaterialCandidate(
                     provider="wikimedia_commons_via_openverse",
-                    provider_item_id=file_title,
+                    provider_item_id=commons_identity,
                     rights_eligibility=RightsEligibility.UNKNOWN,
                     title=_text(result.get("title")),
                     source_page=_text(result.get("foreign_landing_url")),
