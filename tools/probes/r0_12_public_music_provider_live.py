@@ -4,6 +4,8 @@ import json
 import sys
 import tempfile
 from pathlib import Path
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 from video_editing_agent.application.ports.audio_acquisition import AudioAcquisitionRequest
 from video_editing_agent.application.ports.audio_material_provider import MusicDiscoveryQuery
@@ -22,10 +24,84 @@ QUERIES = (
     "acoustic instrumental music",
     "classical instrumental music",
 )
+_OPENVERSE_AUDIO_ENDPOINT = "https://api.openverse.org/v1/audio/"
 
 
 def _emit(payload: dict[str, object]) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+
+
+def _raw_openverse_diagnostic(query_text: str) -> list[dict[str, object]]:
+    variants: tuple[tuple[str, str | None], ...] = (
+        ("source_only", None),
+        ("commercial", "commercial"),
+        ("modification", "modification"),
+        ("commercial_and_modification", "commercial,modification"),
+    )
+    diagnostics: list[dict[str, object]] = []
+    for label, license_type in variants:
+        parameters = {
+            "q": query_text,
+            "source": "wikimedia_audio",
+            "page_size": "5",
+            "filter_dead": "true",
+        }
+        if license_type is not None:
+            parameters["license_type"] = license_type
+        url = f"{_OPENVERSE_AUDIO_ENDPOINT}?{urlencode(parameters)}"
+        request = Request(
+            url,
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "video-editing-agent/public-music-r0.12-probe",
+            },
+            method="GET",
+        )
+        diagnostic: dict[str, object] = {
+            "variant": label,
+            "license_type": license_type,
+        }
+        try:
+            with urlopen(request, timeout=30.0) as response:  # noqa: S310 - fixed Openverse endpoint
+                payload = json.loads(response.read().decode("utf-8"))
+        except Exception as error:  # noqa: BLE001 - live probe preserves provider failure evidence
+            diagnostic["error"] = f"{type(error).__name__}: {error}"
+            diagnostics.append(diagnostic)
+            continue
+
+        if not isinstance(payload, dict):
+            diagnostic["error"] = "Openverse response root was not an object"
+            diagnostics.append(diagnostic)
+            continue
+        raw_results = payload.get("results")
+        if not isinstance(raw_results, list):
+            diagnostic["error"] = "Openverse response omitted results list"
+            diagnostics.append(diagnostic)
+            continue
+
+        diagnostic["raw_result_count"] = len(raw_results)
+        samples: list[dict[str, object]] = []
+        for raw in raw_results[:3]:
+            if not isinstance(raw, dict):
+                continue
+            samples.append(
+                {
+                    key: raw.get(key)
+                    for key in (
+                        "id",
+                        "source",
+                        "title",
+                        "foreign_landing_url",
+                        "foreign_identifier",
+                        "license",
+                        "license_url",
+                        "filetype",
+                    )
+                }
+            )
+        diagnostic["samples"] = samples
+        diagnostics.append(diagnostic)
+    return diagnostics
 
 
 def main() -> int:
@@ -34,6 +110,7 @@ def main() -> int:
         "result": "FAIL",
         "queries": [],
         "acquisition_attempts": 0,
+        "openverse_raw_diagnostic": _raw_openverse_diagnostic(QUERIES[0]),
     }
 
     with tempfile.TemporaryDirectory(prefix="r0-12-public-music-") as temp_dir:
@@ -172,7 +249,9 @@ def main() -> int:
         evidence["ffprobe"] = {
             "media_kind": technical.media_kind,
             "duration_seconds": (
-                None if technical.duration is None else technical.duration.to_decimal_seconds_string()
+                None
+                if technical.duration is None
+                else technical.duration.to_decimal_seconds_string()
             ),
             "codec": technical.codec,
             "audio_channels": technical.audio_channels,
