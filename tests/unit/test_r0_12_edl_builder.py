@@ -12,6 +12,8 @@ from video_editing_agent.application.ports.audio_editorial import (
     AudioMixDecision,
     AudioTrackRole,
     SourceAudioPolicy,
+    SourceAudioTreatment,
+    VoiceTreatment,
 )
 from video_editing_agent.application.ports.music_selection import (
     MusicSelectionDecision,
@@ -242,6 +244,174 @@ def test_source_audio_policy_changes_assembled_tracks_without_mutating_assets() 
         (item.asset_ref, item.source_range) for item in video
     )
     assert all(item.audio_mix_decision_ref == "mute" for item in muted.edl.segments)
+
+
+def test_explicit_mixed_source_treatments_override_legacy_default() -> None:
+    request = _request()
+    plan, decisions, shots = request.edit_plan, request.resolution_decisions, request.shots
+    third_slot = EditSlot("detail", "show detail", 2)
+    third_selection = ResolvedSelection(
+        "selection-c",
+        EntityRevisionRef("shot-c", 1),
+        MediaTimeRange(MediaTime(4, 1), MediaTime(1, 1)),
+        0,
+    )
+    third_decision = ResolutionDecision(
+        "resolution-c",
+        EntityRevisionRef("edit-plan", 1),
+        ("detail",),
+        ResolutionDecisionType.RESOLVED,
+        (third_selection,),
+    )
+    third_shot = Shot(
+        _envelope("shot-c"),
+        EntityRevisionRef("asset-c", 1),
+        boundary_method="fixture",
+        source_range=MediaTimeRange(MediaTime(3, 1), MediaTime(3, 1)),
+    )
+    mix = AudioMixDecision(
+        "mixed",
+        EntityRevisionRef("edit-plan", 1),
+        SourceAudioPolicy.MUTE,
+        source_treatments=(
+            SourceAudioTreatment(
+                "selection-a",
+                decisions[0].selections[0].selected_source_range,
+                SourceAudioPolicy.PRESERVE,
+                VoiceTreatment.CLEAN,
+                required_speech=True,
+            ),
+            SourceAudioTreatment(
+                "selection-b",
+                decisions[1].selections[0].selected_source_range,
+                SourceAudioPolicy.DUCK,
+                duck_gain_db=-12.0,
+            ),
+            SourceAudioTreatment(
+                "selection-c",
+                third_selection.selected_source_range,
+                SourceAudioPolicy.MUTE,
+                VoiceTreatment.DO_NOT_USE_ORIGINAL,
+                required_speech=True,
+            ),
+        ),
+    )
+    result = DeterministicEDLBuilder().build(
+        replace(
+            request,
+            edit_plan=replace(plan, slots=(*plan.slots, third_slot)),
+            resolution_decisions=(*decisions, third_decision),
+            shots=(*shots, third_shot),
+            audio_mix=mix,
+        )
+    )
+
+    assert result.is_built and result.edl is not None
+    source = tuple(item for item in result.edl.segments if item.track_id == "source_audio")
+    assert tuple(item.segment_id for item in source) == (
+        "source-audio:selection-a",
+        "source-audio:selection-b",
+    )
+    assert source[0].audio_automations == ()
+    assert tuple(item.kind.value for item in source[1].audio_automations) == ("gain", "duck")
+    assert tuple(item.gain_millibels for item in source[1].audio_automations[1].keyframes) == (
+        -1200,
+        -1200,
+    )
+    assert source[1].source_range == decisions[1].selections[0].selected_source_range
+
+
+def test_source_treatment_targets_and_speech_protection_fail_closed() -> None:
+    request = _request()
+    first_range = request.resolution_decisions[0].selections[0].selected_source_range
+    cases = (
+        SourceAudioTreatment("unknown", first_range, SourceAudioPolicy.PRESERVE),
+        SourceAudioTreatment(
+            "selection-a",
+            MediaTimeRange(first_range.start, first_range.duration + MediaTime(1, 24)),
+            SourceAudioPolicy.PRESERVE,
+        ),
+        SourceAudioTreatment(
+            "selection-a",
+            first_range,
+            SourceAudioPolicy.MUTE,
+            VoiceTreatment.PRESERVE,
+            required_speech=True,
+        ),
+    )
+    expected = (
+        EDLBuildDiagnosticCode.AUDIO_TREATMENT_INVALID,
+        EDLBuildDiagnosticCode.AUDIO_TREATMENT_INVALID,
+        EDLBuildDiagnosticCode.SPEECH_PROTECTION_VIOLATION,
+    )
+    for treatment, code in zip(cases, expected, strict=True):
+        result = DeterministicEDLBuilder().build(
+            replace(
+                request,
+                audio_mix=AudioMixDecision(
+                    "mix",
+                    EntityRevisionRef("edit-plan", 1),
+                    SourceAudioPolicy.MUTE,
+                    source_treatments=(treatment,),
+                ),
+            )
+        )
+        assert code in {item.code for item in result.diagnostics}
+
+
+def test_duplicate_treatment_and_revoice_permission_do_not_fabricate_audio() -> None:
+    request = _request()
+    first_range = request.resolution_decisions[0].selections[0].selected_source_range
+    treatment = SourceAudioTreatment(
+        "selection-a",
+        first_range,
+        SourceAudioPolicy.MUTE,
+        VoiceTreatment.ALLOW_REVOICE,
+    )
+    duplicate = DeterministicEDLBuilder().build(
+        replace(
+            request,
+            audio_mix=AudioMixDecision(
+                "duplicate",
+                EntityRevisionRef("edit-plan", 1),
+                SourceAudioPolicy.MUTE,
+                source_treatments=(treatment, treatment),
+            ),
+        )
+    )
+    permitted = DeterministicEDLBuilder().build(
+        replace(
+            request,
+            audio_mix=AudioMixDecision(
+                "revoice-permission",
+                EntityRevisionRef("edit-plan", 1),
+                SourceAudioPolicy.MUTE,
+                source_treatments=(treatment,),
+            ),
+        )
+    )
+
+    assert EDLBuildDiagnosticCode.AUDIO_TREATMENT_INVALID in {
+        item.code for item in duplicate.diagnostics
+    }
+    assert permitted.is_built and permitted.edl is not None
+    assert all(item.track_id != "voiceover" for item in permitted.edl.segments)
+
+
+def test_builder_applies_declared_audible_intent_qc_without_guessing_intent() -> None:
+    request = _request(
+        audio_mix=AudioMixDecision(
+            "silent", EntityRevisionRef("edit-plan", 1), SourceAudioPolicy.MUTE
+        )
+    )
+
+    required = DeterministicEDLBuilder().build(replace(request, requires_audible_output=True))
+    intentional = DeterministicEDLBuilder().build(replace(request, requires_audible_output=False))
+
+    assert EDLBuildDiagnosticCode.AUDIBLE_LANE_QC_FAILED in {
+        item.code for item in required.diagnostics
+    }
+    assert intentional.is_built and intentional.edl is not None
 
 
 def test_builder_failures_are_structured_for_incomplete_and_ambiguous_coverage() -> None:

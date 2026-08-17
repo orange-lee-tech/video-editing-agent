@@ -151,6 +151,35 @@ def test_source_audio_presence_changes_filter_and_mapping(tmp_path: Path) -> Non
     assert "source_audioout" in preserved_graph and "[aout]" in preserved_graph
 
 
+def test_source_audio_duck_automation_is_executed_without_editorial_inference(
+    tmp_path: Path,
+) -> None:
+    edl = _edl(source_audio=True)
+    duck = EDLAudioAutomation(
+        EDLAudioAutomationKind.DUCK,
+        EDLInterpolation.LINEAR,
+        (EDLAudioKeyframe(MediaTime(0, 1), -1200), EDLAudioKeyframe(MediaTime(1, 1), -1200)),
+    )
+    base = EDLAudioAutomation(
+        EDLAudioAutomationKind.GAIN,
+        EDLInterpolation.LINEAR,
+        (EDLAudioKeyframe(MediaTime(0, 1), 0), EDLAudioKeyframe(MediaTime(1, 1), 0)),
+    )
+    segments = tuple(
+        replace(item, audio_automations=(base, duck)) if item.segment_id == "source-0" else item
+        for item in edl.segments
+    )
+
+    result = compile_ffmpeg_render(_request(tmp_path, replace(edl, segments=segments)))
+
+    assert result.plan is not None and not result.diagnostics
+    graph = result.plan.invocation.arguments[
+        result.plan.invocation.arguments.index("-filter_complex") + 1
+    ]
+    assert "volume=0dB" in graph
+    assert "volume=-12dB:enable='between(t,0.000,1.000)'" in graph
+
+
 def test_gain_fade_and_duck_compile_from_typed_edl(tmp_path: Path) -> None:
     base = EDLAudioAutomation(
         EDLAudioAutomationKind.GAIN,

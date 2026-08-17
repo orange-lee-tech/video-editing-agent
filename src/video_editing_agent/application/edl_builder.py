@@ -4,12 +4,15 @@ from dataclasses import dataclass
 from decimal import Decimal
 from enum import StrEnum
 
+from video_editing_agent.application.audio_qc import check_audible_lanes
 from video_editing_agent.application.ports.audio_editorial import (
     AudioAutomationIntent,
     AudioAutomationKind,
     AudioMixDecision,
     AudioTrackRole,
     SourceAudioPolicy,
+    SourceAudioTreatment,
+    VoiceTreatment,
 )
 from video_editing_agent.application.ports.music_selection import MusicSelectionDecision
 from video_editing_agent.application.ports.spatial_composer import (
@@ -58,7 +61,10 @@ class EDLBuildDiagnosticCode(StrEnum):
     SPATIAL_DECISION_INVALID = "spatial_decision_invalid"
     AUDIO_DECISION_INCOMPLETE = "audio_decision_incomplete"
     AUDIO_MAPPING_UNSUPPORTED = "audio_mapping_unsupported"
+    AUDIO_TREATMENT_INVALID = "audio_treatment_invalid"
+    SPEECH_PROTECTION_VIOLATION = "speech_protection_violation"
     CANONICAL_EDL_INVALID = "canonical_edl_invalid"
+    AUDIBLE_LANE_QC_FAILED = "audible_lane_qc_failed"
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,6 +84,7 @@ class EDLBuildRequest:
     spatial_decisions: tuple[ReframeDecision, ...] = ()
     music_selection: MusicSelectionDecision | None = None
     audio_mix: AudioMixDecision | None = None
+    requires_audible_output: bool | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -181,6 +188,33 @@ def _audio_automation(intent: AudioAutomationIntent) -> EDLAudioAutomation | Non
     else:
         return None
     return EDLAudioAutomation(kind, EDLInterpolation.LINEAR, keyframes)
+
+
+def _source_duck_automation(
+    treatment: SourceAudioTreatment, timeline_range: MediaTimeRange
+) -> tuple[EDLAudioAutomation, EDLAudioAutomation]:
+    assert treatment.duck_gain_db is not None
+    gain = Decimal(str(treatment.duck_gain_db)) * 100
+    if gain != gain.to_integral_value():
+        raise ValueError("source DUCK gain must be exactly representable in millibels")
+    return (
+        EDLAudioAutomation(
+            EDLAudioAutomationKind.GAIN,
+            EDLInterpolation.LINEAR,
+            (
+                EDLAudioKeyframe(timeline_range.start, 0),
+                EDLAudioKeyframe(timeline_range.end, 0),
+            ),
+        ),
+        EDLAudioAutomation(
+            EDLAudioAutomationKind.DUCK,
+            EDLInterpolation.LINEAR,
+            (
+                EDLAudioKeyframe(timeline_range.start, int(gain)),
+                EDLAudioKeyframe(timeline_range.end, int(gain)),
+            ),
+        ),
+    )
 
 
 class DeterministicEDLBuilder:
@@ -369,25 +403,123 @@ class DeterministicEDLBuilder:
                 EDLBuildDiagnosticCode.AUDIO_DECISION_INCOMPLETE,
                 "audio automation intents require their selected music decision",
             )
-        if mix is not None and mix.source_audio_policy is SourceAudioPolicy.DUCK:
-            add(
-                EDLBuildDiagnosticCode.AUDIO_MAPPING_UNSUPPORTED,
-                "source-audio DUCK lacks a deterministic EDL mapping in current contracts",
-            )
-        elif mix is not None and mix.source_audio_policy is SourceAudioPolicy.PRESERVE:
-            tracks.append(EDLTrack("source_audio", EDLTrackFamily.SOURCE_AUDIO))
-            segments.extend(
-                EDLSegment(
-                    f"source-audio:{segment.segment_id.removeprefix('video:')}",
-                    segment.asset_ref,
-                    source_range=segment.source_range,
-                    timeline_range=segment.timeline_range,
-                    track_id="source_audio",
-                    shot_ref=segment.shot_ref,
-                    audio_mix_decision_ref=mix.decision_id,
+        source_audio_segments: list[EDLSegment] = []
+        if mix is not None:
+            treatment_groups: dict[str, list[SourceAudioTreatment]] = {}
+            for source_treatment in mix.source_treatments:
+                treatment_groups.setdefault(source_treatment.selection_id, []).append(
+                    source_treatment
                 )
-                for segment in video_segments
+            duplicates = tuple(
+                sorted(identity for identity, items in treatment_groups.items() if len(items) != 1)
             )
+            if duplicates:
+                add(
+                    EDLBuildDiagnosticCode.AUDIO_TREATMENT_INVALID,
+                    "selection has duplicate or conflicting source-audio treatments",
+                    selections=duplicates,
+                )
+            video_by_selection = {
+                item.segment_id.removeprefix("video:"): item for item in video_segments
+            }
+            unknown = tuple(sorted(set(treatment_groups) - set(video_by_selection)))
+            if unknown:
+                add(
+                    EDLBuildDiagnosticCode.AUDIO_TREATMENT_INVALID,
+                    "source-audio treatment targets an unassembled selection",
+                    selections=unknown,
+                )
+            for selection_id, video_segment in video_by_selection.items():
+                explicit = treatment_groups.get(selection_id, [])
+                if len(explicit) > 1:
+                    continue
+                explicit_treatment = explicit[0] if explicit else None
+                policy = (
+                    explicit_treatment.source_audio_policy
+                    if explicit_treatment is not None
+                    else mix.source_audio_policy
+                )
+                voice = (
+                    explicit_treatment.voice_treatment if explicit_treatment is not None else None
+                )
+                if (
+                    explicit_treatment is not None
+                    and explicit_treatment.source_range != video_segment.source_range
+                ):
+                    add(
+                        EDLBuildDiagnosticCode.AUDIO_TREATMENT_INVALID,
+                        "source-audio treatment range must equal its grounded selection range",
+                        selections=(selection_id,),
+                    )
+                    continue
+                if explicit_treatment is not None and voice is VoiceTreatment.DO_NOT_USE_ORIGINAL:
+                    if policy is not SourceAudioPolicy.MUTE:
+                        add(
+                            EDLBuildDiagnosticCode.SPEECH_PROTECTION_VIOLATION,
+                            "DO_NOT_USE_ORIGINAL requires MUTE source treatment",
+                            selections=(selection_id,),
+                        )
+                        continue
+                if (
+                    explicit_treatment is not None
+                    and policy is SourceAudioPolicy.MUTE
+                    and voice in {VoiceTreatment.PRESERVE, VoiceTreatment.CLEAN}
+                ):
+                    add(
+                        EDLBuildDiagnosticCode.SPEECH_PROTECTION_VIOLATION,
+                        "PRESERVE/CLEAN voice treatment requires original audio",
+                        selections=(selection_id,),
+                    )
+                    continue
+                if (
+                    explicit_treatment is not None
+                    and explicit_treatment.required_speech
+                    and voice is VoiceTreatment.ALLOW_REVOICE
+                    and policy is SourceAudioPolicy.MUTE
+                ):
+                    add(
+                        EDLBuildDiagnosticCode.SPEECH_PROTECTION_VIOLATION,
+                        "ALLOW_REVOICE permission has no approved replacement voice lane",
+                        selections=(selection_id,),
+                    )
+                    continue
+                if policy is SourceAudioPolicy.MUTE:
+                    continue
+                automations: tuple[EDLAudioAutomation, ...] = ()
+                if policy is SourceAudioPolicy.DUCK:
+                    if explicit_treatment is None:
+                        add(
+                            EDLBuildDiagnosticCode.AUDIO_MAPPING_UNSUPPORTED,
+                            "legacy whole-plan DUCK has no explicit source gain",
+                            selections=(selection_id,),
+                        )
+                        continue
+                    try:
+                        automations = _source_duck_automation(
+                            explicit_treatment, video_segment.timeline_range
+                        )
+                    except ValueError as error:
+                        add(
+                            EDLBuildDiagnosticCode.AUDIO_MAPPING_UNSUPPORTED,
+                            str(error),
+                            selections=(selection_id,),
+                        )
+                        continue
+                source_audio_segments.append(
+                    EDLSegment(
+                        f"source-audio:{selection_id}",
+                        video_segment.asset_ref,
+                        source_range=video_segment.source_range,
+                        timeline_range=video_segment.timeline_range,
+                        track_id="source_audio",
+                        shot_ref=video_segment.shot_ref,
+                        audio_mix_decision_ref=mix.decision_id,
+                        audio_automations=automations,
+                    )
+                )
+            if source_audio_segments:
+                tracks.append(EDLTrack("source_audio", EDLTrackFamily.SOURCE_AUDIO))
+                segments.extend(source_audio_segments)
 
         if music is not None and mix is not None:
             tracks.append(EDLTrack("bgm", EDLTrackFamily.BGM))
@@ -477,6 +609,13 @@ class DeterministicEDLBuilder:
                 "assembled EDL failed deterministic codec round-trip",
             )
             return EDLBuildResult(None, _ordered_diagnostics(diagnostics))
+        if request.requires_audible_output is not None:
+            audible_qc = check_audible_lanes(
+                edl, requires_audible_output=request.requires_audible_output
+            )
+            if not audible_qc.passed:
+                add(EDLBuildDiagnosticCode.AUDIBLE_LANE_QC_FAILED, audible_qc.message)
+                return EDLBuildResult(None, _ordered_diagnostics(diagnostics))
         return EDLBuildResult(edl, ())
 
 

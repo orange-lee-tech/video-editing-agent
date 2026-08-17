@@ -6,13 +6,49 @@ from enum import StrEnum
 from typing import Protocol
 
 from video_editing_agent.domain.common.entity import EntityRevisionRef
-from video_editing_agent.domain.common.media_time import MediaTime
+from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRange
 
 
 class SourceAudioPolicy(StrEnum):
     PRESERVE = "preserve"
     DUCK = "duck"
     MUTE = "mute"
+
+
+class VoiceTreatment(StrEnum):
+    PRESERVE = "preserve"
+    CLEAN = "clean"
+    ALLOW_REVOICE = "allow_revoice"
+    DO_NOT_USE_ORIGINAL = "do_not_use_original"
+
+
+@dataclass(frozen=True, slots=True)
+class SourceAudioTreatment:
+    """Audio intent grounded to one Resolver-owned selection/source range."""
+
+    selection_id: str
+    source_range: MediaTimeRange
+    source_audio_policy: SourceAudioPolicy
+    voice_treatment: VoiceTreatment = VoiceTreatment.PRESERVE
+    required_speech: bool = False
+    duck_gain_db: float | None = None
+    evidence_refs: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.selection_id.strip():
+            raise ValueError("selection_id must not be empty")
+        if self.source_audio_policy is SourceAudioPolicy.DUCK:
+            if self.duck_gain_db is None:
+                raise ValueError("DUCK source treatment requires an explicit duck_gain_db")
+        elif self.duck_gain_db is not None:
+            raise ValueError("duck_gain_db is valid only for DUCK source treatment")
+        if self.duck_gain_db is not None:
+            if isinstance(self.duck_gain_db, bool) or not isinstance(
+                self.duck_gain_db, (int, float)
+            ):
+                raise TypeError("duck_gain_db must be a number or None")
+            if not math.isfinite(float(self.duck_gain_db)) or self.duck_gain_db > 0:
+                raise ValueError("duck_gain_db must be finite and <= 0")
 
 
 class AudioAutomationKind(StrEnum):
@@ -80,6 +116,7 @@ class AudioMixDecision:
     loudness_intent: str | None = None
     confidence: float = 1.0
     warnings: tuple[str, ...] = ()
+    source_treatments: tuple[SourceAudioTreatment, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.decision_id.strip():
