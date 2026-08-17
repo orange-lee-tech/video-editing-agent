@@ -4,7 +4,7 @@
 **Development stage:** STRUCTURAL_CONSTRUCTION  
 **Structural progress:** 90%  
 **Current phase:** R0.12 — EDL / Renderer / Subtitle / Preview / Proxy Productization  
-**Engineering state:** REFERENCE URL ACQUISITION CONTRACT / PROVIDER GATE ACTIVE  
+**Engineering state:** RIGHTS-AWARE PUBLIC MUSIC ACQUISITION GATE ACTIVE  
 **Updated:** 2026-08-17
 
 ## Progress meaning
@@ -32,8 +32,9 @@ Stage-A 100% remains forbidden until both core Product Gates are PASS.
 - `500c8563e3686a5aaef055ffb5301553aa999fd9` — real Editing Director/Application entry and persisted EditPlan integration.
 - `ac5eb16fc8ecfb5ed29306826942765d264e0f3d` — per-selection mixed source-audio treatment, VoiceTreatment, deterministic source DUCK and audible-lane QC foundation.
 - `ffb5dbd7d3fc4e995f89a7a231910fa0295fcbba` — acceptance repair allowing ordinary non-required-speech MUTE while preserving required-speech fail-closed semantics.
+- `d15abf9258c0a080e37d666cd1112358723e823a` — accepted direct-HTTPS Reference URL acquisition implementation after quality-gate repair and real owner-seam validation.
 
-**Current accepted production-code baseline:** `ffb5dbd7d3fc4e995f89a7a231910fa0295fcbba`.
+**Current accepted production-code baseline:** `d15abf9258c0a080e37d666cd1112358723e823a`.
 
 ## Parallel workflow architecture
 
@@ -75,32 +76,69 @@ Accepted result:
 - non-silent intent fails structural audible-lane QC when no approved audible segment exists;
 - GitHub CI on accepted repair baseline passed.
 
+### Reference URL acquisition — PASS/CLOSED
+
+Work Order:
+
+`R0.12-REFERENCE-URL-ACQUISITION-001`
+
+Closure evidence:
+
+`docs/validation/R0.12_REFERENCE_URL_ACQUISITION_CLOSURE.md`
+
+Accepted baseline:
+
+`d15abf9258c0a080e37d666cd1112358723e823a`
+
+Accepted result:
+
+- direct unauthenticated HTTPS reference media has a bounded Stage-A acquisition path;
+- remote bytes land in project-controlled storage and cross normal ffprobe/AssetIngest/persistence;
+- acquired references use `reference_acquired + reference_analysis_only`;
+- remote reference media cannot become visual Resolver candidates;
+- real network/media/Asset evidence and a focused owner-seam probe reached existing `ReferenceStyleEvidenceService`;
+- the owner-seam probe explicitly disclosed synthetic Shot/VisualSemantics and did not claim real visual-AI execution;
+- authenticated/social/DRM/bulk/live/universal downloader behavior remains outside the accepted boundary.
+
 ## Active Work Order
 
-`R0.12-REFERENCE-URL-ACQUISITION-001` is ACTIVE.
+`R0.12-PUBLIC-MUSIC-ACQUISITION-001` is ACTIVE.
 
-This is initially a **Product + Provider Acquisition Contract / Code-Light Gate**, not a Codex implementation release.
+This begins as a **Product + Rights + Provider Gate / Code-Light First** boundary.
 
 ### Product route to close
 
-`supported Reference URL`
-`→ acquisition adapter`
-`→ controlled project-local file`
-`→ normal ingest`
-`→ REFERENCE_ANALYSIS_ONLY Asset`
-`→ existing Shot / ShotAnalysis / ReferenceStyleEvidence`
-`→ Planning guidance`
+```text
+MusicIntent / provider-neutral query
+→ public music discovery
+→ rights/license eligibility gate
+→ approved single-item acquisition
+→ project-controlled local audio
+→ AssetIngest
+→ authoritative audio Asset
+→ existing BeatMap / MusicSelection / AudioEditorial
+→ canonical EDL / Renderer
+```
 
-The downstream reference-analysis chain already exists and remains unchanged.
+The existing R0.10 music-selection/audio-editorial architecture remains authoritative and must not be redesigned.
 
 ### Current policy direction
 
-- explicit supported URL classes/allowlist rather than universal downloader claims;
-- direct public HTTPS media is the lowest-risk baseline candidate;
-- login/cookie/credential/CAPTCHA/DRM paths fail closed by default;
-- platform policy must be distinguished from technical extractor capability;
-- unsupported remote references fall back to user-provided local reference media;
-- no remote reference Asset may become Resolver eligible.
+- rights/programmatic-access clarity before catalog breadth;
+- current official provider/API/terms evidence required before implementation;
+- `royalty-free` or browser-downloadable is not automatic product authorization;
+- reuse existing `AudioMaterialProvider`, `RightsEligibility` and `LicenseSnapshot` primitives where sufficient;
+- no HTML scraping merely to manufacture an automatic provider;
+- no hidden browser-cookie/credential acquisition;
+- unknown rights do not silently become eligible;
+- acquire only the specifically approved candidate rather than mirroring provider libraries;
+- local user music remains the safe Stage-A fallback if no provider clears the hard gate.
+
+### Existing provider backlog
+
+`docs/research/AUDIO_PROVIDER_CANDIDATES_2026-08-14.md` remains informative only and must be revalidated from current primary sources.
+
+Pixabay Music remains a candidate, not an approved automatic integration solely from existing research. SoundEffects+ remains outside the automatic music-provider baseline unless official restrictions materially change.
 
 ### Codex resource constraint
 
@@ -108,19 +146,18 @@ Approximately **9% Codex quota remains**.
 
 **Codex: NOT RELEASED.**
 
-ChatGPT + GitHub first own repository audit, provider research, contract, security boundary and implementation-size reduction. Codex is reserved only for a later bounded multi-file local edit/test/repair loop if genuinely necessary.
+ChatGPT + GitHub first own provider research, official API/terms/license verification, existing-code audit, contract reduction and governance. Codex is reserved only for a later precise bounded multi-file implementation/test/repair loop if genuinely necessary.
 
 ## Immediate corridor after active work
 
-1. close Reference URL acquisition contract/provider gate and, if justified, its minimal implementation/probe;
-2. rights-aware public music provider/acquisition;
-3. remaining bounded R0.12 productization including production GStreamer Preview integration where justified;
-4. minimum Review/repair loop;
-5. ordinary-user Windows runtime / Environment Doctor;
-6. practical product-facing integration;
-7. real Planning/Editing Product Probes + Human Gate.
+1. close rights-aware public music provider/acquisition or record a truthful hard-gate exclusion with local-user fallback;
+2. remaining bounded R0.12 productization including production GStreamer Preview integration where justified;
+3. minimum Review/repair loop;
+4. ordinary-user Windows runtime / Environment Doctor;
+5. practical product-facing integration;
+6. real Planning/Editing Product Probes + Human Gate.
 
-Do not expand Reference URL work into a universal social-media downloader.
+Do not expand this Work Order into SFX marketplaces, generated-music platforms or a generic media-downloader layer.
 
 ## Stage-A 100% product-operability gate
 
