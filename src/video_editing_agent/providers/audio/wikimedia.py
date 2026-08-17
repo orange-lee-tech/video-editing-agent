@@ -17,7 +17,7 @@ from video_editing_agent.domain.asset.rights import LicenseSnapshot, RightsEligi
 
 _COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 _COMMONS_PAGE_ID_PREFIX = "commons_pageid:"
-_USER_AGENT = "video-editing-agent/public-music-r0.12"
+_USER_AGENT = "video-editing-agent-bot/0.1 (https://github.com/orange-lee-tech/video-editing-agent)"
 JsonObject = dict[str, object]
 JsonFetcher = Callable[[str], JsonObject]
 Clock = Callable[[], datetime]
@@ -194,7 +194,9 @@ def _verification_url(provider_item_id: str) -> str:
             raise ValueError("Commons page identity contains an invalid page ID")
         parameters["pageids"] = page_id
     else:
-        raise ValueError("Commons identity must be a File: title or commons_pageid:<positive integer>")
+        raise ValueError(
+            "Commons identity must be a File: title or commons_pageid:<positive integer>"
+        )
     return f"{_COMMONS_API}?{urlencode(parameters)}"
 
 
