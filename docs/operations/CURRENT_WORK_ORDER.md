@@ -1,302 +1,331 @@
 # Current Work Order
 
-**ID:** `R0.12-REFERENCE-URL-ACQUISITION-001`  
+**ID:** `R0.12-PUBLIC-MUSIC-ACQUISITION-001`  
 **Status:** ACTIVE  
-**Phase:** R0.12 — Reference URL acquisition into governed local reference media  
-**Mode:** PRODUCT + PROVIDER ACQUISITION CONTRACT / CODE-LIGHT GATE  
-**Accepted production-code baseline:** `ffb5dbd7d3fc4e995f89a7a231910fa0295fcbba`  
+**Phase:** R0.12 — Rights-aware public music discovery/acquisition into governed local audio Assets  
+**Mode:** PRODUCT + RIGHTS + PROVIDER GATE / CODE-LIGHT FIRST  
+**Accepted production-code baseline:** `d15abf9258c0a080e37d666cd1112358723e823a`  
 **Activated:** 2026-08-17  
 **Codex release:** NO
 
 ## Previous Work Order result
 
-`R0.12-MIXED-SOURCE-AUDIO-QC-001` — **PASS / CLOSED**.
+`R0.12-REFERENCE-URL-ACQUISITION-001` — **PASS / CLOSED**.
 
 Accepted implementation baseline:
 
-`ffb5dbd7d3fc4e995f89a7a231910fa0295fcbba`
+`d15abf9258c0a080e37d666cd1112358723e823a`
 
 Closure evidence:
 
-`docs/validation/R0.12_MIXED_SOURCE_AUDIO_QC_CLOSURE.md`
+`docs/validation/R0.12_REFERENCE_URL_ACQUISITION_CLOSURE.md`
 
-Accepted outcome:
+Durable outcome:
 
-- source-audio treatment can differ per grounded selected source range;
-- VoiceTreatment and speech-protection semantics are explicit;
-- PRESERVE / DUCK / MUTE map deterministically into canonical EDL;
-- non-silent intent has typed audible-lane QC;
-- Renderer remains execution-only;
-- no database migration was required.
+- supported direct unauthenticated HTTPS reference media can be acquired into project-controlled storage;
+- acquired media crosses normal ffprobe/AssetIngest/persistence boundaries;
+- committed reference Asset uses `reference_acquired + reference_analysis_only`;
+- reference media remains visual-Resolver ineligible;
+- a focused real-acquisition owner-seam probe reached the existing `ReferenceStyleEvidenceService` without fabricating a real visual-model claim;
+- universal/social/authenticated/DRM acquisition remains outside the accepted Stage-A boundary.
 
 ## Why this work exists
 
-The Stage-A Product I/O Contract already freezes the desired semantic route:
+Core 2 is not supposed to require the user to manually curate every soundtrack before one-click editing can begin.
 
-`supported Reference URL`
-`→ acquisition adapter`
-`→ controlled local file`
-`→ normal media probe/ingest`
-`→ REFERENCE_ANALYSIS_ONLY Asset`
-`→ existing Shot / ShotAnalysis / ReferenceStyleEvidence`
-`→ provider-neutral Planning guidance`
+The accepted audio architecture already defines:
 
-The downstream reference-analysis half already exists and is intentionally safe:
+```text
+rights-compatible candidate pool
+→ provider metadata/tag retrieval
+→ Top-K
+→ BeatMap/temporal reranking
+→ MusicSelectionDecision
+→ deterministic EDL/audio execution
+```
 
-- `ReferenceStyleEvidenceService` accepts only video Assets with `REFERENCE_ANALYSIS_ONLY` usage role;
-- it asserts that reference Assets are never visual-Resolver eligible;
-- derived evidence is stored as a content-addressed artifact;
-- planning receives abstract technique/structure guidance, not source/edit authority.
+and CAP-06 already defines the future public-library route:
 
-The missing product boundary is therefore acquisition, not a new reference-analysis architecture.
+```text
+provider search
+→ MusicCandidate metadata
+→ rights gate
+→ approved acquisition
+→ local file
+→ AssetIngest
+→ audio Asset
+```
 
-## Resource constraint
+R0.10 proved music selection, BeatMap and audio editorial on real music. The missing Stage-A product boundary is therefore **safe automatic candidate discovery/acquisition with durable rights evidence**, not another music-selection architecture.
 
-The user has approximately **9% Codex quota remaining**.
+## Frozen ownership
 
-Treat this as a hard engineering resource constraint:
+Do not redesign the accepted audio stack.
 
-- ChatGPT + GitHub own repository audit, provider research, contract design, governance and other deterministic low-risk work;
-- do not release Codex merely to read files, choose a downloader, write docs or perform small obvious plumbing;
-- release Codex only if the final bounded implementation genuinely needs a multi-file local edit/test/repair loop and cannot reasonably be completed by lower-cost routes;
-- preserve quota for the remaining Stage-A final corridor.
+Existing ownership remains:
+
+```text
+AudioMaterialProvider / LocalMusicSource → candidates only
+Rights/license evidence                 → eligibility gate
+AssetIngestService                      → authoritative local audio Asset
+MusicSelectionService                   → MusicSelectionDecision
+BeatAnalysisService                     → BeatMap
+AudioEditorialService                   → AudioMixDecision
+EDLBuilder                              → exact audio track/range/automation
+Renderer                                → deterministic execution
+```
+
+Public-provider DTOs, URLs and search ranking never become timeline authority.
+
+## Existing reusable primitives
+
+The repository already contains:
+
+- `MusicDiscoveryQuery`;
+- `AudioMaterialCandidate`;
+- `AudioMaterialProvider` discovery seam;
+- `RightsEligibility` with `eligible / warning / ineligible / unknown`;
+- `LicenseSnapshot` for provider/item rights evidence;
+- existing local Asset ingest and provenance primitives;
+- accepted R0.10 MusicSelection/BeatMap/AudioEditorial chain;
+- accepted canonical EDL/Renderer audio execution.
+
+Prefer extending these seams minimally rather than introducing a second provider or rights model.
 
 ## Objective
 
-Freeze and validate the smallest deployable Reference URL acquisition boundary that supports useful ordinary-user reference input without turning the product into a universal downloader or violating existing source/rights/authority rules.
+Freeze and validate the smallest deployable public-music boundary that can automatically discover useful candidates, reject rights-uncertain/incompatible items before expensive analysis, acquire one specifically approved candidate into project-controlled storage, preserve durable rights/provenance evidence, and hand the resulting local audio Asset to the existing music-selection chain.
 
 The result must answer:
 
-1. which URL classes Stage A supports;
-2. which URL classes explicitly fail closed;
-3. where remote bytes are allowed to land;
-4. how integrity/provenance are recorded;
-5. how the controlled local file crosses the existing ingest boundary;
-6. which external runtime/library, if any, is justified;
-7. how failures become understandable product diagnostics;
-8. whether the implementation is small enough to avoid Codex.
+1. which provider/library can be accessed programmatically under current official terms;
+2. whether discovery and file acquisition are both permitted;
+3. which commercial/client/advertising/platform scopes are actually supported;
+4. how attribution, Content-ID/claim risk, generated-audio status and restrictions are represented;
+5. how provider metadata becomes a `LicenseSnapshot` or equivalent durable evidence;
+6. where acquired audio bytes land and how integrity is recorded;
+7. how an approved item crosses normal Asset ingest;
+8. how unavailable/rights-unknown/provider-blocked cases fail or fall back;
+9. whether implementation is small enough to preserve remaining Codex quota.
 
-## Frozen downstream ownership
+## Rights rule
 
-### Reference analysis
+`royalty-free` is not sufficient by itself.
 
-Do not redesign it.
+Before automatic acquisition/selection, evidence must distinguish at minimum:
 
-Existing chain remains:
+- commercial use;
+- paid advertising/client work where relevant;
+- modification/cut/loop permission;
+- platform/territory limits;
+- attribution requirements;
+- expiry or one-project restrictions;
+- standalone redistribution restrictions;
+- Content-ID/platform-claim risk where exposed;
+- AI-generated status when exposed;
+- AI-product/provider restrictions;
+- current provider terms and programmatic-access permission.
 
-`REFERENCE_ANALYSIS_ONLY Asset`
-`→ exact Shot revisions`
-`→ exact ShotAnalysis revisions`
-`→ ReferenceStyleEvidence artifact`
-`→ ReferenceStyleGuidance`
-`→ Script/Shooting planning`
+`UNKNOWN` is not `ELIGIBLE`.
 
-Reference evidence may influence abstract pacing/framing/motion/structure guidance but cannot:
+If required rights evidence cannot be established, the candidate must not silently enter the normal automatic pool.
 
-- make the reference Asset editable footage;
-- supply Resolver candidates;
-- authorize copying distinctive expression;
-- invent unsupported evidence dimensions.
+## Provider gate
 
-### Asset ingest
+Existing research in `docs/research/AUDIO_PROVIDER_CANDIDATES_2026-08-14.md` is backlog evidence only and must be revalidated from current primary sources before implementation.
 
-`AssetIngestService` remains the only normal commit boundary for the acquired media file.
+### Pixabay Music
 
-The acquisition adapter returns a controlled local file plus transport/provenance evidence. It does not create a Domain Asset by itself.
+Current repository research classifies Pixabay Music as a strong rights/provenance candidate for manual/user acquisition, but not yet an approved automatic provider because the documented developer API did not expose an official music/audio search endpoint at the time of research.
 
-The committed Asset must use:
+Therefore:
 
-- `AssetUsageRole.REFERENCE_ANALYSIS_ONLY`;
-- explicit provenance containing source page/provider information where known;
-- a remote/reference origin classification that remains ineligible for visual Resolver use.
+- do not implement HTML scraping;
+- do not assume browser-downloadability implies programmatic permission;
+- recheck current official API/integration/terms before promotion;
+- if no approved programmatic audio path exists, keep it as manual/local-user fallback rather than faking an automatic provider.
 
-If existing `AssetOrigin` vocabulary cannot express this cleanly, locate the minimum compatible change rather than abusing `IMPORTED_LOCAL` to imply user-owned editable footage.
+### SoundEffects+
 
-### Storage
+Current repository research classifies it primarily as an SFX library and not approved for automatic integration due to automation/systematic-download and AI-product restrictions.
 
-Acquired remote media must land under project-controlled working storage, not arbitrary user folders and not the immutable content-addressed JSON ArtifactStore by pretending large media files are ordinary evidence blobs.
+Do not scrape/crawl/mirror/download automatically unless current official permission materially changes and is explicitly evidenced.
 
-The acquisition design must define a deterministic project-owned location/lifecycle for temporary and committed reference media and protect against:
+### Other providers
 
-- path traversal;
-- output filename injection;
-- partial-download reuse;
-- accidental overwrite;
-- unbounded file growth;
-- stale failed downloads.
+A different provider may be selected if current primary-source evidence shows a materially cleaner combination of:
 
-Original remote URLs are provenance, not storage identity.
+- explicit programmatic music discovery;
+- explicit programmatic acquisition/download;
+- commercial video/client/advertising compatibility;
+- modification/cut/loop permission;
+- durable item/license metadata;
+- acceptable API/runtime/deployment cost;
+- reasonable rate/usage limits;
+- no hidden credential/browser-cookie requirement;
+- sustainable maintenance surface.
 
-## Stage-A support policy
-
-### Allowed direction
-
-Prefer an explicit allowlist and capability probe over a "try every URL on the internet" product promise.
-
-Stage-A may support:
-
-- `https://` direct media URLs where the server/provider permits ordinary unauthenticated retrieval;
-- specifically audited public provider/page adapters whose technical and distribution/terms boundary is acceptable for reference acquisition.
-
-### Fail closed by default
-
-At minimum fail closed for:
-
-- non-HTTPS remote URL except a separately justified local/test scheme;
-- unsupported platform/page type;
-- login/account/session-required retrieval;
-- browser-cookie extraction;
-- credential scraping or username/password acquisition;
-- CAPTCHA bypass;
-- DRM/protected/encrypted media;
-- playlist/channel/profile bulk acquisition;
-- live streams in Stage A;
-- unbounded or unknown-size response beyond configured limits;
-- redirect/scheme/host transitions that violate the acquisition policy;
-- content that cannot be successfully probed as a supported reference video after download;
-- platform policy that does not permit the intended download/cache behavior.
-
-When URL acquisition is unavailable, the ordinary-user fallback is:
-
-> obtain/save the reference through an allowed user/platform route and select the resulting local file as reference media.
-
-Do not silently substitute stock/generated/public visual material.
-
-## External downloader/provider gate
-
-Do not adopt `yt-dlp` merely because it technically supports many extractors.
-
-Current gate must distinguish:
-
-- **technical capability** — extraction/download works today;
-- **distribution/license cost** — executable/library and transitive runtime obligations;
-- **platform-policy compatibility** — whether the product is allowed to acquire/cache that provider's audiovisual content in this way;
-- **credential/security surface** — cookies, browser profiles, tokens and authentication;
-- **maintenance cost** — site extractors can break when sites change.
-
-Known research signals entering this Work Order:
-
-- yt-dlp's supported-site list explicitly warns that listed sites may break as websites change and that trying the URL is the only reliable support check;
-- yt-dlp source is Unlicense, but its PyInstaller-bundled executable distributions include GPLv3+ code and the combined executable is GPLv3+;
-- current yt-dlp functionality increasingly recommends optional FFmpeg, JavaScript runtime/engine and other dependencies for broad site coverage;
-- browser-cookie/login paths materially expand credential/security risk and are outside the default Stage-A product boundary;
-- official YouTube API developer policy prohibits downloading/caching YouTube audiovisual content without prior written approval, so technical extractor support cannot be treated as product authorization.
-
-Therefore a universal bundled social-media downloader is **not pre-approved**.
+Do not optimize for catalog size before rights/programmatic-access clarity.
 
 ## Required contract surface
 
-Define typed/provider-neutral meanings for the following before implementation:
+### Discovery
 
-### Request
+Reuse or minimally extend `AudioMaterialProvider`.
 
-At minimum:
+Provider-neutral query should continue to carry at least:
 
-- source URL;
-- project-controlled destination/context;
-- single-item intent;
-- configured maximum bytes/duration/time;
-- no implicit credentials.
+- semantic/search text;
+- commercial-use requirement;
+- generated-audio preference;
+- future provider-neutral filters only when justified.
 
-### Result
+Candidate metadata should preserve at least:
 
-At minimum:
+- provider;
+- stable provider item ID;
+- title/creator where available;
+- source page;
+- preview/full-audio distinction where relevant;
+- duration/format where available;
+- rights eligibility;
+- rights/license snapshot identity;
+- generated-audio signal only when evidenced;
+- warnings such as attribution or Content-ID risk.
 
-- controlled local file path;
-- original/canonical source page reference where available;
-- provider/platform identity where known;
-- provider item ID where known;
-- retrieval timestamp;
-- byte/integrity evidence;
-- transport/content metadata needed by ingest/provenance;
-- diagnostics/warnings.
+### Rights evidence
 
-The result is infrastructure/application evidence, not a Domain Asset or timeline authority.
+Prefer the existing `LicenseSnapshot` model unless a real provider proves a missing required field.
 
-### Diagnostics
+Do not duplicate rights truth into provider-specific booleans that become a second authority.
 
-Typed failure families should include at least:
+### Acquisition
 
-- unsupported URL/scheme/platform;
-- authentication required;
-- protected/DRM content;
-- policy-disallowed acquisition;
-- unavailable/not found;
-- redirect rejected;
-- size/time limit exceeded;
-- transport failure;
-- integrity failure;
-- media probe/format failure;
-- cleanup failure where it affects product correctness.
+Add a provider-neutral audio acquisition seam only if the existing application ports cannot express it cleanly.
 
-Do not expose raw downloader stderr as the only user-facing diagnosis.
+Acquisition must return infrastructure/application evidence such as:
 
-## Security baseline
+- controlled local path;
+- provider + item ID;
+- source page;
+- acquired timestamp;
+- byte size and SHA-256;
+- content/media metadata;
+- exact rights snapshot relied upon;
+- typed diagnostics/warnings.
 
-Acquisition is untrusted network input.
+The provider adapter must not directly manufacture a timeline decision.
 
-Before any implementation release, freeze protections for:
+### Asset mapping
 
-- SSRF/local-network targets;
-- localhost / loopback / link-local / private-address resolution;
-- `file://` and arbitrary scheme handling;
-- redirects to disallowed destinations;
-- filename/path sanitization;
-- bounded response/download size and timeout;
-- atomic temporary-file → committed-file transition;
+Approved acquired audio must cross the normal `AssetIngestService` boundary and become a local authoritative audio Asset with provider provenance.
+
+Do not use remote provider URLs as EDL media identity.
+
+## Security / lifecycle baseline
+
+Public audio acquisition remains untrusted network input.
+
+Preserve or define:
+
+- project-controlled destination path;
+- bounded size/time;
+- atomic temporary → committed transition;
 - cleanup on failure/cancellation;
-- content/media probe before Asset ingest;
-- no automatic browser-cookie or credential access.
+- filename/path sanitization;
+- integrity hash;
+- no arbitrary overwrite;
+- no implicit credential/browser-cookie extraction;
+- provider/API rate-limit handling;
+- deterministic typed failure diagnostics;
+- no bulk mirroring/systematic library download.
+
+Only the specifically approved candidate needed for the project should be acquired.
+
+## Ordinary-user fallback
+
+If no provider currently satisfies the automatic integration gate, Stage A must remain usable:
+
+```text
+user selects local music
+→ rights attestation / known license evidence
+→ normal local audio Asset
+→ existing MusicSelection / BeatMap / AudioEditorial chain
+```
+
+Do not lower the rights gate merely to manufacture an automatic-provider PASS.
 
 ## Investigation sequence
 
-ChatGPT should complete, without Codex:
+ChatGPT + GitHub should first complete, without Codex:
 
-1. audit current reference evidence/guidance tests and ingest/provenance/storage seams;
-2. audit whether a project-owned media/cache directory already exists or must be added;
-3. compare a minimal direct-HTTPS adapter with any justified provider adapter;
-4. research candidate licensing/deployment/platform-policy constraints from primary sources;
-5. freeze the provider-neutral request/result/diagnostic contract;
-6. decide the Stage-A allowlist;
-7. write validation/provider-gate evidence;
-8. determine implementation size and only then decide whether Codex is worth spending.
+1. audit current `AudioMaterialProvider`, rights models, Asset ingest/provenance and R0.10 music chain;
+2. revalidate provider candidates from current official primary sources;
+3. search for at least one provider with explicit programmatic music discovery + acquisition permission;
+4. freeze discovery / rights / acquisition / diagnostics contracts;
+5. freeze one Stage-A provider or explicitly record that no provider currently clears the hard gate;
+6. determine the minimum production edit;
+7. only then decide whether a bounded Codex release is justified.
 
-## Expected implementation shape if approved
+## Resource constraint
 
-The likely minimal architecture is:
+The user reports approximately **9% Codex quota remaining**.
 
-`ReferenceAcquisitionPort`
-`→ one or more infrastructure adapters`
-`→ project-owned acquisition store/path policy`
-`→ AssetIngestService(... REFERENCE_ANALYSIS_ONLY ...)`
-`→ existing reference analysis`
+Treat this as a hard resource constraint.
 
-Do not add a new top-level Domain entity merely for a download job unless evidence proves durable Domain identity is required.
+### ChatGPT + GitHub
 
-Do not let provider DTOs become Planning or editing authority.
+Primary owner for:
+
+- provider research;
+- official terms/API/license verification;
+- existing-code audit;
+- architecture/contract reduction;
+- governance and validation;
+- small deterministic edits.
+
+### Codex
+
+**NO ACTIVE RELEASE.**
+
+Release only for a precise, bounded local multi-file implementation/test/repair task after provider choice and contract are frozen.
+
+Do not spend Codex on provider browsing, docs, speculative adapters or API archaeology.
+
+### User PowerShell
+
+Use only when real Windows/network/provider/API/audio evidence is needed after the provider path is frozen.
 
 ## Exit gate
 
-This Work Order is not PASS merely because one URL downloads on one machine.
+This Work Order is PASS only when either the automatic-provider path is truthfully closed or a documented hard-gate exclusion is recorded and the Stage-A fallback is explicitly preserved.
 
-PASS requires:
+For an **automatic provider PASS**, require:
 
-- provider-neutral acquisition contract frozen;
-- explicit Stage-A allowlist/fail-closed policy;
-- storage/lifecycle/security boundary frozen;
-- provenance → local ingest → `REFERENCE_ANALYSIS_ONLY` mapping proven;
-- chosen adapter/runtime has acceptable license/deployment/maintenance evidence;
-- tests cover policy/security/cleanup/ingest boundary;
-- at least one real supported Reference URL reaches the existing ReferenceStyleEvidence chain in a Product/Engineering Probe appropriate to the chosen adapter;
-- unsupported/auth/DRM/policy-disallowed URLs fail with typed understandable diagnostics;
-- no reference Asset becomes Resolver eligible;
-- Codex quota is used only if genuinely necessary;
-- structural progress remains 90% until ordinary-user Product Gates change.
+- current primary-source proof of programmatic discovery and acquisition permission;
+- acceptable content-rights/commercial-use boundary;
+- provider-neutral candidate + rights + acquisition contract;
+- durable `LicenseSnapshot`/rights evidence before final selection;
+- one approved candidate acquired into project-controlled local storage;
+- normal audio Asset ingest/provenance/integrity proof;
+- existing MusicSelection/BeatMap chain accepts the resulting Asset without provider authority leakage;
+- typed failure/rate/rights diagnostics;
+- focused tests for rights fail-closed and acquisition lifecycle;
+- at least one real provider/API Engineering Probe where external behavior matters;
+- no universal scraping, mirroring or hidden credentials;
+- structural progress remains 90%.
+
+For a **hard-gate exclusion**, require:
+
+- credible current primary-source evidence that evaluated candidates do not permit/sustain the needed automatic path;
+- no fake implementation or HTML scraping workaround;
+- explicit local-user music fallback retained;
+- a recorded reopening condition for future provider support.
 
 ## STOP boundary
 
-Do not start public music acquisition, GUI/frontend, or further Preview work concurrently.
+Do not concurrently start GUI/frontend, additional Preview benchmarking, SFX-provider expansion or generated-music integration.
 
-Do not promise YouTube/TikTok/other social-platform download support solely because a third-party extractor happens to work.
+Do not equate `royalty-free`, browser-downloadable or technically scrapable with product authorization.
 
-Do not release Codex until ChatGPT has reduced the implementation to a precise bounded surface and explicitly records why local multi-file execution is worth the remaining quota.
+Do not release Codex until the provider and rights boundary is frozen and the remaining implementation is concrete enough to justify the quota.
