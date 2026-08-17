@@ -2,17 +2,17 @@
 
 ---
 schema: video-editing-agent-control-state/v1
-updated: 2026-08-17
+updated: 2026-08-18
 current_phase: R0.12
-phase_state: PRODUCT_FLOW_ENGINEERING_PROBE_ACTIVE
-active_work_order: R0.12-PRODUCT-FLOW-ORCHESTRATION-001
-accepted_code_baseline: db8db211e6c662cdfc7ad2afe385ee766ce1a240
-control_plane_baseline: 00228b928ff0a6e4ebbf31bb06679a38beee629c
+phase_state: STAGE_A_PRODUCT_GATE_CLOSURE_ACTIVE
+active_work_order: R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001
+accepted_code_baseline: 1e90e2dd3d235271ef48bb7a708a1899ce5b87a4
+control_plane_baseline: 79be7b863d1802ad4f92474b25a357d215ec0dec
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
-core_1_planning_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
-core_2_editing_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
-previous_work_order: R0.12-WINDOWS-ENVIRONMENT-DOCTOR-001
+core_1_planning_product_gate: ENGINEERING_PASS_PRODUCT_HUMAN_OPEN
+core_2_editing_product_gate: ENGINEERING_PASS_PRODUCT_HUMAN_OPEN
+previous_work_order: R0.12-PRODUCT-FLOW-ORCHESTRATION-001
 previous_work_order_result: PASS
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
@@ -26,158 +26,126 @@ The accepted two-core architecture remains unchanged:
 
 - Planning-only: `Brief → ScriptPlan → ShootingPlan`;
 - Editing-only: `Brief/editorial intent + user local footage → Editing Core`;
-- Combined: Planning artifacts optionally enrich the same Editing Core.
+- Combined: exact Planning revisions optionally enrich the same Editing Core.
 
 Current accepted production-code baseline:
 
-`db8db211e6c662cdfc7ad2afe385ee766ce1a240`
+`1e90e2dd3d235271ef48bb7a708a1899ce5b87a4`
 
-This baseline contains the product-facing Planning / Editing request surface and reusable orchestration composition in addition to the earlier accepted R0.12 foundations.
+This baseline contains the accepted ProductFlow implementation plus the bounded Engineering Probe surface and the evidence-backed DeepSeek Director scalar-schema prompt repair.
 
 ## Stage-A completion truth
 
 Structural progress remains **90%**.
 
 - Stage-A completion gate: OPEN.
-- Planning Product Gate: foundation accepted, ordinary-user flow open.
-- Editing Product Gate: foundation accepted, ordinary-user automatic final-MP4 flow open.
+- Planning: Engineering mechanism PASS; Product Probe / Human Gate OPEN.
+- Editing: Engineering mechanism PASS; Product Probe / Human Gate OPEN.
 
-100% remains forbidden until both Product Gates and the overall Stage-A gate are PASS.
+Engineering evidence does not authorize 100%. Stage-A 100% remains forbidden until both real ordinary-user Product Gates and the global gate are PASS.
 
-Engineering Probe completion by itself does not authorize a structural-progress bump.
+## Closed R0.12 boundaries
 
-## Closed control boundaries
+Accepted/closed productization boundaries include:
 
-### Preview — PASS/CLOSED
+- GStreamer primary Preview;
+- Stage-A Product I/O Contract;
+- mixed source-audio / VoiceTreatment / audible QC;
+- Reference URL acquisition;
+- rights-aware public music acquisition;
+- minimum Review / repair;
+- Windows Environment Doctor;
+- ProductFlow orchestration Engineering closure.
 
-- GStreamer primary;
-- accepted baseline `4ca3b83bfac50923bdcf15f1ad08d90b397daa23`;
-- Windows production run `32030024748` — PASS;
-- playback-only; backend benchmark closed.
+ProductFlow closure evidence:
 
-### Product I/O Contract — PASS/CLOSED
+`docs/validation/R0.12_PRODUCT_FLOW_ORCHESTRATION_CLOSURE.md`
 
-`docs/product/STAGE_A_PRODUCT_IO_CONTRACT.md`
+Accepted ProductFlow Engineering evidence:
 
-### Mixed source-audio / VoiceTreatment / audible QC — PASS/CLOSED
+- Windows run `32046190310` — PASS;
+- exact-head Quality Gate `32046499144` — PASS;
+- direct second-process exact canonical EDL reload — PASS;
+- real FFmpeg MP4 with video + audio — PASS;
+- original source hash preservation — PASS;
+- Review — PASS.
 
-`docs/validation/R0.12_MIXED_SOURCE_AUDIO_QC_CLOSURE.md`
+These facts are Engineering evidence only.
 
-### Reference URL acquisition — PASS/CLOSED
+## Current active boundary — Stage-A Product Gate closure
 
-`docs/validation/R0.12_REFERENCE_URL_ACQUISITION_CLOSURE.md`
+`R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001` is ACTIVE.
 
-### Rights-aware public music — PASS/CLOSED
+The remaining problem is no longer whether the owner chain can execute. It is whether an ordinary Windows user can practically enter, understand and complete the two real product workflows without repository editing or hand-authoring internal objects.
 
-- `docs/validation/R0.12_PUBLIC_MUSIC_ACQUISITION_EVIDENCE.md`
-- accepted baseline `72ec275c1e72e876c4bcf828a44e7852208bab29`;
-- Windows run `32026331114` — PASS.
-
-### Minimum Review / repair — PASS/CLOSED
-
-- `docs/validation/R0.12_MINIMUM_REVIEW_REPAIR_CLOSURE.md`
-- accepted baseline `2cfeb664552769ade09f58bc2905ab531733a66a`;
-- Windows real-media run `32033179672` — PASS.
-
-### Windows Environment Doctor — PASS/CLOSED
-
-- Work Order `R0.12-WINDOWS-ENVIRONMENT-DOCTOR-001`;
-- closure `docs/validation/R0.12_WINDOWS_ENVIRONMENT_DOCTOR_CLOSURE.md`;
-- accepted baseline `914dd7dcc72595d418d7d3bf0cb05e356dd021b9`;
-- Quality Gate `32034737393` — PASS;
-- Windows production Doctor run `32035192895` — PASS.
-
-### Product-flow implementation — IMPLEMENTATION ACCEPTED
-
-Accepted baseline:
-
-`db8db211e6c662cdfc7ad2afe385ee766ce1a240`
-
-Accepted facts:
-
-- ordinary structured Planning and Editing request surfaces exist;
-- request parsing rejects internal source-time/Resolver/EDL authority fields;
-- Planning composes the accepted Brief/Script/Shooting owners;
-- Editing composes local ingest/understanding → Director/EditPlan → grounded Resolver → canonical EDL → Renderer → Review;
-- canonical EDL is persisted through the project workspace before render acceptance;
-- source-audio treatment preserves Resolver-owned source ranges;
-- deterministic repository gates and architecture contracts passed on the merged baseline.
-
-This is not yet Work Order closure evidence and is not a Product Gate/Human Gate PASS.
-
-## Current active boundary — Engineering Probe closure
-
-`R0.12-PRODUCT-FLOW-ORCHESTRATION-001` remains ACTIVE.
-
-The remaining engineering work is intentionally narrow.
-
-### Planning Engineering Probe
+### Planning Product Gate target
 
 ```text
-ordinary Planning request
+real user intent / reference / commercial target
+→ ordinary Windows product surface
 → Brief
-→ persisted ScriptPlan
-→ persisted ShootingPlan
-→ exact persisted refs
+→ persisted inspectable ScriptPlan
+→ usable ShootingPlan
+→ Human Gate judgment
 ```
 
-### Editing Engineering Probe
+### Editing Product Gate target
 
 ```text
-ordinary Editing request
-→ real valid media
-→ actual ingest / understanding
-→ Director / EditPlan
-→ grounded retrieval / Resolver
-→ canonical EDL
-→ persisted exact EDL
-→ actual FFmpeg MP4
-→ Review
+user-selected real local footage
++ editing intent / output destination
+→ ordinary Windows product surface
+→ actual automatic Editing Core
+→ canonical EDL / Renderer / Review
+→ real final MP4
+→ Human Gate judgment
 ```
 
-Fake media bytes or a fake Renderer remain unit/composition evidence only and cannot satisfy this mechanism probe.
+### Minimum user-facing floor
 
-### EDL durability evidence wording
+Do not build a feature-rich NLE. Provide only what the Stage-A gate genuinely requires:
 
-The existing Windows SQLite Persistence Probe directly proves separate-process persistence only for the entities it actually seeds/resumes.
+- create/open project;
+- provide Planning inputs/references or select Editing footage;
+- choose/identify output;
+- start the workflow;
+- see understandable progress/failure;
+- inspect/locate plans and final MP4;
+- avoid repository editing and manual Domain/EDL construction.
 
-Do not claim direct canonical EDL cross-process durability unless bounded evidence explicitly performs:
+Before implementing a new frontend, audit and reuse any existing CLI/launcher/UI capability that already satisfies part of this floor.
 
-```text
-process 1: save exact EDL revision
-→ exit
-→ process 2: load the same exact EDL revision
-→ verify exact payload / lineage
-```
+## Product evidence boundary
 
-No persistence redesign is required merely to add this evidence.
+Synthetic hosted Engineering media cannot close either Product Gate.
 
-## Codex quota constraint
+Product closure requires real user conditions and Human Gate evidence. The user machine/private-media boundary may therefore be used for the final Product Probes once the ordinary-user surface is ready.
 
-Approximately **9% Codex quota remains**.
+Do not loosen Planning Review, Resolver grounding, EDL authority, Review policy or commercial constraints merely to obtain a PASS.
 
-ChatGPT + GitHub remain primary for remote state, workflow evidence, small deterministic probe/workflow changes and governance.
+## Codex/resource policy
 
-Codex: **NO ACTIVE RELEASE** by default. Release only for a genuine Windows/media multi-file runtime defect that materially benefits from local iterative execution.
+ChatGPT + GitHub remain primary for audit, control state, bounded deterministic changes and evidence review.
 
-## Immediate corridor after active work
+Codex: **NO ACTIVE RELEASE** by default. Release one coherent batch only if the ordinary-user-surface audit exposes a substantial multi-file implementation/runtime loop that materially benefits from local execution.
 
-1. Planning product-flow Engineering Probe;
-2. Editing real-media / real-FFmpeg Engineering Probe;
-3. bounded EDL second-process proof only if closure claims cross-process EDL durability;
-4. close `R0.12-PRODUCT-FLOW-ORCHESTRATION-001` after Engineering evidence passes;
-5. real Planning Product Probe + Human Gate;
-6. real Editing automatic-final-MP4 Product Probe + Human Gate;
-7. evidence-backed repair only;
-8. Stage-A 100% only after all hard gates genuinely pass.
+## Immediate corridor
+
+1. audit current ordinary-user entry surface against `STAGE_A_COMPLETION_GATE.md`;
+2. implement only the missing minimum Windows usability surface;
+3. keep deterministic `main` green;
+4. run real Planning Product Probe + Human Gate;
+5. run real Editing automatic-final-MP4 Product Probe + Human Gate;
+6. repair only evidence-backed defects;
+7. set both core gates and Stage-A gate to PASS, and structural progress to 100%, only if all hard evidence passes.
 
 ## Constitutional constraints
 
 - canonical EDL remains sole exact timeline authority;
+- Renderer executes; Review classifies/routes only;
 - Preview remains playback-only;
-- Renderer has no editorial authority;
-- Review has no edit/render mutation authority;
-- Planning-only / Editing-only / Combined remain parallel legitimate entries;
-- originals remain protected from overwrite;
-- untrusted media/provider text cannot become executor authority;
-- no structural-progress bump for Engineering Probe completion alone.
+- Planning-only / Editing-only / Combined remain legitimate parallel entry modes;
+- originals remain protected;
+- no LLM-generated source timestamps or internal IDs as authority;
+- no Product/Human PASS inferred from Engineering Probe success;
+- no progress bump merely for adding a UI shell.

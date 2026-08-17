@@ -1,216 +1,221 @@
 # Current Work Order
 
-**ID:** `R0.12-PRODUCT-FLOW-ORCHESTRATION-001`  
+**ID:** `R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001`  
 **Status:** ACTIVE  
-**Phase:** R0.12 — practical product-facing Planning / Editing orchestration  
-**Mode:** ENGINEERING PROBE CLOSURE  
-**Accepted production-code baseline:** `db8db211e6c662cdfc7ad2afe385ee766ce1a240`  
-**Activated:** 2026-08-17  
+**Phase:** R0.12 — Stage-A ordinary-user Product Gate closure  
+**Mode:** PRODUCT PROBE + HUMAN GATE  
+**Accepted production-code baseline:** `1e90e2dd3d235271ef48bb7a708a1899ce5b87a4`  
+**Activated:** 2026-08-18  
 **Codex release:** NO
 
 ## Previous Work Order result
 
-`R0.12-WINDOWS-ENVIRONMENT-DOCTOR-001` — **PASS / CLOSED**.
+`R0.12-PRODUCT-FLOW-ORCHESTRATION-001` — **PASS / CLOSED**.
 
 Closure evidence:
 
-`docs/validation/R0.12_WINDOWS_ENVIRONMENT_DOCTOR_CLOSURE.md`
+`docs/validation/R0.12_PRODUCT_FLOW_ORCHESTRATION_CLOSURE.md`
 
-## Current implementation truth
+Accepted Windows Engineering Probe:
 
-The reusable product-flow implementation is now merged and accepted on `main` at:
+`32046190310` — PASS.
 
-`db8db211e6c662cdfc7ad2afe385ee766ce1a240`
+Exact-head deterministic CI after the accepted Engineering evidence merge:
 
-The accepted surface includes:
+`32046499144` — PASS.
 
-- `video-editing-agent run planning --request <json>`;
-- `video-editing-agent run editing --request <json>`;
-- strict ordinary request parsing that rejects internal editing/timeline authority fields;
-- ProjectWorkspace Planning composition through Brief → ScriptPlan → ShootingPlan owners;
-- Editing composition through local ingest → Shot/understanding → Director/EditPlan → grounded Resolver → canonical EDL → Renderer → Review;
-- conservative Resolver-grounded source-audio handling;
-- exact canonical EDL persistence in project SQLite;
-- deterministic request-boundary, audio-policy and concrete composition tests.
+The accepted production baseline is:
 
-The exact-head deterministic repository CI passed after merge.
+`1e90e2dd3d235271ef48bb7a708a1899ce5b87a4`
 
-This implementation evidence does **not** itself close this Work Order and does **not** constitute Product Gate or Human Gate evidence.
+## Why this Work Order exists
 
-## Canonical product contract
+The repository has now proved the Planning and Editing mechanisms through real owner chains, including real media, live provider adapters, grounded Resolver decisions, persisted canonical EDL, actual FFmpeg render, Review, and exact EDL reload from a second Python process.
+
+That Engineering proof does not satisfy Stage-A completion by itself.
+
+The remaining structural question is:
+
+> Can an ordinary Windows user practically use both core products through the real product path and judge the outputs useful enough, without repository editing or hand-authoring internal objects?
+
+This Work Order closes that final Stage-A boundary as one coherent product batch rather than inventing multiple micro-phases.
+
+## Canonical gate
 
 Source of truth:
 
-`docs/product/STAGE_A_PRODUCT_IO_CONTRACT.md`
+`docs/roadmap/STAGE_A_COMPLETION_GATE.md`
 
-Two independent product outcomes remain:
+Structural progress stays at **90%** until both core Product Gates and the overall Stage-A gate pass.
 
-```text
-Planning-only:
-ordinary user intent / reference context
-→ Brief owner
-→ ScriptPlanningWorkflow
-→ ShootingPlanningWorkflow
-→ persisted ScriptPlan + ShootingPlan
+## Scope A — ordinary-user surface audit
 
-Editing-only:
-ordinary user local footage + editing intent + output path
-→ ingest / Shot / understanding owners
-→ Director → EditPlan
-→ retrieval / CandidateWindows / Resolver
-→ approved audio/spatial/subtitle decisions
-→ EDLBuilder → canonical EDL
-→ Renderer → Review
-→ final MP4 / typed correction state
-```
+Before building a new frontend, inspect current repository surfaces and prove what is already usable.
 
-Combined is composition of these same routes, not a third architecture.
+Audit at minimum:
 
-## Frozen ordinary-request boundary
+### Common
 
-Ordinary-user requests may contain:
+- project create/open;
+- Environment Doctor / runtime diagnostics;
+- workflow launch;
+- progress/failure presentation;
+- result/output discovery.
 
-- project location / create-open intent;
-- Brief/editorial text and supported policy/production constraints;
-- local files/folder expanded to files;
-- explicit final output destination;
-- understandable audio/voice intent;
-- optional exact Planning revisions for Combined flow.
+### Planning
 
-They must **not** require the user to supply:
+- user can provide a real planning goal;
+- reference/high-performing/commercial context can enter the product path;
+- user does not need repository editing;
+- generated ScriptPlan can be inspected;
+- generated ShootingPlan can be inspected/used;
+- failure is understandable rather than a raw internal trace.
+
+### Editing
+
+- user can choose local media files/folder;
+- user can provide editing intent;
+- user can choose/identify final output destination;
+- provider/runtime configuration is not exposed as editorial meaning;
+- user can start the actual automatic flow;
+- progress/failure is understandable;
+- final MP4 is discoverable;
+- original source files remain protected.
+
+The audit must inspect existing CLI/launcher/UI code before choosing a new toolkit.
+
+## Scope B — minimum Stage-A Windows product surface
+
+Implement only gaps proven by the audit.
+
+A visually plain launcher/UI is acceptable. A feature-rich NLE is explicitly out of scope.
+
+The minimum surface should make ordinary operation possible without requiring the user to write JSON by hand or understand:
 
 - AssetRef / ShotRef;
-- CandidateWindow;
-- ResolutionDecision;
-- source timestamp;
-- AudioMixDecision internals;
-- EDL / RenderRequest.
+- CandidateWindow / ResolutionDecision;
+- source timestamps;
+- EDL internals;
+- model/runtime plumbing that belongs to product configuration.
 
-Provider/model/FFmpeg/runtime configuration is composition configuration, not editorial request meaning.
+The product surface may call the already accepted ProductFlow application owners. It must not duplicate or bypass them.
 
-## Remaining Engineering Probe gate
+## Planning Product Gate
 
-### Probe A — Planning product-flow Engineering Probe
-
-Required mechanism:
+Required final evidence:
 
 ```text
-ordinary Planning request
-→ product-facing request adapter
-→ Brief owner
-→ ScriptPlanningWorkflow
-→ persisted ScriptPlan
-→ ShootingPlanningWorkflow
-→ persisted ShootingPlan
-→ structured result with exact persisted refs
+real user planning goal / reference / commercial target
+→ ordinary Windows product surface
+→ Brief
+→ real Planning workflow
+→ persisted inspectable ScriptPlan
+→ usable ShootingPlan
+→ Human Gate
 ```
 
-Acceptance evidence must prove:
+Human Gate questions should be ordinary and decision-oriented, for example:
 
-1. entry is the ordinary request surface, not hand-authored Domain objects;
-2. Brief/ScriptPlan/ShootingPlan are persisted in the project workspace;
-3. returned refs load the exact persisted revisions;
-4. progress reaches a terminal completed state;
-5. no local footage is required.
+- Is the script usable for the intended video?
+- Is the shooting plan actually shootable with your stated resources?
+- What is obviously wrong or missing?
 
-This remains Engineering evidence unless real product input and Human Gate judgment are intentionally included later.
+Do not ask the user to invent a professional scoring rubric.
 
-### Probe B — Editing real-media Engineering Probe
+## Editing Product Gate
 
-Required mechanism:
+Required final evidence:
 
 ```text
-ordinary Editing request
-→ real valid local media
-→ actual FFprobe ingest
-→ actual Shot detection
-→ actual understanding
-→ Director / persisted EditPlan
-→ indexed retrieval
-→ grounded CandidateWindows / Resolver
+user-selected real/private local footage
++ editing intent / output destination
+→ ordinary Windows product surface
+→ real automatic media-understanding/editing chain
 → canonical EDL
-→ persist exact EDL revision
-→ actual FFmpeg Renderer
-→ actual MP4
-→ Review
-→ terminal result
+→ Renderer
+→ Review / bounded repair where needed
+→ real final MP4
+→ Human Gate
 ```
 
-Acceptance evidence must prove:
+Human Gate questions should center on the actual output:
 
-1. source is a real valid media file, not fake bytes;
-2. ordinary request does not contain ShotRef/CandidateWindow/ResolutionDecision/source timestamps/EDL;
-3. original media remains unchanged;
-4. Resolver-owned source ranges reach EDLBuilder without launcher rewrite;
-5. canonical EDL is persisted before render acceptance;
-6. actual FFmpeg produces a valid MP4 at the requested output path;
-7. Review consumes the rendered-media evidence and returns an explicit verdict/correction route;
-8. persisted Brief/EditPlan/EDL lineage is inspectable after completion.
+- Is the final video usable/watchable for the stated purpose?
+- Are there obvious bad cuts, missing material, bad text/audio, or other unacceptable defects?
+- Can the user locate the result and understand any failure/correction guidance?
 
-Provider/model usage may be bounded and explicit, but fake Renderer output cannot satisfy this probe.
+A Product Probe failure must be classified before repair as engineering/provider failure, semantic veto, product-quality veto, or human acceptance pending.
 
-## Canonical EDL cross-process durability evidence
+## Combined mode preservation
 
-The existing Windows SQLite Persistence Probe directly proves separate-process persistence for the entities it currently seeds/resumes. Do not broaden that evidence claim to canonical EDL unless the probe explicitly tests EDL.
-
-If this Work Order closure states that exact canonical EDL cross-process durability is proven, add the smallest bounded evidence:
+Combined remains composition of the same owners:
 
 ```text
-process 1
-→ save exact EDL revision to SQLite
-→ exit
-
-process 2
-→ reopen same SQLite project
-→ load same exact EDL revision
-→ verify exact payload / lineage
+Planning output
+→ optional exact ScriptPlan/ShootingPlan revisions
+→ same Editing Core
 ```
 
-This may be added to the existing bounded persistence probe or to the Editing Engineering Probe. Do not redesign persistence architecture merely to obtain this evidence.
+Do not make Planning mandatory for Editing and do not fabricate Planning artifacts to satisfy the gate.
 
-## Deterministic gate status
+## Deterministic acceptance requirements
 
-The implementation baseline already satisfies deterministic repository gates and existing architecture contracts.
+Any implementation required by the usability audit must preserve:
 
-Future repairs in this Work Order must remain narrowly evidence-driven. Do not reopen already accepted architecture merely because a probe exposes a runtime/configuration defect.
+- ordinary-request authority boundaries;
+- source-time grounding;
+- canonical EDL sole timeline authority;
+- Renderer execution-only ownership;
+- Review classify/route-only ownership;
+- original media protection;
+- Planning-only / Editing-only / Combined semantics;
+- repository architecture contracts and Quality Gate.
 
-## Codex / resource policy
+Add regression coverage for every concrete product-surface defect discovered during Product Probe/Human Gate.
 
-Approximately **9% Codex quota remains**.
+## Codex/resource policy
 
-ChatGPT + GitHub remain primary for remote state, workflow evidence, small probe/workflow changes and governance.
+ChatGPT + GitHub should first complete the audit, architecture decision, exact scope and remote evidence work.
 
 Codex remains **NO ACTIVE RELEASE** by default.
 
-Release Codex only if the real Planning/Editing probe exposes a genuine Windows/media multi-file runtime defect that materially benefits from local `inspect → edit → test → repair` iteration.
+Release Codex only if the audit reveals a coherent multi-file Windows product-surface implementation or runtime defect that materially benefits from local `inspect → edit → test → repair` iteration. If released, one bounded complex batch should cover the complete agreed implementation surface and stop for ChatGPT review.
 
 ## Exit gate
 
-PASS requires all of the following:
+This Work Order may close only when:
 
-- reusable Planning and Editing product-flow application surfaces remain on accepted `main`;
-- ordinary request DTOs do not expose internal timeline/Resolver objects;
-- product progress/failure/result contract remains intact;
-- Planning Engineering Probe reaches persisted ScriptPlan + ShootingPlan through the ordinary request surface;
-- Editing Engineering Probe reaches real media → canonical EDL → actual FFmpeg MP4 → Review through the ordinary request surface;
-- exact source times remain grounded and EDL remains sole timeline authority;
-- if closure claims EDL cross-process durability, direct EDL second-process evidence exists;
-- repository deterministic gates remain green;
-- evidence is classified as Engineering evidence, not Product Gate/Human Gate PASS;
-- structural progress remains 90% until actual ordinary-user Product Gate evidence justifies a change.
+1. the ordinary-user Stage-A surface is practical on Windows;
+2. Planning Product Probe passes on a real user planning target;
+3. Planning Human Gate is PASS;
+4. Editing Product Probe produces a real final MP4 from user-selected real footage;
+5. Editing Human Gate is PASS;
+6. Planning-only / Editing-only / Combined semantics remain valid;
+7. the ordinary-user compatibility/diagnostic floor is satisfied;
+8. latest accepted `main` is green;
+9. closure evidence records exact code/runtime/product evidence and known limitations.
+
+Only then may the control plane set:
+
+```text
+core_1_planning_product_gate: PASS
+core_2_editing_product_gate: PASS
+stage_a_completion_gate: PASS
+structural_progress_percent: 100
+```
 
 ## STOP boundary
 
-Do not build GUI/frontend in this Work Order.
+Do not build a feature-rich NLE/timeline editor.
 
-Do not invent timestamps/IDs with an LLM.
+Do not reopen Preview backend benchmarking.
 
-Do not make dense retrieval, GPU or optional music mandatory for the minimal Editing route.
+Do not redesign persistence, Resolver, EDL or Renderer without concrete Product Probe evidence.
 
-Do not bypass Brief/Planning/Director/Resolver/EDL/Renderer/Review owners.
+Do not loosen semantic/commercial Review or grounding rules merely to turn a Product Probe green.
 
-Do not silently repair Review failures.
+Do not use hosted synthetic Engineering media as Product Gate evidence.
 
-Do not label fake-media/fake-renderer composition tests as real Editing evidence.
+Do not claim Human Gate PASS without the user's actual judgment.
 
-Do not bump structural progress for Engineering Probe completion alone.
+Do not bump structural progress for a launcher/UI implementation alone.
