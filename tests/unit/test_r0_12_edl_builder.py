@@ -246,6 +246,36 @@ def test_source_audio_policy_changes_assembled_tracks_without_mutating_assets() 
     assert all(item.audio_mix_decision_ref == "mute" for item in muted.edl.segments)
 
 
+def test_two_clip_explicit_preserve_and_non_speech_mute_assemble_directly() -> None:
+    request = _request()
+    first, second = (decision.selections[0] for decision in request.resolution_decisions)
+    mix = AudioMixDecision(
+        "mixed-two-clip",
+        EntityRevisionRef("edit-plan", 1),
+        SourceAudioPolicy.MUTE,
+        source_treatments=(
+            SourceAudioTreatment(
+                first.selection_id,
+                first.selected_source_range,
+                SourceAudioPolicy.PRESERVE,
+            ),
+            SourceAudioTreatment(
+                second.selection_id,
+                second.selected_source_range,
+                SourceAudioPolicy.MUTE,
+            ),
+        ),
+    )
+
+    result = DeterministicEDLBuilder().build(replace(request, audio_mix=mix))
+
+    assert result.is_built and result.edl is not None
+    source = tuple(item for item in result.edl.segments if item.track_id == "source_audio")
+    assert tuple(item.segment_id for item in source) == ("source-audio:selection-a",)
+    assert source[0].asset_ref == EntityRevisionRef("asset-a", 2)
+    assert source[0].source_range == first.selected_source_range
+
+
 def test_explicit_mixed_source_treatments_override_legacy_default() -> None:
     request = _request()
     plan, decisions, shots = request.edit_plan, request.resolution_decisions, request.shots
@@ -338,10 +368,26 @@ def test_source_treatment_targets_and_speech_protection_fail_closed() -> None:
             VoiceTreatment.PRESERVE,
             required_speech=True,
         ),
+        SourceAudioTreatment(
+            "selection-a",
+            first_range,
+            SourceAudioPolicy.MUTE,
+            VoiceTreatment.CLEAN,
+            required_speech=True,
+        ),
+        SourceAudioTreatment(
+            "selection-a",
+            first_range,
+            SourceAudioPolicy.MUTE,
+            VoiceTreatment.ALLOW_REVOICE,
+            required_speech=True,
+        ),
     )
     expected = (
         EDLBuildDiagnosticCode.AUDIO_TREATMENT_INVALID,
         EDLBuildDiagnosticCode.AUDIO_TREATMENT_INVALID,
+        EDLBuildDiagnosticCode.SPEECH_PROTECTION_VIOLATION,
+        EDLBuildDiagnosticCode.SPEECH_PROTECTION_VIOLATION,
         EDLBuildDiagnosticCode.SPEECH_PROTECTION_VIOLATION,
     )
     for treatment, code in zip(cases, expected, strict=True):

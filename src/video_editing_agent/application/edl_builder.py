@@ -462,6 +462,7 @@ class DeterministicEDLBuilder:
                         continue
                 if (
                     explicit_treatment is not None
+                    and explicit_treatment.required_speech
                     and policy is SourceAudioPolicy.MUTE
                     and voice in {VoiceTreatment.PRESERVE, VoiceTreatment.CLEAN}
                 ):
