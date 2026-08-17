@@ -2,18 +2,6 @@ name: Public Music Provider Live Probe
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/public-music-provider-live.yml"
-      - ".github/scripts/install-ffmpeg-windows.ps1"
-      - "tools/probes/r0_12_public_music_provider_live.py"
-      - "src/video_editing_agent/application/ports/audio_acquisition.py"
-      - "src/video_editing_agent/application/ports/audio_material_provider.py"
-      - "src/video_editing_agent/providers/audio/**"
-      - "src/video_editing_agent/media/ingest/**"
-      - "src/video_editing_agent/domain/asset/**"
 
 permissions:
   contents: read
@@ -21,7 +9,7 @@ permissions:
 
 concurrency:
   group: public-music-provider-live-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   windows-public-music:
