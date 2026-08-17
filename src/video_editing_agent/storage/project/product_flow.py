@@ -19,8 +19,8 @@ from video_editing_agent.application.ports.preproduction_review import (
 from video_editing_agent.application.ports.rendered_media_qc import RenderedMediaQc
 from video_editing_agent.application.ports.renderer import (
     OutputSpec,
-    RenderRequest,
     Renderer,
+    RenderRequest,
     RenderResult,
 )
 from video_editing_agent.application.ports.shot_detector import ShotDetectionOptions, ShotDetector
@@ -279,9 +279,7 @@ def build_editing_product_flow(
         render_result: RenderResult,
         requires_audible_output: bool,
     ) -> ReviewVerdict:
-        return review_runtime.review(
-            ReviewRequest(edl_ref, render_result, requires_audible_output)
-        )
+        return review_runtime.review(ReviewRequest(edl_ref, render_result, requires_audible_output))
 
     return EditingProductFlow(
         EditingProductOperations(
