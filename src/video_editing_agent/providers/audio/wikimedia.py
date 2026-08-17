@@ -16,6 +16,7 @@ from video_editing_agent.application.ports.artifact_store import ArtifactPayload
 from video_editing_agent.domain.asset.rights import LicenseSnapshot, RightsEligibility
 
 _COMMONS_API = "https://commons.wikimedia.org/w/api.php"
+_COMMONS_PAGE_ID_PREFIX = "commons_pageid:"
 _USER_AGENT = "video-editing-agent/public-music-r0.12"
 JsonObject = dict[str, object]
 JsonFetcher = Callable[[str], JsonObject]
@@ -170,14 +171,14 @@ def _license_decision(
     return RightsEligibility.UNKNOWN, "license is not recognized by the automatic Stage-A whitelist"
 
 
-def _verification_url(file_title: str) -> str:
+def _verification_url(provider_item_id: str) -> str:
+    identity = provider_item_id.strip()
     parameters = {
         "action": "query",
         "format": "json",
         "formatversion": "2",
         "redirects": "1",
         "prop": "imageinfo",
-        "titles": file_title,
         "iiprop": "url|sha1|size|mime|mediatype|extmetadata",
         "iiextmetadatalanguage": "en",
         "iiextmetadatafilter": (
@@ -185,6 +186,15 @@ def _verification_url(file_title: str) -> str:
             "UsageTerms|Copyrighted|NonFree|Restrictions"
         ),
     }
+    if identity.casefold().startswith("file:"):
+        parameters["titles"] = identity
+    elif identity.casefold().startswith(_COMMONS_PAGE_ID_PREFIX):
+        page_id = identity[len(_COMMONS_PAGE_ID_PREFIX) :]
+        if not page_id.isdigit() or int(page_id) <= 0:
+            raise ValueError("Commons page identity contains an invalid page ID")
+        parameters["pageids"] = page_id
+    else:
+        raise ValueError("Commons identity must be a File: title or commons_pageid:<positive integer>")
     return f"{_COMMONS_API}?{urlencode(parameters)}"
 
 
@@ -203,14 +213,16 @@ class WikimediaAudioRightsVerifier:
         self._clock = clock
 
     def verify(self, provider_item_id: str) -> WikimediaVerificationResult:
-        file_title = provider_item_id.strip()
-        if not file_title.casefold().startswith("file:"):
+        discovery_identity = provider_item_id.strip()
+        try:
+            verification_url = _verification_url(discovery_identity)
+        except ValueError as error:
             return self._failure(
                 WikimediaRightsDiagnosticCode.SOURCE_METADATA_INVALID,
-                "Wikimedia provider item identity must be a File: title",
+                str(error),
             )
 
-        payload = self._json_fetcher(_verification_url(file_title))
+        payload = self._json_fetcher(verification_url)
         raw_artifact = self._artifact_store.put(
             ArtifactPayload(
                 "application/json",
@@ -226,10 +238,14 @@ class WikimediaAudioRightsVerifier:
                 "Wikimedia Commons file is missing or unavailable",
             )
         page_title = page.get("title")
-        if not isinstance(page_title, str) or not page_title.strip():
+        if (
+            not isinstance(page_title, str)
+            or not page_title.strip()
+            or not page_title.casefold().startswith("file:")
+        ):
             return self._failure(
                 WikimediaRightsDiagnosticCode.SOURCE_METADATA_INVALID,
-                "Wikimedia response omitted the canonical file title",
+                "Wikimedia response did not resolve the identity to a canonical File: title",
             )
         raw_imageinfo = page.get("imageinfo")
         if (
@@ -334,6 +350,7 @@ class WikimediaAudioRightsVerifier:
             "snapshot_id": snapshot.snapshot_id,
             "captured_at": captured_at.isoformat(),
             "provider": snapshot.provider,
+            "discovery_provider_item_id": discovery_identity,
             "provider_item_id": snapshot.provider_item_id,
             "eligibility": snapshot.eligibility.value,
             "license_identifier": snapshot.license_identifier,
