@@ -1,0 +1,85 @@
+name: Public Music Provider Live Probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/public-music-provider-live.yml"
+      - ".github/scripts/install-ffmpeg-windows.ps1"
+      - "tools/probes/r0_12_public_music_provider_live.py"
+      - "src/video_editing_agent/application/ports/audio_acquisition.py"
+      - "src/video_editing_agent/application/ports/audio_material_provider.py"
+      - "src/video_editing_agent/providers/audio/**"
+      - "src/video_editing_agent/media/ingest/**"
+      - "src/video_editing_agent/domain/asset/**"
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: public-music-provider-live-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-public-music:
+    name: Windows Public Music Provider Probe
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.12.2"
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Sync locked base environment
+        run: uv sync --frozen
+
+      - name: Install pinned FFmpeg 8.1
+        shell: pwsh
+        run: .\.github\scripts\install-ffmpeg-windows.ps1
+
+      - name: Verify ffprobe binary
+        shell: pwsh
+        run: ffprobe -version | Select-Object -First 1
+
+      - name: Execute real Openverse to Wikimedia music chain
+        id: public_music_probe
+        continue-on-error: true
+        shell: pwsh
+        run: uv run python .\tools\probes\r0_12_public_music_provider_live.py
+
+      - name: Publish public music provider status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROBE_OUTCOME: ${{ steps.public_music_probe.outcome }}
+        run: |
+          if [ "$PROBE_OUTCOME" = "success" ]; then
+            state="success"
+            description="real Openverse/Wikimedia music acquisition passed on Windows"
+          else
+            state="failure"
+            description="real Openverse/Wikimedia music acquisition failed on Windows"
+          fi
+
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -f state="$state" \
+            -f context="ci/public-music-provider-windows" \
+            -f description="$description" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      - name: Fail workflow when public music probe failed
+        if: steps.public_music_probe.outcome != 'success'
+        run: exit 1
