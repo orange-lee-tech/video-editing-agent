@@ -12,10 +12,10 @@ from video_editing_agent.application.ports.director import (
 from video_editing_agent.application.ports.executor import DeterministicToolInvocation
 from video_editing_agent.application.ports.preproduction_planning import (
     NarrativeSectionProposal,
-    ScriptPlanProposal,
     ScriptPlanningRequest,
-    ShootingPlanProposal,
+    ScriptPlanProposal,
     ShootingPlanningRequest,
+    ShootingPlanProposal,
     ShotRequirementProposal,
 )
 from video_editing_agent.application.ports.preproduction_review import (
@@ -54,12 +54,12 @@ from video_editing_agent.domain.review.model import (
     ReviewStage,
     ReviewVerdict,
 )
+from video_editing_agent.domain.shooting.model import ProductionConstraints
 from video_editing_agent.domain.shot.analysis import (
     AnalysisProfile,
     ShotAnalysis,
     VisualSemantics,
 )
-from video_editing_agent.domain.shooting.model import ProductionConstraints
 from video_editing_agent.media.ingest.probe import MediaTechnicalMetadata
 from video_editing_agent.storage.project import product_flow as composition_module
 from video_editing_agent.storage.project.product_flow import (
