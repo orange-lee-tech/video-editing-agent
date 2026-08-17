@@ -38,6 +38,7 @@ from video_editing_agent.planning.script.workflow import ScriptPlanningWorkflow
 from video_editing_agent.planning.shooting.service import ShootingPlanner
 from video_editing_agent.planning.shooting.workflow import ShootingPlanningWorkflow
 from video_editing_agent.storage.artifact.local_store import LocalArtifactStore
+from video_editing_agent.storage.repositories.edl_repository import SqliteEDLRepository
 from video_editing_agent.storage.repositories.preproduction_repositories import (
     SqliteBriefRepository,
     SqliteScriptPlanRepository,
@@ -70,6 +71,7 @@ class ProjectWorkspace:
     shots: SqliteShotRepository
     analyses: SqliteShotAnalysisRepository
     edit_plans: SqliteEditPlanRepository
+    edls: SqliteEDLRepository
     temporal: SqliteTemporalEvidenceRepository
     shot_index: LexicalShotIndex
     coverage: CoverageService
@@ -92,6 +94,7 @@ class ProjectWorkspace:
         shots = SqliteShotRepository(database)
         analyses = SqliteShotAnalysisRepository(database)
         edit_plans = SqliteEditPlanRepository(database)
+        edls = SqliteEDLRepository(database)
         temporal = SqliteTemporalEvidenceRepository(database)
         shot_index = LexicalShotIndex()
         shot_by_ref = {
@@ -115,6 +118,7 @@ class ProjectWorkspace:
             shots=shots,
             analyses=analyses,
             edit_plans=edit_plans,
+            edls=edls,
             temporal=temporal,
             shot_index=shot_index,
             coverage=CoverageService(
@@ -142,6 +146,7 @@ class ProjectWorkspace:
                 "script_plans": self.scripts.count(),
                 "shooting_plans": self.shooting_plans.count(),
                 "edit_plans": self.edit_plans.count(),
+                "edls": self.edls.count(),
             },
             "capabilities": {
                 "local_persistence": True,
