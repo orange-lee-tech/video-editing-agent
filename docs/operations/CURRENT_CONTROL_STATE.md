@@ -2,17 +2,17 @@
 
 ---
 schema: video-editing-agent-control-state/v1
-updated: 2026-08-16
+updated: 2026-08-17
 current_phase: R0.12
-phase_state: MIXED_SOURCE_AUDIO_QC_IMPLEMENTATION_ACTIVE
-active_work_order: R0.12-MIXED-SOURCE-AUDIO-QC-001
-accepted_code_baseline: 500c8563e3686a5aaef055ffb5301553aa999fd9
-control_plane_baseline: cc5cd0206cfc26f5f6076014bdfe69e7463e63f5
+phase_state: REFERENCE_URL_ACQUISITION_GATE_ACTIVE
+active_work_order: R0.12-REFERENCE-URL-ACQUISITION-001
+accepted_code_baseline: ffb5dbd7d3fc4e995f89a7a231910fa0295fcbba
+control_plane_baseline: 87562a9824a9f9d29aa96a6563955467ba70068d
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
 core_1_planning_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
 core_2_editing_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
-previous_work_order: R0.12-STAGE-A-PRODUCT-IO-CONTRACT-001
+previous_work_order: R0.12-MIXED-SOURCE-AUDIO-QC-001
 previous_work_order_result: PASS
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
@@ -28,7 +28,9 @@ The accepted two-core architecture remains unchanged:
 - Editing-only: `Brief/editorial intent + user local footage → Editing Core`;
 - Combined: Planning artifacts optionally enrich the same Editing Core.
 
-Accepted production-code baseline entering the active implementation remains `500c8563e3686a5aaef055ffb5301553aa999fd9`.
+Current accepted production-code baseline is:
+
+`ffb5dbd7d3fc4e995f89a7a231910fa0295fcbba`
 
 ## Stage-A completion truth
 
@@ -50,117 +52,136 @@ Live state:
 
 ### Preview backend benchmark — PASS/CLOSED
 
-Accepted ADR:
-
 `docs/adr/ADR-010_GSTREAMER_PRIMARY_PREVIEW_BACKEND.md`
 
-- GStreamer primary Stage-A Preview family;
-- libVLC validated alternative;
-- libmpv Stage-A hard-gate exclusion;
-- Preview playback-only; EDL authority unchanged.
-
-Do not reopen backend-family benchmarking without a concrete Product Probe failure/new hard requirement.
+GStreamer primary; Preview playback-only; EDL authority unchanged.
 
 ### Stage-A Product I/O Contract — PASS/CLOSED
 
-Canonical contract:
-
 `docs/product/STAGE_A_PRODUCT_IO_CONTRACT.md`
 
-Validation:
+### Mixed source-audio / VoiceTreatment / audible QC — PASS/CLOSED
 
-`docs/validation/R0.12_STAGE_A_PRODUCT_IO_CONTRACT_EVIDENCE.md`
+`R0.12-MIXED-SOURCE-AUDIO-QC-001`
 
-Accepted ordinary-user semantics now freeze:
+Closure evidence:
 
-- project create/open → existing `ProjectWorkspace`;
-- selected local files/folders → per-file local Asset ingest;
-- Planning-only → persisted ScriptPlan/ShootingPlan owner workflows;
-- Editing-only → independent Brief + local footage path;
-- Combined → same Editing Core enriched by exact Planning revisions;
-- Reference URL → controlled local `REFERENCE_ANALYSIS_ONLY` file/Asset before planning analysis;
-- public music → rights-aware acquisition → controlled local `MUSIC` Asset before Music/BeatMap/Audio;
-- final MP4 → explicit Renderer output path;
-- no frontend framework decision yet.
+`docs/validation/R0.12_MIXED_SOURCE_AUDIO_QC_CLOSURE.md`
 
-## Current active boundary — mixed source-audio / voice / audible QC
+Accepted production baseline:
 
-`R0.12-MIXED-SOURCE-AUDIO-QC-001` is ACTIVE.
+`ffb5dbd7d3fc4e995f89a7a231910fa0295fcbba`
 
-The current implementation defect is concrete:
+Accepted semantics:
 
-- `AudioMixDecision` has one whole-EditPlan `source_audio_policy`;
-- `plan_basic_mix()` chooses whole-plan PRESERVE when speech exists and MUTE otherwise;
-- `DeterministicEDLBuilder` clones every selected video segment onto SOURCE_AUDIO for global PRESERVE;
-- whole-plan DUCK is unsupported;
-- mixed selected source ranges therefore cannot independently preserve/duck/mute their original audio.
+- per-grounded-selection source audio PRESERVE / DUCK / MUTE;
+- VoiceTreatment with required-speech protection;
+- ordinary non-speech MUTE remains valid;
+- deterministic canonical EDL source-audio mapping;
+- typed accidental-silence audible-lane QC;
+- Resolver source authority and Renderer execution-only ownership preserved.
 
-### Frozen implementation ownership
+GitHub CI run #246 on the accepted repair HEAD completed successfully.
 
-Resolver / `ResolvedSelection` retains authoritative selected Shot/source range.
+## Current active boundary — Reference URL acquisition
 
-Audio Editorial owns treatment intent at grounded selection/source-range granularity.
+`R0.12-REFERENCE-URL-ACQUISITION-001` is ACTIVE.
 
-Required source treatment:
+The Stage-A Product I/O Contract already freezes the semantic route:
 
-- PRESERVE
-- DUCK
-- MUTE
+`supported URL`
+`→ acquisition adapter`
+`→ controlled project-local file`
+`→ normal media ingest`
+`→ REFERENCE_ANALYSIS_ONLY Asset`
+`→ existing reference analysis/guidance`
 
-Required VoiceTreatment policy:
+### Existing downstream owner is already valid
 
-- PRESERVE
-- CLEAN
-- ALLOW_REVOICE
-- DO_NOT_USE_ORIGINAL
+`ReferenceStyleEvidenceService`:
 
-EDLBuilder deterministically maps approved treatment to exact SOURCE_AUDIO selections/ranges.
+- requires a video Asset;
+- requires `AssetUsageRole.REFERENCE_ANALYSIS_ONLY`;
+- asserts that the reference Asset is never visual-Resolver eligible;
+- derives abstract technique evidence only;
+- persists evidence through the content-addressed ArtifactStore;
+- projects that evidence into provider-neutral Planning guidance.
 
-Renderer executes validated EDL only and must not infer/rewrite treatment.
+Therefore the active gap is acquisition + controlled local media lifecycle, not another reference-analysis system.
 
-For non-silent intent, final technical QC must fail closed when no approved audible lane exists. Renderer must not invent audio to repair that condition.
+### Current provider/security direction
 
-### Codex
+- Stage A uses an explicit support policy/allowlist rather than promising arbitrary Internet URL support;
+- direct unauthenticated HTTPS media is the lowest-risk baseline candidate;
+- specifically audited provider/page adapters may be added only when technical, policy, license and deployment gates pass;
+- login/account/session-required retrieval fails closed by default;
+- browser-cookie extraction, credential scraping, CAPTCHA bypass and DRM/protected acquisition are outside the default Stage-A boundary;
+- bulk playlist/channel/profile and live-stream acquisition are outside Stage A;
+- unsupported/policy-disallowed URL input must produce understandable guidance to provide an allowed local reference file;
+- reference acquisition can never grant editable visual/Resolver eligibility.
 
-**ACTIVE RELEASE — SINGLE COMPLEX BATCH.**
+### yt-dlp gate
 
-Codex is primary writer for the implementation/test surface described by `CURRENT_WORK_ORDER.md` until it stops and reports.
+Technical breadth is not sufficient for automatic adoption.
 
-ChatGPT must not concurrently edit those same source/test files during the batch.
+Research entering this control state shows:
 
-After Codex report:
+- extractor/site support changes as websites change;
+- broad modern site coverage can add FFmpeg/JS/runtime and networking dependency surface;
+- source licensing and bundled executable licensing differ;
+- credential/cookie paths materially expand security risk;
+- some major platforms' official developer policies prohibit downloading/caching audiovisual content without explicit approval.
 
-`reobserve origin/main → inspect commit/diff → inspect CI/governance → verify required audio/EDL/QC cases → accept/repair → sync control plane`
+Therefore a universal bundled yt-dlp/social-media downloader is not pre-approved for Stage A.
 
-Codex does not self-authorize the next Work Order.
+## Codex quota constraint
 
-## Immediate corridor after the active batch
+The user reports approximately **9% Codex quota remaining**.
 
-1. accept/repair mixed source-audio + VoiceTreatment + audible-lane QC;
-2. Reference URL acquisition;
-3. rights-aware public music acquisition;
-4. remaining bounded R0.12 productization including production GStreamer Preview integration;
-5. minimum Review/repair loop;
-6. ordinary-user Windows runtime / Environment Doctor;
-7. practical product-facing integration;
-8. real Product Probes / Human Gate.
-
-## Tool routing
+Treat this as a hard resource constraint.
 
 ### ChatGPT + GitHub
 
-- current-state/CI observation;
-- architecture/acceptance review;
-- Work Order/control-plane synchronization;
-- small independent governance writes.
+Primary for the active gate:
 
-### User PowerShell
-
-Use only for genuine local/private-media/runtime boundaries. This implementation batch itself belongs to Codex's local repo edit/test loop.
+- existing-code/reference-flow audit;
+- provider/security/licensing research;
+- contract and diagnostics design;
+- control-plane/validation docs;
+- small deterministic GitHub work.
 
 ### Codex
 
-Primary writer for the active bounded implementation batch.
+**NO ACTIVE RELEASE.**
+
+Do not use Codex for research, docs, reading the repository, provider comparison, or speculative implementation.
+
+Release Codex only if the final implementation has been reduced to a precise bounded multi-file edit/test/repair task and the expected Stage-A value justifies consuming the remaining quota.
+
+### User PowerShell
+
+Use only when a real Windows/network/runtime/private-media boundary needs evidence after the contract/provider choice is frozen.
+
+## Immediate active investigation
+
+1. inspect existing reference evidence/guidance tests;
+2. inspect project-owned storage/lifecycle and Asset provenance vocabulary;
+3. freeze provider-neutral acquisition request/result/diagnostics;
+4. freeze SSRF/redirect/size/timeout/path/atomic-write security policy;
+5. compare direct HTTPS acquisition against any justified provider adapter;
+6. record provider/license/platform-policy evidence;
+7. determine implementation size;
+8. only then decide whether any Codex release is warranted.
+
+## Immediate corridor after active work
+
+1. close Reference URL acquisition;
+2. rights-aware public music acquisition;
+3. remaining bounded R0.12 productization including production GStreamer Preview integration;
+4. minimum Review/repair loop;
+5. ordinary-user Windows runtime / Environment Doctor;
+6. practical product-facing integration;
+7. real Product Probes / Human Gate.
 
 ## Constitutional constraints
 
@@ -169,9 +190,9 @@ Primary writer for the active bounded implementation batch.
 - PreviewBackend is playback-only.
 - original user media is never overwritten.
 - commercial output visual material remains user-supplied local media.
-- reference media defaults to analysis-only.
+- reference media defaults to analysis-only and remains Resolver-ineligible.
 - Editing-only remains independent of fabricated Planning artifacts.
-- poor source speech quality does not authorize semantic deletion/replacement/revoice.
+- remote acquisition cannot silently become output-eligible visual footage.
 - no temporary shortcut may fabricate source timestamps, Domain decisions or a Product Gate PASS.
 
 ## Documentation synchronization rule
@@ -186,6 +207,8 @@ Dynamic state is canonical only in:
 
 ## STOP boundary
 
-Do not concurrently open Reference URL, music acquisition, GUI/frontend or production Preview implementation while Codex owns the current mixed-audio/QC batch.
+Do not start public music acquisition, GUI/frontend, or further Preview work concurrently.
 
-Do not increase structural progress from 90% merely because this batch adds tests or typed decisions.
+Do not promise social-platform download support solely because a third-party extractor works technically.
+
+Do not release Codex until the Reference URL implementation boundary is demonstrably small, precise and worth the remaining quota.
