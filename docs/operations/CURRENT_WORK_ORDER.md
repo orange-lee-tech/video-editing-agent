@@ -1,239 +1,245 @@
 # Current Work Order
 
-**ID:** `R0.12-MINIMUM-REVIEW-REPAIR-LOOP-001`  
+**ID:** `R0.12-WINDOWS-ENVIRONMENT-DOCTOR-001`  
 **Status:** ACTIVE  
-**Phase:** R0.12 — Minimum post-render Review / bounded repair routing  
-**Mode:** PRODUCT INTEGRATION / CODE-AUDIT COMPLETE  
-**Accepted production-code baseline:** `4ca3b83bfac50923bdcf15f1ad08d90b397daa23`  
+**Phase:** R0.12 — Windows Environment Doctor / ordinary-user runtime readiness  
+**Mode:** PRODUCT INTEGRATION / CAPABILITY DISCOVERY  
+**Accepted production-code baseline:** `2cfeb664552769ade09f58bc2905ab531733a66a`  
 **Activated:** 2026-08-17  
 **Codex release:** NO
 
 ## Previous Work Order result
 
-`R0.12-PRODUCTION-PREVIEW-INTEGRATION-001` — **PASS / CLOSED**.
+`R0.12-MINIMUM-REVIEW-REPAIR-LOOP-001` — **PASS / CLOSED**.
 
 Accepted production baseline:
 
-`4ca3b83bfac50923bdcf15f1ad08d90b397daa23`
+`2cfeb664552769ade09f58bc2905ab531733a66a`
 
 Closure evidence:
 
-`docs/validation/R0.12_PRODUCTION_GSTREAMER_PREVIEW_INTEGRATION_EVIDENCE.md`
+`docs/validation/R0.12_MINIMUM_REVIEW_REPAIR_CLOSURE.md`
 
-Final bounded Windows production-adapter probe:
+Bounded Windows real-media Review run:
 
-- run `32030024748` — PASS;
-- AUTO and SOFTWARE_VIDEO raw probe steps both passed;
-- production GstPlay adapter completed initialize/load/play/pause/exact seek/resume/stop/release;
-- private GStreamer 1.28.6 runtime provenance was verified;
-- the first superficially green software-mode probe was rejected after real diagnostics exposed incorrect factory filtering;
-- the accepted implementation separately intersects Decoder + Hardware + Video classifications before rank demotion;
-- no Codex release used;
-- player/backend-family selection remains closed.
+`32033179672` — PASS.
+
+The production Review path accepted clean media, returned typed `CORRECTION_REQUIRED / RETURN_TO_AUDIO_EDITORIAL` for a real AAC silent-track defect, preserved exact EDL provenance and did not mutate delivered media.
 
 ## Why this work exists
 
-The Stage-A Editing chain is not complete merely because Renderer can produce a technically valid file.
+Stage-A 100% explicitly forbids assuming a preconfigured developer workstation.
 
-Current repository evidence shows three separate deterministic foundations already exist:
+The repository already has strong individual runtime proofs, but ordinary Windows usability is still fragmented across:
 
-1. **pre-render structural audio QC** — `application/audio_qc.py` checks whether canonical EDL has an approved audible lane when audible output is required;
-2. **Renderer technical verification** — the FFmpeg Renderer verifies output resolution, frame rate, required audio-track presence and duration before returning `RenderArtifact`;
-3. **post-render PCM diagnostics** — `music/audio_editorial.py::inspect_pcm16_wav()` can identify clipping and mostly-silent PCM output.
+- Python 3.12 package execution;
+- FFmpeg / ffprobe requirements used by ingest, extraction, render and Review;
+- a private GStreamer Preview runtime;
+- provider-specific API-key requirements;
+- optional local model/runtime components;
+- developer-oriented PowerShell Probe/install scripts.
 
-What is missing is one application-owned Review boundary that consumes the successful render artifact plus deterministic post-render evidence and returns a typed acceptance/correction verdict.
+Today an ordinary user can still encounter a low-level missing executable, missing runtime, missing key or unsupported capability before the product explains what is actually available on the machine.
 
-There is currently no production Review owner discovered in the Python tree, and the living smoke stops at EDL/FFmpeg compilation rather than a post-render Review verdict.
+This Work Order creates the smallest reliable **Environment Doctor** machine-fact boundary. It does not choose the final installer technology.
 
-## Frozen ownership
+## Source contracts
 
-The following invariants are non-negotiable:
+Canonical capability direction:
+
+- `docs/capabilities/CAP-10_DEPLOYMENT_SECURITY_AUTONOMY.md`
+- `docs/research/LOCAL_TOOLBOX_AND_DEPLOYMENT.md`
+- `docs/roadmap/STAGE_A_COMPLETION_GATE.md`
+
+Frozen principles:
 
 ```text
-canonical EDL        = sole exact executable timeline authority
-Renderer             = execute canonical EDL + technical delivery verification
-Review               = evaluate deterministic delivered-output evidence
-Editorial owners     = decide semantic/timeline/audio changes when Review routes back
-Environment/Renderer = own same-EDL technical rerender when the failure is execution-only
+hardware capability != software capability
+feature listed       != feature proven ready
+GPU absent            != basic product unusable
+missing optional path != silent fallback
+machine/provider data != Domain creative authority
 ```
-
-Review may **not**:
-
-- directly mutate EDL/EditPlan/ResolutionDecision;
-- silently change source ranges, cuts, captions, music, gains or voice treatment;
-- infer new editorial intent;
-- fabricate a repaired artifact;
-- retry recursively without a bounded explicit attempt;
-- duplicate Renderer-owned delivery verification just to create a second technical authority.
-
-## Audit findings that define this Work Order
-
-### Existing pre-render structural QC
-
-`check_audible_lanes(edl, requires_audible_output=...)` already distinguishes:
-
-- approved audible content;
-- intentional silence;
-- required audible lane missing.
-
-Its own contract says PCM inspection remains separate evidence. Preserve that split.
-
-### Existing Renderer verification
-
-A successful `RenderArtifact` already means the Renderer has verified, against canonical EDL/output intent:
-
-- expected resolution;
-- expected frame rate;
-- required audio-track presence;
-- expected duration within the accepted tolerance.
-
-Review must trust this successful execution contract rather than reimplementing those same checks as a competing authority.
-
-### Existing post-render audio evidence
-
-`inspect_pcm16_wav()` already produces deterministic PCM findings for:
-
-- clipping;
-- mostly silent output.
-
-The missing production integration is how a rendered output is inspected through a replaceable media-QC seam and how those findings become a Review verdict/correction route.
 
 ## Objective
 
-Close the smallest Review/repair product boundary that answers:
+Create one product-owned diagnostic surface that can answer, in typed and sanitized form:
 
-1. what exact successful render artifact/EDL revision is under review;
-2. how deterministic post-render media evidence is obtained without giving Review render authority;
-3. how clipping / unexpected mostly-silent output is represented as typed findings;
-4. how intentional silence remains valid rather than being called a defect;
-5. how artifact/EDL provenance mismatch fails closed;
-6. how PASS versus CORRECTION_REQUIRED versus BLOCKED is expressed;
-7. how a correction is routed to the proper existing owner rather than performed inside Review;
-8. how a same-EDL technical rerender differs from an editorial re-decision;
-9. how repair attempts are bounded and observable rather than recursively self-triggering;
-10. how this surface can later be exposed to an ordinary-user product flow.
+1. whether the host is a supported Stage-A Windows environment;
+2. whether the running Python satisfies the product minimum;
+3. whether FFmpeg and ffprobe are resolvable and can execute a tiny deterministic probe;
+4. whether the approved Preview private runtime can initialize through the production Preview seam when configured;
+5. whether required cloud provider credentials are configured **without exposing their values**;
+6. what optional capabilities are absent versus merely degraded;
+7. which capabilities block Planning, Editing, Preview or local media execution;
+8. what the ordinary user should repair next;
+9. how the product can rerun the same probes after repair.
 
-## Minimum contract to freeze
+## Frozen status vocabulary
 
-Subject to implementation-level naming, the production flow should be equivalent to:
+Use the CAP-10 semantics, subject only to implementation-level naming compatibility:
 
-```text
-ReviewRequest(
-  canonical EDL revision,
-  successful RenderArtifact,
-  output intent / audible intent,
-  repair-attempt number
-)
-→ rendered-media QC port
-→ deterministic Review findings
-→ ReviewVerdict
-```
+- `READY`
+- `AVAILABLE_AFTER_INSTALL`
+- `AVAILABLE_BUT_SLOW`
+- `HARDWARE_BLOCKED`
+- `CLOUD_FALLBACK`
+- `UNAVAILABLE`
 
-Verdict semantics must include the equivalent of:
+A capability may also carry typed product-impact metadata, but do not create an unrelated second status taxonomy.
 
-- `PASS` — delivered artifact is accepted by the bounded deterministic checks;
-- `CORRECTION_REQUIRED` — evidence identifies an explicit owner to revisit;
-- `BLOCKED` — evidence/provenance is insufficient or inconsistent, so automatic acceptance/retry is forbidden.
+## Minimum Stage-A capability set
 
-Exact enum names may differ if existing repository conventions call for better names.
+### Host runtime
 
-## Correction routing
+Inspect at least:
 
-The minimum route taxonomy must preserve ownership.
+- operating system / Windows support status;
+- Python runtime version;
+- architecture;
+- practical free disk information for the selected working location when available.
 
-### Same-EDL technical rerender
+Do not make CPU model or GPU presence a hard basic-product gate by itself.
 
-Allowed only when evidence classifies an execution/environment failure that does **not** require a new editorial decision.
+### FFmpeg / ffprobe
 
-Review does not execute the rerender itself. It returns a typed route such as `RERENDER_SAME_EDL` to the renderer/orchestrator boundary.
+Do not mark ready from `PATH` presence alone.
 
-### Return to editorial owner
-
-Required when correction changes approved content intent, for example a real output audio problem that may require changing an approved AudioMixDecision.
-
-Review returns evidence and an explicit owner route. The correct upstream owner creates a new decision/revision; EDLBuilder then deterministically assembles a new canonical EDL.
-
-Review itself never edits gains/music/voice/source ranges.
-
-### Blocked
-
-Use when:
-
-- `RenderArtifact` does not match the exact EDL revision under review;
-- output artifact is missing/uninspectable;
-- evidence is contradictory/insufficient;
-- repair-attempt policy is exhausted;
-- the requested correction has no legitimate owner route.
-
-Fail closed instead of fabricating PASS.
-
-## Bounded retry rule
-
-This Work Order must not implement an autonomous infinite repair loop.
-
-Minimum rule:
-
-- Review request carries an explicit non-negative repair-attempt number;
-- automatic/same-EDL retry eligibility is bounded by a small deterministic policy;
-- exceeding the bound returns `BLOCKED` / human-or-owner escalation;
-- editorial correction always requires a fresh owner decision/revision before a new render can be reviewed.
-
-The exact bound should be a named constant/policy, not hidden recursion.
-
-## Post-render media-QC boundary
-
-Do not make Review shell out to FFmpeg directly if a small replaceable port can own media inspection.
-
-The expected direction is:
+Minimum proof:
 
 ```text
-Review application owner
-→ RenderedMediaQc port
-→ FFmpeg/PCM inspection adapter
-→ existing inspect_pcm16_wav evidence
+resolve executable
+→ execute bounded version/probe command
+→ validate successful process result
+→ record normalized version/capability evidence
 ```
 
-The adapter may use a temporary PCM extraction as execution detail, but:
+The check must remain argument-array/direct-process based; no shell command construction from media/provider text.
 
-- original render is never overwritten;
-- temporary files are controlled/cleaned;
-- inspection failure is typed;
-- PCM thresholds remain deterministic and explicit;
-- the adapter does not make editorial decisions.
+### Preview
 
-If code audit during implementation reveals an existing equivalent port, reuse it instead of creating a duplicate.
+If a GStreamer private-runtime location is configured, readiness must be based on the production Preview runtime initialization contract, not merely directory existence.
 
-## Required deterministic evidence
+If no packaged/configured private Preview runtime exists, report a typed install/configuration state. Do not silently switch backend families.
 
-Tests should cover at least the equivalent of:
+### Cloud intelligence configuration
 
-1. matching EDL + RenderArtifact + clean media evidence → PASS;
-2. exact EDL id/revision mismatch → BLOCKED;
-3. missing/uninspectable output → BLOCKED;
-4. intentional-silence output does not fail only because it has no audible PCM;
-5. non-silent intent + mostly-silent rendered output → CORRECTION_REQUIRED with explicit owner route;
-6. clipping → CORRECTION_REQUIRED with explicit owner route;
-7. inspection/tool failure remains typed and does not become PASS;
-8. same-EDL technical retry route cannot mutate EDL;
-9. retry bound is enforced;
-10. Review exposes no edit/render mutation API;
-11. existing audible-lane QC remains pre-render and green;
-12. existing Renderer/EDL/Preview living contracts remain green.
+At minimum inspect configuration presence for the providers currently used by accepted product paths:
 
-Do not manufacture subjective aesthetic scores or fake visual-AI review evidence.
+- `DEEPSEEK_API_KEY` — Planning + Director;
+- `GEMINI_API_KEY` — supported visual-understanding provider;
+- `OPENAI_API_KEY` — supported visual-understanding provider.
 
-## Real integration evidence
+Rules:
 
-After deterministic gates pass, require one bounded media Engineering Probe through the production Review path using a real rendered MP4 or deterministic real media fixture.
+- never include secret values in Environment Doctor result, logs or repair report;
+- presence is configuration evidence, **not** a live provider-connectivity PASS;
+- Gemini/OpenAI are alternative supported visual paths; both are not required;
+- network/provider outages remain separate runtime failures.
 
-The probe must prove at least:
+### Optional local capabilities
 
-- clean rendered media can reach Review PASS;
-- real post-render audio inspection executes through the production QC adapter;
-- one intentionally defective deterministic audio fixture (for example clipping or unexpected silence) produces the expected non-PASS typed verdict;
-- no EDL/editorial mutation occurs inside Review.
+The Doctor may report currently detectable optional local model/runtime paths, but this first batch must not become an installer for Torch, CUDA, ASR, embedding or tracking packages.
 
-This is a Review integration probe, not another player/backend benchmark.
+Unknown optional capability must not falsely block deterministic local editing/rendering that does not require it.
+
+## Product-impact model
+
+Each finding should be attributable to a product capability such as:
+
+- `planning_cloud`
+- `editing_cloud_director`
+- `visual_understanding`
+- `media_probe_render`
+- `preview_playback`
+- `optional_local_acceleration`
+
+The aggregate result must preserve per-capability states. Do not collapse everything into one misleading boolean `environment_ok`.
+
+## Repair report
+
+Generate a copyable, sanitized report suitable for the user or an external assistant.
+
+It may include normalized OS/runtime facts, component/status/product impact, concise repair guidance and a request to rerun Environment Doctor after repair.
+
+It must not include API-key values, OAuth tokens/cookies, full environment dumps, unrelated personal paths, media-derived untrusted text or arbitrary model-generated shell commands.
+
+When installation guidance is needed, prefer official-source wording and never advise disabling security controls.
+
+## Application ownership
+
+Expected layering:
+
+```text
+EnvironmentDoctor application owner
+→ replaceable capability-probe ports
+→ Windows/tool/provider/private-runtime adapters
+→ typed EnvironmentReport
+```
+
+Environment Doctor may inspect capability and generate sanitized guidance. It may not mutate Domain creative state, EDL, assets, rights state or project decisions, and it may not automatically install arbitrary dependencies in this Work Order.
+
+## CLI / product-facing seam
+
+A minimal CLI exposure is allowed and desirable as an Engineering/Product integration seam, but CLI-only success does **not** complete the ordinary-user Product Gate.
+
+Prefer a project-independent command shape if it fits current parser ownership, conceptually:
+
+```text
+video-editing-agent doctor
+```
+
+Do not force Environment Doctor to create or edit a project merely to inspect the machine.
+
+## Required deterministic tests
+
+Cover at least:
+
+1. supported Windows + compatible Python → host runtime ready;
+2. non-Windows Stage-A host is reported honestly, not crashed;
+3. FFmpeg missing → typed install-required state;
+4. FFmpeg present but execution fails → not READY;
+5. FFmpeg + ffprobe bounded probe success → READY;
+6. Preview runtime missing/unconfigured → typed non-ready without backend switch;
+7. Preview runtime probe success → READY;
+8. DeepSeek key missing blocks relevant cloud configuration without exposing secret text;
+9. present provider key is reported only as configured, never echoed;
+10. Gemini/OpenAI visual alternatives do not require both keys;
+11. optional GPU/local acceleration missing does not make deterministic core falsely unavailable;
+12. generated repair report contains no supplied secret value;
+13. untrusted filenames/media text cannot become repair command authority;
+14. aggregate report preserves per-capability statuses.
+
+Existing Renderer, Preview, Review, Planning and Editing tests must remain green.
+
+## Real Windows evidence
+
+After deterministic gates pass, require one bounded Windows Environment Doctor Engineering Probe using the production surface.
+
+It must prove at least:
+
+- actual Windows host facts are reported;
+- pinned FFmpeg/ffprobe are probed as READY;
+- one deliberately unavailable/misconfigured component remains typed non-ready rather than crashing;
+- secret redaction is demonstrated with a synthetic sentinel secret;
+- no project/Domain mutation is required;
+- result is structured for later UI consumption.
+
+Do not download the large GStreamer runtime solely to decorate this probe. Preserve already accepted Preview Windows evidence unless a new Preview defect is exposed.
+
+## Installer boundary
+
+Not in this Work Order:
+
+- final installer technology;
+- signed installer/update channel;
+- automatic arbitrary package installation;
+- bundled/private Python decision;
+- CUDA/Torch model manager;
+- registry/system-wide mutation;
+- administrative privilege workflow.
+
+Environment Doctor must remain useful regardless of those later packaging decisions.
 
 ## Resource constraint
 
@@ -241,52 +247,46 @@ Approximately **9% Codex quota remains**.
 
 ### ChatGPT + GitHub
 
-Primary owner for:
-
-- contract/ownership reduction;
-- deterministic application port/use-case work where connector-first remains reliable;
-- focused tests;
-- CI/probe review;
-- governance/validation.
+Primary owner for contract reduction, typed capability/application seams, deterministic tool/provider probes, focused tests, bounded CLI integration, CI/Windows Engineering Probe and governance.
 
 ### Codex
 
 **NO ACTIVE RELEASE.**
 
-Release only if the bounded real FFmpeg/PCM Review adapter or multi-file integration becomes materially more efficient through local runtime iteration than connector-first work.
-
-Do not spend Codex on documentation, generic refactors, subjective Review heuristics or UI work.
+Release only if a genuine Windows-only multi-file runtime issue appears that connector-first work and hosted Windows evidence cannot close efficiently.
 
 ### User PowerShell
 
-Use only if GitHub-hosted real media evidence cannot represent the required Review boundary or a genuine Human Gate is needed.
+Use only if GitHub-hosted Windows evidence cannot represent the required capability or a real local-user/Human Gate becomes necessary.
 
 ## Exit gate
 
-This Work Order is PASS only when:
+PASS requires:
 
-- one production Review application boundary exists;
-- successful `RenderArtifact` provenance is tied to the exact canonical EDL revision under review;
-- deterministic post-render QC evidence is integrated through a replaceable execution port;
-- PASS / correction-required / blocked semantics are typed;
-- correction routes preserve Renderer/EDL/editorial ownership;
-- retries are explicitly bounded;
-- focused deterministic tests pass;
-- repository quality gates pass;
-- one bounded real media Review probe passes both clean and intentionally defective cases;
-- Review performs no hidden EDL/EditPlan/audio mutation;
+- one production Environment Doctor application boundary;
+- per-capability typed status and product impact;
+- FFmpeg/ffprobe readiness proven by execution;
+- Preview readiness represented through the accepted production seam/configuration contract;
+- provider-secret presence inspected without disclosure;
+- sanitized repair report;
+- deterministic tests and repository quality gates green;
+- one bounded Windows production Environment Doctor probe PASS;
+- no Domain/editorial mutation;
+- no installer technology falsely frozen;
 - structural progress remains 90% unless ordinary-user Product Gate structure genuinely changes.
 
 ## STOP boundary
 
-Do not build a subjective AI video critic.
+Do not build the final installer.
 
-Do not add aesthetic scoring, recommender loops or generative repair.
+Do not make GPU presence a basic-product requirement.
 
-Do not let Review mutate canonical EDL or approved editorial decisions.
+Do not trust declared executable/runtime presence without a tiny probe where readiness matters.
 
-Do not merge Review into Renderer just because Renderer already has technical verification.
+Do not leak secrets into reports/logs/tests.
+
+Do not auto-execute repair commands generated from model/media/provider text.
 
 Do not reopen Preview/backend benchmarking.
 
-Do not expand into Environment Doctor, GUI/frontend, SFX-provider expansion, generated music or generic media downloading.
+Do not expand into GUI/frontend or the full ordinary-user workflow orchestrator in this Work Order.
