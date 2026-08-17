@@ -16,7 +16,7 @@ mediapipe-recovery = [
 ]
 
 [project.scripts]
-video-editing-agent = "video_editing_agent.adapters.cli.main:main"
+video-editing-agent = "video_editing_agent.adapters.cli.entrypoint:main"
 
 [build-system]
 requires = ["uv_build>=0.12.2,<0.13.0"]
