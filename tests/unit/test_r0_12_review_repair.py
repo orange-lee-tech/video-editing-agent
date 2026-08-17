@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from video_editing_agent.application.ports.executor import DeterministicToolInvocation
@@ -40,7 +40,7 @@ class FakeRenderedMediaQc:
 
 
 def _clock() -> datetime:
-    return datetime(2026, 8, 17, 12, 0, tzinfo=timezone.utc)
+    return datetime(2026, 8, 17, 12, 0, tzinfo=UTC)
 
 
 def _invocation(identity: str) -> DeterministicToolInvocation:

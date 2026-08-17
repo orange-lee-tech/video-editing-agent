@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from video_editing_agent.application.ports.rendered_media_qc import (
     RenderedMediaQc,
@@ -47,7 +47,7 @@ class ReviewRequest:
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _diagnostic_owner(code: RenderDiagnosticCode) -> str:

@@ -80,9 +80,7 @@ def _audio_stream_present(content: str) -> bool | None:
     streams = root.get("streams")
     if not isinstance(streams, list):
         return None
-    return any(
-        isinstance(item, dict) and item.get("codec_type") == "audio" for item in streams
-    )
+    return any(isinstance(item, dict) and item.get("codec_type") == "audio" for item in streams)
 
 
 def _failure(
