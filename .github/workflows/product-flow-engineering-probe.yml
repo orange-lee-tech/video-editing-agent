@@ -82,16 +82,16 @@ jobs:
             schema_version = 1
             project = ".probe-state/planning-project"
             brief = [ordered]@{
-              title = "Simple visual product proof"
-              objective = "Create a concise shooting plan for one simple visual proof."
-              audience = "short-form product viewers"
+              title = "Four reference-card filming exercise"
+              objective = "Create a concise shooting plan for recording four separate reference visuals."
+              audience = "beginner short-form creators"
               platform = "short-video"
-              core_message = "Show one simple visual change clearly."
-              product_topic = "color-pattern demonstration"
+              core_message = "Record separate red, green, blue, and printed test-pattern references clearly."
+              product_topic = "reference-card filming exercise"
               target_duration_seconds = 8
               style_emotion = @("clear", "concise")
-              success_criteria = @("one easy-to-follow idea", "shootable in one simple setup")
-              user_notes = "Keep the plan minimal. Prefer one or two concise shots rather than many beats."
+              success_criteria = @("separate visuals are easy to distinguish", "shootable in one simple setup")
+              user_notes = "This is a neutral filming exercise using separate pre-existing reference cards or patterns. Do not imply that one product changes color or has any commercial capability. Keep the plan minimal."
             }
             production_constraints = [ordered]@{
               camera_or_phone = "phone"
@@ -105,7 +105,7 @@ jobs:
               )
               available_time_notes = "single short setup"
               user_skill_level = "beginner"
-              notes = @("Keep capture requirements simple and concrete.")
+              notes = @("Record the separate reference visuals as they already exist; do not invent product behavior.")
             }
           }
 
@@ -113,16 +113,16 @@ jobs:
             schema_version = 1
             project = ".probe-state/editing-project"
             brief = [ordered]@{
-              title = "Automatic color-pattern edit"
-              objective = "Automatically make a short proof video from the supplied footage."
-              audience = "short-form product viewers"
+              title = "Automatic reference-visual sequence"
+              objective = "Automatically make a short sequence from the supplied reference footage."
+              audience = "beginner short-form creators"
               platform = "short-video"
-              core_message = "Show the changing color pattern clearly."
-              product_topic = "color-pattern demonstration"
+              core_message = "Show the distinct red, green, blue, and printed pattern visuals clearly."
+              product_topic = "reference-visual sequence"
               target_duration_seconds = 8
               style_emotion = @("clear", "direct")
-              success_criteria = @("use only supplied footage", "keep the visual change easy to follow")
-              user_notes = "Keep the edit simple and concise. Prefer no more than four visual beats. Preserve source audio."
+              success_criteria = @("use only supplied footage", "keep distinct visuals easy to follow")
+              user_notes = "The footage contains separate visual states, not a product capability demonstration. Keep the edit simple and concise, use no more than four visual beats, and preserve source audio."
             }
             local_media = @("product-flow-probe.mp4")
             output = ".probe-output/final.mp4"
@@ -141,10 +141,14 @@ jobs:
             --request .\planning-request.json `
             --deepseek-model $env:DEEPSEEK_MODEL
           if ($LASTEXITCODE -ne 0) {
-            throw "Planning ProductFlow failed with exit code $LASTEXITCODE"
+            throw "Planning ProductFlow process failed with exit code $LASTEXITCODE"
           }
           $result | Set-Content .\planning-result.json -Encoding utf8
           Write-Host $result
+          $parsed = $result | ConvertFrom-Json
+          if ($parsed.outcome -ne "completed") {
+            throw "Planning ProductFlow outcome=$($parsed.outcome): $($parsed.diagnostic)"
+          }
 
       - name: Resolve reviewed TransNetV2 runtime weights
         id: transnet
@@ -178,10 +182,14 @@ jobs:
             --output-height 180 `
             --output-fps 25
           if ($LASTEXITCODE -ne 0) {
-            throw "Editing ProductFlow failed with exit code $LASTEXITCODE"
+            throw "Editing ProductFlow process failed with exit code $LASTEXITCODE"
           }
           $result | Set-Content .\editing-result.json -Encoding utf8
           Write-Host $result
+          $parsed = $result | ConvertFrom-Json
+          if ($parsed.outcome -ne "completed") {
+            throw "Editing ProductFlow outcome=$($parsed.outcome): $($parsed.diagnostic)"
+          }
 
       - name: Verify persisted revisions in a second Python process
         shell: pwsh
