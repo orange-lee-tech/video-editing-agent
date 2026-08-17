@@ -228,9 +228,11 @@ class WikimediaAudioAcquirer:
                     request.expected_content_type is not None
                     and content_type != request.expected_content_type.strip().casefold()
                 ):
+                    expected_content_type = request.expected_content_type.strip().casefold()
                     raise _AcquisitionFailure(
                         AudioAcquisitionDiagnosticCode.SOURCE_METADATA_CHANGED,
-                        "Wikimedia audio MIME type changed after rights verification",
+                        "Wikimedia audio MIME type changed after rights verification "
+                        f"(expected={expected_content_type}, received={content_type})",
                     )
                 declared_length = self._declared_length(response)
                 if declared_length is not None and declared_length > self._policy.max_bytes:
