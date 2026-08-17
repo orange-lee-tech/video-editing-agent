@@ -4,15 +4,15 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-17
 current_phase: R0.12
-phase_state: WINDOWS_ENVIRONMENT_DOCTOR_ACTIVE
-active_work_order: R0.12-WINDOWS-ENVIRONMENT-DOCTOR-001
-accepted_code_baseline: 2cfeb664552769ade09f58bc2905ab531733a66a
-control_plane_baseline: 7c91fc8c50d56931baa6032b377f60548ac6c80b
+phase_state: PRODUCT_FLOW_ORCHESTRATION_ACTIVE
+active_work_order: R0.12-PRODUCT-FLOW-ORCHESTRATION-001
+accepted_code_baseline: 914dd7dcc72595d418d7d3bf0cb05e356dd021b9
+control_plane_baseline: 764bf7f38fce81d06303f376b3e5919ae0471155
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
 core_1_planning_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
 core_2_editing_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
-previous_work_order: R0.12-MINIMUM-REVIEW-REPAIR-LOOP-001
+previous_work_order: R0.12-WINDOWS-ENVIRONMENT-DOCTOR-001
 previous_work_order_result: PASS
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
@@ -30,166 +30,140 @@ The accepted two-core architecture remains unchanged:
 
 Current accepted production-code baseline:
 
-`2cfeb664552769ade09f58bc2905ab531733a66a`
+`914dd7dcc72595d418d7d3bf0cb05e356dd021b9`
 
 ## Stage-A completion truth
 
 Structural progress remains **90%**.
 
-Canonical hard gate:
-
-`docs/roadmap/STAGE_A_COMPLETION_GATE.md`
-
-Live state:
-
-- `stage_a_completion_gate: OPEN`;
-- Core 1 Planning: foundation accepted, ordinary-user product flow open;
-- Core 2 Editing: foundation accepted, ordinary-user automatic final-MP4 flow open.
+- Stage-A completion gate: OPEN.
+- Planning Product Gate: foundation accepted, ordinary-user flow open.
+- Editing Product Gate: foundation accepted, ordinary-user automatic final-MP4 flow open.
 
 100% remains forbidden until both Product Gates and the overall Stage-A gate are PASS.
 
 ## Closed control boundaries
 
-### Preview backend + production integration — PASS/CLOSED
+### Preview — PASS/CLOSED
 
-- `docs/adr/ADR-010_GSTREAMER_PRIMARY_PREVIEW_BACKEND.md`
-- `docs/validation/R0.12_PRODUCTION_GSTREAMER_PREVIEW_INTEGRATION_EVIDENCE.md`
-- accepted baseline `4ca3b83bfac50923bdcf15f1ad08d90b397daa23`
-- Windows run `32030024748` — PASS.
+- GStreamer primary;
+- accepted baseline `4ca3b83bfac50923bdcf15f1ad08d90b397daa23`;
+- Windows production run `32030024748` — PASS;
+- playback-only; backend benchmark closed.
 
-GStreamer remains primary; Preview remains playback-only; player/backend benchmark remains closed.
-
-### Stage-A Product I/O Contract — PASS/CLOSED
+### Product I/O Contract — PASS/CLOSED
 
 `docs/product/STAGE_A_PRODUCT_IO_CONTRACT.md`
 
 ### Mixed source-audio / VoiceTreatment / audible QC — PASS/CLOSED
 
-- `R0.12-MIXED-SOURCE-AUDIO-QC-001`
-- `docs/validation/R0.12_MIXED_SOURCE_AUDIO_QC_CLOSURE.md`
+`docs/validation/R0.12_MIXED_SOURCE_AUDIO_QC_CLOSURE.md`
 
 ### Reference URL acquisition — PASS/CLOSED
 
-- `R0.12-REFERENCE-URL-ACQUISITION-001`
-- `docs/validation/R0.12_REFERENCE_URL_ACQUISITION_CLOSURE.md`
-- accepted baseline `d15abf9258c0a080e37d666cd1112358723e823a`
+`docs/validation/R0.12_REFERENCE_URL_ACQUISITION_CLOSURE.md`
 
-### Rights-aware public music acquisition — PASS/CLOSED
+### Rights-aware public music — PASS/CLOSED
 
-- `R0.12-PUBLIC-MUSIC-ACQUISITION-001`
 - `docs/validation/R0.12_PUBLIC_MUSIC_ACQUISITION_EVIDENCE.md`
-- accepted baseline `72ec275c1e72e876c4bcf828a44e7852208bab29`
-- Windows provider run `32026331114` — PASS.
+- accepted baseline `72ec275c1e72e876c4bcf828a44e7852208bab29`;
+- Windows run `32026331114` — PASS.
 
-### Minimum post-render Review / bounded repair — PASS/CLOSED
+### Minimum Review / repair — PASS/CLOSED
 
-- `R0.12-MINIMUM-REVIEW-REPAIR-LOOP-001`
 - `docs/validation/R0.12_MINIMUM_REVIEW_REPAIR_CLOSURE.md`
-- accepted production baseline `2cfeb664552769ade09f58bc2905ab531733a66a`
-- deterministic Quality Gate `32032812665` — PASS;
-- real-media Windows Review run `32033179672` — PASS.
+- accepted baseline `2cfeb664552769ade09f58bc2905ab531733a66a`;
+- Windows real-media run `32033179672` — PASS.
 
-Durable semantics:
+### Windows Environment Doctor — PASS/CLOSED
 
-- Review consumes exact RenderArtifact/EDL provenance and deterministic post-render evidence;
-- clean delivered media can pass;
-- unexpected mostly-silent audio with audible intent routes back to `AudioEditorialService`;
-- same-EDL technical retry is explicit and bounded;
-- Review cannot mutate EDL/editorial/render state.
+- Work Order `R0.12-WINDOWS-ENVIRONMENT-DOCTOR-001`;
+- closure `docs/validation/R0.12_WINDOWS_ENVIRONMENT_DOCTOR_CLOSURE.md`;
+- accepted baseline `914dd7dcc72595d418d7d3bf0cb05e356dd021b9`;
+- Quality Gate `32034737393` — PASS;
+- Windows production Doctor run `32035192895` — PASS.
 
-## Current active boundary — Windows Environment Doctor
+Environment Doctor provides project-independent typed machine/tool/provider/runtime readiness and sanitized repair guidance. It does not install dependencies or mutate creative state.
 
-`R0.12-WINDOWS-ENVIRONMENT-DOCTOR-001` is ACTIVE.
+## Current active boundary — product flow orchestration
+
+`R0.12-PRODUCT-FLOW-ORCHESTRATION-001` is ACTIVE.
 
 ### Audit truth
 
-The Stage-A compatibility floor cannot assume a preconfigured developer workstation.
+The repository owns the major capability pieces, but no application coordinator yet represents the ordinary-user end-to-end product flows.
 
-Current runtime facts are fragmented:
-
-- Python 3.12+ is required;
-- FFmpeg/ffprobe are external executables used across media ingest/render/Review;
-- GStreamer Preview uses a private-runtime contract;
-- cloud intelligence provider keys are configured through environment variables;
-- optional local acceleration/model packages are not basic-core requirements;
-- existing PowerShell installers and Probes are developer evidence rather than one product-owned capability report.
-
-### Frozen ownership
+Current seams:
 
 ```text
-machine/runtime facts
-→ EnvironmentDoctor application owner
-→ replaceable capability probes
-→ typed per-capability status/product impact
-→ sanitized repair report
+ProjectWorkspace.runtime()
+→ Planning + low-level media operations
+
+ProjectWorkspace.editing_runtime()
+→ Director → persisted EditPlan
+
+R0.12 living smoke
+→ manually composes Resolver → EDLBuilder → Renderer
+
+R0.9 product probe
+→ previously proved retrieval → temporal evidence → CandidateWindows → Resolver
+  but composition remains Probe-only
 ```
 
-Environment Doctor may inspect and classify. It cannot mutate Domain/EDL/project creative state and cannot install arbitrary dependencies in this Work Order.
+### Frozen product request boundary
 
-### Minimum capability truth to expose
+Ordinary product input may contain project/input/output locations, Brief/editorial intent, policy/production constraints, audio/voice intent and optional exact Planning refs.
 
-- supported Windows / Python runtime;
-- FFmpeg + ffprobe execution readiness;
-- configured Preview private-runtime readiness/state;
-- DeepSeek Planning/Director configuration presence;
-- Gemini/OpenAI visual-provider alternative configuration presence;
-- optional capability/degradation without making GPU mandatory;
-- sanitized repair guidance and rerun instruction.
+Ordinary product input must not require AssetRef/ShotRef/CandidateWindow/ResolutionDecision/source timestamps/EDL internals.
 
-### Secret boundary
+Runtime/provider/model configuration belongs to composition/configuration, not editorial request meaning.
 
-API key values, OAuth tokens, cookies and full environment dumps are forbidden from Doctor results and repair reports.
+### Product progress boundary
 
-Provider key presence is configuration evidence only; it is not a live provider-connectivity PASS.
+Application-level projections must surface project ready, input validation, ingest/understanding, planning/editing decision, resolving, EDL assembly, render, Review/QC, completed and failed states.
 
-### Installer boundary
+These are not new Domain authorities.
 
-The Work Order does **not** freeze final installer technology, private Python packaging, admin/system-wide mutation, signed updates or CUDA/Torch model management.
+### Retrieval / Resolver boundary
 
-### Real evidence gate
+- lexical retrieval is a valid minimal production baseline after indexed ShotAnalysis;
+- dense retrieval remains optional enhancement;
+- CandidateWindows come from exact Shot boundaries or persisted TemporalAnchors/Evidence;
+- no LLM-generated timestamps;
+- fallback remains inside exact Shot source range and explicitly evidences boundary grounding;
+- unresolved remains fail-closed.
 
-Require deterministic tests plus one bounded Windows production Environment Doctor Probe proving:
+### Downstream authority
 
-- actual host facts;
-- real FFmpeg/ffprobe readiness;
-- typed non-ready handling for one unavailable component;
-- synthetic secret redaction;
-- no project/Domain mutation;
-- structured output suitable for later UI consumption.
+- audio treatment remains grounded per Resolver selection;
+- optional music/spatial assets are not fabricated;
+- EDLBuilder alone assembles canonical timeline;
+- Renderer executes canonical EDL;
+- Review classifies and routes correction only.
 
 ## Codex quota constraint
 
 Approximately **9% Codex quota remains**.
 
-### ChatGPT + GitHub
+ChatGPT + GitHub are primary for this bounded orchestration/integration work.
 
-Primary for contract reduction, deterministic implementation/tests, CI/Windows Engineering Probe and governance.
-
-### Codex
-
-**NO ACTIVE RELEASE.**
-
-Release only for a genuine Windows-only multi-file runtime defect that connector-first + hosted Windows evidence cannot close efficiently.
-
-### User PowerShell
-
-Use only if hosted Windows evidence is insufficient or a real local-user/Human Gate is required.
+Codex: **NO ACTIVE RELEASE** unless a genuine Windows/media multi-file runtime defect cannot be closed efficiently with connector-first work and hosted evidence.
 
 ## Immediate corridor after active work
 
-1. Windows Environment Doctor / ordinary-user runtime diagnostics;
-2. practical product-facing orchestration/integration;
-3. real Planning Product Probe + Human Gate;
-4. real Editing automatic-final-MP4 Product Probe + Human Gate;
-5. Stage-A 100% only after all hard gates pass.
+1. complete reusable Planning + Editing product flow orchestration;
+2. real Planning Product Probe + Human Gate;
+3. real Editing automatic-final-MP4 Product Probe + Human Gate;
+4. evidence-backed repair only;
+5. Stage-A 100% only after all hard gates genuinely pass.
 
 ## Constitutional constraints
 
-- canonical EDL remains the sole exact timeline authority;
+- canonical EDL remains sole exact timeline authority;
 - Preview remains playback-only;
-- Renderer executes canonical EDL and does not make editorial decisions;
-- Review classifies evidence and routes correction only;
-- Planning-only / Editing-only / Combined remain legitimate parallel entries;
+- Renderer has no editorial authority;
+- Review has no edit/render mutation authority;
+- Planning-only / Editing-only / Combined remain parallel legitimate entries;
 - originals remain protected from overwrite;
-- untrusted media/provider text cannot become execution authority;
-- structural progress remains 90% until ordinary-user product-gate structure genuinely changes.
+- untrusted media/provider text cannot become executor authority;
+- no structural-progress bump for orchestration abstraction alone.
