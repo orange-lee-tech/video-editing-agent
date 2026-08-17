@@ -4,7 +4,7 @@
 **Development stage:** STRUCTURAL_CONSTRUCTION  
 **Structural progress:** 90%  
 **Current phase:** R0.12 — EDL / Renderer / Subtitle / Preview / Proxy Productization  
-**Engineering state:** PRODUCTION_GSTREAMER_PREVIEW_INTEGRATION_ACTIVE  
+**Engineering state:** MINIMUM_REVIEW_REPAIR_LOOP_ACTIVE  
 **Updated:** 2026-08-17
 
 ## Progress meaning
@@ -31,11 +31,12 @@ Stage-A 100% remains forbidden until both core Product Gates are PASS.
 - `1abc185a793d6a73ea55824bd2a036a1a134151a` — EditPlan parallel-entry compatibility.
 - `500c8563e3686a5aaef055ffb5301553aa999fd9` — real Editing Director/Application entry and persisted EditPlan integration.
 - `ac5eb16fc8ecfb5ed29306826942765d264e0f3d` — per-selection mixed source-audio treatment, VoiceTreatment, deterministic source DUCK and audible-lane QC foundation.
-- `ffb5dbd7d3fc4e995f89a7a231910fa0295fcbba` — acceptance repair allowing ordinary non-required-speech MUTE while preserving required-speech fail-closed semantics.
-- `d15abf9258c0a080e37d666cd1112358723e823a` — accepted direct-HTTPS Reference URL acquisition implementation after quality-gate repair and real owner-seam validation.
-- `72ec275c1e72e876c4bcf828a44e7852208bab29` — accepted rights-aware public-music discovery, current-source verification and bounded Wikimedia audio acquisition implementation.
+- `ffb5dbd7d3fc4e995f89a7a231910fa0295fcbba` — ordinary non-required-speech MUTE acceptance repair while preserving required-speech fail-closed semantics.
+- `d15abf9258c0a080e37d666cd1112358723e823a` — accepted direct-HTTPS Reference URL acquisition implementation.
+- `72ec275c1e72e876c4bcf828a44e7852208bab29` — accepted rights-aware public-music discovery, current-source verification and bounded Wikimedia audio acquisition.
+- `4ca3b83bfac50923bdcf15f1ad08d90b397daa23` — production playback-only GStreamer Preview seam, private-runtime adapter, exact seek and corrected hardware-video-decoder fallback filtering.
 
-**Current accepted production-code baseline:** `72ec275c1e72e876c4bcf828a44e7852208bab29`.
+**Current accepted production-code baseline:** `4ca3b83bfac50923bdcf15f1ad08d90b397daa23`.
 
 ## Parallel workflow architecture
 
@@ -67,15 +68,7 @@ Closure evidence:
 
 `docs/validation/R0.12_MIXED_SOURCE_AUDIO_QC_CLOSURE.md`
 
-Accepted result:
-
-- mixed grounded selections can independently PRESERVE / DUCK / MUTE source audio;
-- VoiceTreatment and speech-protection rules are typed and fail closed;
-- ordinary non-speech source audio can be muted without fake voice declarations;
-- EDLBuilder owns deterministic mapping only;
-- Renderer remains execution-only;
-- non-silent intent fails structural audible-lane QC when no approved audible segment exists;
-- GitHub CI on accepted repair baseline passed.
+Accepted result includes grounded per-selection PRESERVE/DUCK/MUTE, typed VoiceTreatment/speech protection and fail-closed non-silent audible-lane QC.
 
 ### Reference URL acquisition — PASS/CLOSED
 
@@ -87,19 +80,11 @@ Closure evidence:
 
 `docs/validation/R0.12_REFERENCE_URL_ACQUISITION_CLOSURE.md`
 
-Accepted baseline:
+Accepted production baseline:
 
 `d15abf9258c0a080e37d666cd1112358723e823a`
 
-Accepted result:
-
-- direct unauthenticated HTTPS reference media has a bounded Stage-A acquisition path;
-- remote bytes land in project-controlled storage and cross normal ffprobe/AssetIngest/persistence;
-- acquired references use `reference_acquired + reference_analysis_only`;
-- remote reference media cannot become visual Resolver candidates;
-- real network/media/Asset evidence and a focused owner-seam probe reached existing `ReferenceStyleEvidenceService`;
-- the owner-seam probe explicitly disclosed synthetic Shot/VisualSemantics and did not claim real visual-AI execution;
-- authenticated/social/DRM/bulk/live/universal downloader behavior remains outside the accepted boundary.
+Supported direct unauthenticated HTTPS references enter project-controlled storage as `reference_acquired + reference_analysis_only`; authenticated/social/DRM/bulk/live/universal downloader behavior remains outside Stage A.
 
 ### Rights-aware public music acquisition — PASS/CLOSED
 
@@ -115,62 +100,85 @@ Accepted production baseline:
 
 `72ec275c1e72e876c4bcf828a44e7852208bab29`
 
-Deterministic quality-gate baseline:
-
-`97c9ba838b169a99fb50deb0aa13029209592dff`
-
 Real Windows provider run:
 
 `32026331114` — PASS.
 
+Openverse remains discovery-only; current Wikimedia Commons metadata is the bounded rights authority; approved public audio crosses real acquisition, FFprobe and normal `provider_acquired_audio + music` Asset ingest.
+
+### Production GStreamer Preview integration — PASS/CLOSED
+
+Work Order:
+
+`R0.12-PRODUCTION-PREVIEW-INTEGRATION-001`
+
+Closure evidence:
+
+`docs/validation/R0.12_PRODUCTION_GSTREAMER_PREVIEW_INTEGRATION_EVIDENCE.md`
+
+Accepted production baseline:
+
+`4ca3b83bfac50923bdcf15f1ad08d90b397daa23`
+
+Final Windows production-adapter run:
+
+`32030024748` — PASS.
+
 Accepted result:
 
-- Openverse provides discovery-only `wikimedia_audio` candidates and does not become rights authority;
-- current Wikimedia Commons metadata re-verifies each selected source before automatic acquisition;
-- narrow Stage-A automatic rights policy accepts CC0 / accepted Public Domain / CC BY semantics and fails closed for NC / ND / BY-SA / NonFree / restricted / unknown cases;
-- raw + normalized rights evidence is persisted through ArtifactStore;
-- one approved `upload.wikimedia.org` item is acquired through a bounded provider-specific transport with identified bot UA and typed throttling evidence;
-- source SHA-1 / size and local SHA-256 are checked;
-- exact FLAC/Ogg MIME aliases are comparison-only and unrelated MIME changes remain fail closed;
-- real FFprobe classified the acquired 83,141,176-byte FLAC as audio and normal Asset ingest produced `provider_acquired_audio + music`;
-- no Codex release was used;
-- local user music remains a valid fallback.
+- a real playback-only Preview application port now exists;
+- GStreamer/GstPlay runs behind that port with a deliberate 1.28.x private-runtime contract;
+- local-media load, play/pause, exact absolute seek, status, stop and release are typed;
+- Preview does not gain canonical EDL/editorial/render authority;
+- explicit software-video mode demotes only factories separately classified as Decoder + Hardware + Video and restores ranks on release;
+- the first superficially green real probe was rejected when diagnostics showed over-broad factory filtering, then repaired and re-probed;
+- final hosted Windows AUTO/SOFTWARE_VIDEO paths passed through the production adapter;
+- no further backend-family benchmark is authorized absent a new hard product trigger.
 
 ## Active Work Order
 
-`R0.12-PRODUCTION-PREVIEW-INTEGRATION-001` is ACTIVE.
+`R0.12-MINIMUM-REVIEW-REPAIR-LOOP-001` is ACTIVE.
 
-This is **production integration of the already-selected GStreamer Preview family**, not a reopened backend benchmark.
+This boundary closes the missing application-owned post-render Review verdict/correction route. It does **not** create a subjective AI critic or a second editorial authority.
 
-Accepted ADR:
+### Audit-grounded starting point
 
-`docs/adr/ADR-010_GSTREAMER_PRIMARY_PREVIEW_BACKEND.md`
+Current repository already has:
+
+- pre-render canonical EDL audible-lane QC;
+- Renderer-owned technical output verification for resolution, frame rate, required audio-track presence and duration;
+- deterministic PCM clipping/mostly-silent diagnostics;
+- successful `RenderArtifact` carrying exact EDL id/revision and output metadata.
+
+Current repository does **not** yet expose one production Review owner that ties those delivered-output facts to a typed final verdict/correction route.
 
 ### Product route to close
 
-Subject to the existing code seam discovered by audit:
-
 ```text
-application Preview request
-→ existing PreviewBackend boundary
-→ production GStreamer adapter
-→ selected private runtime
-→ local media playback / absolute seek / state diagnostics
+canonical EDL revision
++ successful RenderArtifact
++ audible/output intent
+→ rendered-media QC port
+→ deterministic post-render evidence
+→ Review verdict
+→ PASS | explicit correction route | BLOCKED
 ```
 
-Preview remains playback-only. Canonical EDL and Renderer authority are unchanged.
+### Ownership rules
 
-### Immediate rules
+- Review never mutates canonical EDL/EditPlan/ResolutionDecision/AudioMixDecision.
+- Renderer remains execution + technical-delivery-verification owner.
+- pre-render audible-lane QC remains pre-render; do not duplicate it as post-render authority.
+- post-render PCM evidence may identify clipping/unexpected silence, but Review routes the correction to the legitimate owner.
+- same-EDL technical rerender is distinct from an editorial re-decision.
+- repair attempts are bounded explicitly; no recursive autonomous repair loop.
+- provenance mismatch or insufficient evidence fails closed.
 
-- audit existing Preview/application/runtime seams before writing a new API;
-- preserve GstPlay/playbin3 high-level integration direction;
-- normal path may autoplug valid D3D11 acceleration;
-- explicit software video-decode fallback remains a supported degraded route;
-- do not silently dual-bundle/switch to libVLC;
-- do not reopen libmpv Stage-A exclusion;
-- do not run more backend-family benchmarks;
-- private-runtime lookup/configuration may be integrated here, while full ordinary-user Environment Doctor remains later;
-- deterministic tests first, then one bounded real Windows probe through the **production adapter**.
+### Required evidence direction
+
+Deterministic tests first, followed by one bounded real-media Review probe proving clean PASS and one deterministic defective-audio non-PASS verdict through the **production Review path**.
+
+No subjective visual score or fake visual-model evidence is required.
 
 ### Codex resource constraint
 
@@ -178,17 +186,16 @@ Approximately **9% Codex quota remains**.
 
 **Codex: NOT RELEASED.**
 
-ChatGPT + GitHub first own code audit and contract reduction. Codex is reserved only if the exact production adapter proves to require material local Windows/runtime multi-file iteration.
+ChatGPT + GitHub remain primary unless the real FFmpeg/PCM adapter boundary proves to require materially more efficient local runtime iteration.
 
 ## Immediate corridor after active work
 
-1. close production GStreamer Preview integration behind the existing PreviewBackend seam;
-2. minimum Review/repair loop;
-3. ordinary-user Windows runtime / Environment Doctor;
-4. practical product-facing integration;
-5. real Planning/Editing Product Probes + Human Gate.
+1. close minimum post-render Review / bounded repair routing;
+2. ordinary-user Windows runtime / Environment Doctor;
+3. practical product-facing integration;
+4. real Planning/Editing Product Probes + Human Gate.
 
-Do not expand this Work Order into renewed player selection, SFX marketplaces, generated music or generic media downloading.
+Do not expand this Work Order into renewed player selection, subjective AI reviewing, SFX marketplaces, generated music or generic media downloading.
 
 ## Stage-A 100% product-operability gate
 
