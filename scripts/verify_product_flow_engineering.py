@@ -142,11 +142,18 @@ def _verify_editing(
         raise RuntimeError("Editing Brief exact revision did not reload")
     if edit_plan.brief_ref != brief_ref:
         raise RuntimeError("Persisted EditPlan lost exact Brief lineage")
+    reloaded_edl_ref = EntityRevisionRef(edl.envelope.id, edl.envelope.revision)
+    if reloaded_edl_ref != edl_ref:
+        raise RuntimeError("Persisted canonical EDL exact revision did not reload")
     if edl.edit_plan_ref != edit_plan_ref:
         raise RuntimeError("Persisted canonical EDL lost exact EditPlan lineage")
     if not edl.segments:
         raise RuntimeError("Persisted canonical EDL contains no segments")
-    if any(segment.source_range.start < 0 or segment.source_range.duration <= 0 for segment in edl.segments):
+    if any(
+        segment.source_range.start.as_fraction() < 0
+        or segment.source_range.duration.as_fraction() <= 0
+        for segment in edl.segments
+    ):
         raise RuntimeError("Persisted canonical EDL contains invalid grounded source ranges")
 
     output_raw = result.get("output")
@@ -191,7 +198,8 @@ def _verify_editing(
     print(f"editing_edl_ref={edl_ref.entity_id}@{edl_ref.revision}")
     print(f"rendered_output={output}")
     print(f"rendered_duration_seconds={duration:.3f}")
-    print("canonical_edl_second_process_exact_revision=PASS")
+    print("canonical_edl_second_process_exact_revision_reload=PASS")
+    print("canonical_edl_lineage_reload=PASS")
     print("source_original_hash_preserved=PASS")
     print("real_ffmpeg_mp4_video_audio=PASS")
     print("review_pass=PASS")
