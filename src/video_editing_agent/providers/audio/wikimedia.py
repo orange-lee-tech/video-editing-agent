@@ -214,9 +214,9 @@ class WikimediaAudioRightsVerifier:
         raw_artifact = self._artifact_store.put(
             ArtifactPayload(
                 "application/json",
-                json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(
-                    "utf-8"
-                ),
+                json.dumps(
+                    payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+                ).encode("utf-8"),
             )
         )
         page = self._page(payload)
@@ -232,7 +232,11 @@ class WikimediaAudioRightsVerifier:
                 "Wikimedia response omitted the canonical file title",
             )
         raw_imageinfo = page.get("imageinfo")
-        if not isinstance(raw_imageinfo, list) or not raw_imageinfo or not isinstance(raw_imageinfo[0], dict):
+        if (
+            not isinstance(raw_imageinfo, list)
+            or not raw_imageinfo
+            or not isinstance(raw_imageinfo[0], dict)
+        ):
             return self._failure(
                 WikimediaRightsDiagnosticCode.SOURCE_MISSING,
                 "Wikimedia response omitted current file imageinfo",
@@ -243,7 +247,10 @@ class WikimediaAudioRightsVerifier:
         source_sha1 = imageinfo.get("sha1")
         mime_type = imageinfo.get("mime")
         byte_size = imageinfo.get("size")
-        if not all(isinstance(value, str) and value.strip() for value in (source_url, source_page, source_sha1, mime_type)):
+        if not all(
+            isinstance(value, str) and value.strip()
+            for value in (source_url, source_page, source_sha1, mime_type)
+        ):
             return self._failure(
                 WikimediaRightsDiagnosticCode.SOURCE_METADATA_INVALID,
                 "Wikimedia response omitted required source URL/hash/MIME metadata",
@@ -271,7 +278,7 @@ class WikimediaAudioRightsVerifier:
         ):
             return self._failure(
                 WikimediaRightsDiagnosticCode.SOURCE_URL_REJECTED,
-                "verified Wikimedia file URL is outside the approved upload.wikimedia.org HTTPS host",
+                "verified Wikimedia file URL is outside the approved upload host",
             )
 
         raw_extmetadata = imageinfo.get("extmetadata")
@@ -349,9 +356,9 @@ class WikimediaAudioRightsVerifier:
         normalized_artifact = self._artifact_store.put(
             ArtifactPayload(
                 "application/json",
-                json.dumps(normalized, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(
-                    "utf-8"
-                ),
+                json.dumps(
+                    normalized, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+                ).encode("utf-8"),
             )
         )
         snapshot = LicenseSnapshot(
