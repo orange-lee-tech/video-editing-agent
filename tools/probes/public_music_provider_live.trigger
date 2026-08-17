@@ -1,4 +1,5 @@
 R0.12-PUBLIC-MUSIC-ACQUISITION-001
-purpose=MIME_DIAGNOSTIC_AFTER_RIGHTS_AND_UA_FIX
-target_implementation=1f001a3f118ce393930e50d28ad49411d2ee7150
+purpose=FINAL_MIME_ALIAS_VALIDATION
+target_implementation=72ec275c1e72e876c4bcf828a44e7852208bab29
+quality_gate_baseline=97c9ba838b169a99fb50deb0aa13029209592dff
 expected_runs=1
