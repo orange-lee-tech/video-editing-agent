@@ -25,7 +25,9 @@ from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.domain.shooting.model import ProductionConstraints, ProductionLocation
 from video_editing_agent.media.ingest.ffprobe import FfprobeMediaProbe
 from video_editing_agent.media.understanding.frame_extraction import FfmpegPngFrameExtractor
-from video_editing_agent.media.understanding.service import ProviderNeutralVisualUnderstandingService
+from video_editing_agent.media.understanding.service import (
+    ProviderNeutralVisualUnderstandingService,
+)
 from video_editing_agent.providers.review.ffmpeg_pcm import FFmpegPcmRenderedMediaQc
 from video_editing_agent.render.edl_ffmpeg import FFmpegEDLRenderer
 from video_editing_agent.storage.asset.repository_media import RepositoryLocalAssetMediaResolver
@@ -173,15 +175,11 @@ def _brief(value: object) -> ProductBriefInput:
             data.get("target_duration_seconds"), "brief.target_duration_seconds"
         ),
         style_emotion=_string_tuple(data.get("style_emotion"), "brief.style_emotion"),
-        success_criteria=_string_tuple(
-            data.get("success_criteria"), "brief.success_criteria"
-        ),
+        success_criteria=_string_tuple(data.get("success_criteria"), "brief.success_criteria"),
         prohibited_content=_string_tuple(
             data.get("prohibited_content"), "brief.prohibited_content"
         ),
-        brand_constraints=_string_tuple(
-            data.get("brand_constraints"), "brief.brand_constraints"
-        ),
+        brand_constraints=_string_tuple(data.get("brand_constraints"), "brief.brand_constraints"),
         user_notes=_optional_text(data.get("user_notes"), "brief.user_notes"),
     )
 
@@ -235,9 +233,7 @@ def _production_constraints(value: object) -> ProductionConstraints:
         ),
         stabilizer=_optional_text(data.get("stabilizer"), "production_constraints.stabilizer"),
         lighting=_optional_text(data.get("lighting"), "production_constraints.lighting"),
-        microphones=_string_tuple(
-            data.get("microphones"), "production_constraints.microphones"
-        ),
+        microphones=_string_tuple(data.get("microphones"), "production_constraints.microphones"),
         people_count=people_count,
         locations=tuple(locations),
         available_time_notes=_optional_text(
@@ -321,10 +317,7 @@ def _ref_json(value: EntityRevisionRef | None) -> dict[str, object] | None:
 
 
 def _events_json(result: PlanningProductResult | EditingProductResult) -> list[dict[str, str]]:
-    return [
-        {"stage": event.stage.value, "message": event.message}
-        for event in result.events
-    ]
+    return [{"stage": event.stage.value, "message": event.message} for event in result.events]
 
 
 def planning_result_json(result: PlanningProductResult) -> dict[str, Any]:
