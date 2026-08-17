@@ -35,10 +35,7 @@ _CHUNK_SIZE = 64 * 1024
 _REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
 _ALLOWED_HOST = "upload.wikimedia.org"
 _ALLOWED_GENERIC_AUDIO_TYPES = frozenset({"application/ogg", "application/octet-stream"})
-_USER_AGENT = (
-    "video-editing-agent-bot/0.1 "
-    "(https://github.com/orange-lee-tech/video-editing-agent)"
-)
+_USER_AGENT = "video-editing-agent-bot/0.1 (https://github.com/orange-lee-tech/video-editing-agent)"
 Clock = Callable[[], datetime]
 Monotonic = Callable[[], float]
 
