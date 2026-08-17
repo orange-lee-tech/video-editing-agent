@@ -4,15 +4,15 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-17
 current_phase: R0.12
-phase_state: PRODUCTION_GSTREAMER_PREVIEW_INTEGRATION_ACTIVE
-active_work_order: R0.12-PRODUCTION-PREVIEW-INTEGRATION-001
-accepted_code_baseline: 72ec275c1e72e876c4bcf828a44e7852208bab29
-control_plane_baseline: 9c340e3770c312c8745699c12e442538b8b20963
+phase_state: MINIMUM_REVIEW_REPAIR_LOOP_ACTIVE
+active_work_order: R0.12-MINIMUM-REVIEW-REPAIR-LOOP-001
+accepted_code_baseline: 4ca3b83bfac50923bdcf15f1ad08d90b397daa23
+control_plane_baseline: bcb6e37e9ddc5a6fdc50687d4e680a59459c04c2
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
 core_1_planning_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
 core_2_editing_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
-previous_work_order: R0.12-PUBLIC-MUSIC-ACQUISITION-001
+previous_work_order: R0.12-PRODUCTION-PREVIEW-INTEGRATION-001
 previous_work_order_result: PASS
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
@@ -30,7 +30,7 @@ The accepted two-core architecture remains unchanged:
 
 Current accepted production-code baseline is:
 
-`72ec275c1e72e876c4bcf828a44e7852208bab29`
+`4ca3b83bfac50923bdcf15f1ad08d90b397daa23`
 
 ## Stage-A completion truth
 
@@ -54,7 +54,7 @@ Live state:
 
 `docs/adr/ADR-010_GSTREAMER_PRIMARY_PREVIEW_BACKEND.md`
 
-GStreamer primary; Preview playback-only; EDL authority unchanged. Backend-family selection is closed and must not be reopened without a concrete Product Probe failure/new hard requirement.
+GStreamer primary; Preview playback-only; EDL authority unchanged. Backend-family selection remains closed.
 
 ### Stage-A Product I/O Contract — PASS/CLOSED
 
@@ -80,16 +80,6 @@ Accepted production baseline:
 
 `d15abf9258c0a080e37d666cd1112358723e823a`
 
-Accepted durable semantics:
-
-- supported direct unauthenticated HTTPS reference media can enter project-controlled storage;
-- remote bytes cross normal ffprobe/AssetIngest/persistence;
-- acquired reference media is `reference_acquired + reference_analysis_only`;
-- remote reference media remains visual-Resolver ineligible;
-- a real network/media/Asset probe plus focused existing-owner seam probe reached `ReferenceStyleEvidenceService`;
-- synthetic Shot/VisualSemantics used only for the owner-seam mechanism were explicitly disclosed and are not a real visual-model claim;
-- social/authenticated/cookie/CAPTCHA/DRM/bulk/live/universal downloader behavior remains outside the Stage-A boundary.
-
 ### Rights-aware public music acquisition — PASS/CLOSED
 
 `R0.12-PUBLIC-MUSIC-ACQUISITION-001`
@@ -102,80 +92,94 @@ Accepted production baseline:
 
 `72ec275c1e72e876c4bcf828a44e7852208bab29`
 
-Deterministic quality-gate baseline:
-
-`97c9ba838b169a99fb50deb0aa13029209592dff`
-
 Final bounded Windows provider run:
 
 `32026331114` — PASS.
 
-Accepted durable semantics:
+### Production GStreamer Preview integration — PASS/CLOSED
 
-- Openverse is discovery-only and discovery results remain rights-unverified until current source verification;
-- current Wikimedia Commons metadata is the rights-verification authority for this Stage-A provider adapter;
-- accepted automatic pool is intentionally narrow: CC0 / accepted Public Domain / CC BY semantics; NC / ND / BY-SA / NonFree / restricted / unknown fail closed;
-- raw and normalized rights evidence is content-addressed through ArtifactStore;
-- `upload.wikimedia.org` acquisition is provider-specific, bounded and public-host constrained;
-- identified bot User-Agent and typed HTTP 429 / `Retry-After` evidence are preserved without automatic hammering;
-- source SHA-1 / byte size and local SHA-256 integrity are checked;
-- only exact FLAC/Ogg MIME aliases are canonicalized for comparison, while actual HTTP MIME remains evidence;
-- real FFprobe 8.1 classified the acquired 83,141,176-byte file as FLAC audio;
-- normal Asset ingest produced `provider_acquired_audio + music` with content hash equal to acquisition SHA-256;
-- no Codex release was used;
-- local user music remains a valid Stage-A fallback.
+`R0.12-PRODUCTION-PREVIEW-INTEGRATION-001`
 
-## Current active boundary — production GStreamer Preview integration
+Closure evidence:
 
-`R0.12-PRODUCTION-PREVIEW-INTEGRATION-001` is ACTIVE.
+`docs/validation/R0.12_PRODUCTION_GSTREAMER_PREVIEW_INTEGRATION_EVIDENCE.md`
 
-This boundary integrates the already-selected GStreamer family behind the existing/accepted Preview seam. It does **not** reopen backend-family benchmarking.
+Accepted production baseline:
 
-Accepted decision:
+`4ca3b83bfac50923bdcf15f1ad08d90b397daa23`
 
-`docs/adr/ADR-010_GSTREAMER_PRIMARY_PREVIEW_BACKEND.md`
+Final bounded Windows production-adapter run:
 
-### Ownership remains frozen
+`32030024748` — PASS.
+
+Durable semantics:
+
+- a real playback-only Preview application boundary now exists;
+- GStreamer/GstPlay 1.28.x private-runtime integration executes local-media lifecycle and exact seek without stealing EDL authority;
+- missing/runtime/plugin failures are typed;
+- software-video mode demotes only factories separately classified as Decoder + Hardware + Video and restores ranks on release;
+- the first superficially green real probe was rejected after diagnostics exposed over-broad factory filtering;
+- corrected production code and final hosted Windows AUTO/SOFTWARE_VIDEO probe passed;
+- prior T470s evidence remains the hardware-backed software-decode fallback evidence;
+- no player/backend benchmark is reopened.
+
+## Current active boundary — minimum Review / bounded repair routing
+
+`R0.12-MINIMUM-REVIEW-REPAIR-LOOP-001` is ACTIVE.
+
+This boundary fills the missing post-render application owner. It does not create a subjective AI critic or a second editing system.
+
+### Audit truth
+
+Current production already has three useful deterministic layers:
+
+1. canonical EDL audible-lane QC before render;
+2. Renderer-owned technical verification before a successful `RenderArtifact` is returned;
+3. PCM clipping/mostly-silent inspection utility.
+
+The living smoke currently stops before a final post-render Review verdict, and no production Review owner was discovered in the application tree.
+
+### Frozen ownership
 
 ```text
-canonical EDL  = sole exact executable timeline authority
-Renderer       = final render/execution authority
-PreviewBackend = playback-only adapter
-GStreamer      = Stage-A production implementation family behind PreviewBackend
+canonical EDL        = sole exact executable timeline authority
+Renderer             = execute EDL + technical delivery verification
+Review               = classify deterministic delivered-output evidence
+Editorial owners     = make semantic/content corrections when routed back
+Renderer/Environment = same-EDL technical rerender owner when appropriate
 ```
 
-Preview cannot repair, reinterpret, retime or silently replace EDL decisions.
+Review cannot directly change EDL/EditPlan/ResolutionDecision/AudioMixDecision or fabricate a repaired artifact.
 
-### Immediate control action
+### Product route to close
 
-ChatGPT + GitHub first audit:
+```text
+exact canonical EDL revision
++ successful RenderArtifact
++ audible/output intent
+→ RenderedMediaQc port
+→ deterministic post-render evidence
+→ Review verdict
+→ PASS | CORRECTION_REQUIRED | BLOCKED
+```
 
-- existing PreviewBackend / preview application ports;
-- current preview adapters or benchmark-only code;
-- time/seek and local-media request types;
-- runtime/configuration composition seams;
-- reusable GStreamer benchmark/probe mechanisms that do not leak benchmark authority into production;
-- tests/import contracts around application ↔ provider/infrastructure ownership.
+### Correction semantics
 
-Only after this audit may the exact production edit be frozen.
+- successful Renderer technical checks are trusted, not duplicated as a competing authority;
+- pre-render audible-lane QC remains pre-render;
+- unexpected clipping/mostly-silent rendered output becomes typed Review evidence;
+- same-EDL technical rerender is a route, not a hidden Review execution action;
+- editorial correction returns to the legitimate owner for a new decision/revision;
+- artifact/EDL provenance mismatch or insufficient evidence fails closed;
+- retry attempts are explicit and bounded; no recursive autonomous loop.
 
-### Accepted production direction
+### Evidence gate
 
-- GStreamer 1.28.6 Windows x86_64 MSVC private runtime is the initial accepted evidence baseline;
-- high-level GstPlay/playbin3 control direction;
-- normal path allows valid D3D11 acceleration;
-- explicit software video-decode fallback remains supported and diagnosable;
-- missing/broken runtime/plugin/device conditions need typed application diagnostics;
-- private runtime is supplied deliberately rather than assuming arbitrary global PATH;
-- no silent automatic libVLC cross-backend fallback;
-- libmpv remains Stage-A hard-gate excluded;
-- no new player benchmark without a concrete hard product trigger.
+Require focused deterministic tests plus one bounded real-media production Review probe with:
 
-### Scope split
-
-This Work Order may integrate the adapter's private-runtime lookup/configuration contract and enough capability reporting to prove the adapter can run.
-
-The full ordinary-user Windows Environment Doctor / installer / repair UX remains a later dedicated productization boundary unless a minimal piece is unavoidable for production adapter proof.
+- clean artifact → PASS;
+- deterministic defective-audio artifact → typed non-PASS;
+- no hidden EDL/editorial mutation.
 
 ## Codex quota constraint
 
@@ -183,11 +187,10 @@ Approximately **9% Codex quota remains**.
 
 ### ChatGPT + GitHub
 
-Primary initially for:
+Primary for:
 
-- code/repository audit;
-- exact port/adapter contract reduction;
-- small deterministic implementation where connector-first work remains reliable;
+- contract reduction;
+- deterministic application/port implementation;
 - focused tests;
 - CI/probe review;
 - governance/validation.
@@ -196,34 +199,33 @@ Primary initially for:
 
 **NO ACTIVE RELEASE.**
 
-Release only if the audit proves a bounded local Windows/runtime/multi-file implementation or repair materially benefits from Codex enough to justify the remaining quota.
+Release only if the bounded real FFmpeg/PCM Review adapter or integration becomes materially more efficient through local runtime multi-file iteration.
 
-Do not spend Codex on renewed GStreamer/libVLC/libmpv comparison, documentation, or benchmark archaeology.
+Do not spend Codex on docs, subjective Review heuristics or generic refactors.
 
 ### User PowerShell
 
-Use only if GitHub-hosted Windows evidence cannot represent the real private-runtime production adapter boundary or a Human Gate is genuinely required.
+Use only if GitHub-hosted real-media Review evidence is insufficient or a genuine Human Gate is required.
 
 ## Immediate corridor after active work
 
-1. production GStreamer Preview adapter integration behind the existing PreviewBackend seam;
-2. minimum Review/repair loop;
-3. ordinary-user Windows runtime / Environment Doctor;
-4. practical product-facing integration;
-5. real Planning/Editing Product Probes + Human Gate.
+1. minimum post-render Review / bounded repair routing;
+2. ordinary-user Windows runtime / Environment Doctor;
+3. practical product-facing integration;
+4. real Planning/Editing Product Probes + Human Gate.
 
 ## Constitutional constraints
 
 - EDL remains sole exact timeline authority.
 - Renderer executes canonical EDL and does not make editorial decisions.
-- PreviewBackend is playback-only.
+- Review classifies evidence and routes correction; it does not edit.
+- PreviewBackend remains playback-only.
 - original user media is never overwritten.
 - commercial output visual material remains user-supplied local media.
-- public/remote audio is separate from forbidden remote visual sourcing and still requires rights evidence.
-- provider candidates/URLs do not become timeline authority.
+- public/remote audio remains rights-evidence-gated.
 - reference media defaults to analysis-only and remains Resolver-ineligible.
 - Editing-only remains independent of fabricated Planning artifacts.
-- no temporary shortcut may fabricate source timestamps, rights evidence, Domain decisions or a Product Gate PASS.
+- no temporary shortcut may fabricate source timestamps, rights evidence, Domain decisions, Review PASS or a Product Gate PASS.
 
 ## Documentation synchronization rule
 
@@ -239,10 +241,8 @@ Dynamic state is canonical only in:
 
 Do not reopen player benchmarks.
 
-Do not silently bundle or switch to libVLC.
+Do not build a subjective AI video critic.
 
-Do not reopen libmpv Stage-A exclusion without a new hard requirement.
+Do not let Review mutate EDL or editorial decisions.
 
-Do not expand this Work Order into full GUI/frontend, SFX-provider expansion, generated music, Proxy redesign, or generic media downloading.
-
-Do not let Preview become EDL/final-render authority.
+Do not expand this Work Order into Environment Doctor, full GUI/frontend, generated music, SFX-provider expansion or generic media downloading.
