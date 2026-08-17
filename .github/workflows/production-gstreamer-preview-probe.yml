@@ -1,0 +1,95 @@
+name: Production GStreamer Preview Probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "tools/probes/production_gstreamer_preview.trigger"
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: production-gstreamer-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-preview:
+    name: Windows Production GStreamer Preview Probe
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.12.2"
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Sync locked base environment
+        run: uv sync --frozen
+
+      - name: Install pinned FFmpeg 8.1
+        shell: pwsh
+        run: .\.github\scripts\install-ffmpeg-windows.ps1
+
+      - name: Generate deterministic audiovisual fixture
+        shell: pwsh
+        run: |
+          ffmpeg -hide_banner -loglevel error -f lavfi -i "testsrc2=size=640x360:rate=30:duration=6" -f lavfi -i "sine=frequency=880:sample_rate=48000:duration=6" -c:v libx264 -profile:v baseline -pix_fmt yuv420p -c:a aac -shortest preview-production-probe.mp4
+          if ($LASTEXITCODE -ne 0) { throw "fixture generation failed" }
+          ffprobe -hide_banner -v error -show_entries stream=codec_name,codec_type,width,height,r_frame_rate -show_entries format=duration -of json preview-production-probe.mp4
+          if ($LASTEXITCODE -ne 0) { throw "fixture ffprobe failed" }
+
+      - name: Install verified GStreamer 1.28.6 private runtime
+        shell: pwsh
+        run: .\.github\scripts\install-gstreamer-preview-windows.ps1
+
+      - name: Execute production Preview adapter in AUTO mode
+        id: auto_probe
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          uv run python .\tools\probes\r0_12_production_gstreamer_preview.py --runtime-root "$env:GSTREAMER_PREVIEW_RUNTIME_ROOT" --media .\preview-production-probe.mp4 --mode auto
+
+      - name: Execute production Preview adapter in SOFTWARE_VIDEO mode
+        id: software_probe
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          uv run python .\tools\probes\r0_12_production_gstreamer_preview.py --runtime-root "$env:GSTREAMER_PREVIEW_RUNTIME_ROOT" --media .\preview-production-probe.mp4 --mode software_video
+
+      - name: Publish production Preview status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUTO_OUTCOME: ${{ steps.auto_probe.outcome }}
+          SOFTWARE_OUTCOME: ${{ steps.software_probe.outcome }}
+        run: |
+          if [ "$AUTO_OUTCOME" = "success" ] && [ "$SOFTWARE_OUTCOME" = "success" ]; then
+            state="success"
+            description="production GStreamer Preview adapter passed AUTO and SOFTWARE_VIDEO"
+          else
+            state="failure"
+            description="production GStreamer Preview adapter failed bounded Windows probe"
+          fi
+
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -f state="$state" \
+            -f context="ci/production-gstreamer-preview-windows" \
+            -f description="$description" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      - name: Fail workflow when production Preview probe failed
+        if: steps.auto_probe.outcome != 'success' || steps.software_probe.outcome != 'success'
+        run: exit 1
