@@ -124,14 +124,17 @@ def _snapshot_environment() -> dict[str, str | None]:
 def _assert_environment_restored(before: dict[str, str | None]) -> None:
     after = _snapshot_environment()
     if after != before:
-        raise RuntimeError(f"Preview release did not restore environment: before={before}, after={after}")
+        raise RuntimeError(
+            f"Preview release did not restore environment: before={before}, after={after}"
+        )
 
 
-def run_probe(runtime_root: Path, media_path: Path, decode_mode: PreviewDecodeMode) -> dict[str, object]:
+def run_probe(
+    runtime_root: Path, media_path: Path, decode_mode: PreviewDecodeMode
+) -> dict[str, object]:
     environment_before = _snapshot_environment()
-    provenance = (
-        "official-gstreamer-1.28.6-msvc-x86_64;sha256="
-        + os.environ.get("GSTREAMER_PREVIEW_INSTALLER_SHA256", "unknown")
+    provenance = "official-gstreamer-1.28.6-msvc-x86_64;sha256=" + os.environ.get(
+        "GSTREAMER_PREVIEW_INSTALLER_SHA256", "unknown"
     )
     backend = GStreamerPreviewBackend(
         GStreamerPreviewConfig(
@@ -177,9 +180,7 @@ def run_probe(runtime_root: Path, media_path: Path, decode_mode: PreviewDecodeMo
         paused_later = _require_clean(runtime.preview.status(), "paused stability")
         if paused_later.position is None:
             raise RuntimeError("paused stability check lost position")
-        pause_drift = abs(
-            paused_later.position.as_fraction() - first_pause_position.as_fraction()
-        )
+        pause_drift = abs(paused_later.position.as_fraction() - first_pause_position.as_fraction())
         if pause_drift > Fraction(3, 20):
             raise RuntimeError(f"paused playback drifted too far: {pause_drift} seconds")
         evidence["paused"] = {
