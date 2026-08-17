@@ -149,7 +149,9 @@ def _brief_input() -> ProductBriefInput:
     return ProductBriefInput("Title", "Objective", "Audience", "Platform", "Message")
 
 
-def test_planning_flow_calls_existing_owners_in_order_and_returns_exact_refs(tmp_path: Path) -> None:
+def test_planning_flow_calls_existing_owners_in_order_and_returns_exact_refs(
+    tmp_path: Path,
+) -> None:
     calls: list[str] = []
 
     def create_brief(value: ProductBriefInput, created_by: str) -> Brief:
@@ -263,7 +265,16 @@ def test_editing_flow_starts_from_local_paths_and_reaches_reviewed_output(tmp_pa
         EditingProductRequest(tmp_path, _brief_input(), (source,), output)
     )
 
-    assert calls == ["brief", "media", "edit_plan", "resolve", "edl", "save_edl", "render", "review"]
+    assert calls == [
+        "brief",
+        "media",
+        "edit_plan",
+        "resolve",
+        "edl",
+        "save_edl",
+        "render",
+        "review",
+    ]
     assert result.outcome is ProductFlowOutcome.COMPLETED
     assert result.output_path == output
     assert result.edl_ref == EntityRevisionRef("edl_flow", 1)
@@ -282,8 +293,9 @@ def test_unresolved_edit_slot_fails_closed_before_edl_or_render(tmp_path: Path) 
         lambda paths: (EntityRevisionRef("ast_flow", 1),),
         lambda brief_ref, script_ref, shooting_ref, created_by: _edit_plan(brief_ref),
         lambda plan: (_unresolved(EntityRevisionRef(plan.envelope.id, plan.envelope.revision)),),
-        lambda plan, decisions, audible: downstream.append("edl") or _edl(
-            EntityRevisionRef(plan.envelope.id, plan.envelope.revision)
+        lambda plan, decisions, audible: (
+            downstream.append("edl")
+            or _edl(EntityRevisionRef(plan.envelope.id, plan.envelope.revision))
         ),
         lambda edl: downstream.append("save"),
         lambda edl, path: downstream.append("render") or _render(edl, path),
@@ -315,7 +327,9 @@ def test_review_correction_route_is_surfaced_not_silently_repaired(tmp_path: Pat
         lambda paths: (EntityRevisionRef("ast_flow", 1),),
         generate_edit_plan,
         lambda plan: (_decision(EntityRevisionRef(plan.envelope.id, plan.envelope.revision)),),
-        lambda plan, decisions, audible: _edl(EntityRevisionRef(plan.envelope.id, plan.envelope.revision)),
+        lambda plan, decisions, audible: _edl(
+            EntityRevisionRef(plan.envelope.id, plan.envelope.revision)
+        ),
         lambda edl: None,
         lambda edl, path: _render(edl, path),
         lambda edl_ref, rendered, audible: _review(edl_ref, False),

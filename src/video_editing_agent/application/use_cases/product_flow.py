@@ -279,9 +279,7 @@ class EditingProductFlow:
                     slot_id for decision in unresolved for slot_id in decision.target_slot_ids
                 )
                 raise ValueError(f"unresolved EditPlan slots: {slot_ids}")
-            events.append(
-                ProductFlowEvent(ProductFlowStage.EDL_ASSEMBLY, "Building canonical EDL")
-            )
+            events.append(ProductFlowEvent(ProductFlowStage.EDL_ASSEMBLY, "Building canonical EDL"))
             edl = self._operations.build_edl(
                 edit_plan,
                 decisions,

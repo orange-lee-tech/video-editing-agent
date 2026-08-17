@@ -159,7 +159,9 @@ def test_resolver_uses_deterministic_shot_boundary_fallback_when_no_anchor_exist
     assert first == second
     selection = first[0].selections[0]
     assert selection.selected_source_range == MediaTimeRange(MediaTime(10, 1), MediaTime(3, 1))
-    assert selection.selected_source_range.start.as_fraction() >= shot.source_range.start.as_fraction()
+    assert (
+        selection.selected_source_range.start.as_fraction() >= shot.source_range.start.as_fraction()
+    )
     assert selection.selected_source_range.end.as_fraction() <= shot.source_range.end.as_fraction()
     assert selection.evidence_refs == ("shot-boundary:sht_product@1",)
 
