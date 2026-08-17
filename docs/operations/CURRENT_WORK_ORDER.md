@@ -1,172 +1,239 @@
 # Current Work Order
 
-**ID:** `R0.12-PRODUCTION-PREVIEW-INTEGRATION-001`  
+**ID:** `R0.12-MINIMUM-REVIEW-REPAIR-LOOP-001`  
 **Status:** ACTIVE  
-**Phase:** R0.12 — Production GStreamer Preview integration behind the accepted PreviewBackend seam  
-**Mode:** PRODUCT INTEGRATION / CODE-AUDIT FIRST  
-**Accepted production-code baseline:** `72ec275c1e72e876c4bcf828a44e7852208bab29`  
+**Phase:** R0.12 — Minimum post-render Review / bounded repair routing  
+**Mode:** PRODUCT INTEGRATION / CODE-AUDIT COMPLETE  
+**Accepted production-code baseline:** `4ca3b83bfac50923bdcf15f1ad08d90b397daa23`  
 **Activated:** 2026-08-17  
 **Codex release:** NO
 
 ## Previous Work Order result
 
-`R0.12-PUBLIC-MUSIC-ACQUISITION-001` — **PASS / CLOSED**.
+`R0.12-PRODUCTION-PREVIEW-INTEGRATION-001` — **PASS / CLOSED**.
 
 Accepted production baseline:
 
-`72ec275c1e72e876c4bcf828a44e7852208bab29`
+`4ca3b83bfac50923bdcf15f1ad08d90b397daa23`
 
-Deterministic quality-gate baseline:
+Closure evidence:
 
-`97c9ba838b169a99fb50deb0aa13029209592dff`
+`docs/validation/R0.12_PRODUCTION_GSTREAMER_PREVIEW_INTEGRATION_EVIDENCE.md`
 
-Real provider evidence:
+Final bounded Windows production-adapter probe:
 
-- live Windows run `32026331114` — PASS;
-- validation: `docs/validation/R0.12_PUBLIC_MUSIC_ACQUISITION_EVIDENCE.md`;
-- real route: Openverse discovery → Wikimedia current rights verification → bounded single-item acquisition → ffprobe → `provider_acquired_audio + music` Asset;
-- no Codex release used.
+- run `32030024748` — PASS;
+- AUTO and SOFTWARE_VIDEO raw probe steps both passed;
+- production GstPlay adapter completed initialize/load/play/pause/exact seek/resume/stop/release;
+- private GStreamer 1.28.6 runtime provenance was verified;
+- the first superficially green software-mode probe was rejected after real diagnostics exposed incorrect factory filtering;
+- the accepted implementation separately intersects Decoder + Hardware + Video classifications before rank demotion;
+- no Codex release used;
+- player/backend-family selection remains closed.
 
 ## Why this work exists
 
-ADR-010 already closed the Preview backend-family decision. The product does **not** need another player benchmark.
+The Stage-A Editing chain is not complete merely because Renderer can produce a technically valid file.
 
-The remaining Stage-A gap is production integration of the selected GStreamer family through the replaceable Preview boundary so an application/product surface can initialize playback, load media, control position and expose diagnosable degraded behavior without stealing authority from canonical EDL or Renderer.
+Current repository evidence shows three separate deterministic foundations already exist:
 
-Accepted ADR:
+1. **pre-render structural audio QC** — `application/audio_qc.py` checks whether canonical EDL has an approved audible lane when audible output is required;
+2. **Renderer technical verification** — the FFmpeg Renderer verifies output resolution, frame rate, required audio-track presence and duration before returning `RenderArtifact`;
+3. **post-render PCM diagnostics** — `music/audio_editorial.py::inspect_pcm16_wav()` can identify clipping and mostly-silent PCM output.
 
-`docs/adr/ADR-010_GSTREAMER_PRIMARY_PREVIEW_BACKEND.md`
+What is missing is one application-owned Review boundary that consumes the successful render artifact plus deterministic post-render evidence and returns a typed acceptance/correction verdict.
+
+There is currently no production Review owner discovered in the Python tree, and the living smoke stops at EDL/FFmpeg compilation rather than a post-render Review verdict.
 
 ## Frozen ownership
 
 The following invariants are non-negotiable:
 
 ```text
-canonical EDL  = sole exact executable timeline authority
-Renderer       = final render/execution authority
-PreviewBackend = playback-only adapter
-GStreamer      = selected Stage-A implementation family behind that adapter
+canonical EDL        = sole exact executable timeline authority
+Renderer             = execute canonical EDL + technical delivery verification
+Review               = evaluate deterministic delivered-output evidence
+Editorial owners     = decide semantic/timeline/audio changes when Review routes back
+Environment/Renderer = own same-EDL technical rerender when the failure is execution-only
 ```
 
-Preview may display/play requested media/timeline state. It may not repair, reinterpret, retime or silently replace canonical EDL decisions.
+Review may **not**:
 
-Do not redesign EditPlan, EDL, Renderer, Music, Proxy or Planning ownership merely to fit GStreamer.
+- directly mutate EDL/EditPlan/ResolutionDecision;
+- silently change source ranges, cuts, captions, music, gains or voice treatment;
+- infer new editorial intent;
+- fabricate a repaired artifact;
+- retry recursively without a bounded explicit attempt;
+- duplicate Renderer-owned delivery verification just to create a second technical authority.
 
-## Accepted backend decision
+## Audit findings that define this Work Order
 
-Stage-A primary Preview family is GStreamer.
+### Existing pre-render structural QC
 
-Accepted integration direction from ADR-010:
+`check_audible_lanes(edl, requires_audible_output=...)` already distinguishes:
 
-- GStreamer 1.28.6 Windows x86_64 MSVC private runtime is the initial evidence baseline;
-- high-level GstPlay/playbin3 control surface;
-- normal path permits supported D3D11 decode/presentation autoplugging;
-- explicit software video-decode fallback remains supported;
-- runtime/capability failure must be diagnosable;
-- application/private runtime is preferred over arbitrary user-global installation;
-- libVLC remains an alternative adapter, not a default dual-bundled fallback;
-- libmpv remains Stage-A hard-gate excluded;
-- no further backend-family benchmark is authorized without a concrete Product Probe failure/new hard requirement.
+- approved audible content;
+- intentional silence;
+- required audible lane missing.
+
+Its own contract says PCM inspection remains separate evidence. Preserve that split.
+
+### Existing Renderer verification
+
+A successful `RenderArtifact` already means the Renderer has verified, against canonical EDL/output intent:
+
+- expected resolution;
+- expected frame rate;
+- required audio-track presence;
+- expected duration within the accepted tolerance.
+
+Review must trust this successful execution contract rather than reimplementing those same checks as a competing authority.
+
+### Existing post-render audio evidence
+
+`inspect_pcm16_wav()` already produces deterministic PCM findings for:
+
+- clipping;
+- mostly silent output.
+
+The missing production integration is how a rendered output is inspected through a replaceable media-QC seam and how those findings become a Review verdict/correction route.
 
 ## Objective
 
-Close the smallest production Preview integration boundary that answers:
+Close the smallest Review/repair product boundary that answers:
 
-1. what Preview port/application surface already exists and what is actually missing;
-2. how one GStreamer adapter owns initialize/load/play/pause/seek/stop/release behavior;
-3. how requested timeline/media positions are expressed without creating a second time authority;
-4. how normal hardware-capable playback and explicit software-decode fallback are selected and diagnosed;
-5. how missing/private-runtime/plugin/device failures become typed application diagnostics;
-6. how lifecycle/release is deterministic and idempotent enough for an ordinary application session;
-7. how the selected private-runtime location is supplied without assuming global PATH;
-8. which deployment/runtime manifest concerns belong here versus the later Windows Environment Doctor boundary;
-9. what focused deterministic tests and one bounded real Windows integration probe are required.
+1. what exact successful render artifact/EDL revision is under review;
+2. how deterministic post-render media evidence is obtained without giving Review render authority;
+3. how clipping / unexpected mostly-silent output is represented as typed findings;
+4. how intentional silence remains valid rather than being called a defect;
+5. how artifact/EDL provenance mismatch fails closed;
+6. how PASS versus CORRECTION_REQUIRED versus BLOCKED is expressed;
+7. how a correction is routed to the proper existing owner rather than performed inside Review;
+8. how a same-EDL technical rerender differs from an editorial re-decision;
+9. how repair attempts are bounded and observable rather than recursively self-triggering;
+10. how this surface can later be exposed to an ordinary-user product flow.
 
-## First action — code audit, not implementation guesswork
+## Minimum contract to freeze
 
-ChatGPT + GitHub must first inspect:
-
-- existing `PreviewBackend` / preview-related application ports;
-- existing preview adapters or probe-only code;
-- current time/seek types and canonical EDL boundary;
-- current runtime/configuration composition seams;
-- accepted GStreamer benchmark/probe code that may be reusable without importing benchmark authority into production;
-- tests/import contracts around application ↔ provider/infrastructure ownership.
-
-Only after that audit freeze the minimum production edit.
-
-Do not create a new Preview API when an existing seam already expresses the needed contract.
-
-## Minimum expected production behavior
-
-Subject to the code audit, the production adapter should cover the smallest coherent lifecycle:
+Subject to implementation-level naming, the production flow should be equivalent to:
 
 ```text
-initialize selected private runtime
-→ create playback session
-→ load approved local media
-→ play / pause
-→ absolute seek requested by application
-→ report state / position / typed failure
-→ stop / release cleanly
+ReviewRequest(
+  canonical EDL revision,
+  successful RenderArtifact,
+  output intent / audible intent,
+  repair-attempt number
+)
+→ rendered-media QC port
+→ deterministic Review findings
+→ ReviewVerdict
 ```
 
-Where the existing Preview port already defines different names/shapes, preserve it rather than forcing this pseudocode literally.
+Verdict semantics must include the equivalent of:
 
-## Degraded behavior
+- `PASS` — delivered artifact is accepted by the bounded deterministic checks;
+- `CORRECTION_REQUIRED` — evidence identifies an explicit owner to revisit;
+- `BLOCKED` — evidence/provenance is insufficient or inconsistent, so automatic acceptance/retry is forbidden.
 
-The accepted fallback semantics are:
+Exact enum names may differ if existing repository conventions call for better names.
 
-1. normal high-level GStreamer path first;
-2. hardware decode/presentation may autoplug where valid;
-3. when hardware video decode is explicitly disabled or proven defective, permit a diagnosable software video-decode route;
-4. do not pretend software decode means all GPU presentation must be disabled;
-5. initialization/playback failure is surfaced, not hidden by EDL/media rewriting.
+## Correction routing
 
-No silent automatic switch to libVLC is part of Stage A.
+The minimum route taxonomy must preserve ownership.
 
-## Runtime / deployment boundary
+### Same-EDL technical rerender
 
-This Work Order may define and integrate the production adapter's private-runtime lookup/configuration contract.
+Allowed only when evidence classifies an execution/environment failure that does **not** require a new editorial decision.
 
-It must **not** expand into the full ordinary-user Environment Doctor/product installer boundary unless required to prove the adapter can be invoked. Full missing-runtime repair UX, installer orchestration and host-health guidance remain a later dedicated productization boundary.
+Review does not execute the rerender itself. It returns a typed route such as `RERENDER_SAME_EDL` to the renderer/orchestrator boundary.
 
-Preserve:
+### Return to editorial owner
 
-- exact runtime provenance/version evidence;
-- controlled plugin/runtime surface;
-- LGPL/notices obligations;
-- no assumption that arbitrary GStreamer is already installed globally.
+Required when correction changes approved content intent, for example a real output audio problem that may require changing an approved AudioMixDecision.
+
+Review returns evidence and an explicit owner route. The correct upstream owner creates a new decision/revision; EDLBuilder then deterministically assembles a new canonical EDL.
+
+Review itself never edits gains/music/voice/source ranges.
+
+### Blocked
+
+Use when:
+
+- `RenderArtifact` does not match the exact EDL revision under review;
+- output artifact is missing/uninspectable;
+- evidence is contradictory/insufficient;
+- repair-attempt policy is exhausted;
+- the requested correction has no legitimate owner route.
+
+Fail closed instead of fabricating PASS.
+
+## Bounded retry rule
+
+This Work Order must not implement an autonomous infinite repair loop.
+
+Minimum rule:
+
+- Review request carries an explicit non-negative repair-attempt number;
+- automatic/same-EDL retry eligibility is bounded by a small deterministic policy;
+- exceeding the bound returns `BLOCKED` / human-or-owner escalation;
+- editorial correction always requires a fresh owner decision/revision before a new render can be reviewed.
+
+The exact bound should be a named constant/policy, not hidden recursion.
+
+## Post-render media-QC boundary
+
+Do not make Review shell out to FFmpeg directly if a small replaceable port can own media inspection.
+
+The expected direction is:
+
+```text
+Review application owner
+→ RenderedMediaQc port
+→ FFmpeg/PCM inspection adapter
+→ existing inspect_pcm16_wav evidence
+```
+
+The adapter may use a temporary PCM extraction as execution detail, but:
+
+- original render is never overwritten;
+- temporary files are controlled/cleaned;
+- inspection failure is typed;
+- PCM thresholds remain deterministic and explicit;
+- the adapter does not make editorial decisions.
+
+If code audit during implementation reveals an existing equivalent port, reuse it instead of creating a duplicate.
 
 ## Required deterministic evidence
 
-After the code audit freezes the actual port shape, tests should cover at least the equivalent of:
+Tests should cover at least the equivalent of:
 
-- initialization success/failure;
-- local-media load ownership;
-- play/pause state transitions;
-- absolute seek forwarding without retiming/reinterpretation;
-- stop/release lifecycle;
-- double release/idempotent cleanup where the port promises it;
-- missing runtime/plugin typed diagnostics;
-- explicit software-decode fallback configuration;
-- no Preview authority to modify canonical EDL;
-- existing Renderer/EDL smoke remains green.
+1. matching EDL + RenderArtifact + clean media evidence → PASS;
+2. exact EDL id/revision mismatch → BLOCKED;
+3. missing/uninspectable output → BLOCKED;
+4. intentional-silence output does not fail only because it has no audible PCM;
+5. non-silent intent + mostly-silent rendered output → CORRECTION_REQUIRED with explicit owner route;
+6. clipping → CORRECTION_REQUIRED with explicit owner route;
+7. inspection/tool failure remains typed and does not become PASS;
+8. same-EDL technical retry route cannot mutate EDL;
+9. retry bound is enforced;
+10. Review exposes no edit/render mutation API;
+11. existing audible-lane QC remains pre-render and green;
+12. existing Renderer/EDL/Preview living contracts remain green.
 
-Do not manufacture tests for APIs that the repository does not actually need.
+Do not manufacture subjective aesthetic scores or fake visual-AI review evidence.
 
 ## Real integration evidence
 
-After deterministic gates pass, require one bounded Windows Engineering Probe against the selected private GStreamer runtime that proves the production adapter—not only benchmark scripts—can:
+After deterministic gates pass, require one bounded media Engineering Probe through the production Review path using a real rendered MP4 or deterministic real media fixture.
 
-- initialize;
-- load a deterministic/local fixture;
-- play/pause;
-- perform absolute seek;
-- release cleanly;
-- expose which normal/degraded route was used sufficiently for diagnostics.
+The probe must prove at least:
 
-Existing benchmark evidence may be reused as setup/provenance input, but it cannot substitute for executing the new production adapter.
+- clean rendered media can reach Review PASS;
+- real post-render audio inspection executes through the production QC adapter;
+- one intentionally defective deterministic audio fixture (for example clipping or unexpected silence) produces the expected non-PASS typed verdict;
+- no EDL/editorial mutation occurs inside Review.
+
+This is a Review integration probe, not another player/backend benchmark.
 
 ## Resource constraint
 
@@ -174,49 +241,52 @@ Approximately **9% Codex quota remains**.
 
 ### ChatGPT + GitHub
 
-Primary owner initially for:
+Primary owner for:
 
-- repository/code audit;
-- contract reduction;
-- deterministic small edits where connector-first work remains reliable;
-- tests/governance/validation;
-- reviewing CI and real probe evidence.
+- contract/ownership reduction;
+- deterministic application port/use-case work where connector-first remains reliable;
+- focused tests;
+- CI/probe review;
+- governance/validation.
 
 ### Codex
 
 **NO ACTIVE RELEASE.**
 
-Release only if the code audit proves the bounded production adapter requires local Windows/runtime/multi-file iteration that is materially more efficient through Codex than connector-first work.
+Release only if the bounded real FFmpeg/PCM Review adapter or multi-file integration becomes materially more efficient through local runtime iteration than connector-first work.
 
-Do not spend Codex on renewed GStreamer/libVLC/libmpv comparison, docs, or benchmark archaeology.
+Do not spend Codex on documentation, generic refactors, subjective Review heuristics or UI work.
 
 ### User PowerShell
 
-Use only if GitHub-hosted Windows evidence cannot represent the required real private-runtime/product-adapter behavior or a Human Gate is genuinely needed.
+Use only if GitHub-hosted real media evidence cannot represent the required Review boundary or a genuine Human Gate is needed.
 
 ## Exit gate
 
 This Work Order is PASS only when:
 
-- the existing Preview seam is identified and preserved or minimally corrected;
-- one production GStreamer adapter exists behind that seam;
-- lifecycle and typed diagnostics are deterministic;
-- normal and explicit software-decode configuration semantics are represented without timeline-authority leakage;
+- one production Review application boundary exists;
+- successful `RenderArtifact` provenance is tied to the exact canonical EDL revision under review;
+- deterministic post-render QC evidence is integrated through a replaceable execution port;
+- PASS / correction-required / blocked semantics are typed;
+- correction routes preserve Renderer/EDL/editorial ownership;
+- retries are explicitly bounded;
 - focused deterministic tests pass;
 - repository quality gates pass;
-- one bounded real Windows probe executes the **production adapter** successfully;
-- no backend-family benchmark is reopened;
-- no silent dual-runtime fallback is introduced;
+- one bounded real media Review probe passes both clean and intentionally defective cases;
+- Review performs no hidden EDL/EditPlan/audio mutation;
 - structural progress remains 90% unless ordinary-user Product Gate structure genuinely changes.
 
 ## STOP boundary
 
-Do not start another player benchmark.
+Do not build a subjective AI video critic.
 
-Do not bundle GStreamer + libVLC by default.
+Do not add aesthetic scoring, recommender loops or generative repair.
 
-Do not reopen libmpv Stage-A hard-gate exclusion absent a new hard requirement.
+Do not let Review mutate canonical EDL or approved editorial decisions.
 
-Do not expand into full Environment Doctor, GUI/frontend, Proxy redesign, SFX-provider work or generated-music integration.
+Do not merge Review into Renderer just because Renderer already has technical verification.
 
-Do not let Preview become EDL or final-render authority.
+Do not reopen Preview/backend benchmarking.
+
+Do not expand into Environment Doctor, GUI/frontend, SFX-provider expansion, generated music or generic media downloading.
