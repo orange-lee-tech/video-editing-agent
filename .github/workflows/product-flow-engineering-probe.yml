@@ -1,0 +1,216 @@
+name: Product Flow Engineering Probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      deepseek_model:
+        description: "DeepSeek model for Planning and Director production adapters"
+        required: true
+        default: "deepseek-v4-flash"
+        type: string
+      gemini_model:
+        description: "Gemini model for visual understanding production adapter"
+        required: true
+        default: "gemini-3.5-flash-lite"
+        type: string
+  push:
+    branches:
+      - work/product-flow-engineering-probe
+
+permissions:
+  contents: read
+
+concurrency:
+  group: product-flow-engineering-probe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-product-flow:
+    name: Windows ProductFlow Engineering Probe
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[product-flow-engineering-probe]')
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      DEEPSEEK_MODEL: ${{ inputs.deepseek_model || 'deepseek-v4-flash' }}
+      GEMINI_MODEL: ${{ inputs.gemini_model || 'gemini-3.5-flash-lite' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.12.2"
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Sync locked base environment
+        run: uv sync --frozen
+
+      - name: Install pinned FFmpeg 8.1
+        shell: pwsh
+        run: .\.github\scripts\install-ffmpeg-windows.ps1
+
+      - name: Generate real four-shot media with continuous audio
+        shell: pwsh
+        run: |
+          ffmpeg -hide_banner -loglevel error -y `
+            -f lavfi -i "color=c=red:size=320x180:rate=25:duration=4" `
+            -f lavfi -i "color=c=green:size=320x180:rate=25:duration=4" `
+            -f lavfi -i "color=c=blue:size=320x180:rate=25:duration=4" `
+            -f lavfi -i "testsrc2=size=320x180:rate=25:duration=4" `
+            -f lavfi -i "sine=frequency=440:sample_rate=48000:duration=16" `
+            -filter_complex "[0:v][1:v][2:v][3:v]concat=n=4:v=1:a=0,format=yuv420p[v]" `
+            -map "[v]" -map 4:a `
+            -c:v mpeg4 -q:v 2 -c:a aac -b:a 128k -shortest `
+            product-flow-probe.mp4
+
+          ffprobe -v error -show_entries format=duration:stream=codec_type,codec_name `
+            -of json product-flow-probe.mp4
+
+          $hash = (Get-FileHash .\product-flow-probe.mp4 -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content -Path .\source.sha256 -Value $hash -Encoding utf8
+          Write-Host "source_sha256=$hash"
+
+      - name: Write ordinary Planning and Editing requests
+        shell: pwsh
+        run: |
+          $planning = [ordered]@{
+            schema_version = 1
+            project = ".probe-state/planning-project"
+            brief = [ordered]@{
+              title = "Four reference-card filming exercise"
+              objective = "Create a concise shooting plan for recording four separate reference visuals."
+              audience = "beginner short-form creators"
+              platform = "short-video"
+              core_message = "Record separate red, green, blue, and printed test-pattern references clearly."
+              product_topic = "reference-card filming exercise"
+              target_duration_seconds = 8
+              style_emotion = @("clear", "concise")
+              success_criteria = @("separate visuals are easy to distinguish", "shootable in one simple setup")
+              user_notes = "This is a neutral filming exercise using four separate pre-existing reference cards or patterns. One operator may handle the cards. A phone may stay locked on a tripod; if the phone itself must appear in a setup shot, one fixed secondary camera is also available. Do not imply that one product changes color or has any commercial capability."
+            }
+            production_constraints = [ordered]@{
+              camera_or_phone = "one phone camera plus one fixed secondary camera if the phone itself must appear in frame"
+              stabilizer = "tripod"
+              lighting = "normal room lighting"
+              people_count = 1
+              locations = @(
+                [ordered]@{
+                  location_id = "simple_setup"
+                  label = "simple tabletop or plain background"
+                  notes = "Four separate red, green, blue, and printed reference cards or patterns are already available as props."
+                }
+              )
+              available_time_notes = "single short setup"
+              user_skill_level = "beginner"
+              notes = @("One operator may use hands to place the separate reference visuals. Tripod and the declared secondary camera are available. Do not invent product behavior or additional equipment.")
+            }
+          }
+
+          $editing = [ordered]@{
+            schema_version = 1
+            project = ".probe-state/editing-project"
+            brief = [ordered]@{
+              title = "Automatic reference-visual sequence"
+              objective = "Automatically make a short sequence from the supplied reference footage."
+              audience = "beginner short-form creators"
+              platform = "short-video"
+              core_message = "Show the distinct red, green, blue, and printed pattern visuals clearly."
+              product_topic = "reference-visual sequence"
+              target_duration_seconds = 8
+              style_emotion = @("clear", "direct")
+              success_criteria = @("use only supplied footage", "keep distinct visuals easy to follow")
+              user_notes = "The footage contains separate visual states, not a product capability demonstration. Keep the edit simple and concise, use no more than four visual beats, and preserve source audio."
+            }
+            local_media = @("product-flow-probe.mp4")
+            output = ".probe-output/final.mp4"
+            requires_audible_output = $true
+          }
+
+          $planning | ConvertTo-Json -Depth 8 | Set-Content .\planning-request.json -Encoding utf8
+          $editing | ConvertTo-Json -Depth 8 | Set-Content .\editing-request.json -Encoding utf8
+
+      - name: Run ordinary Planning ProductFlow
+        shell: pwsh
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          $result = & uv run video-editing-agent run planning `
+            --request .\planning-request.json `
+            --deepseek-model $env:DEEPSEEK_MODEL
+          if ($LASTEXITCODE -ne 0) {
+            throw "Planning ProductFlow process failed with exit code $LASTEXITCODE"
+          }
+          $result | Set-Content .\planning-result.json -Encoding utf8
+          Write-Host $result
+          $parsed = $result | ConvertFrom-Json
+          if ($parsed.outcome -ne "completed") {
+            throw "Planning ProductFlow outcome=$($parsed.outcome): $($parsed.diagnostic)"
+          }
+
+      - name: Resolve reviewed TransNetV2 runtime weights
+        id: transnet
+        shell: pwsh
+        run: |
+          $weights = (& uv run --with "transnetv2-pytorch==1.0.5" python -c `
+            "import pathlib, transnetv2_pytorch; print(pathlib.Path(transnetv2_pytorch.__file__).resolve().parent / 'transnetv2-pytorch-weights.pth')").Trim()
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path $weights -PathType Leaf)) {
+            throw "Reviewed TransNetV2 weights were not resolved: $weights"
+          }
+          "weights=$weights" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "transnet_weights=$weights"
+
+      - name: Run ordinary Editing ProductFlow on real media
+        shell: pwsh
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TRANSNET_WEIGHTS: ${{ steps.transnet.outputs.weights }}
+        run: |
+          $result = & uv run --with "transnetv2-pytorch==1.0.5" video-editing-agent run editing `
+            --request .\editing-request.json `
+            --deepseek-model $env:DEEPSEEK_MODEL `
+            --visual-provider gemini `
+            --visual-model $env:GEMINI_MODEL `
+            --transnet-model $env:TRANSNET_WEIGHTS `
+            --device cpu `
+            --ffmpeg ffmpeg `
+            --ffprobe ffprobe `
+            --output-width 320 `
+            --output-height 180 `
+            --output-fps 25
+          if ($LASTEXITCODE -ne 0) {
+            throw "Editing ProductFlow process failed with exit code $LASTEXITCODE"
+          }
+          $result | Set-Content .\editing-result.json -Encoding utf8
+          Write-Host $result
+          $parsed = $result | ConvertFrom-Json
+          if ($parsed.outcome -ne "completed") {
+            throw "Editing ProductFlow outcome=$($parsed.outcome): $($parsed.diagnostic)"
+          }
+
+      - name: Verify persisted revisions in a second Python process
+        shell: pwsh
+        run: |
+          $sourceHash = (Get-Content .\source.sha256 -Raw).Trim()
+          uv run python .\scripts\verify_product_flow_engineering.py `
+            --planning-result .\planning-result.json `
+            --editing-result .\editing-result.json `
+            --source-media .\product-flow-probe.mp4 `
+            --source-sha256 $sourceHash `
+            --ffprobe ffprobe
+          if ($LASTEXITCODE -ne 0) {
+            throw "Second-process ProductFlow verifier failed with exit code $LASTEXITCODE"
+          }
+
+      - name: Engineering evidence summary
+        shell: pwsh
+        run: |
+          Write-Host "Planning ProductFlow persisted Brief -> ScriptPlan -> ShootingPlan: PASS"
+          Write-Host "Editing real-media owner chain -> canonical EDL -> actual FFmpeg MP4 -> Review: PASS"
+          Write-Host "Canonical EDL exact-revision second-process reload and lineage: PASS"
+          Write-Host "Classification: ENGINEERING PROBE ONLY; Product Gate and Human Gate remain OPEN"
