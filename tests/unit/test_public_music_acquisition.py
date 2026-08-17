@@ -25,7 +25,6 @@ from video_editing_agent.providers.audio.wikimedia import (
     WikimediaRightsDiagnosticCode,
 )
 from video_editing_agent.providers.audio.wikimedia_acquisition import WikimediaAudioAcquirer
-from video_editing_agent.providers.reference.direct_https import DirectHttpsAcquisitionPolicy
 from video_editing_agent.storage.artifact.local_store import LocalArtifactStore
 
 PUBLIC_IP = "93.184.216.34"
@@ -268,7 +267,7 @@ def test_wikimedia_disallowed_licenses_fail_closed(
     (
         commons_payload(non_free="True"),
         commons_payload(restrictions="Trademarked performance restrictions"),
-        {"query": {"pages": [{"title": "File:Example.ogg", "missing": True}]}}
+        {"query": {"pages": [{"title": "File:Example.ogg", "missing": True}]}},
     ),
 )
 def test_wikimedia_nonfree_restricted_or_missing_sources_fail_closed(
@@ -329,9 +328,7 @@ def test_acquisition_hash_mismatch_fails_and_cleans_partial(tmp_path: Path) -> N
         root,
         resolver=public_resolver,
         connection_factory=ConnectionQueue(
-            FakeResponse(
-                headers={"Content-Type": "audio/ogg", "Content-Length": str(len(AUDIO))}
-            )
+            FakeResponse(headers={"Content-Type": "audio/ogg", "Content-Length": str(len(AUDIO))})
         ),
     ).acquire(
         verified_request(
