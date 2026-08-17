@@ -4,15 +4,15 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-17
 current_phase: R0.12
-phase_state: REFERENCE_URL_ACQUISITION_GATE_ACTIVE
-active_work_order: R0.12-REFERENCE-URL-ACQUISITION-001
-accepted_code_baseline: ffb5dbd7d3fc4e995f89a7a231910fa0295fcbba
-control_plane_baseline: 87562a9824a9f9d29aa96a6563955467ba70068d
+phase_state: PUBLIC_MUSIC_ACQUISITION_GATE_ACTIVE
+active_work_order: R0.12-PUBLIC-MUSIC-ACQUISITION-001
+accepted_code_baseline: d15abf9258c0a080e37d666cd1112358723e823a
+control_plane_baseline: e8df24910de5ce3c862fd800a15750b085ace41f
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
 core_1_planning_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
 core_2_editing_product_gate: FOUNDATION_PASS_USER_FLOW_OPEN
-previous_work_order: R0.12-MIXED-SOURCE-AUDIO-QC-001
+previous_work_order: R0.12-REFERENCE-URL-ACQUISITION-001
 previous_work_order_result: PASS
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
@@ -30,7 +30,7 @@ The accepted two-core architecture remains unchanged:
 
 Current accepted production-code baseline is:
 
-`ffb5dbd7d3fc4e995f89a7a231910fa0295fcbba`
+`d15abf9258c0a080e37d666cd1112358723e823a`
 
 ## Stage-A completion truth
 
@@ -68,71 +68,80 @@ Closure evidence:
 
 `docs/validation/R0.12_MIXED_SOURCE_AUDIO_QC_CLOSURE.md`
 
+### Reference URL acquisition — PASS/CLOSED
+
+`R0.12-REFERENCE-URL-ACQUISITION-001`
+
+Closure evidence:
+
+`docs/validation/R0.12_REFERENCE_URL_ACQUISITION_CLOSURE.md`
+
 Accepted production baseline:
 
-`ffb5dbd7d3fc4e995f89a7a231910fa0295fcbba`
+`d15abf9258c0a080e37d666cd1112358723e823a`
 
-Accepted semantics:
+Accepted durable semantics:
 
-- per-grounded-selection source audio PRESERVE / DUCK / MUTE;
-- VoiceTreatment with required-speech protection;
-- ordinary non-speech MUTE remains valid;
-- deterministic canonical EDL source-audio mapping;
-- typed accidental-silence audible-lane QC;
-- Resolver source authority and Renderer execution-only ownership preserved.
+- supported direct unauthenticated HTTPS reference media can enter project-controlled storage;
+- remote bytes cross normal ffprobe/AssetIngest/persistence;
+- acquired reference media is `reference_acquired + reference_analysis_only`;
+- remote reference media remains visual-Resolver ineligible;
+- a real network/media/Asset probe plus focused existing-owner seam probe reached `ReferenceStyleEvidenceService`;
+- synthetic Shot/VisualSemantics used only for the owner-seam mechanism were explicitly disclosed and are not a real visual-model claim;
+- social/authenticated/cookie/CAPTCHA/DRM/bulk/live/universal downloader behavior remains outside the Stage-A boundary.
 
-GitHub CI run #246 on the accepted repair HEAD completed successfully.
+## Current active boundary — rights-aware public music acquisition
 
-## Current active boundary — Reference URL acquisition
+`R0.12-PUBLIC-MUSIC-ACQUISITION-001` is ACTIVE.
 
-`R0.12-REFERENCE-URL-ACQUISITION-001` is ACTIVE.
+The accepted CAP-06/ADR-006 route is:
 
-The Stage-A Product I/O Contract already freezes the semantic route:
+```text
+provider-neutral MusicDiscoveryQuery
+→ AudioMaterialCandidate metadata
+→ rights/license eligibility gate
+→ approved single-item acquisition
+→ project-controlled local audio file
+→ AssetIngestService
+→ authoritative local audio Asset
+→ existing BeatMap / MusicSelection / AudioEditorial
+→ canonical EDL / Renderer
+```
 
-`supported URL`
-`→ acquisition adapter`
-`→ controlled project-local file`
-`→ normal media ingest`
-`→ REFERENCE_ANALYSIS_ONLY Asset`
-`→ existing reference analysis/guidance`
+### Existing downstream owners are already valid
 
-### Existing downstream owner is already valid
+Do not redesign R0.10 music selection/audio editorial.
 
-`ReferenceStyleEvidenceService`:
+Existing reusable primitives include:
 
-- requires a video Asset;
-- requires `AssetUsageRole.REFERENCE_ANALYSIS_ONLY`;
-- asserts that the reference Asset is never visual-Resolver eligible;
-- derives abstract technique evidence only;
-- persists evidence through the content-addressed ArtifactStore;
-- projects that evidence into provider-neutral Planning guidance.
+- `AudioMaterialProvider`;
+- `MusicDiscoveryQuery`;
+- `AudioMaterialCandidate`;
+- `RightsEligibility`;
+- `LicenseSnapshot`;
+- local Asset ingest/provenance;
+- BeatMap / MusicSelection / AudioEditorial;
+- canonical EDL audio execution.
 
-Therefore the active gap is acquisition + controlled local media lifecycle, not another reference-analysis system.
+The active gap is provider discovery/acquisition + durable rights evidence, not another music architecture.
 
-### Current provider/security direction
+### Rights/provider direction
 
-- Stage A uses an explicit support policy/allowlist rather than promising arbitrary Internet URL support;
-- direct unauthenticated HTTPS media is the lowest-risk baseline candidate;
-- specifically audited provider/page adapters may be added only when technical, policy, license and deployment gates pass;
-- login/account/session-required retrieval fails closed by default;
-- browser-cookie extraction, credential scraping, CAPTCHA bypass and DRM/protected acquisition are outside the default Stage-A boundary;
-- bulk playlist/channel/profile and live-stream acquisition are outside Stage A;
-- unsupported/policy-disallowed URL input must produce understandable guidance to provide an allowed local reference file;
-- reference acquisition can never grant editable visual/Resolver eligibility.
+- current official primary-source terms/API evidence is required before provider promotion;
+- technical downloadability is not product authorization;
+- `royalty-free` alone is not sufficient rights proof;
+- `UNKNOWN` rights are not silently upgraded to `ELIGIBLE`;
+- provider discovery/acquisition must be programmatically permitted, not HTML scraping by convenience;
+- acquire only the specifically approved item, not bulk catalogs;
+- preserve source page/provider/item/license snapshot/integrity/provenance;
+- generated-audio status is used only when the provider actually supplies evidence;
+- local user music remains the safe fallback if no automatic provider clears the hard gate.
 
-### yt-dlp gate
+Existing provider backlog:
 
-Technical breadth is not sufficient for automatic adoption.
+`docs/research/AUDIO_PROVIDER_CANDIDATES_2026-08-14.md`
 
-Research entering this control state shows:
-
-- extractor/site support changes as websites change;
-- broad modern site coverage can add FFmpeg/JS/runtime and networking dependency surface;
-- source licensing and bundled executable licensing differ;
-- credential/cookie paths materially expand security risk;
-- some major platforms' official developer policies prohibit downloading/caching audiovisual content without explicit approval.
-
-Therefore a universal bundled yt-dlp/social-media downloader is not pre-approved for Stage A.
+is informative only and must be revalidated before implementation.
 
 ## Codex quota constraint
 
@@ -144,9 +153,10 @@ Treat this as a hard resource constraint.
 
 Primary for the active gate:
 
-- existing-code/reference-flow audit;
-- provider/security/licensing research;
-- contract and diagnostics design;
+- existing audio/rights seam audit;
+- current official provider/API/terms/license research;
+- provider comparison;
+- discovery/rights/acquisition/diagnostics contract reduction;
 - control-plane/validation docs;
 - small deterministic GitHub work.
 
@@ -154,34 +164,32 @@ Primary for the active gate:
 
 **NO ACTIVE RELEASE.**
 
-Do not use Codex for research, docs, reading the repository, provider comparison, or speculative implementation.
+Do not use Codex for provider browsing, docs, repository reading, speculative adapters, or API/terms research.
 
-Release Codex only if the final implementation has been reduced to a precise bounded multi-file edit/test/repair task and the expected Stage-A value justifies consuming the remaining quota.
+Release Codex only after one provider path and the exact bounded implementation are frozen and local multi-file edit/test/repair value justifies the remaining quota.
 
 ### User PowerShell
 
-Use only when a real Windows/network/runtime/private-media boundary needs evidence after the contract/provider choice is frozen.
+Use only when a real Windows/network/provider/API/audio boundary requires evidence after provider choice and contract are frozen.
 
 ## Immediate active investigation
 
-1. inspect existing reference evidence/guidance tests;
-2. inspect project-owned storage/lifecycle and Asset provenance vocabulary;
-3. freeze provider-neutral acquisition request/result/diagnostics;
-4. freeze SSRF/redirect/size/timeout/path/atomic-write security policy;
-5. compare direct HTTPS acquisition against any justified provider adapter;
-6. record provider/license/platform-policy evidence;
-7. determine implementation size;
-8. only then decide whether any Codex release is warranted.
+1. audit `AudioMaterialProvider`, rights models, Asset ingest/provenance and R0.10 music seams;
+2. revalidate Pixabay and other serious provider candidates using current official primary sources;
+3. locate at least one provider with explicit programmatic music discovery **and** acquisition permission, or establish a hard-gate exclusion truthfully;
+4. freeze provider-neutral rights snapshot/acquisition/diagnostic semantics;
+5. determine minimal production changes;
+6. release Codex only if that concrete edit genuinely requires local multi-file execution;
+7. use one real provider/API Engineering Probe only where deterministic/local evidence cannot answer the external behavior question.
 
 ## Immediate corridor after active work
 
-1. close Reference URL acquisition;
-2. rights-aware public music acquisition;
-3. remaining bounded R0.12 productization including production GStreamer Preview integration;
-4. minimum Review/repair loop;
-5. ordinary-user Windows runtime / Environment Doctor;
-6. practical product-facing integration;
-7. real Product Probes / Human Gate.
+1. close rights-aware public music acquisition or record a truthful hard-gate exclusion with local-user fallback;
+2. remaining bounded R0.12 productization including production GStreamer Preview integration where justified;
+3. minimum Review/repair loop;
+4. ordinary-user Windows runtime / Environment Doctor;
+5. practical product-facing integration;
+6. real Planning/Editing Product Probes + Human Gate.
 
 ## Constitutional constraints
 
@@ -190,10 +198,11 @@ Use only when a real Windows/network/runtime/private-media boundary needs eviden
 - PreviewBackend is playback-only.
 - original user media is never overwritten.
 - commercial output visual material remains user-supplied local media.
+- public/remote audio is separate from forbidden remote visual sourcing and still requires rights evidence.
+- provider candidates/URLs do not become timeline authority.
 - reference media defaults to analysis-only and remains Resolver-ineligible.
 - Editing-only remains independent of fabricated Planning artifacts.
-- remote acquisition cannot silently become output-eligible visual footage.
-- no temporary shortcut may fabricate source timestamps, Domain decisions or a Product Gate PASS.
+- no temporary shortcut may fabricate source timestamps, rights evidence, Domain decisions or a Product Gate PASS.
 
 ## Documentation synchronization rule
 
@@ -207,8 +216,8 @@ Dynamic state is canonical only in:
 
 ## STOP boundary
 
-Do not start public music acquisition, GUI/frontend, or further Preview work concurrently.
+Do not concurrently start GUI/frontend, SFX-provider expansion, generated-music integration, or further Preview benchmarking.
 
-Do not promise social-platform download support solely because a third-party extractor works technically.
+Do not implement HTML scraping merely because a provider web page can be downloaded manually.
 
-Do not release Codex until the Reference URL implementation boundary is demonstrably small, precise and worth the remaining quota.
+Do not release Codex until the public-music provider and rights boundary is demonstrably small, precise and worth the remaining quota.
