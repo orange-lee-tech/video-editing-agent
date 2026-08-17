@@ -4,7 +4,7 @@
 **Development stage:** STRUCTURAL_CONSTRUCTION  
 **Structural progress:** 90%  
 **Current phase:** R0.12 — EDL / Renderer / Review / runtime productization  
-**Engineering state:** PRODUCT_FLOW_ORCHESTRATION_ACTIVE  
+**Engineering state:** PRODUCT_FLOW_ENGINEERING_PROBE_ACTIVE  
 **Updated:** 2026-08-17
 
 ## Progress meaning
@@ -22,9 +22,11 @@ Stage-A 100% remains forbidden until both core Product Gates are PASS.
 
 ## Current accepted production-code baseline
 
-`914dd7dcc72595d418d7d3bf0cb05e356dd021b9`
+`db8db211e6c662cdfc7ad2afe385ee766ce1a240`
 
-This baseline includes the production Windows Environment Doctor foundation in addition to all earlier accepted R0.12 product corridors.
+This baseline includes the production Windows Environment Doctor foundation, durable canonical EDL persistence, and the product-facing Planning / Editing flow surface now merged to `main`.
+
+Exact-head deterministic CI for this baseline passed after the ProductFlow merge.
 
 ## Closed R0.12 productization boundaries
 
@@ -70,49 +72,82 @@ Review classifies evidence and routes correction; it does not mutate EDL/editori
 - deterministic Quality Gate `32034737393` — PASS;
 - final Windows production Doctor run `32035192895` — PASS.
 
-Accepted semantics:
+### Product-flow implementation surface — IMPLEMENTATION ACCEPTED
 
-- product-independent `video-editing-agent doctor` exists;
-- Windows/Python and FFmpeg/ffprobe readiness are typed machine facts;
-- Preview missing/private-runtime configuration is represented without backend switching;
-- DeepSeek/Gemini/OpenAI credential presence is reported without exposing values;
-- repair report is sanitized;
-- Doctor creates no project/creative state;
-- final installer technology remains unfrozen.
+Accepted production baseline:
+
+`db8db211e6c662cdfc7ad2afe385ee766ce1a240`
+
+Accepted implementation now provides:
+
+- structured `video-editing-agent run planning --request ...` and `run editing --request ...` entry surfaces;
+- strict ordinary-request schema that does not expose ShotRef, CandidateWindow, ResolutionDecision, source timestamps or EDL internals;
+- reusable ProjectWorkspace Planning and Editing composition;
+- local ingest → Shot/understanding → Director/EditPlan → grounded Resolver → canonical EDL → Renderer → Review composition;
+- conservative Resolver-grounded source-audio treatment;
+- exact EDL persistence through `workspace.edls`;
+- deterministic unit/composition coverage.
+
+This is **Engineering implementation evidence**, not a Product Gate or Human Gate PASS.
 
 ## Active Work Order
 
-`R0.12-PRODUCT-FLOW-ORCHESTRATION-001` is ACTIVE.
+`R0.12-PRODUCT-FLOW-ORCHESTRATION-001` remains ACTIVE.
 
-### Audit-grounded starting point
+The implementation portion is accepted. The remaining exit gate is bounded Engineering Probe evidence.
 
-The accepted owners exist, but ordinary product launch remains fragmented:
-
-- `ProjectWorkspace.runtime()` composes Planning and low-level media operations;
-- `ProjectWorkspace.editing_runtime()` composes Director → persisted EditPlan only;
-- no application owner currently carries Editing through retrieval/Resolver → EDLBuilder → Renderer → Review;
-- the R0.12 living integration smoke manually creates the downstream decisions;
-- R0.9 already proved retrieval → temporal evidence → canonical CandidateWindows → grounded Resolver on real media, but that composition remains trapped in Probe code.
-
-### Product route to close
+### Planning Engineering Probe required
 
 ```text
 ordinary Planning request
-→ existing Brief/Script/Shooting owners
-→ exact persisted refs + progress/result
-
-ordinary Editing request
-→ local file ingest/understanding
-→ Director/EditPlan
-→ retrieval → grounded CandidateWindows → Resolver
-→ approved audio/spatial/optional decisions
-→ canonical EDL
-→ Renderer
-→ Review
-→ final MP4 or typed correction route
+→ Brief
+→ persisted ScriptPlan
+→ persisted ShootingPlan
+→ exact persisted refs
 ```
 
-### Frozen authority rules
+The probe must enter through the product-facing request surface rather than hand-authoring Domain internals.
+
+### Editing Engineering Probe required
+
+```text
+real valid media
+→ actual ingest / understanding
+→ Director / persisted EditPlan
+→ grounded retrieval / Resolver
+→ canonical EDL
+→ persisted exact EDL revision
+→ actual FFmpeg MP4
+→ Review
+```
+
+The probe must not use fake media bytes or a fake Renderer for the final mechanism claim.
+
+### EDL durability wording rule
+
+The existing Windows SQLite Persistence Probe directly proves cross-process persistence for its current Asset / Shot / ShotAnalysis path. It must **not** be described as direct canonical-EDL cross-process proof unless the bounded probe explicitly performs:
+
+```text
+process 1: EDLRepository.save(exact revision)
+→ process exit
+→ process 2: load same exact EDL revision
+→ equality / lineage verification
+```
+
+Unit/reopen tests remain valid implementation evidence, but are a lower evidence class than this bounded cross-process probe.
+
+## Immediate corridor after active work
+
+1. pass Planning Engineering Probe through the ordinary request surface;
+2. pass Editing real-media Engineering Probe through actual FFmpeg Renderer / Review;
+3. include bounded EDL exact-revision cross-process evidence if closure wording claims it;
+4. close `R0.12-PRODUCT-FLOW-ORCHESTRATION-001` only after those Engineering gates pass;
+5. run real Planning Product Probe + Human Gate;
+6. run real Editing automatic-final-MP4 Product Probe + Human Gate;
+7. repair only evidence-backed defects;
+8. Stage-A 100% only if both ordinary-user gates and the global completion gate genuinely PASS.
+
+## Frozen authority rules
 
 - user request does not contain CandidateWindow, ResolutionDecision, source timestamps or EDL internals;
 - lexical retrieval may be the minimum always-available production retrieval baseline; dense remains optional enhancement;
@@ -121,18 +156,6 @@ ordinary Editing request
 - optional music/spatial assets are not invented;
 - source audio is conservatively grounded per resolved selection;
 - canonical EDL remains sole exact timeline authority;
-- Renderer executes; Review classifies/routes only.
-
-### Required product projections
-
-Expose understandable progress from project/input through planning/editing, resolve, EDL, render, Review and terminal success/failure.
-
-These are application projections, not new top-level Domain entities.
-
-## Immediate corridor after active work
-
-1. complete product-flow orchestration/integration;
-2. run real Planning Product Probe + Human Gate;
-3. run real Editing automatic-final-MP4 Product Probe + Human Gate;
-4. repair only evidence-backed defects;
-5. Stage-A 100% only if both ordinary-user gates and the global completion gate genuinely PASS.
+- Renderer executes; Review classifies/routes only;
+- Planning-only / Editing-only / Combined remain parallel legitimate entries;
+- structural progress remains 90% until real Product Gate evidence justifies a change.
