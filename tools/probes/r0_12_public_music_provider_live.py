@@ -28,7 +28,7 @@ _OPENVERSE_AUDIO_ENDPOINT = "https://api.openverse.org/v1/audio/"
 
 
 def _emit(payload: dict[str, object]) -> None:
-    print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    print(json.dumps(payload, ensure_ascii=True, indent=2, sort_keys=True))
 
 
 def _raw_openverse_diagnostic(query_text: str) -> list[dict[str, object]]:
