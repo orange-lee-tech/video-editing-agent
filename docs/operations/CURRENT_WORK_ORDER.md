@@ -3,8 +3,8 @@
 **ID:** `R0.12-PRODUCT-FLOW-ORCHESTRATION-001`  
 **Status:** ACTIVE  
 **Phase:** R0.12 — practical product-facing Planning / Editing orchestration  
-**Mode:** PRODUCT INTEGRATION  
-**Accepted production-code baseline:** `914dd7dcc72595d418d7d3bf0cb05e356dd021b9`  
+**Mode:** ENGINEERING PROBE CLOSURE  
+**Accepted production-code baseline:** `db8db211e6c662cdfc7ad2afe385ee766ce1a240`  
 **Activated:** 2026-08-17  
 **Codex release:** NO
 
@@ -16,28 +16,26 @@ Closure evidence:
 
 `docs/validation/R0.12_WINDOWS_ENVIRONMENT_DOCTOR_CLOSURE.md`
 
-Accepted production baseline:
+## Current implementation truth
 
-`914dd7dcc72595d418d7d3bf0cb05e356dd021b9`
+The reusable product-flow implementation is now merged and accepted on `main` at:
 
-Bounded Windows production run:
+`db8db211e6c662cdfc7ad2afe385ee766ce1a240`
 
-`32035192895` — PASS.
+The accepted surface includes:
 
-## Why this work exists
+- `video-editing-agent run planning --request <json>`;
+- `video-editing-agent run editing --request <json>`;
+- strict ordinary request parsing that rejects internal editing/timeline authority fields;
+- ProjectWorkspace Planning composition through Brief → ScriptPlan → ShootingPlan owners;
+- Editing composition through local ingest → Shot/understanding → Director/EditPlan → grounded Resolver → canonical EDL → Renderer → Review;
+- conservative Resolver-grounded source-audio handling;
+- exact canonical EDL persistence in project SQLite;
+- deterministic request-boundary, audio-policy and concrete composition tests.
 
-The repository now has accepted owners for Brief/Planning, local Asset/Shot/understanding, Editing Director, retrieval/Resolver primitives, audio/spatial/subtitle decisions, canonical EDL, Renderer, Preview, Review and Environment Doctor.
+The exact-head deterministic repository CI passed after merge.
 
-What remains structurally missing is a product-level coordinator that turns ordinary user inputs into those owner calls without requiring the user to hand-author internal IDs, CandidateWindows, ResolutionDecisions, EDL objects or render requests.
-
-Current evidence confirms the fragmentation:
-
-- `ProjectWorkspace.runtime()` reaches Planning and low-level media operations;
-- `ProjectWorkspace.editing_runtime()` reaches persisted EditPlan generation only;
-- the R0.12 living smoke still manually composes Resolver → EDLBuilder → Renderer;
-- the older R0.9 Product Probe already proved a real retrieval → persisted temporal evidence → canonical CandidateWindow → grounded Resolver route, but that composition remains Probe-only.
-
-This Work Order promotes that proven composition into a reusable application/product flow while preserving every accepted owner boundary.
+This implementation evidence does **not** itself close this Work Order and does **not** constitute Product Gate or Human Gate evidence.
 
 ## Canonical product contract
 
@@ -45,7 +43,7 @@ Source of truth:
 
 `docs/product/STAGE_A_PRODUCT_IO_CONTRACT.md`
 
-Two product outcomes remain independent:
+Two independent product outcomes remain:
 
 ```text
 Planning-only:
@@ -68,7 +66,7 @@ ordinary user local footage + editing intent + output path
 
 Combined is composition of these same routes, not a third architecture.
 
-## Product-facing request rule
+## Frozen ordinary-request boundary
 
 Ordinary-user requests may contain:
 
@@ -81,216 +79,138 @@ Ordinary-user requests may contain:
 
 They must **not** require the user to supply:
 
-- AssetRef / ShotRef as ordinary input;
+- AssetRef / ShotRef;
 - CandidateWindow;
 - ResolutionDecision;
 - source timestamp;
 - AudioMixDecision internals;
-- EDL / RenderRequest;
-- repository paths other than chosen project/input/output locations.
+- EDL / RenderRequest.
 
-Configuration/runtime dependencies such as provider choice, FFmpeg executable or optional model path belong to product composition/configuration, not editorial request meaning.
+Provider/model/FFmpeg/runtime configuration is composition configuration, not editorial request meaning.
 
-## Product progress contract
+## Remaining Engineering Probe gate
 
-Expose ordered product-facing progress projections at minimum:
+### Probe A — Planning product-flow Engineering Probe
 
-- `PROJECT_READY`
-- `INPUT_VALIDATION`
-- `INGEST_UNDERSTANDING`
-- `PLANNING_GENERATION`
-- `EDITING_DECISION`
-- `RESOLVING`
-- `EDL_ASSEMBLY`
-- `RENDERING`
-- `REVIEW_QC`
-- `COMPLETED`
-- `FAILED`
-
-Names may be normalized if a smaller coherent enum is cleaner.
-
-Each event must carry understandable stage/status and optional owned diagnostic text. These events are application projections, not new Domain entities.
-
-## Planning flow minimum
-
-Implement one reusable Planning launch that:
-
-1. creates/commits Brief through existing Brief owner;
-2. generates ScriptPlan through existing ScriptPlanningWorkflow;
-3. generates ShootingPlan through existing ShootingPlanningWorkflow;
-4. returns exact persisted revision refs and user-usable structured output;
-5. exposes progress and typed failure without duplicating the persisted entities.
-
-No local footage is required.
-
-## Editing flow minimum
-
-Implement one reusable Editing coordinator whose public request starts from local files + Brief/editorial intent + output destination.
-
-### Media and Director
-
-- local originals cross normal `AssetIngestService` and remain untouched;
-- Shot/understanding stages use injected production capability adapters;
-- Director produces/persists EditPlan;
-- ScriptPlan/ShootingPlan refs remain optional.
-
-### Retrieval / grounded windows
-
-Promote reusable composition from the accepted R0.9 route.
-
-First production baseline may use deterministic lexical retrieval as the always-available retrieval channel after analyses are indexed. Dense retrieval remains an optional enhancement and must not become a mandatory ordinary-user dependency in this Work Order.
-
-For each EditSlot:
+Required mechanism:
 
 ```text
-ShotIndex candidates
-→ hard duration/eligibility filter
-→ persisted TemporalAnchor/Evidence where available
-→ canonical CandidateWindow generation
-→ conservative Shot-boundary grounded window when no stronger anchor exists and CAP-04 permits it
-→ ResolverCandidate
-→ optimize_sequence()
-→ ResolutionDecision
+ordinary Planning request
+→ product-facing request adapter
+→ Brief owner
+→ ScriptPlanningWorkflow
+→ persisted ScriptPlan
+→ ShootingPlanningWorkflow
+→ persisted ShootingPlan
+→ structured result with exact persisted refs
 ```
 
-Rules:
+Acceptance evidence must prove:
 
-- no LLM-generated IDs/timestamps;
-- fallback windows remain inside exact Shot source range;
-- fallback provenance must say it came from exact Shot boundary grounding;
-- unresolved slots remain explicit and fail EDL acceptance rather than being silently omitted;
-- dense/VLM escalation can be added later without changing the product request contract.
+1. entry is the ordinary request surface, not hand-authored Domain objects;
+2. Brief/ScriptPlan/ShootingPlan are persisted in the project workspace;
+3. returned refs load the exact persisted revisions;
+4. progress reaches a terminal completed state;
+5. no local footage is required.
 
-### Audio / spatial / music
+This remains Engineering evidence unless real product input and Human Gate judgment are intentionally included later.
 
-Do not invent optional assets.
+### Probe B — Editing real-media Engineering Probe
 
-For the minimum no-extra-music path:
-
-- source audio treatment must be deterministic and grounded to Resolver selections;
-- preserve original source audio conservatively unless explicit product intent says otherwise;
-- required speech remains protected by the accepted VoiceTreatment contract;
-- no BGM is invented merely to make the render audible;
-- no spatial/reframe decision is invented when no approved composer decision exists.
-
-Optional music/spatial/subtitle integrations may be injected when existing accepted decisions are available, but they must not block the minimal local-footage route unless product intent explicitly requires them.
-
-### EDL / render / Review
-
-- EDLBuilder receives only persisted/approved owner outputs;
-- canonical EDL remains sole exact timeline authority;
-- Renderer executes it;
-- Review classifies final evidence;
-- PASS returns final MP4 path;
-- `RERENDER_SAME_EDL` remains bounded and explicit;
-- editorial correction routes back to the named owner instead of being silently applied.
-
-## Result contract
-
-Planning result must expose at least:
-
-- project location;
-- Brief ref;
-- ScriptPlan ref;
-- ShootingPlan ref;
-- progress events;
-- terminal success/failure.
-
-Editing result must expose at least:
-
-- project location;
-- exact Brief/EditPlan/EDL lineage available to application layer;
-- final output path when rendered/reviewed successfully;
-- Review verdict/correction route when not accepted;
-- progress events;
-- terminal owned diagnostic.
-
-No requirement to expose an NLE timeline UI in this Work Order.
-
-## Deterministic tests
-
-Cover at least:
-
-1. Planning launch calls owners in order and returns exact persisted refs;
-2. Planning failure stops at owner boundary and produces FAILED progress;
-3. Editing request takes local paths rather than prebuilt Asset/Shot/Resolution IDs;
-4. original files remain unmodified;
-5. retrieval query derives from EditSlot intent;
-6. lexical candidate score remains retrieval evidence only;
-7. candidate window stays inside exact Shot range;
-8. persisted TemporalAnchor is preferred when available;
-9. Shot-boundary fallback is deterministic and explicitly evidenced;
-10. no legal candidate → unresolved → fail closed before render acceptance;
-11. Resolver decision feeds EDLBuilder without source-time rewrite;
-12. conservative source-audio treatment is per resolved selection;
-13. no optional music/spatial asset is fabricated;
-14. Renderer receives the canonical EDL produced by EDLBuilder;
-15. clean Review PASS returns discoverable final output;
-16. Review correction route is surfaced, not hidden;
-17. progress stages are ordered and terminal state is unambiguous;
-18. Combined optional Planning refs enrich Editing without becoming mandatory.
-
-Existing 641+ repository tests and all architecture contracts must remain green.
-
-## Product-facing seam
-
-A simple structured CLI/adapter is allowed after the application coordinator is stable. Prefer one request document per product launch over a dozen low-level commands.
-
-Conceptually acceptable shapes:
+Required mechanism:
 
 ```text
-video-editing-agent run planning --request planning.json
-video-editing-agent run editing  --request editing.json
+ordinary Editing request
+→ real valid local media
+→ actual FFprobe ingest
+→ actual Shot detection
+→ actual understanding
+→ Director / persisted EditPlan
+→ indexed retrieval
+→ grounded CandidateWindows / Resolver
+→ canonical EDL
+→ persist exact EDL revision
+→ actual FFmpeg Renderer
+→ actual MP4
+→ Review
+→ terminal result
 ```
 
-Exact syntax may differ.
+Acceptance evidence must prove:
 
-This CLI is an Engineering/Product surface for upcoming Product Probes; a plain CLI alone does not equal final Stage-A Human Gate UX.
+1. source is a real valid media file, not fake bytes;
+2. ordinary request does not contain ShotRef/CandidateWindow/ResolutionDecision/source timestamps/EDL;
+3. original media remains unchanged;
+4. Resolver-owned source ranges reach EDLBuilder without launcher rewrite;
+5. canonical EDL is persisted before render acceptance;
+6. actual FFmpeg produces a valid MP4 at the requested output path;
+7. Review consumes the rendered-media evidence and returns an explicit verdict/correction route;
+8. persisted Brief/EditPlan/EDL lineage is inspectable after completion.
 
-## Evidence gate
+Provider/model usage may be bounded and explicit, but fake Renderer output cannot satisfy this probe.
 
-After deterministic gates pass:
+## Canonical EDL cross-process durability evidence
 
-1. run one bounded Planning product-flow Engineering Probe through the new coordinator;
-2. run one bounded Editing flow Engineering Probe using real media and the canonical Renderer/Review path if dependencies can be represented in hosted CI;
-3. classify these as Engineering evidence unless the input and judgment satisfy Product Probe/Human Gate rules.
+The existing Windows SQLite Persistence Probe directly proves separate-process persistence for the entities it currently seeds/resumes. Do not broaden that evidence claim to canonical EDL unless the probe explicitly tests EDL.
 
-Do not label synthetic/provider-stub flows as Product Gate PASS.
+If this Work Order closure states that exact canonical EDL cross-process durability is proven, add the smallest bounded evidence:
 
-## Codex/resource policy
+```text
+process 1
+→ save exact EDL revision to SQLite
+→ exit
+
+process 2
+→ reopen same SQLite project
+→ load same exact EDL revision
+→ verify exact payload / lineage
+```
+
+This may be added to the existing bounded persistence probe or to the Editing Engineering Probe. Do not redesign persistence architecture merely to obtain this evidence.
+
+## Deterministic gate status
+
+The implementation baseline already satisfies deterministic repository gates and existing architecture contracts.
+
+Future repairs in this Work Order must remain narrowly evidence-driven. Do not reopen already accepted architecture merely because a probe exposes a runtime/configuration defect.
+
+## Codex / resource policy
 
 Approximately **9% Codex quota remains**.
 
-ChatGPT + GitHub remain primary for the product-flow contract, owner-preserving coordinator, deterministic tests, hosted CI and governance.
+ChatGPT + GitHub remain primary for remote state, workflow evidence, small probe/workflow changes and governance.
 
-Codex remains **NO ACTIVE RELEASE**. Release it only if the concrete Windows/media orchestration produces a genuine multi-file runtime defect that hosted evidence cannot close efficiently.
+Codex remains **NO ACTIVE RELEASE** by default.
+
+Release Codex only if the real Planning/Editing probe exposes a genuine Windows/media multi-file runtime defect that materially benefits from local `inspect → edit → test → repair` iteration.
 
 ## Exit gate
 
-PASS requires:
+PASS requires all of the following:
 
-- reusable Planning and Editing product-flow application surfaces exist;
+- reusable Planning and Editing product-flow application surfaces remain on accepted `main`;
 - ordinary request DTOs do not expose internal timeline/Resolver objects;
-- product progress/failure/result contract exists;
-- Planning chain reaches persisted ScriptPlan + ShootingPlan;
-- Editing coordinator reaches canonical EDL → Renderer → Review when all required injected capabilities are available;
-- retrieval→CandidateWindow→Resolver logic is no longer Probe-only;
-- all source times remain grounded;
-- deterministic tests and repository gates pass;
-- bounded integration evidence passes;
-- no claim that Human Gate/Product Gate is passed yet;
-- structural progress remains 90% until actual ordinary-user gate evidence justifies a change.
+- product progress/failure/result contract remains intact;
+- Planning Engineering Probe reaches persisted ScriptPlan + ShootingPlan through the ordinary request surface;
+- Editing Engineering Probe reaches real media → canonical EDL → actual FFmpeg MP4 → Review through the ordinary request surface;
+- exact source times remain grounded and EDL remains sole timeline authority;
+- if closure claims EDL cross-process durability, direct EDL second-process evidence exists;
+- repository deterministic gates remain green;
+- evidence is classified as Engineering evidence, not Product Gate/Human Gate PASS;
+- structural progress remains 90% until actual ordinary-user Product Gate evidence justifies a change.
 
 ## STOP boundary
 
-Do not build GUI/frontend.
+Do not build GUI/frontend in this Work Order.
 
 Do not invent timestamps/IDs with an LLM.
 
-Do not make dense retrieval, GPU or optional music mandatory for minimal Editing.
+Do not make dense retrieval, GPU or optional music mandatory for the minimal Editing route.
 
 Do not bypass Brief/Planning/Director/Resolver/EDL/Renderer/Review owners.
 
 Do not silently repair Review failures.
 
-Do not bump structural progress for an orchestration abstraction alone.
+Do not label fake-media/fake-renderer composition tests as real Editing evidence.
+
+Do not bump structural progress for Engineering Probe completion alone.
