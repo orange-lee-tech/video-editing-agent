@@ -28,6 +28,7 @@ from video_editing_agent.providers.reference.direct_https import (
     _file_sha256,
     _public_address,
     _request_target,
+    _ResponseLike,
 )
 
 _CHUNK_SIZE = 64 * 1024
@@ -316,9 +317,8 @@ class WikimediaAudioAcquirer:
         return parts
 
     @staticmethod
-    def _declared_length(response: object) -> int | None:
-        getheader = getattr(response, "getheader")
-        raw = getheader("Content-Length")
+    def _declared_length(response: _ResponseLike) -> int | None:
+        raw = response.getheader("Content-Length")
         if raw is None:
             return None
         try:
@@ -329,7 +329,7 @@ class WikimediaAudioAcquirer:
 
     def _commit_response(
         self,
-        response: object,
+        response: _ResponseLike,
         *,
         request: AudioAcquisitionRequest,
         final_url: str,
@@ -337,7 +337,6 @@ class WikimediaAudioAcquirer:
         deadline: float,
     ) -> AcquiredAudioMaterial:
         temporary_path: Path | None = None
-        read = getattr(response, "read")
         try:
             with tempfile.NamedTemporaryFile(
                 mode="wb",
@@ -357,7 +356,7 @@ class WikimediaAudioAcquirer:
                             "Wikimedia audio acquisition exceeded the configured total time limit",
                             retryable=True,
                         )
-                    chunk = read(_CHUNK_SIZE)
+                    chunk = response.read(_CHUNK_SIZE)
                     if not chunk:
                         break
                     if not isinstance(chunk, bytes):
@@ -396,7 +395,10 @@ class WikimediaAudioAcquirer:
             destination = self._committed_root / digest_hex[:2] / f"{digest_hex}.media"
             destination.parent.mkdir(parents=True, exist_ok=True)
             if destination.exists():
-                if destination.stat().st_size != byte_size or _file_sha256(destination) != digest_hex:
+                if (
+                    destination.stat().st_size != byte_size
+                    or _file_sha256(destination) != digest_hex
+                ):
                     raise _AcquisitionFailure(
                         AudioAcquisitionDiagnosticCode.INTEGRITY_FAILED,
                         "existing provider audio failed content-address integrity validation",
@@ -406,7 +408,10 @@ class WikimediaAudioAcquirer:
             else:
                 os.replace(temporary_path, destination)
                 temporary_path = None
-                if destination.stat().st_size != byte_size or _file_sha256(destination) != digest_hex:
+                if (
+                    destination.stat().st_size != byte_size
+                    or _file_sha256(destination) != digest_hex
+                ):
                     destination.unlink(missing_ok=True)
                     raise _AcquisitionFailure(
                         AudioAcquisitionDiagnosticCode.INTEGRITY_FAILED,
