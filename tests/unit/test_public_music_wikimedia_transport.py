@@ -50,7 +50,9 @@ class ConnectionFactory:
     def __init__(self, response: FakeResponse) -> None:
         self.connection = RecordingConnection(response)
 
-    def __call__(self, hostname: str, pinned_ip: str, port: int, timeout: float) -> RecordingConnection:
+    def __call__(
+        self, hostname: str, pinned_ip: str, port: int, timeout: float
+    ) -> RecordingConnection:
         assert hostname == "upload.wikimedia.org"
         assert pinned_ip == PUBLIC_IP
         assert port == 443
