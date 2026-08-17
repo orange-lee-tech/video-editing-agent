@@ -38,9 +38,7 @@ class GroundedEditPlanResolver:
 
     def resolve(self, edit_plan: EditPlan) -> tuple[ResolutionDecision, ...]:
         plan_ref = EntityRevisionRef(edit_plan.envelope.id, edit_plan.envelope.revision)
-        candidates_by_slot = {
-            slot.slot_id: self._slot_candidates(slot) for slot in edit_plan.slots
-        }
+        candidates_by_slot = {slot.slot_id: self._slot_candidates(slot) for slot in edit_plan.slots}
         return optimize_sequence(edit_plan, candidates_by_slot, plan_ref=plan_ref)
 
     def _slot_candidates(self, slot: EditSlot) -> tuple[ResolverCandidate, ...]:
