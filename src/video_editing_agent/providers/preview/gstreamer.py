@@ -25,20 +25,13 @@ _GST_PLAY_STATE_BUFFERING = 1
 _GST_PLAY_STATE_PAUSED = 2
 _GST_PLAY_STATE_PLAYING = 3
 _GST_RANK_NONE = 0
-
-_DEFAULT_HARDWARE_DECODER_FEATURES = (
-    "d3d11h264dec",
-    "d3d11h265dec",
-    "d3d11vp8dec",
-    "d3d11vp9dec",
-    "d3d11mpeg2dec",
-    "d3d11av1dec",
-    "d3d12h264dec",
-    "d3d12h265dec",
-    "d3d12vp8dec",
-    "d3d12vp9dec",
-    "d3d12mpeg2dec",
-    "d3d12av1dec",
+_GST_ELEMENT_FACTORY_TYPE_DECODER = 1 << 0
+_GST_ELEMENT_FACTORY_TYPE_HARDWARE = 1 << 12
+_GST_ELEMENT_FACTORY_TYPE_MEDIA_VIDEO = 1 << 49
+_GST_HARDWARE_VIDEO_DECODER_TYPE = (
+    _GST_ELEMENT_FACTORY_TYPE_DECODER
+    | _GST_ELEMENT_FACTORY_TYPE_HARDWARE
+    | _GST_ELEMENT_FACTORY_TYPE_MEDIA_VIDEO
 )
 
 
@@ -50,13 +43,10 @@ class GStreamerPreviewConfig:
     provenance: str | None = None
     expected_major: int = 1
     expected_minor: int = 28
-    hardware_decoder_features: tuple[str, ...] = _DEFAULT_HARDWARE_DECODER_FEATURES
 
     def __post_init__(self) -> None:
         if self.expected_major < 0 or self.expected_minor < 0:
             raise ValueError("expected GStreamer version values must be non-negative")
-        if not self.hardware_decoder_features:
-            raise ValueError("hardware_decoder_features must not be empty")
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,6 +75,8 @@ class _GStreamerApi(Protocol):
 
     def stop(self, player: object) -> None: ...
 
+    def hardware_video_decoder_features(self) -> tuple[str, ...]: ...
+
     def set_feature_rank(self, name: str, rank: int) -> int | None: ...
 
     def drain_events(self, bus: object) -> tuple[_NativeEvent, ...]: ...
@@ -100,6 +92,14 @@ class _GError(ctypes.Structure):
         ("domain", ctypes.c_uint32),
         ("code", ctypes.c_int),
         ("message", ctypes.c_char_p),
+    ]
+
+
+class _GList(ctypes.Structure):
+    _fields_ = [
+        ("data", ctypes.c_void_p),
+        ("next", ctypes.c_void_p),
+        ("prev", ctypes.c_void_p),
     ]
 
 
@@ -130,6 +130,12 @@ class _CtypesGStreamerApi:
         self._gst.gst_mini_object_unref.restype = None
         self._gst.gst_element_factory_find.argtypes = [ctypes.c_char_p]
         self._gst.gst_element_factory_find.restype = ctypes.c_void_p
+        self._gst.gst_element_factory_list_get_elements.argtypes = [ctypes.c_uint64, ctypes.c_uint]
+        self._gst.gst_element_factory_list_get_elements.restype = ctypes.c_void_p
+        self._gst.gst_plugin_feature_list_free.argtypes = [ctypes.c_void_p]
+        self._gst.gst_plugin_feature_list_free.restype = None
+        self._gst.gst_object_get_name.argtypes = [ctypes.c_void_p]
+        self._gst.gst_object_get_name.restype = ctypes.c_void_p
         self._gst.gst_plugin_feature_get_rank.argtypes = [ctypes.c_void_p]
         self._gst.gst_plugin_feature_get_rank.restype = ctypes.c_uint
         self._gst.gst_plugin_feature_set_rank.argtypes = [ctypes.c_void_p, ctypes.c_uint]
@@ -178,6 +184,8 @@ class _CtypesGStreamerApi:
         self._gobject.g_object_unref.restype = None
         self._glib.g_error_free.argtypes = [ctypes.c_void_p]
         self._glib.g_error_free.restype = None
+        self._glib.g_free.argtypes = [ctypes.c_void_p]
+        self._glib.g_free.restype = None
 
     def version(self) -> tuple[int, int, int, int]:
         major = ctypes.c_uint()
@@ -222,6 +230,32 @@ class _CtypesGStreamerApi:
 
     def stop(self, player: object) -> None:
         self._play.gst_play_stop(player)
+
+    def hardware_video_decoder_features(self) -> tuple[str, ...]:
+        list_pointer = self._gst.gst_element_factory_list_get_elements(
+            _GST_HARDWARE_VIDEO_DECODER_TYPE,
+            _GST_RANK_NONE,
+        )
+        if not list_pointer:
+            return ()
+        names: list[str] = []
+        node_pointer = list_pointer
+        try:
+            while node_pointer:
+                node = ctypes.cast(node_pointer, ctypes.POINTER(_GList)).contents
+                if node.data:
+                    name_pointer = self._gst.gst_object_get_name(node.data)
+                    if name_pointer:
+                        try:
+                            names.append(
+                                ctypes.string_at(name_pointer).decode("utf-8", errors="replace")
+                            )
+                        finally:
+                            self._glib.g_free(name_pointer)
+                node_pointer = node.next
+        finally:
+            self._gst.gst_plugin_feature_list_free(list_pointer)
+        return tuple(sorted(set(names)))
 
     def set_feature_rank(self, name: str, rank: int) -> int | None:
         feature = self._gst.gst_element_factory_find(name.encode("ascii"))
@@ -363,7 +397,7 @@ class GStreamerPreviewBackend(PreviewBackend):
             self._runtime_version = ".".join(str(value) for value in version)
             if self._config.decode_mode is PreviewDecodeMode.SOFTWARE_VIDEO:
                 disabled: list[str] = []
-                for feature in self._config.hardware_decoder_features:
+                for feature in api.hardware_video_decoder_features():
                     previous = api.set_feature_rank(feature, _GST_RANK_NONE)
                     if previous is not None:
                         self._saved_feature_ranks[feature] = previous
