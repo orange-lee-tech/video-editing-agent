@@ -51,6 +51,7 @@ def main() -> int:
     if missing:
         raise AssertionError(f"Doctor report is missing capabilities: {sorted(missing)}")
 
+    director_ready = checks["editing_cloud_director"].get("status") == "ready"
     gates = {
         "SCHEMA_V1": report.get("schema_version") == 1,
         "WINDOWS_HOST_READY": checks["host_runtime"].get("status") == "ready",
@@ -59,9 +60,7 @@ def main() -> int:
             checks["preview_playback"].get("status") == "available_after_install"
         ),
         "DEEPSEEK_PLANNING_CONFIGURED": checks["planning_cloud"].get("status") == "ready",
-        "DEEPSEEK_DIRECTOR_CONFIGURED": (
-            checks["editing_cloud_director"].get("status") == "ready"
-        ),
+        "DEEPSEEK_DIRECTOR_CONFIGURED": director_ready,
         "VISUAL_PROVIDER_CONFIGURED": checks["visual_understanding"].get("status") == "ready",
         "SENTINEL_REDACTED": sentinel not in raw,
         "NO_GLOBAL_ENVIRONMENT_OK": "environment_ok" not in report,
