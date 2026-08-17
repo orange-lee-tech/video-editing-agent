@@ -1,292 +1,296 @@
 # Current Work Order
 
-**ID:** `R0.12-WINDOWS-ENVIRONMENT-DOCTOR-001`  
+**ID:** `R0.12-PRODUCT-FLOW-ORCHESTRATION-001`  
 **Status:** ACTIVE  
-**Phase:** R0.12 — Windows Environment Doctor / ordinary-user runtime readiness  
-**Mode:** PRODUCT INTEGRATION / CAPABILITY DISCOVERY  
-**Accepted production-code baseline:** `2cfeb664552769ade09f58bc2905ab531733a66a`  
+**Phase:** R0.12 — practical product-facing Planning / Editing orchestration  
+**Mode:** PRODUCT INTEGRATION  
+**Accepted production-code baseline:** `914dd7dcc72595d418d7d3bf0cb05e356dd021b9`  
 **Activated:** 2026-08-17  
 **Codex release:** NO
 
 ## Previous Work Order result
 
-`R0.12-MINIMUM-REVIEW-REPAIR-LOOP-001` — **PASS / CLOSED**.
-
-Accepted production baseline:
-
-`2cfeb664552769ade09f58bc2905ab531733a66a`
+`R0.12-WINDOWS-ENVIRONMENT-DOCTOR-001` — **PASS / CLOSED**.
 
 Closure evidence:
 
-`docs/validation/R0.12_MINIMUM_REVIEW_REPAIR_CLOSURE.md`
+`docs/validation/R0.12_WINDOWS_ENVIRONMENT_DOCTOR_CLOSURE.md`
 
-Bounded Windows real-media Review run:
+Accepted production baseline:
 
-`32033179672` — PASS.
+`914dd7dcc72595d418d7d3bf0cb05e356dd021b9`
 
-The production Review path accepted clean media, returned typed `CORRECTION_REQUIRED / RETURN_TO_AUDIO_EDITORIAL` for a real AAC silent-track defect, preserved exact EDL provenance and did not mutate delivered media.
+Bounded Windows production run:
+
+`32035192895` — PASS.
 
 ## Why this work exists
 
-Stage-A 100% explicitly forbids assuming a preconfigured developer workstation.
+The repository now has accepted owners for Brief/Planning, local Asset/Shot/understanding, Editing Director, retrieval/Resolver primitives, audio/spatial/subtitle decisions, canonical EDL, Renderer, Preview, Review and Environment Doctor.
 
-The repository already has strong individual runtime proofs, but ordinary Windows usability is still fragmented across:
+What remains structurally missing is a product-level coordinator that turns ordinary user inputs into those owner calls without requiring the user to hand-author internal IDs, CandidateWindows, ResolutionDecisions, EDL objects or render requests.
 
-- Python 3.12 package execution;
-- FFmpeg / ffprobe requirements used by ingest, extraction, render and Review;
-- a private GStreamer Preview runtime;
-- provider-specific API-key requirements;
-- optional local model/runtime components;
-- developer-oriented PowerShell Probe/install scripts.
+Current evidence confirms the fragmentation:
 
-Today an ordinary user can still encounter a low-level missing executable, missing runtime, missing key or unsupported capability before the product explains what is actually available on the machine.
+- `ProjectWorkspace.runtime()` reaches Planning and low-level media operations;
+- `ProjectWorkspace.editing_runtime()` reaches persisted EditPlan generation only;
+- the R0.12 living smoke still manually composes Resolver → EDLBuilder → Renderer;
+- the older R0.9 Product Probe already proved a real retrieval → persisted temporal evidence → canonical CandidateWindow → grounded Resolver route, but that composition remains Probe-only.
 
-This Work Order creates the smallest reliable **Environment Doctor** machine-fact boundary. It does not choose the final installer technology.
+This Work Order promotes that proven composition into a reusable application/product flow while preserving every accepted owner boundary.
 
-## Source contracts
+## Canonical product contract
 
-Canonical capability direction:
+Source of truth:
 
-- `docs/capabilities/CAP-10_DEPLOYMENT_SECURITY_AUTONOMY.md`
-- `docs/research/LOCAL_TOOLBOX_AND_DEPLOYMENT.md`
-- `docs/roadmap/STAGE_A_COMPLETION_GATE.md`
+`docs/product/STAGE_A_PRODUCT_IO_CONTRACT.md`
 
-Frozen principles:
+Two product outcomes remain independent:
 
 ```text
-hardware capability != software capability
-feature listed       != feature proven ready
-GPU absent            != basic product unusable
-missing optional path != silent fallback
-machine/provider data != Domain creative authority
+Planning-only:
+ordinary user intent / reference context
+→ Brief owner
+→ ScriptPlanningWorkflow
+→ ShootingPlanningWorkflow
+→ persisted ScriptPlan + ShootingPlan
+
+Editing-only:
+ordinary user local footage + editing intent + output path
+→ ingest / Shot / understanding owners
+→ Director → EditPlan
+→ retrieval / CandidateWindows / Resolver
+→ approved audio/spatial/subtitle decisions
+→ EDLBuilder → canonical EDL
+→ Renderer → Review
+→ final MP4 / typed correction state
 ```
 
-## Objective
+Combined is composition of these same routes, not a third architecture.
 
-Create one product-owned diagnostic surface that can answer, in typed and sanitized form:
+## Product-facing request rule
 
-1. whether the host is a supported Stage-A Windows environment;
-2. whether the running Python satisfies the product minimum;
-3. whether FFmpeg and ffprobe are resolvable and can execute a tiny deterministic probe;
-4. whether the approved Preview private runtime can initialize through the production Preview seam when configured;
-5. whether required cloud provider credentials are configured **without exposing their values**;
-6. what optional capabilities are absent versus merely degraded;
-7. which capabilities block Planning, Editing, Preview or local media execution;
-8. what the ordinary user should repair next;
-9. how the product can rerun the same probes after repair.
+Ordinary-user requests may contain:
 
-## Frozen status vocabulary
+- project location / create-open intent;
+- Brief/editorial text and supported policy/production constraints;
+- local files/folder expanded to files;
+- explicit final output destination;
+- understandable audio/voice intent;
+- optional exact Planning revisions for Combined flow.
 
-Use the CAP-10 semantics, subject only to implementation-level naming compatibility:
+They must **not** require the user to supply:
 
-- `READY`
-- `AVAILABLE_AFTER_INSTALL`
-- `AVAILABLE_BUT_SLOW`
-- `HARDWARE_BLOCKED`
-- `CLOUD_FALLBACK`
-- `UNAVAILABLE`
+- AssetRef / ShotRef as ordinary input;
+- CandidateWindow;
+- ResolutionDecision;
+- source timestamp;
+- AudioMixDecision internals;
+- EDL / RenderRequest;
+- repository paths other than chosen project/input/output locations.
 
-A capability may also carry typed product-impact metadata, but do not create an unrelated second status taxonomy.
+Configuration/runtime dependencies such as provider choice, FFmpeg executable or optional model path belong to product composition/configuration, not editorial request meaning.
 
-## Minimum Stage-A capability set
+## Product progress contract
 
-### Host runtime
+Expose ordered product-facing progress projections at minimum:
 
-Inspect at least:
+- `PROJECT_READY`
+- `INPUT_VALIDATION`
+- `INGEST_UNDERSTANDING`
+- `PLANNING_GENERATION`
+- `EDITING_DECISION`
+- `RESOLVING`
+- `EDL_ASSEMBLY`
+- `RENDERING`
+- `REVIEW_QC`
+- `COMPLETED`
+- `FAILED`
 
-- operating system / Windows support status;
-- Python runtime version;
-- architecture;
-- practical free disk information for the selected working location when available.
+Names may be normalized if a smaller coherent enum is cleaner.
 
-Do not make CPU model or GPU presence a hard basic-product gate by itself.
+Each event must carry understandable stage/status and optional owned diagnostic text. These events are application projections, not new Domain entities.
 
-### FFmpeg / ffprobe
+## Planning flow minimum
 
-Do not mark ready from `PATH` presence alone.
+Implement one reusable Planning launch that:
 
-Minimum proof:
+1. creates/commits Brief through existing Brief owner;
+2. generates ScriptPlan through existing ScriptPlanningWorkflow;
+3. generates ShootingPlan through existing ShootingPlanningWorkflow;
+4. returns exact persisted revision refs and user-usable structured output;
+5. exposes progress and typed failure without duplicating the persisted entities.
+
+No local footage is required.
+
+## Editing flow minimum
+
+Implement one reusable Editing coordinator whose public request starts from local files + Brief/editorial intent + output destination.
+
+### Media and Director
+
+- local originals cross normal `AssetIngestService` and remain untouched;
+- Shot/understanding stages use injected production capability adapters;
+- Director produces/persists EditPlan;
+- ScriptPlan/ShootingPlan refs remain optional.
+
+### Retrieval / grounded windows
+
+Promote reusable composition from the accepted R0.9 route.
+
+First production baseline may use deterministic lexical retrieval as the always-available retrieval channel after analyses are indexed. Dense retrieval remains an optional enhancement and must not become a mandatory ordinary-user dependency in this Work Order.
+
+For each EditSlot:
 
 ```text
-resolve executable
-→ execute bounded version/probe command
-→ validate successful process result
-→ record normalized version/capability evidence
+ShotIndex candidates
+→ hard duration/eligibility filter
+→ persisted TemporalAnchor/Evidence where available
+→ canonical CandidateWindow generation
+→ conservative Shot-boundary grounded window when no stronger anchor exists and CAP-04 permits it
+→ ResolverCandidate
+→ optimize_sequence()
+→ ResolutionDecision
 ```
-
-The check must remain argument-array/direct-process based; no shell command construction from media/provider text.
-
-### Preview
-
-If a GStreamer private-runtime location is configured, readiness must be based on the production Preview runtime initialization contract, not merely directory existence.
-
-If no packaged/configured private Preview runtime exists, report a typed install/configuration state. Do not silently switch backend families.
-
-### Cloud intelligence configuration
-
-At minimum inspect configuration presence for the providers currently used by accepted product paths:
-
-- `DEEPSEEK_API_KEY` — Planning + Director;
-- `GEMINI_API_KEY` — supported visual-understanding provider;
-- `OPENAI_API_KEY` — supported visual-understanding provider.
 
 Rules:
 
-- never include secret values in Environment Doctor result, logs or repair report;
-- presence is configuration evidence, **not** a live provider-connectivity PASS;
-- Gemini/OpenAI are alternative supported visual paths; both are not required;
-- network/provider outages remain separate runtime failures.
+- no LLM-generated IDs/timestamps;
+- fallback windows remain inside exact Shot source range;
+- fallback provenance must say it came from exact Shot boundary grounding;
+- unresolved slots remain explicit and fail EDL acceptance rather than being silently omitted;
+- dense/VLM escalation can be added later without changing the product request contract.
 
-### Optional local capabilities
+### Audio / spatial / music
 
-The Doctor may report currently detectable optional local model/runtime paths, but this first batch must not become an installer for Torch, CUDA, ASR, embedding or tracking packages.
+Do not invent optional assets.
 
-Unknown optional capability must not falsely block deterministic local editing/rendering that does not require it.
+For the minimum no-extra-music path:
 
-## Product-impact model
+- source audio treatment must be deterministic and grounded to Resolver selections;
+- preserve original source audio conservatively unless explicit product intent says otherwise;
+- required speech remains protected by the accepted VoiceTreatment contract;
+- no BGM is invented merely to make the render audible;
+- no spatial/reframe decision is invented when no approved composer decision exists.
 
-Each finding should be attributable to a product capability such as:
+Optional music/spatial/subtitle integrations may be injected when existing accepted decisions are available, but they must not block the minimal local-footage route unless product intent explicitly requires them.
 
-- `planning_cloud`
-- `editing_cloud_director`
-- `visual_understanding`
-- `media_probe_render`
-- `preview_playback`
-- `optional_local_acceleration`
+### EDL / render / Review
 
-The aggregate result must preserve per-capability states. Do not collapse everything into one misleading boolean `environment_ok`.
+- EDLBuilder receives only persisted/approved owner outputs;
+- canonical EDL remains sole exact timeline authority;
+- Renderer executes it;
+- Review classifies final evidence;
+- PASS returns final MP4 path;
+- `RERENDER_SAME_EDL` remains bounded and explicit;
+- editorial correction routes back to the named owner instead of being silently applied.
 
-## Repair report
+## Result contract
 
-Generate a copyable, sanitized report suitable for the user or an external assistant.
+Planning result must expose at least:
 
-It may include normalized OS/runtime facts, component/status/product impact, concise repair guidance and a request to rerun Environment Doctor after repair.
+- project location;
+- Brief ref;
+- ScriptPlan ref;
+- ShootingPlan ref;
+- progress events;
+- terminal success/failure.
 
-It must not include API-key values, OAuth tokens/cookies, full environment dumps, unrelated personal paths, media-derived untrusted text or arbitrary model-generated shell commands.
+Editing result must expose at least:
 
-When installation guidance is needed, prefer official-source wording and never advise disabling security controls.
+- project location;
+- exact Brief/EditPlan/EDL lineage available to application layer;
+- final output path when rendered/reviewed successfully;
+- Review verdict/correction route when not accepted;
+- progress events;
+- terminal owned diagnostic.
 
-## Application ownership
+No requirement to expose an NLE timeline UI in this Work Order.
 
-Expected layering:
-
-```text
-EnvironmentDoctor application owner
-→ replaceable capability-probe ports
-→ Windows/tool/provider/private-runtime adapters
-→ typed EnvironmentReport
-```
-
-Environment Doctor may inspect capability and generate sanitized guidance. It may not mutate Domain creative state, EDL, assets, rights state or project decisions, and it may not automatically install arbitrary dependencies in this Work Order.
-
-## CLI / product-facing seam
-
-A minimal CLI exposure is allowed and desirable as an Engineering/Product integration seam, but CLI-only success does **not** complete the ordinary-user Product Gate.
-
-Prefer a project-independent command shape if it fits current parser ownership, conceptually:
-
-```text
-video-editing-agent doctor
-```
-
-Do not force Environment Doctor to create or edit a project merely to inspect the machine.
-
-## Required deterministic tests
+## Deterministic tests
 
 Cover at least:
 
-1. supported Windows + compatible Python → host runtime ready;
-2. non-Windows Stage-A host is reported honestly, not crashed;
-3. FFmpeg missing → typed install-required state;
-4. FFmpeg present but execution fails → not READY;
-5. FFmpeg + ffprobe bounded probe success → READY;
-6. Preview runtime missing/unconfigured → typed non-ready without backend switch;
-7. Preview runtime probe success → READY;
-8. DeepSeek key missing blocks relevant cloud configuration without exposing secret text;
-9. present provider key is reported only as configured, never echoed;
-10. Gemini/OpenAI visual alternatives do not require both keys;
-11. optional GPU/local acceleration missing does not make deterministic core falsely unavailable;
-12. generated repair report contains no supplied secret value;
-13. untrusted filenames/media text cannot become repair command authority;
-14. aggregate report preserves per-capability statuses.
+1. Planning launch calls owners in order and returns exact persisted refs;
+2. Planning failure stops at owner boundary and produces FAILED progress;
+3. Editing request takes local paths rather than prebuilt Asset/Shot/Resolution IDs;
+4. original files remain unmodified;
+5. retrieval query derives from EditSlot intent;
+6. lexical candidate score remains retrieval evidence only;
+7. candidate window stays inside exact Shot range;
+8. persisted TemporalAnchor is preferred when available;
+9. Shot-boundary fallback is deterministic and explicitly evidenced;
+10. no legal candidate → unresolved → fail closed before render acceptance;
+11. Resolver decision feeds EDLBuilder without source-time rewrite;
+12. conservative source-audio treatment is per resolved selection;
+13. no optional music/spatial asset is fabricated;
+14. Renderer receives the canonical EDL produced by EDLBuilder;
+15. clean Review PASS returns discoverable final output;
+16. Review correction route is surfaced, not hidden;
+17. progress stages are ordered and terminal state is unambiguous;
+18. Combined optional Planning refs enrich Editing without becoming mandatory.
 
-Existing Renderer, Preview, Review, Planning and Editing tests must remain green.
+Existing 641+ repository tests and all architecture contracts must remain green.
 
-## Real Windows evidence
+## Product-facing seam
 
-After deterministic gates pass, require one bounded Windows Environment Doctor Engineering Probe using the production surface.
+A simple structured CLI/adapter is allowed after the application coordinator is stable. Prefer one request document per product launch over a dozen low-level commands.
 
-It must prove at least:
+Conceptually acceptable shapes:
 
-- actual Windows host facts are reported;
-- pinned FFmpeg/ffprobe are probed as READY;
-- one deliberately unavailable/misconfigured component remains typed non-ready rather than crashing;
-- secret redaction is demonstrated with a synthetic sentinel secret;
-- no project/Domain mutation is required;
-- result is structured for later UI consumption.
+```text
+video-editing-agent run planning --request planning.json
+video-editing-agent run editing  --request editing.json
+```
 
-Do not download the large GStreamer runtime solely to decorate this probe. Preserve already accepted Preview Windows evidence unless a new Preview defect is exposed.
+Exact syntax may differ.
 
-## Installer boundary
+This CLI is an Engineering/Product surface for upcoming Product Probes; a plain CLI alone does not equal final Stage-A Human Gate UX.
 
-Not in this Work Order:
+## Evidence gate
 
-- final installer technology;
-- signed installer/update channel;
-- automatic arbitrary package installation;
-- bundled/private Python decision;
-- CUDA/Torch model manager;
-- registry/system-wide mutation;
-- administrative privilege workflow.
+After deterministic gates pass:
 
-Environment Doctor must remain useful regardless of those later packaging decisions.
+1. run one bounded Planning product-flow Engineering Probe through the new coordinator;
+2. run one bounded Editing flow Engineering Probe using real media and the canonical Renderer/Review path if dependencies can be represented in hosted CI;
+3. classify these as Engineering evidence unless the input and judgment satisfy Product Probe/Human Gate rules.
 
-## Resource constraint
+Do not label synthetic/provider-stub flows as Product Gate PASS.
+
+## Codex/resource policy
 
 Approximately **9% Codex quota remains**.
 
-### ChatGPT + GitHub
+ChatGPT + GitHub remain primary for the product-flow contract, owner-preserving coordinator, deterministic tests, hosted CI and governance.
 
-Primary owner for contract reduction, typed capability/application seams, deterministic tool/provider probes, focused tests, bounded CLI integration, CI/Windows Engineering Probe and governance.
-
-### Codex
-
-**NO ACTIVE RELEASE.**
-
-Release only if a genuine Windows-only multi-file runtime issue appears that connector-first work and hosted Windows evidence cannot close efficiently.
-
-### User PowerShell
-
-Use only if GitHub-hosted Windows evidence cannot represent the required capability or a real local-user/Human Gate becomes necessary.
+Codex remains **NO ACTIVE RELEASE**. Release it only if the concrete Windows/media orchestration produces a genuine multi-file runtime defect that hosted evidence cannot close efficiently.
 
 ## Exit gate
 
 PASS requires:
 
-- one production Environment Doctor application boundary;
-- per-capability typed status and product impact;
-- FFmpeg/ffprobe readiness proven by execution;
-- Preview readiness represented through the accepted production seam/configuration contract;
-- provider-secret presence inspected without disclosure;
-- sanitized repair report;
-- deterministic tests and repository quality gates green;
-- one bounded Windows production Environment Doctor probe PASS;
-- no Domain/editorial mutation;
-- no installer technology falsely frozen;
-- structural progress remains 90% unless ordinary-user Product Gate structure genuinely changes.
+- reusable Planning and Editing product-flow application surfaces exist;
+- ordinary request DTOs do not expose internal timeline/Resolver objects;
+- product progress/failure/result contract exists;
+- Planning chain reaches persisted ScriptPlan + ShootingPlan;
+- Editing coordinator reaches canonical EDL → Renderer → Review when all required injected capabilities are available;
+- retrieval→CandidateWindow→Resolver logic is no longer Probe-only;
+- all source times remain grounded;
+- deterministic tests and repository gates pass;
+- bounded integration evidence passes;
+- no claim that Human Gate/Product Gate is passed yet;
+- structural progress remains 90% until actual ordinary-user gate evidence justifies a change.
 
 ## STOP boundary
 
-Do not build the final installer.
+Do not build GUI/frontend.
 
-Do not make GPU presence a basic-product requirement.
+Do not invent timestamps/IDs with an LLM.
 
-Do not trust declared executable/runtime presence without a tiny probe where readiness matters.
+Do not make dense retrieval, GPU or optional music mandatory for minimal Editing.
 
-Do not leak secrets into reports/logs/tests.
+Do not bypass Brief/Planning/Director/Resolver/EDL/Renderer/Review owners.
 
-Do not auto-execute repair commands generated from model/media/provider text.
+Do not silently repair Review failures.
 
-Do not reopen Preview/backend benchmarking.
-
-Do not expand into GUI/frontend or the full ordinary-user workflow orchestrator in this Work Order.
+Do not bump structural progress for an orchestration abstraction alone.
