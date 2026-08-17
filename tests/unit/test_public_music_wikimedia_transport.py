@@ -106,7 +106,7 @@ def test_mime_mismatch_reports_expected_and_received_types(tmp_path: Path) -> No
         FakeResponse(
             200,
             {
-                "Content-Type": "audio/x-flac",
+                "Content-Type": "audio/mpeg",
             },
         )
     )
@@ -122,4 +122,4 @@ def test_mime_mismatch_reports_expected_and_received_types(tmp_path: Path) -> No
     assert diagnostic.code is AudioAcquisitionDiagnosticCode.SOURCE_METADATA_CHANGED
     assert not diagnostic.retryable
     assert "expected=audio/flac" in diagnostic.message
-    assert "received=audio/x-flac" in diagnostic.message
+    assert "received=audio/mpeg" in diagnostic.message
