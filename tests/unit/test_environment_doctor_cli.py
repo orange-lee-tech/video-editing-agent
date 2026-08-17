@@ -47,5 +47,5 @@ def test_entrypoint_delegates_existing_project_cli_unchanged(tmp_path, capsys) -
     assert entrypoint.main(["--project", str(project), "project", "init"]) == 0
     output = json.loads(capsys.readouterr().out)
 
-    assert output["schema_version"] == 6
+    assert output["schema_version"] == 7
     assert (project / "project.sqlite3").is_file()
