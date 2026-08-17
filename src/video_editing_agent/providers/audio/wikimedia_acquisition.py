@@ -35,6 +35,12 @@ _CHUNK_SIZE = 64 * 1024
 _REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
 _ALLOWED_HOST = "upload.wikimedia.org"
 _ALLOWED_GENERIC_AUDIO_TYPES = frozenset({"application/ogg", "application/octet-stream"})
+_CANONICAL_AUDIO_MIME = {
+    "audio/flac": "audio/flac",
+    "audio/x-flac": "audio/flac",
+    "audio/ogg": "audio/ogg",
+    "application/ogg": "audio/ogg",
+}
 _USER_AGENT = "video-editing-agent-bot/0.1 (https://github.com/orange-lee-tech/video-editing-agent)"
 Clock = Callable[[], datetime]
 Monotonic = Callable[[], float]
@@ -63,6 +69,11 @@ def _content_type_base(value: str | None) -> str | None:
         return None
     normalized = value.partition(";")[0].strip().casefold()
     return normalized or None
+
+
+def _canonical_audio_mime(value: str) -> str:
+    normalized = value.strip().casefold()
+    return _CANONICAL_AUDIO_MIME.get(normalized, normalized)
 
 
 class WikimediaAudioAcquirer:
@@ -221,16 +232,16 @@ class WikimediaAudioAcquirer:
                         AudioAcquisitionDiagnosticCode.UNSUPPORTED_MEDIA_TYPE,
                         f"verified Wikimedia URL did not return audio media ({content_type})",
                     )
-                if (
-                    request.expected_content_type is not None
-                    and content_type != request.expected_content_type.strip().casefold()
-                ):
+                if request.expected_content_type is not None:
                     expected_content_type = request.expected_content_type.strip().casefold()
-                    raise _AcquisitionFailure(
-                        AudioAcquisitionDiagnosticCode.SOURCE_METADATA_CHANGED,
-                        "Wikimedia audio MIME type changed after rights verification "
-                        f"(expected={expected_content_type}, received={content_type})",
-                    )
+                    if _canonical_audio_mime(content_type) != _canonical_audio_mime(
+                        expected_content_type
+                    ):
+                        raise _AcquisitionFailure(
+                            AudioAcquisitionDiagnosticCode.SOURCE_METADATA_CHANGED,
+                            "Wikimedia audio MIME type changed after rights verification "
+                            f"(expected={expected_content_type}, received={content_type})",
+                        )
                 declared_length = self._declared_length(response)
                 if declared_length is not None and declared_length > self._policy.max_bytes:
                     raise _AcquisitionFailure(
