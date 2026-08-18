@@ -99,7 +99,7 @@ At the audited `main`:
 - `EditingProductCapabilities` exposes media probe, shot detector, understanding, Director, Renderer and rendered-media QC, but no music-selection, BeatMap/audio-editorial, spatial-composer, subtitle/graphics or transition capability;
 - `build_edl()` calls `DeterministicEDLBuilder` with grounded ResolutionDecision plus `build_conservative_source_audio_mix(...)`, but supplies no `spatial_decisions` or `music_selection`;
 - `DeterministicEDLBuilder` already has optional seams for `spatial_decisions`, `music_selection` and `audio_mix`, proving these decisions belong upstream of the builder rather than in Renderer;
-- the live Work Order / Current Phase return corridor currently abbreviates the gate-closing chain to `Resolver → canonical EDL / Renderer / Review`, omitting the Stage-A editing-expression floor.
+- the live Work Order / Current Phase return corridor had abbreviated the gate-closing chain to `Resolver → canonical EDL / Renderer / Review`, omitting the Stage-A editing-expression floor.
 
 Subtitle/graphics/minimal-transition product wiring is also not present in this ordinary ProductFlow path.
 
@@ -126,8 +126,8 @@ The fix must preserve ownership:
 
 Before the next gate-closing real Editing run:
 
-1. update the live control corridor so it cannot falsely close on the abbreviated path;
-2. define one bounded Stage-A Editing integration repair work boundary;
+1. keep the live control corridor from falsely closing on the abbreviated path;
+2. execute one bounded Stage-A Editing integration repair work boundary;
 3. wire existing approved music/audio/spatial capabilities into ProductFlow rather than reimplementing them;
 4. wire the minimum transition/subtitle/graphics expression floor required by `STAGE_A_COMPLETION_GATE.md`;
 5. add integration regressions showing canonical EDL actually contains/executes the decisions;
@@ -136,3 +136,71 @@ Before the next gate-closing real Editing run:
 ### Current classification
 
 **OPEN — gate-blocking integration gap, not a reason to redesign the core architecture.**
+
+## R0.12 Review-before-final-output publication defect — OPEN
+
+**Discovered:** 2026-08-19 during ProductFlow audit
+
+### Symptom
+
+The ProductFlow result correctly exposes `final_output_path = None` when Review returns a non-PASS disposition, but the ordinary Editing flow renders **directly to the user-requested output path before Review runs**.
+
+Therefore a correction-required or failed-review run may still leave a plausible MP4 at the destination the user selected, even though the application result says there is no accepted final output.
+
+### Evidence
+
+Current `EditingProductFlow.run()` order is:
+
+```text
+build/save canonical EDL
+→ render(edl, request.output_path)
+→ review(render_result)
+→ if Review != PASS: return CORRECTION_REQUIRED with final_output_path=None
+```
+
+`build_editing_product_flow().render()` passes that same `request.output_path` into `OutputSpec`, and the FFmpeg renderer writes the target before Review can approve it.
+
+No promotion/staging step or correction-path cleanup is present in the audited ordinary ProductFlow.
+
+### Why this matters
+
+The frozen product semantics are:
+
+```text
+Renderer → Review/repair where required → final MP4
+```
+
+A filesystem artifact at the user's chosen **final destination** is itself a product signal. Merely hiding its path in `EditingProductResult` is insufficient if the file already exists and looks complete.
+
+This also interacts with the existing FFmpeg `-y` behavior: an unreviewed candidate can overwrite a prior non-source output at the selected destination before Review has accepted the new result.
+
+### Durable invariant
+
+**Render candidate ≠ published final output.**
+
+The ordinary product route must have a clear publication boundary:
+
+```text
+canonical EDL
+→ render to controlled candidate/staging artifact
+→ Review
+→ PASS: atomically/prominently publish/promote to user final destination
+→ non-PASS: keep internal diagnostic candidate only if policy allows, or clean it safely
+```
+
+Review still does not mutate media or EDL. Promotion is product/artifact lifecycle, not editorial authority.
+
+### Required correction
+
+Fold this into the same bounded Stage-A Editing integration repair, not a new phase:
+
+1. render to a controlled staging/candidate path that cannot be mistaken for the requested final output;
+2. Review consumes that candidate artifact;
+3. only PASS promotes/copies/moves to the user-selected final path under explicit overwrite policy;
+4. CORRECTION_REQUIRED exposes no final output and does not overwrite an existing accepted output;
+5. add tests for PASS promotion, non-PASS no-publication, pre-existing target protection, and cleanup/retry semantics;
+6. preserve RenderArtifact/Review evidence for diagnostics without making it look user-final.
+
+### Current classification
+
+**OPEN — gate-blocking product-output lifecycle defect; fix at ProductFlow/artifact-publication boundary, not by giving Review or Renderer new editorial authority.**
