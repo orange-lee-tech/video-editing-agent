@@ -4,7 +4,7 @@
 **Development stage:** STRUCTURAL_CONSTRUCTION  
 **Structural progress:** 90%  
 **Current phase:** R0.12 — EDL / Renderer / Review / runtime productization  
-**Engineering state:** STAGE_A_PRODUCT_GATE_CLOSURE_ACTIVE  
+**Engineering state:** STAGE_A_PRODUCT_GATE_EXECUTION_ACTIVE  
 **Updated:** 2026-08-18
 
 ## Progress meaning
@@ -17,113 +17,119 @@ The hard 100% contract remains:
 
 Current Product Gate state:
 
-- Planning Engineering mechanism: PASS; real Product Probe / Human Gate: OPEN.
-- Editing Engineering mechanism: PASS; real automatic-final-MP4 Product Probe / Human Gate: OPEN.
+- Planning Engineering mechanism: PASS; Product Probe / Human Gate: OPEN.
+- Editing Engineering mechanism: PASS; Product Probe / Human Gate: OPEN.
 - Stage-A completion gate: OPEN.
 
 Therefore structural progress remains **90%**.
 
 ## Current accepted production-code baseline
 
-`1e90e2dd3d235271ef48bb7a708a1899ce5b87a4`
+`0134d0c4a741eb2babed7275c0aaef42045f2dc4`
 
 Exact-head deterministic CI:
 
-`32046499144` — PASS.
+`32111192942` — PASS (`ci/quality-gate-diagnostic = success`).
 
-## ProductFlow orchestration — PASS / CLOSED
+## Stage-A ordinary-user product surface — PASS / ACCEPTED
 
-Work Order:
+Implementation closure evidence:
 
-`R0.12-PRODUCT-FLOW-ORCHESTRATION-001`
+`docs/validation/R0.12_STAGE_A_PRODUCT_SURFACE_IMPLEMENTATION_CLOSURE.md`
 
-Closure evidence:
+Accepted commits:
 
-`docs/validation/R0.12_PRODUCT_FLOW_ORCHESTRATION_CLOSURE.md`
+- `c765d4095f5337e1dc30ba2ef11308cc425d904e` — thin Stage-A launcher/product surface;
+- `0134d0c4a741eb2babed7275c0aaef42045f2dc4` — safe Combined/path/diagnostic repair.
 
-Bounded Windows Engineering Probe:
+Independent ChatGPT review confirmed the implementation and repair stayed within the frozen surface boundary and exact pushed CI is green.
 
-`32046190310` — PASS.
+Accepted ordinary-user capabilities include:
 
-Accepted mechanism evidence includes:
+- stdlib Tkinter `video-editing-agent launch`;
+- Planning authoritative facts and optional URL/local reference video;
+- `REFERENCE_ANALYSIS_ONLY` reference bridge and exact guidance into both Planning owners;
+- live progress observation;
+- reviewed FFmpeg/ffprobe and TransNet runtime discovery/diagnostics;
+- deterministic file/folder selection;
+- readable exact ScriptPlan/ShootingPlan presentation;
+- Editing final MP4 / correction presentation;
+- Editing-only default path;
+- optional same-session/same-project Combined enrichment with exact Planning revisions and no user-entered internal IDs;
+- fail-closed ordinary-user path validation.
 
-- ordinary structured Planning and Editing request surfaces;
-- live Planning provider/review path to persisted ScriptPlan + ShootingPlan;
-- real-media ingest / understanding / Director / grounded Resolver path;
-- canonical EDL persistence;
-- actual FFmpeg MP4 with video + audio;
-- second-process exact canonical EDL revision reload and lineage;
-- original source hash preservation;
-- explicit Review PASS.
-
-This is Engineering evidence, not real Product Gate/Human Gate evidence.
+This is Engineering/product-surface acceptance, not Product/Human Gate evidence.
 
 ## Active Work Order
 
-`R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001` is ACTIVE.
+`R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001` remains ACTIVE, but its execution mode has advanced to:
 
-The final Stage-A construction boundary is ordinary-user Product Gate closure, not more backend construction.
+`PRODUCT PROBE → HUMAN GATE`
 
-### Ordinary-user surface audit — COMPLETE
+There is **no active Codex writer**.
 
-Audit evidence:
+The remaining Stage-A work is real environment readiness and real ordinary-user evidence, not more speculative backend construction.
 
-`docs/validation/R0.12_STAGE_A_PRODUCT_SURFACE_AUDIT.md`
-
-Audit result: **IMPLEMENTATION REQUIRED**.
-
-Confirmed gaps include:
-
-- ordinary Planning input lacks accepted authoritative-fact/reference inputs;
-- existing `ReferenceStyleGuidance` is not fully plumbed into both Planning owners;
-- current ProductFlow launch requires hand-written JSON;
-- Editing exposes runtime/model/TransNet weight-path/tool arguments to the launcher path;
-- no ordinary Windows launcher/file chooser exists;
-- Planning results are not directly presented as readable exact plans;
-- progress events are not observable live;
-- folder selection convenience is absent;
-- Environment Doctor lacks mandatory Shot-detection runtime readiness coverage.
-
-### Planning Product Gate target
+## Planning Product Gate target
 
 ```text
-real user intent / reference / commercial target
-→ ordinary Windows product surface
+real user intent / optional supported reference / commercial facts
+→ ordinary Windows launcher
 → real Planning workflow
-→ persisted inspectable ScriptPlan
-→ usable ShootingPlan
+→ persisted exact ScriptPlan + ShootingPlan
+→ readable launcher presentation
 → Human Gate
 ```
 
-### Editing Product Gate target
+Planning may be probed first without reference, because Planning-only without reference is a legitimate product path and does not require FFmpeg/visual/TransNet capability. A later reference-video run may add evidence once those capabilities are ready.
+
+## Editing Product Gate target
 
 ```text
 user-selected real local footage
 + editing intent / output destination
-→ ordinary Windows product surface
-→ actual automatic media understanding / editing chain
+→ ordinary Windows launcher
+→ actual ingest / shot detection / understanding / Director
+→ grounded Resolver
 → canonical EDL / Renderer / Review
 → real final MP4
 → Human Gate
 ```
 
-### Ordinary-user floor
+Editing requires the actual media/provider runtime readiness reported by Environment Doctor.
 
-The surface may be visually plain and should remain small. It must be practical and understandable; a feature-rich NLE timeline is explicitly unnecessary.
+## Runtime readiness strategy
 
-Normal operation must not require:
+Use the actual Windows host and repository Doctor. Repair environment/configuration with PowerShell before considering source changes.
 
-- repository-file editing;
-- hand-authored EditPlan / ResolutionDecision / EDL;
-- developer-only knowledge of Domain IDs or source timestamps.
+Do not spend Codex quota on:
 
-## Product Probe boundary
+- FFmpeg/GStreamer/TransNet installation;
+- PATH repair;
+- API-secret configuration;
+- launcher operation;
+- ordinary deterministic checks;
+- documentation/governance maintenance.
 
-Synthetic Engineering fixtures do not close Product Gates.
+Codex may be re-released only for a concrete implementation defect after ChatGPT classifies the failure.
 
-The final probes must use real user conditions. For Editing, user-selected/private local footage and Windows runtime are valid required evidence boundaries. For Planning, use a real planning target/reference/commercial intent that the user can judge as actually useful and shootable.
+## Human Gate
 
-Human Gate should ask ordinary judgments such as usable/unusable, obvious problems, or where the output fails — not require the user to invent professional scoring rubrics.
+Human Gate stays ordinary and product-centered.
+
+Planning:
+
+- Is the script usable for the intended video?
+- Is the shooting plan realistically shootable?
+- Is anything obviously wrong or missing?
+
+Editing:
+
+- Is the final video usable as the Stage-A automatic result?
+- Are there obvious wrong shots/cuts/audio/subtitle/content problems?
+- Was the source-to-output workflow understandable?
+
+Do not ask the user to invent professional scoring criteria.
 
 ## Frozen authority rules
 
@@ -134,16 +140,16 @@ Human Gate should ask ordinary judgments such as usable/unusable, obvious proble
 - source-time grounding remains Resolver-owned;
 - Renderer has no editorial authority;
 - Review has no edit/render mutation authority;
-- commercial/production Review rules remain fail-closed;
-- no optional music/spatial asset is fabricated simply to obtain PASS;
-- no structural-progress bump for UI shell completion alone.
+- reference-only media remains Resolver-ineligible;
+- commercial final visuals come from user-supplied local footage;
+- originals remain protected;
+- no silent provider switching or fabricated fallback visual assets.
 
 ## Immediate corridor
 
-1. Codex implements the already-frozen ordinary-user product-surface batch and stops;
-2. focused tests, full deterministic repository gates and bounded Windows launcher smoke must pass as far as the environment allows;
-3. ChatGPT independently reobserves exact `main`, diff and CI after Codex stops;
-4. repair only evidence-backed implementation defects;
-5. run real Planning Product Probe + Human Gate;
-6. run real Editing Product Probe + Human Gate;
-7. declare Stage-A 100% only if both core gates and the global completion gate genuinely PASS.
+1. synchronize the accepted baseline and current control plane to the Windows workspace;
+2. repair only the runtime/provider capabilities required for the selected real probe;
+3. run real Planning Product Probe through the launcher and complete its Human Gate;
+4. run real Editing Product Probe through the launcher using real local footage and complete its Human Gate;
+5. classify any failure before changing code;
+6. set Stage-A to 100% only if both core gates and `STAGE_A_COMPLETION_GATE.md` genuinely PASS.
