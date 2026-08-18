@@ -6,7 +6,7 @@ updated: 2026-08-18
 current_phase: R0.12
 phase_state: STAGE_A_PRODUCT_GATE_EXECUTION_ACTIVE
 active_work_order: R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001
-accepted_code_baseline: c61c7e5abc8b7b388e0e92ad9ae533d094a27707
+accepted_code_baseline: af5865df14b9f1cceaa9e6c1fe4dadf14cc60058
 control_plane_baseline: 79c3be540f335477699223292580f32f6bb3c807
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
@@ -34,13 +34,13 @@ Canonical EDL remains sole exact timeline authority.
 
 Current accepted production-code baseline:
 
-`c61c7e5abc8b7b388e0e92ad9ae533d094a27707`
+`af5865df14b9f1cceaa9e6c1fe4dadf14cc60058`
 
 Exact-head CI:
 
-`32139988645` — `ci/quality-gate-diagnostic = success`.
+`32145822611` — `ci/quality-gate-diagnostic = success`.
 
-The accepted baseline includes the evidence-backed Director proposal robustness repair described below. The pre-repair CI run already had 696 tests, mypy, import contracts and build passing; only two Ruff line-length findings remained, and the exact-head formatter/lint follow-up is green.
+The accepted baseline includes both the bounded DeepSeek Director proposal repair and the provider-aware visual retry repair discovered by the real Editing Product Probe.
 
 ## Planning Product Gate — PASS
 
@@ -67,30 +67,45 @@ The successful gate does not imply feature completeness. Ordinary-user follow-up
 
 ## Real Editing Product Probe — Director proposal repair
 
-The first ordinary-user Editing-only probe used user-selected local MP4 footage, real editing intent and a real output MP4 destination with Combined mode left unchecked.
+The ordinary-user Editing-only probe used user-selected local MP4 footage, real editing intent and a real output MP4 destination with Combined mode left unchecked.
 
-The real launcher advanced through:
+An earlier run advanced through:
 
 `project_ready → input_validation → ingest_understanding → editing_decision`
 
-and then failed while generating the EditPlan with:
+and failed while generating the EditPlan with:
 
 `DeepSeekPlanningResponseError: invalid minimum_duration`.
 
-This proves the probe advanced through local-media ingest and visual understanding into the Director/EditPlan boundary. Audit found that the DeepSeek Director adapter requested JSON mode and described the duration structure, but it supplied no complete JSON example and performed only one provider proposal attempt. A syntactically valid JSON response whose exact `minimum_duration` object violated the local `MediaTime`/EditSlot contract therefore terminated the entire Editing workflow.
-
 Accepted repair through `c61c7e5abc8b7b388e0e92ad9ae533d094a27707`:
 
-- the Director prompt now includes a complete valid JSON example;
-- exact duration fields explicitly require integer `value` / `scale`, positive scale, positive non-null duration and `maximum_duration >= minimum_duration`;
-- the adapter never coerces an invalid provider duration into a legal value;
-- after the first response is valid JSON but fails the local Director proposal contract, exactly one bounded repair proposal is requested using the specific local validation reason;
+- the Director prompt includes a complete valid JSON example and exact duration constraints;
+- invalid provider duration values are never silently coerced;
+- a locally invalid first Director proposal receives exactly one bounded repair proposal carrying the validation reason;
 - a second invalid proposal still fails closed;
-- provider HTTP/transport/finish failures are not disguised as local schema repair;
-- diagnostics now distinguish malformed exact-time structure, non-integer value/scale, non-positive scale/value and domain proposal failures;
-- regression coverage proves one invalid-then-valid sequence repairs successfully and two invalid responses stop after exactly two calls.
+- diagnostics distinguish malformed/non-integer/non-positive exact-time values;
+- regression coverage proves repair and bounded failure behavior.
 
-This is Engineering repair evidence only. Editing Product/Human Gate remains OPEN until a clean rerun produces a real final MP4, verifies original media unchanged and passes Human judgment.
+## Real Editing Product Probe — Gemini quota-aware retry
+
+After synchronizing the Director repair and launching a fresh Windows process, the real Editing-only probe reached local-media `ingest_understanding` and received a genuine Gemini HTTP 429 response:
+
+`generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash; Please retry in 10.577272831s`.
+
+This proved the current Gemini model, user credential, proxy path and improved provider diagnostics were active. Audit then found a product-runtime defect: `RetryingVisualUnderstandingPort` retried transient visual failures after only 0.3 and 0.6 seconds, ignoring the provider's explicit retry delay.
+
+Accepted repair through `af5865df14b9f1cceaa9e6c1fe4dadf14cc60058`:
+
+- `VisualProviderTransientError` can carry an optional validated `retry_after_seconds` hint;
+- the Gemini transport reads Google `RetryInfo.retryDelay`, with a bounded message fallback for `retry in <seconds>s`;
+- the retry decorator waits for the greater of local bounded backoff and the provider-required delay;
+- retry attempts remain capped at three;
+- no silent provider switch, fake semantic output or quota bypass is introduced;
+- regression coverage locks structured RetryInfo propagation, message fallback and provider-directed waiting.
+
+Exact-head run `32145822611` is green.
+
+This is Engineering repair evidence only. A persistent provider-account quota exhaustion may still correctly fail after bounded retries. Editing Product/Human Gate remains OPEN until a clean real rerun reaches a final MP4, source integrity is verified and Human judgment passes.
 
 ## Stage-A completion truth
 
@@ -115,12 +130,13 @@ The immediate remaining work is:
 1. synchronize current `main` to the real Windows workspace;
 2. rerun Editing-only with one unambiguous input-selection method and real local footage;
 3. preserve non-empty source hashes before the gate-closing run;
-4. execute actual ingest / shot detection / understanding / Director / grounded Resolver / canonical EDL / Renderer / Review;
-5. verify original local media hashes are unchanged;
-6. obtain and watch the real final MP4 on Review PASS;
-7. complete the ordinary Editing Human Gate;
-8. repair only evidence-backed blockers;
-9. set Stage-A gate and structural progress to 100 only if Editing also passes and all completion invariants remain true.
+4. allow provider-directed bounded waits if Gemini reports a short-lived 429;
+5. execute actual ingest / shot detection / understanding / Director / grounded Resolver / canonical EDL / Renderer / Review;
+6. verify original local media hashes are unchanged;
+7. obtain and watch the real final MP4 on Review PASS;
+8. complete the ordinary Editing Human Gate;
+9. repair only evidence-backed blockers;
+10. set Stage-A gate and structural progress to 100 only if Editing also passes and all completion invariants remain true.
 
 ## Product UX backlog boundary
 
@@ -142,7 +158,7 @@ These items do not reopen Planning PASS and should not preempt the active Editin
 
 Codex quota is reserved for a proven nontrivial code defect only.
 
-Do not use Codex for environment setup, API-secret configuration, routine launcher use, documentation/governance, deterministic provider compatibility fixes, bounded provider proposal repairs, or cosmetic backlog work.
+Do not use Codex for environment setup, API-secret configuration, routine launcher use, documentation/governance, deterministic provider compatibility fixes, bounded provider proposal/retry repairs, or cosmetic backlog work.
 
 Prefer user-run PowerShell for the local Windows target and ChatGPT/GitHub for observation, evidence review and governance.
 
