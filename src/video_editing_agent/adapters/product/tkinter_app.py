@@ -65,15 +65,26 @@ _TEXT = {
         "settings": "设置",
         "settings_title": "API 设置",
         "settings_intro": "本软件不附赠 API 密钥。请使用你自己的 API 服务。",
-        "settings_no_video": "这些 API 仅用于理解、推理、规划和剪辑决策，不用于视频生成。",
-        "settings_session": "当前 Stage A 仅在本次应用会话中使用密钥；不会写入项目、仓库或日志。",
+        "settings_no_video": (
+            "这些 API 仅用于理解、推理、规划和剪辑决策，不用于视频生成。"
+        ),
+        "settings_session": (
+            "当前 Stage A 仅在本次应用会话中使用密钥；不会写入项目、仓库或日志。"
+        ),
         "thinking_title": "思考指挥",
         "thinking_provider": "当前支持：DeepSeek",
-        "thinking_usage": "用于脚本规划、拍摄规划、方案复审，以及自动剪辑中的导演/编辑决策。",
+        "thinking_usage": (
+            "用于脚本规划、拍摄规划、方案复审，以及自动剪辑中的导演/编辑决策。"
+        ),
         "visual_title": "视觉理解",
         "visual_provider": "视觉 API 提供方",
-        "visual_usage": "用于理解参考视频和本地素材抽帧后的画面内容，为镜头选择提供语义证据。",
-        "visual_warning": "允许两个能力位使用相同密钥；但视觉理解所对应的 API / 模型必须支持图像输入，否则素材分析会失败。",
+        "visual_usage": (
+            "用于理解参考视频和本地素材抽帧后的画面内容，为镜头选择提供语义证据。"
+        ),
+        "visual_warning": (
+            "允许两个能力位使用相同密钥；但视觉理解所对应的 API / 模型必须支持图像输入，"
+            "否则素材分析会失败。"
+        ),
         "api_key": "API 密钥",
         "save_settings": "应用设置",
         "cancel": "取消",
@@ -121,16 +132,33 @@ _TEXT = {
         "switch_language": "简体中文",
         "settings": "Settings",
         "settings_title": "API Settings",
-        "settings_intro": "This application does not include API keys. Use your own API services.",
-        "settings_no_video": "These APIs are used only for understanding, reasoning, planning and editing decisions, not for video generation.",
-        "settings_session": "Stage A uses keys only for this application session; they are not written to the project, repository or logs.",
+        "settings_intro": (
+            "This application does not include API keys. Use your own API services."
+        ),
+        "settings_no_video": (
+            "These APIs are used only for understanding, reasoning, planning and editing "
+            "decisions, not for video generation."
+        ),
+        "settings_session": (
+            "Stage A uses keys only for this application session; they are not written to "
+            "the project, repository or logs."
+        ),
         "thinking_title": "Reasoning & Direction",
         "thinking_provider": "Currently supported: DeepSeek",
-        "thinking_usage": "Used for script planning, shooting planning, proposal review, and director/editorial decisions during automatic editing.",
+        "thinking_usage": (
+            "Used for script planning, shooting planning, proposal review, and director/editorial "
+            "decisions during automatic editing."
+        ),
         "visual_title": "Visual Understanding",
         "visual_provider": "Visual API Provider",
-        "visual_usage": "Used to understand frames extracted from reference videos and local footage, producing semantic evidence for shot selection.",
-        "visual_warning": "The same key may be entered for both capabilities, but the API/model used for Visual Understanding must support image input or media analysis will fail.",
+        "visual_usage": (
+            "Used to understand frames extracted from reference videos and local footage, producing "
+            "semantic evidence for shot selection."
+        ),
+        "visual_warning": (
+            "The same key may be entered for both capabilities, but the API/model used for Visual "
+            "Understanding must support image input or media analysis will fail."
+        ),
         "api_key": "API Key",
         "save_settings": "Apply Settings",
         "cancel": "Cancel",
@@ -218,8 +246,12 @@ def launch() -> int:
 
     def update_language() -> None:
         root.title(text("window_title"))
-        notebook.tab(planning_tab, text=text("tab_planning"))
-        notebook.tab(editing_tab, text=text("tab_editing"))
+        notebook.tab(  # type: ignore[no-untyped-call]
+            planning_tab, text=text("tab_planning")
+        )
+        notebook.tab(  # type: ignore[no-untyped-call]
+            editing_tab, text=text("tab_editing")
+        )
         for label, name in field_labels:
             label.configure(text=text(f"field_{name}"))
         for widget, key in translated_widgets:
@@ -350,7 +382,9 @@ def launch() -> int:
             has_reference = reference_url is not None or bool(local_reference_text)
             resolution = resolve_product_runtime(mode="planning", reference_required=has_reference)
             if not resolution.is_ready or resolution.config is None:
-                raise RuntimeError(text("runtime_not_ready") + "\n" + "\n".join(resolution.diagnostics))
+                raise RuntimeError(
+                    text("runtime_not_ready") + "\n" + "\n".join(resolution.diagnostics)
+                )
             form = PlanningForm(
                 Path(planning_values["project"].get()),
                 brief(planning_values),
@@ -382,7 +416,9 @@ def launch() -> int:
         try:
             resolution = resolve_product_runtime(mode="editing")
             if not resolution.is_ready or resolution.config is None:
-                raise RuntimeError(text("runtime_not_ready") + "\n" + "\n".join(resolution.diagnostics))
+                raise RuntimeError(
+                    text("runtime_not_ready") + "\n" + "\n".join(resolution.diagnostics)
+                )
             raw_files = tuple(
                 Path(item.strip())
                 for item in editing_values["media_files"].get().split(";")
