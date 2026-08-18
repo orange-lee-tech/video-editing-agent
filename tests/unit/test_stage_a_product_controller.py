@@ -3,6 +3,11 @@ from pathlib import Path
 
 import pytest
 
+from video_editing_agent.adapters.product.api_settings import (
+    ApiCapabilitySettings,
+    apply_settings_to_environment,
+    settings_from_environment,
+)
 from video_editing_agent.adapters.product.controller import (
     BriefForm,
     EditingForm,
@@ -211,3 +216,41 @@ def test_planning_reference_diagnostics_name_the_correct_context() -> None:
     assert not result.is_ready
     assert all("for Editing" not in item for item in result.diagnostics)
     assert any("Planning reference-video analysis" in item for item in result.diagnostics)
+
+
+def test_api_capability_settings_allow_same_key_for_both_roles() -> None:
+    environment: dict[str, str] = {}
+    settings = ApiCapabilitySettings(
+        thinking_key="same-key",
+        visual_key="same-key",
+        visual_provider="gemini",
+    )
+
+    apply_settings_to_environment(settings, environment)
+
+    assert environment["DEEPSEEK_API_KEY"] == "same-key"
+    assert environment["GEMINI_API_KEY"] == "same-key"
+    assert "OPENAI_API_KEY" not in environment
+
+
+def test_visual_provider_switch_clears_stale_provider_key() -> None:
+    environment = {
+        "DEEPSEEK_API_KEY": "thinking",
+        "GEMINI_API_KEY": "old-visual",
+    }
+
+    apply_settings_to_environment(
+        ApiCapabilitySettings("thinking", "new-visual", "openai"), environment
+    )
+
+    assert environment["DEEPSEEK_API_KEY"] == "thinking"
+    assert environment["OPENAI_API_KEY"] == "new-visual"
+    assert "GEMINI_API_KEY" not in environment
+
+
+def test_api_capability_settings_import_existing_environment() -> None:
+    settings = settings_from_environment(
+        {"DEEPSEEK_API_KEY": "thinking", "OPENAI_API_KEY": "visual"}
+    )
+
+    assert settings == ApiCapabilitySettings("thinking", "visual", "openai")
