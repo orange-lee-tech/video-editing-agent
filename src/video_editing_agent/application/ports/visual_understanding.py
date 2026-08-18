@@ -17,6 +17,19 @@ class VisualProviderError(RuntimeError):
 class VisualProviderTransientError(VisualProviderError):
     """A provider failure that may succeed when the same request is retried."""
 
+    def __init__(self, message: str, *, retry_after_seconds: float | None = None) -> None:
+        super().__init__(message)
+        if retry_after_seconds is not None:
+            if isinstance(retry_after_seconds, bool) or not isinstance(
+                retry_after_seconds, (int, float)
+            ):
+                raise TypeError("retry_after_seconds must be a number or null")
+            delay = float(retry_after_seconds)
+            if not math.isfinite(delay) or delay < 0:
+                raise ValueError("retry_after_seconds must be finite and >= 0")
+            retry_after_seconds = delay
+        self.retry_after_seconds = retry_after_seconds
+
 
 class VisualProviderResponseError(VisualProviderError):
     """A non-retryable provider response/schema failure."""
