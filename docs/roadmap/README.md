@@ -33,6 +33,16 @@ Canonical current state is the synchronized trio:
 
 Do not duplicate current phase/commit/progress snapshots in this README; that creates stale parallel truth.
 
+## Product red/black dashboard
+
+`PRODUCT_RED_BLACK_BOARD.md` is a continuously maintained **non-authoritative dashboard**:
+
+- 红榜 only records strengths/capabilities backed by implementation + CI/Probe/Human evidence;
+- 黑榜 records unresolved product problems, major attack goals and commercial/reliability risks;
+- issues move only with evidence, and the board cannot override the live-state trio or Stage-A gate.
+
+Use it for a fast product-health scan, not as a substitute for the Roadmap or Work Order.
+
 ## Durable downstream integration constraints
 
 The following are **structural integration requirements**, not optional Stage-B polish:
@@ -50,5 +60,6 @@ These constraints belong to Roadmap V2 / the Stage-A completion gate. Do not cre
 
 - `A0_PLANNING_BASELINE_ACCEPTANCE.md` — planning-set activation/freeze decision; still canonical because it defines authority.
 - `../archive/roadmap/R0.7A_MIGRATION_AUDIT.md` — completed migration planning/audit provenance.
+- `../logs/PROJECT_CHRONICLE.md` — simplified-Chinese narrative history; useful for why/how, not current authority.
 
 Do not create a new roadmap merely because completed phases have advanced. Revise/replace Roadmap V2 only when the planned construction sequence, capability decomposition or exit criteria materially change.
