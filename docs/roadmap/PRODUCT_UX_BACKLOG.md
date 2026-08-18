@@ -1,159 +1,192 @@
 # Product UX Backlog
 
 **Updated:** 2026-08-18  
-**Purpose:** Preserve ordinary-user product feedback without reopening already-passed gates or diluting the active Stage-A Editing Product Gate.
+**Purpose:** preserve ordinary-user product feedback without reopening already-passed gates or confusing polish with Stage-A completion.
 
-## Priority interpretation
+Priority:
 
-- **P0 — robustness / correctness:** should be repaired before release if it materially breaks an otherwise valid ordinary-user path.
-- **P1 — usability / persistence:** high-value ordinary-user improvement, but not a reason to delay the active Editing Product Probe unless it blocks that probe.
-- **P2 — polish / expansion:** useful product refinement after the two Stage-A core gates are closed.
+- **P0** — robustness/correctness on a valid ordinary-user path;
+- **P1** — high-value usability/persistence;
+- **P2** — expansion/polish that should not fake unsupported capability.
 
-## P0 — Planning no-facts safe creative fallback
+The active implementation specification for the current consolidated wave is:
 
-User requirement:
+`docs/operations/STAGE_A_UX_STABILIZATION_WAVE.md`
 
-If `authoritative_facts`, reference URL and local reference video are all empty, Planning must still create a script faithfully from the other supplied brief fields.
+## P0 — Planning no-facts safe creative repair
 
-Observed real failure:
+If authoritative facts, reference URL and local reference video are all empty, Planning must still create from the other brief fields.
 
-A new ordinary-user input with empty authoritative facts/reference fields reached ScriptPlan generation but was rejected because the proposal introduced unsupported concrete claims such as natural-origin/purity implications. The semantic reviewer was correct to reject unsupported facts; the product robustness defect is that the entire Planning flow terminated rather than repairing/regenerating a safe proposal.
-
-Desired behavior:
-
-- empty facts/reference remains a valid Planning input;
-- brief title/objective/audience/platform/core message remain usable as creative intent;
-- creative intent does not automatically become factual authority;
-- when a proposal adds unsupported concrete claims, feed the rejection reasons back into a bounded repair/regeneration attempt;
-- if repair still fails, present a localized ordinary-user explanation rather than raw exception/class names;
-- never silently weaken the factual-claim reviewer.
-
-## P1 — Output viewing and export
-
-- add a visible vertical scrollbar to the long output/progress area;
-- add an `导出 / Export` action;
-- save the current output as UTF-8 `.txt` to a user-selected path;
-- default export directory: Desktop;
-- export must contain the exact user-visible output, not secrets or hidden internal diagnostics.
-
-## P1 — Runtime ETA in the output surface
-
-During Planning and Editing work, the ordinary-user output area should report an estimated completion time.
+Observed failure: a real proposal invented unsupported claims such as natural-origin/purity implications and the factual reviewer correctly rejected them, but the entire flow terminated.
 
 Required behavior:
 
-- display the predicted completion clock time to the minute, for example `预计 20:58 完成（约 7 分钟）`;
-- recalculate the estimate at least every 30 seconds while work remains active;
-- also recalculate immediately on meaningful stage transitions or workload changes;
-- before enough evidence exists, show an honest estimating state rather than an invented ETA;
-- derive the prediction from real observed stage timing, remaining workload and relevant media/runtime characteristics where available;
-- allow the estimate to move earlier or later as evidence improves;
-- never present a fixed timer, fake percentage or cosmetic countdown as measured progress;
-- ETA display is advisory only and must not become execution authority or block the workflow.
+- empty facts/reference is valid;
+- title/objective/audience/platform/core message remain creative intent, not factual authority;
+- first unsupported proposal is reviewed/rejected normally;
+- feed the rejection reasons to one bounded full-proposal repair attempt;
+- never weaken the factual reviewer or silently coerce a claim into a fact;
+- second invalid proposal fails closed with a localized explanation.
+
+## P1 — Responsive long-running launcher
+
+Planning/Editing work must not freeze the Tkinter UI.
+
+- long-running work executes off the Tk main thread;
+- Tk mutations return through `root.after(...)` or an equivalent safe queue;
+- duplicate Start actions are disabled while active;
+- the window remains repaintable/movable during API, FFmpeg and render work;
+- controls recover after completion/failure.
+
+## P1 — Output viewing and export
+
+- visible vertical scrollbar for Planning and Editing output;
+- `导出 / Export` action;
+- export exact visible output as UTF-8 `.txt`;
+- default directory Desktop, user may choose another location;
+- never export secrets or hidden internal diagnostics.
+
+## P1 — Honest runtime ETA/progress
+
+During Planning/Editing:
+
+- show predicted completion clock time to the minute, e.g. `预计 20:58 完成（约 7 分钟）`;
+- recalculate at least every 30 seconds;
+- recalculate on meaningful stage/workload changes;
+- show `正在估算… / Estimating…` until enough evidence exists;
+- derive ETA from observed stage timing and known media/workload characteristics;
+- allow ETA to move earlier/later;
+- never use a fake percentage or arbitrary cosmetic countdown;
+- provider-directed waits should visibly look like intentional waiting rather than a frozen app when safely observable.
 
 ## P1 — UI-aligned localization
 
-When the UI language is Simplified Chinese, ordinary-user output should also be Simplified Chinese; when English is selected, ordinary-user output should be English.
+Selected UI language controls stable ordinary-user presentation:
 
-Scope:
+- stage labels and progress messages;
+- ScriptPlan/ShootingPlan presentation labels;
+- Editing result presentation;
+- stable validation/runtime/provider error summaries;
+- dialogs/profile/export messages.
 
-- generated ScriptPlan/ShootingPlan presentation language follows the selected UI language;
-- progress labels and stable product diagnostics are localized;
-- user-facing errors are mapped from stable error codes/reasons to localized explanations;
-- do not machine-translate persisted canonical artifacts merely for display if doing so would change their semantic content;
-- raw exception class names/provider implementation details belong in bounded diagnostics, not the primary ordinary-user message.
+Simplified Chinese UI should not primarily display raw English class names such as `VisualProviderTransientError` or `ScriptProposalRejectedError`.
 
-## P1 — Local profiles and safe credential persistence
+Provider raw detail may appear as bounded secondary diagnostics when useful. Do not machine-translate persisted canonical artifacts in ways that change meaning.
 
-User-facing concept:
+## P1 — Local profiles and protected API credentials
 
-- default profile storage location under the user's Documents directory;
-- Planning/form profile naming suggestion: `编导-YYYY-M-D`;
-- API profile naming suggestion: `API-YYYY-M-D`;
-- users may rename profiles;
-- both the main Planning surface and Settings surface provide a `文件 / File` menu with `保存 / Save`, `另存为 / Save As`, `读取 / Load`, `删除 / Delete`.
+Default profile root under Documents, suggested:
 
-Security boundary:
+`%USERPROFILE%\Documents\Video Editing Agent\Profiles`
 
-- ordinary form/profile data may be persisted in a human-readable local profile file;
-- API provider/model/config metadata may be represented in the profile file;
-- API secret values must **not** be stored as plaintext in Documents `.txt` files;
-- secrets should use Windows Credential Manager / DPAPI or an equivalent OS-protected credential store, with the profile storing only a credential reference/identifier;
-- no secret may be committed to the repository, project artifacts or logs.
+Main Planning/form surface and Settings surface provide `文件 / File` with:
 
-The exact on-disk schema may evolve even if the first user-visible profile extension is `.txt`.
+- 保存 / Save
+- 另存为 / Save As
+- 读取 / Load
+- 删除 / Delete
+
+Suggested defaults:
+
+- `编导-YYYY-M-D.txt`
+- `API-YYYY-M-D.txt`
+
+Users may rename profiles.
+
+Ordinary form/profile metadata may be UTF-8 human-readable text. API secrets must **not** be plaintext in Documents, project files, logs or repo content. On Windows use a user-scoped protected mechanism such as DPAPI/Credential Manager and store only an opaque credential reference in the profile. Non-Windows fallback remains session-only rather than plaintext persistence.
 
 ## P1 — Placeholder guidance instead of fake values
 
-For first launch or when no profile is loaded:
+On first launch/no loaded profile:
 
-- required and optional fields show placeholder guidance;
-- examples must visually look like placeholders, not real values;
-- placeholders disappear on focus/input and are never submitted as field values;
-- examples should explicitly say `此行必填` or `此行可空置`;
-- keep examples short and domain-relevant.
+- true placeholder guidance, visually distinct from real content;
+- placeholder disappears on focus/input and may return when empty on blur;
+- placeholder is never submitted;
+- explicitly say `此行必填` or `此行可空置`;
+- concise domain examples.
 
-Example style:
+Examples:
 
 - `此行必填，示例：介绍一款适合通勤的小瓶水`
 - `此行可空置，示例：仅使用手机、室内自然光`
 
-## P1 — Reference URL/share-text compatibility, bounded not scraper-first
+## P1 — Editing source selection simplification
 
-Desired ordinary-user input may contain a whole platform share message, for example prose plus a `https://v.douyin.com/.../` short URL.
+User decision on 2026-08-18: `素材文件` and `素材文件夹` overlap.
 
-Bounded design:
+Ordinary Editing UI should expose **one** mechanism:
 
-1. extract the first supported HTTPS URL from pasted share text;
-2. follow safe bounded redirects;
-3. if the resolved resource is directly retrievable supported media (`video/*`) or another provider-supported public file URL, keep it reference-analysis-only and analyze it;
-4. if the resolved target is only an HTML platform page, do not silently treat it as video media;
-5. do not make Stage A depend on brittle platform-specific scraping/downloader reverse engineering;
-6. provide a clear localized fallback: choose/download the reference video locally and use `本地参考视频`.
+- keep `素材文件 / Media Files`;
+- chooser supports multi-select;
+- remove `素材文件夹 / Media Folder` from the ordinary UI;
+- preserve exact user-selected paths and provenance;
+- do not silently scan unrelated files from a directory;
+- present selected-file count/readability when many files are selected.
 
-Future platform-specific official integrations may be added only when their permission/auth/rights model is explicit.
+Lower-level folder-expansion compatibility code may remain temporarily if deleting it causes unrelated churn, but it should not stay user-facing.
 
-## P2 — Opt-in `公共素材` guidance
+## P1 — Reference share-text compatibility, bounded not scraper-first
 
-Add a Planning checkbox `公共素材`, default unchecked.
-
-When checked, it means the user permits the Planning system to recommend what public/stock material could substitute for specific planned shots.
-
-Frozen source/rights boundary remains:
-
-- recommendations/research may occur during Planning;
-- public material does not automatically enter the commercial final video;
-- before Resolver/final-output eligibility, the user must actually select/import the asset as local media and satisfy the product's rights/source attestation contract;
-- no silent stock/generated replacement visual substitution.
-
-## P2 — Opt-in `类似方案` research
-
-Add a Planning checkbox `类似方案`, default unchecked.
-
-When checked, the user permits reference/research enrichment from publicly accessible similar examples, including public video resources, webpages and text information.
-
-Constraints:
-
-- research/reference evidence remains analysis-only;
-- it cannot become Resolver-eligible final visual media by itself;
-- sources/provenance should be inspectable where practical;
-- web/search capability must be provided through an explicit replaceable adapter rather than hidden provider-specific behavior;
-- Planning should use the user's actual shooting device, shooting notes and other brief constraints when translating similar examples into a new plan.
-
-## P2 — Startup splash and progress
-
-On launcher activation, immediately show a small centered non-resizable splash window using the existing pixel-style product icon.
+The Reference URL field may contain surrounding share prose plus an HTTPS URL, e.g. a Douyin-style copied share message.
 
 Desired behavior:
 
-- similar in role/scale to a Photoshop-style startup splash, not a full secondary application window;
-- one horizontal segmented/experience-bar-like progress indicator inspired by Minecraft's visual rhythm without copying game assets;
-- show real startup stages such as configuration load, profile/credential reference load, runtime discovery and UI readiness;
-- do not fake progress with an arbitrary timer;
-- prevent ordinary interaction with the main window until startup is ready, while keeping the process responsive.
+1. deterministically extract the first HTTPS URL;
+2. use existing bounded redirect/direct-HTTPS acquisition;
+3. direct supported public media remains reference-analysis-only and may be analyzed;
+4. if the final target is HTML/platform page, explain in the selected UI language that the user should download/select the reference locally;
+5. do not make Stage A depend on platform reverse engineering/scrapers.
+
+## P1 — Provider quota/wait UX
+
+Real Gemini Editing probes exposed free-tier HTTP 429 conditions.
+
+Desired ordinary-user behavior:
+
+- primary message localized, e.g. visual service currently reached a request/quota limit and the task stopped;
+- when safely available, secondary diagnostics may show provider/model/retry delay/quota identifier;
+- provider-directed wait must not look like an app freeze;
+- never expose keys;
+- never silently switch provider/model to bypass quota.
+
+## P2 — Opt-in `公共素材` guidance
+
+Default unchecked. When implemented with real backing capability, it means the user permits Planning to recommend public/stock material that could substitute for planned shots.
+
+Rights boundary remains:
+
+- recommendation/research may occur during Planning;
+- public material does not automatically enter commercial final output;
+- user must actually select/import an asset as local media and satisfy the product's source/rights contract before Resolver eligibility;
+- no silent stock/generated replacement visuals.
+
+Do **not** ship a decorative checkbox with no real adapter behind it.
+
+## P2 — Opt-in `类似方案` research
+
+Default unchecked once a real replaceable research/search adapter exists.
+
+When implemented, user permits reference/research enrichment from publicly accessible similar examples, including public video resources, webpages and text.
+
+- research evidence remains analysis-only;
+- cannot become Resolver-eligible final visual media by itself;
+- provenance should be inspectable where practical;
+- actual shooting device/notes/brief constraints must shape the resulting plan;
+- do not fake this capability by adding prompt text without a real research adapter.
+
+## P2 — Startup splash and real startup progress
+
+Immediately on launch show a small centered non-resizable splash using the existing pixel-style product icon when available.
+
+- one horizontal segmented/experience-bar-like indicator inspired by Minecraft's rhythm without copying assets;
+- progress corresponds to real startup milestones such as language/theme init, profile storage discovery, safe credential references, lightweight runtime readiness, main-window construction and ready;
+- no arbitrary timer/fake percentage;
+- main UI remains non-interactive until ready while the process stays responsive.
 
 ## Current execution rule
 
-These items are preserved as product backlog. They do not reopen the Stage-A Planning Product Gate that passed on 2026-08-18.
+Planning Product/Human Gate remains PASS.
 
-The active closure priority is now the real Stage-A Editing Product Gate. Only a backlog item that blocks the Editing Product Probe should preempt that gate.
+Editing Product/Human Gate remains OPEN and structural progress remains 90%.
+
+Because the current real Editing re-probe is temporarily blocked by Gemini free-tier quota, the user explicitly authorized one bounded UX stabilization wave. Completing this backlog wave does **not** close Editing Gate or raise Stage A to 100%.
