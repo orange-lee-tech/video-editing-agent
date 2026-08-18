@@ -99,3 +99,17 @@ A paid Product Probe requires a question that deterministic/local evidence canno
 - Focused owner-seam probe: same real acquisition/ingest class reached the existing `ReferenceStyleEvidenceService`, created a content-addressed reference-style artifact and nine Planning guidance entries; PASS.
 - The owner-seam probe used an explicitly labeled `SYNTHETIC_SEAM_FIXTURE` only for Shot + VisualSemantics and made no claim of real Gemini/OpenAI visual-model execution.
 - Durable conclusion: supported Reference URLs can become governed project-local analysis-only media and reach existing reference guidance without becoming editable visual footage or Resolver authority.
+
+### R0.12 ProductFlow orchestration Engineering Probe — CLOSED
+
+- Date: 2026-08-17.
+- Accepted production baseline: `1e90e2dd3d235271ef48bb7a708a1899ce5b87a4`.
+- Evidence: `docs/validation/R0.12_PRODUCT_FLOW_ORCHESTRATION_CLOSURE.md`.
+- Final Windows Engineering run: `32046190310` — PASS.
+- Exact-head deterministic CI: `32046499144` — PASS.
+- Planning path: ordinary request → live DeepSeek planning/review → persisted exact Brief/ScriptPlan/ShootingPlan refs — PASS.
+- Editing path: real generated media with audio → ingest/understanding → live Director → grounded Resolver → canonical persisted EDL → actual FFmpeg MP4 → Review — PASS.
+- Second-process verifier reopened the exact canonical EDL revision and lineage — PASS.
+- Source-original SHA-256 preservation — PASS; rendered MP4 contained video + audio; Review disposition PASS.
+- Earlier probe attempts correctly exposed two fixture/harness issues and one provider-contract weakness: a commercial-claim semantic veto, contradictory production-resource declarations, and insufficiently explicit Director scalar schema instructions. Review/parser boundaries were not loosened; the fixture was corrected and the Director prompt was minimally strengthened while strict parsing remained fail-closed.
+- Durable conclusion: the accepted ProductFlow owner chains work end-to-end under bounded Windows Engineering evidence. This does **not** close the ordinary-user Product/Human Gates; those remain OPEN at Stage-A 90%.
