@@ -6,7 +6,7 @@ updated: 2026-08-18
 current_phase: R0.12
 phase_state: STAGE_A_PRODUCT_GATE_EXECUTION_ACTIVE
 active_work_order: R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001
-accepted_code_baseline: b6572602c0f7faaa22383dab9fffa361fb946e75
+accepted_code_baseline: c61c7e5abc8b7b388e0e92ad9ae533d094a27707
 control_plane_baseline: 79c3be540f335477699223292580f32f6bb3c807
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
@@ -34,11 +34,13 @@ Canonical EDL remains sole exact timeline authority.
 
 Current accepted production-code baseline:
 
-`b6572602c0f7faaa22383dab9fffa361fb946e75`
+`c61c7e5abc8b7b388e0e92ad9ae533d094a27707`
 
 Exact-head CI:
 
-`32127020333` — `ci/quality-gate-diagnostic = success`.
+`32139988645` — `ci/quality-gate-diagnostic = success`.
+
+The accepted baseline includes the evidence-backed Director proposal robustness repair described below. The pre-repair CI run already had 696 tests, mypy, import contracts and build passing; only two Ruff line-length findings remained, and the exact-head formatter/lint follow-up is green.
 
 ## Planning Product Gate — PASS
 
@@ -63,7 +65,32 @@ The successful gate does not imply feature completeness. Ordinary-user follow-up
 
 `docs/roadmap/PRODUCT_UX_BACKLOG.md`.
 
-Important known non-blocking follow-up: with empty authoritative facts/reference inputs, a separate Planning attempt generated unsupported concrete product claims and the semantic reviewer correctly rejected them, but the product currently terminates instead of automatically repairing/regenerating a safe claim-free proposal. The reviewer must remain strict; robustness should be improved through bounded repair and localized explanation.
+## Real Editing Product Probe — Director proposal repair
+
+The first ordinary-user Editing-only probe used user-selected local MP4 footage, real editing intent and a real output MP4 destination with Combined mode left unchecked.
+
+The real launcher advanced through:
+
+`project_ready → input_validation → ingest_understanding → editing_decision`
+
+and then failed while generating the EditPlan with:
+
+`DeepSeekPlanningResponseError: invalid minimum_duration`.
+
+This proves the probe advanced through local-media ingest and visual understanding into the Director/EditPlan boundary. Audit found that the DeepSeek Director adapter requested JSON mode and described the duration structure, but it supplied no complete JSON example and performed only one provider proposal attempt. A syntactically valid JSON response whose exact `minimum_duration` object violated the local `MediaTime`/EditSlot contract therefore terminated the entire Editing workflow.
+
+Accepted repair through `c61c7e5abc8b7b388e0e92ad9ae533d094a27707`:
+
+- the Director prompt now includes a complete valid JSON example;
+- exact duration fields explicitly require integer `value` / `scale`, positive scale, positive non-null duration and `maximum_duration >= minimum_duration`;
+- the adapter never coerces an invalid provider duration into a legal value;
+- after the first response is valid JSON but fails the local Director proposal contract, exactly one bounded repair proposal is requested using the specific local validation reason;
+- a second invalid proposal still fails closed;
+- provider HTTP/transport/finish failures are not disguised as local schema repair;
+- diagnostics now distinguish malformed exact-time structure, non-integer value/scale, non-positive scale/value and domain proposal failures;
+- regression coverage proves one invalid-then-valid sequence repairs successfully and two invalid responses stop after exactly two calls.
+
+This is Engineering repair evidence only. Editing Product/Human Gate remains OPEN until a clean rerun produces a real final MP4, verifies original media unchanged and passes Human judgment.
 
 ## Stage-A completion truth
 
@@ -71,7 +98,7 @@ Structural progress remains **90%** because Editing Product/Human Gate remains O
 
 - Stage-A completion gate: OPEN.
 - Planning Product/Human Gate: PASS.
-- Editing Engineering mechanism: PASS; Product Probe / Human Gate OPEN.
+- Editing Engineering mechanism: PASS; real Product Probe in progress; Human Gate OPEN.
 
 No UI polish, backlog item or Planning PASS authorizes Stage-A 100% before a real Editing final MP4 and Human Gate PASS.
 
@@ -86,10 +113,10 @@ There is **no active Codex release**.
 The immediate remaining work is:
 
 1. synchronize current `main` to the real Windows workspace;
-2. run Editing-only through the ordinary launcher with real user-selected local footage;
-3. provide real editing intent and a real output MP4 destination;
+2. rerun Editing-only with one unambiguous input-selection method and real local footage;
+3. preserve non-empty source hashes before the gate-closing run;
 4. execute actual ingest / shot detection / understanding / Director / grounded Resolver / canonical EDL / Renderer / Review;
-5. verify original local media remains untouched;
+5. verify original local media hashes are unchanged;
 6. obtain and watch the real final MP4 on Review PASS;
 7. complete the ordinary Editing Human Gate;
 8. repair only evidence-backed blockers;
@@ -100,6 +127,7 @@ The immediate remaining work is:
 `docs/roadmap/PRODUCT_UX_BACKLOG.md` records current ordinary-user feedback including:
 
 - output scrollbar and TXT export;
+- real-data runtime ETA to the minute, recalculated at least every 30 seconds;
 - UI-aligned localization;
 - safe local profile/API credential persistence;
 - required/optional placeholder guidance;
@@ -108,13 +136,13 @@ The immediate remaining work is:
 - opt-in public-material guidance and similar-example research;
 - startup splash/progress polish.
 
-These items do not reopen Planning PASS. They should not preempt the active Editing Product Gate unless one directly blocks that gate.
+These items do not reopen Planning PASS and should not preempt the active Editing Product Gate unless one directly blocks it.
 
 ## Resource policy
 
 Codex quota is reserved for a proven nontrivial code defect only.
 
-Do not use Codex for environment setup, API-secret configuration, routine launcher use, documentation/governance, deterministic provider compatibility fixes, or cosmetic backlog work.
+Do not use Codex for environment setup, API-secret configuration, routine launcher use, documentation/governance, deterministic provider compatibility fixes, bounded provider proposal repairs, or cosmetic backlog work.
 
 Prefer user-run PowerShell for the local Windows target and ChatGPT/GitHub for observation, evidence review and governance.
 
