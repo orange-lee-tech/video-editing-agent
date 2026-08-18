@@ -25,11 +25,11 @@ Therefore structural progress remains **90%**.
 
 ## Current accepted production-code baseline
 
-`c054ea7198334380dbbcd010145abb3043bc630e`
+`3b51fcab3f3fa97d3f8884a63a973079b3d6f9d2`
 
 Exact-head deterministic CI:
 
-`32122290513` — PASS (`ci/quality-gate-diagnostic = success`).
+`32123141557` — PASS (`ci/quality-gate-diagnostic = success`).
 
 ## Stage-A ordinary-user product surface — PASS / ACCEPTED
 
@@ -65,20 +65,24 @@ Current Settings semantics:
 
 These are product-surface capabilities, not Product/Human Gate evidence.
 
-## Real Planning Product Probe — provider compatibility repair
+## Real Planning Product Probe — Gemini compatibility repair
 
-A real Windows Planning run with a user-selected local reference video successfully advanced through the ordinary launcher, local media ingest, shot detection/frame preparation and into Gemini visual understanding.
+The real Windows Planning probe has now exposed and driven repair of two provider-contract defects after successfully reaching Gemini visual understanding:
 
-The run then failed because the Stage-A runtime still selected `gemini-2.5-flash`. Direct provider evidence showed that the user-owned credential was valid and could list the model, but `generateContent` returned `NOT_FOUND` and explicitly directed new users to `gemini-3.6-flash`.
+1. `gemini-2.5-flash` was rejected for `generateContent` for the tested new-user credential and Google directed migration to `gemini-3.6-flash`.
+2. After that migration, the live provider rejected `generationConfig.responseFormat.text.mimeType = "application/json"`; the current Generate Content API contract defines that field as an enum and accepts `APPLICATION_JSON` for JSON output.
 
-The accepted repair through `c054ea7198334380dbbcd010145abb3043bc630e`:
+The accepted repair through `3b51fcab3f3fa97d3f8884a63a973079b3d6f9d2`:
 
 - selects `gemini-3.6-flash` for the Stage-A Gemini visual path;
-- aligns structured output with the current `responseFormat.text` schema request contract;
+- sends the current `responseFormat.text` structured-output request shape;
+- uses `APPLICATION_JSON` for the text response-format enum;
 - preserves provider error details in bounded diagnostics;
-- adds regression coverage for the Stage-A default and request shape.
+- locks the Stage-A default and request shape in regression coverage.
 
-Exact-head CI is green. This closes the identified Engineering defect only; the real Planning Product Probe must now be rerun from the ordinary launcher.
+The adapter's current visual JSON schema uses fields documented by Google as supported in structured output, including nullable type arrays, `additionalProperties`, `minimum`, and `maximum`.
+
+Exact-head CI is green. This closes the identified Engineering defects only; the same real Planning Product Probe must now be rerun from the ordinary launcher.
 
 ## Active Work Order
 
