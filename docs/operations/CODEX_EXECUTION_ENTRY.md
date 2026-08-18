@@ -1,121 +1,70 @@
 # Codex Execution Entry
 
-Purpose: enter the active construction state with the minimum safe model-visible context.
+Purpose: expose whether Codex currently has an authorized construction release.
 
-## Active release
+## Release state
 
 **Work Order:** `R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001`  
-**Release:** ACTIVE — SINGLE COMPLEX BATCH  
-**Writer:** Codex until commit/push/STOP
+**Release:** CLOSED — NO ACTIVE CODEX WRITER  
+**Writer:** NONE
 
-The ordinary-user surface audit is complete:
+The Stage-A ordinary-user product-surface implementation is accepted at:
 
-`docs/validation/R0.12_STAGE_A_PRODUCT_SURFACE_AUDIT.md`
+`0134d0c4a741eb2babed7275c0aaef42045f2dc4`
 
-Do not re-design the project from scratch. The implementation boundary is already frozen in:
+Closure evidence:
 
-`docs/operations/CURRENT_WORK_ORDER.md`
+`docs/validation/R0.12_STAGE_A_PRODUCT_SURFACE_IMPLEMENTATION_CLOSURE.md`
 
-## Startup
+Current Work Order execution mode:
 
-```text
-git status
-git fetch
-git switch main
-git pull --ff-only
-confirm clean working tree
-```
+`PRODUCT PROBE → HUMAN GATE`
 
-If the working tree is not clean, STOP before pulling/resetting and determine whether the files are existing user/agent work. Never discard unknown local changes.
+## Current policy
 
-Then run foreman. On this Windows host, use process-local bypass if required:
+Do not start Codex merely because the Work Order remains ACTIVE.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/maintain.ps1 foreman
-```
+The remaining Stage-A work is expected to be handled primarily by:
 
-Read `.private/codex_brief.md` and act on L0. For this active release, also read:
+- user-run PowerShell for local runtime installation/configuration/checks;
+- ChatGPT for GitHub observation, evidence review and governance;
+- the ordinary `video-editing-agent launch` product surface for real Product Probes;
+- the user for Human Gate judgments.
 
-- `docs/operations/CURRENT_WORK_ORDER.md`;
-- `docs/validation/R0.12_STAGE_A_PRODUCT_SURFACE_AUDIT.md`.
+Codex quota must not be spent on:
 
-Open secondary source/architecture files only when a concrete implementation trigger requires them.
+- FFmpeg/GStreamer/TransNet installation;
+- PATH repair;
+- API-key/secret configuration;
+- running Environment Doctor;
+- launcher operation;
+- routine test execution;
+- documentation/governance edits.
 
-## First local preflight for this batch
+## Re-release trigger
 
-Before changing the desktop layer, verify the actual target Windows development environment:
+Codex may be re-released only after a real probe or deterministic check produces a concrete code defect that:
 
-```powershell
-uv run python -c "import tkinter as tk; root=tk.Tk(); root.withdraw(); root.update_idletasks(); root.destroy(); print('TK_OK')"
-ffmpeg -version
-ffprobe -version
-```
+1. is not an environment/configuration/provider/input problem;
+2. is not safely repairable as a small deterministic ChatGPT/GitHub change;
+3. requires local multi-file implementation/test iteration.
 
-If Tkinter import/root creation fails on the actual Windows target, STOP and report that exact blocker before adding a GUI dependency.
+Any new release must be bounded to that evidence-backed defect. Do not replay or reopen the accepted product-surface batch.
 
-Do not spend provider API calls merely to test widgets.
+## Frozen boundaries
 
-## Frozen implementation goal
+Do not use a future Codex release to:
 
-Complete one thin Stage-A product layer over the accepted owner chains:
-
-1. user-level Planning reference/fact inputs;
-2. accepted reference-only acquisition/analysis → `ReferenceStyleGuidance` plumbing into both Script and Shooting workflows;
-3. optional live observation of existing `ProductFlowEvent` progress;
-4. ordinary runtime defaults / TransNet auto-resolution and understandable mandatory-capability diagnostics;
-5. a minimal Windows launcher, preferably stdlib Tkinter if preflight passes;
-6. readable exact ScriptPlan/ShootingPlan presentation;
-7. file/folder selection and final MP4 discovery for Editing.
-
-The UI is an adapter only. Keep request construction, folder expansion, runtime resolution, reference preparation and result presentation testable below widget code.
-
-## Hard boundaries
-
-Do not:
-
-- build a timeline/NLE editor;
+- redesign Planning/Editing architecture;
 - make Planning mandatory for Editing;
-- let reference-only media become Resolver/final-output footage;
-- add stock/generated fallback visuals;
-- add universal/authenticated/social downloaders;
-- loosen semantic/commercial Review;
-- redesign Resolver, EDL or Renderer without concrete evidence;
-- expose AssetRef/ShotRef/CandidateWindow/ResolutionDecision/source timestamps/EDL as ordinary-user inputs;
-- silently switch providers after a provider failure;
-- add a heavy GUI framework unless Tkinter is proven unavailable on the target;
-- claim Product Gate/Human Gate PASS;
-- bump structural progress above 90%.
+- weaken Resolver grounding, canonical EDL or Review policy;
+- let reference-only media enter final visual output;
+- add stock/generated replacement visuals;
+- add a timeline/NLE editor merely for Stage-A closure;
+- expose internal entity IDs or source timestamps as ordinary-user inputs;
+- silently switch providers after failure;
+- claim Product/Human Gate PASS from tests alone.
 
-## Verification
+## Recovery rule
 
-Run focused tests while iterating, then the full repository Quality Gate.
-
-Required coverage is listed in `CURRENT_WORK_ORDER.md`; do not substitute GUI screenshots for the deterministic application/controller tests.
-
-Perform a bounded local Windows launcher smoke after tests. It may use mocked/injected operations for UI plumbing; final real Product Probe is owned by ChatGPT/user after merge.
-
-## Completion / STOP gate
-
-When the bounded implementation is complete:
-
-1. run the normal repository Quality Gate as far as the local environment allows;
-2. inspect final `git diff` / `git status`;
-3. create **one coherent implementation commit**;
-4. push to `main`;
-5. STOP and report:
-   - commit SHA;
-   - files changed;
-   - architecture/authority notes;
-   - focused tests;
-   - full gate results;
-   - Tkinter/Windows smoke result;
-   - known limitations;
-   - final `git status`.
-
-Do not self-authorize the real Product Probes, Human Gates, Work Order closure or next Roadmap stage.
-
-## Interruption recovery
-
-After a disconnect, inspect `git status` and `git diff`; resume unfinished work rather than replaying the original prompt.
-
-Do not discard completed local edits or restart the whole batch because of a transport interruption.
+If a concrete defect eventually warrants Codex, first reobserve current `main`, CI and local working-tree state. Preserve unknown local changes. Generate a fresh foreman brief only after the control plane explicitly grants a new release.
