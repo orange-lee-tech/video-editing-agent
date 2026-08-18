@@ -1,4 +1,5 @@
 import base64
+import io
 import json
 import urllib.error
 from typing import Any
@@ -114,7 +115,7 @@ def test_adapter_sends_inline_pngs_and_returns_proposal() -> None:
     adapter = GeminiGenerateContentVisualUnderstanding(
         artifact_store=FakeArtifactStore(values),  # type: ignore[arg-type]
         transport=transport,
-        config=GeminiVisualConfig(model="gemini-3.5-flash-lite"),
+        config=GeminiVisualConfig(model="gemini-3.6-flash"),
     )
 
     proposal = adapter.analyze(request)
@@ -125,11 +126,14 @@ def test_adapter_sends_inline_pngs_and_returns_proposal() -> None:
     assert proposal.actions == ("sanding",)
     assert proposal.quality_scores[0].value == pytest.approx(0.82)
 
-    assert transport.model == "gemini-3.5-flash-lite"
+    assert transport.model == "gemini-3.6-flash"
     assert transport.payload is not None
     generation_config = transport.payload["generationConfig"]
-    assert generation_config["responseMimeType"] == "application/json"
-    assert generation_config["responseJsonSchema"]["additionalProperties"] is False
+    response_format = generation_config["responseFormat"]["text"]
+    assert response_format["mimeType"] == "application/json"
+    assert response_format["schema"]["additionalProperties"] is False
+    assert "responseMimeType" not in generation_config
+    assert "responseJsonSchema" not in generation_config
     assert "temperature" not in generation_config
 
     parts = transport.payload["contents"][0]["parts"]
@@ -147,7 +151,7 @@ def test_adapter_rejects_structured_output_with_missing_or_extra_fields() -> Non
     adapter = GeminiGenerateContentVisualUnderstanding(
         artifact_store=FakeArtifactStore(values),  # type: ignore[arg-type]
         transport=FakeTransport(completed_response(malformed)),
-        config=GeminiVisualConfig(model="gemini-3.5-flash-lite"),
+        config=GeminiVisualConfig(model="gemini-3.6-flash"),
     )
 
     with pytest.raises(VisualProviderResponseError, match="unexpected or missing"):
@@ -159,7 +163,7 @@ def test_adapter_rejects_response_without_candidates() -> None:
     adapter = GeminiGenerateContentVisualUnderstanding(
         artifact_store=FakeArtifactStore(values),  # type: ignore[arg-type]
         transport=FakeTransport({"promptFeedback": {"blockReason": "SAFETY"}}),
-        config=GeminiVisualConfig(model="gemini-3.5-flash-lite"),
+        config=GeminiVisualConfig(model="gemini-3.6-flash"),
     )
 
     with pytest.raises(VisualProviderResponseError, match="no candidates"):
@@ -178,7 +182,7 @@ def test_transport_classifies_retryable_http_status(monkeypatch: pytest.MonkeyPa
     )
 
     with pytest.raises(VisualProviderTransientError, match="retryable HTTP 429"):
-        transport.generate_content("gemini-3.5-flash-lite", {"contents": []})
+        transport.generate_content("gemini-3.6-flash", {"contents": []})
 
 
 def test_transport_classifies_non_retryable_http_status(
@@ -195,19 +199,52 @@ def test_transport_classifies_non_retryable_http_status(
     )
 
     with pytest.raises(VisualProviderResponseError, match="HTTP 400"):
-        transport.generate_content("gemini-3.5-flash-lite", {"contents": []})
+        transport.generate_content("gemini-3.6-flash", {"contents": []})
+
+
+def test_transport_surfaces_bounded_provider_error_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    body = json.dumps(
+        {
+            "error": {
+                "code": 404,
+                "message": "This model is no longer available. Use gemini-3.6-flash.",
+                "status": "NOT_FOUND",
+            }
+        }
+    ).encode()
+
+    def raise_404(*args: object, **kwargs: object) -> FakeHttpResponse:
+        del args, kwargs
+        raise urllib.error.HTTPError(
+            "https://example.invalid",
+            404,
+            "not found",
+            None,
+            io.BytesIO(body),
+        )
+
+    monkeypatch.setattr("urllib.request.urlopen", raise_404)
+    transport = UrllibGeminiGenerateContentTransport(
+        api_key="secret",
+        api_root="https://example.invalid",
+    )
+
+    with pytest.raises(VisualProviderResponseError, match="Use gemini-3.6-flash"):
+        transport.generate_content("gemini-old", {"contents": []})
 
 
 @pytest.mark.parametrize(
     ("field", "value"),
     [
         ("model", ""),
-        ("model", "models/gemini-3.5-flash-lite"),
+        ("model", "models/gemini-3.6-flash"),
         ("max_output_tokens", 0),
     ],
 )
 def test_config_rejects_invalid_values(field: str, value: object) -> None:
-    kwargs: dict[str, object] = {"model": "gemini-3.5-flash-lite"}
+    kwargs: dict[str, object] = {"model": "gemini-3.6-flash"}
     kwargs[field] = value
 
     with pytest.raises((TypeError, ValueError)):
