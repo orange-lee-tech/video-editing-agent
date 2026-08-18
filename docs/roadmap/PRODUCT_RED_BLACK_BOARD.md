@@ -2,6 +2,7 @@
 
 **状态：** ACTIVE DASHBOARD  
 **首次建立：** 2026-08-19  
+**最后更新：** 2026-08-19 — Stage-A Editing 集成审计  
 **用途：** 用普通人能快速理解的方式，持续记录已经被证据证明的核心优势，以及尚未解决的攻关目标/风险。  
 **权威边界：** 本文件是动态看板，不替代 Product Constitution、Architecture Contract、`CURRENT_CONTROL_STATE.md`、`CURRENT_PHASE_STATUS.md` 或 `CURRENT_WORK_ORDER.md`。
 
@@ -53,13 +54,13 @@ R0.10 完成真实音乐 Product/Human Gate：
 - decision truth 与 execution truth 对齐；
 - 原始音乐和视频未被破坏。
 
-**价值：** 自动剪辑不只“切画面”，而是开始具备可审计的听觉编辑能力。
+**价值：** 自动剪辑不只“切画面”，而是已经拥有一套被真实 Human Gate 验证过的可审计听觉编辑机制。当前缺口是把它接回普通 ProductFlow，而不是重新造一套。
 
 ## R5. Auto Reframe 已有真实产品证据
 
 R0.11 的 provider-neutral 空间链路在真实素材上完成 Product/Human Gate；用户偏好 stabilized 结果。空间观察者不拥有可执行裁切，`SpatialComposer`/`SpatialTransformPlan` 保持权威边界。
 
-**价值：** 为横竖屏混合素材进入短视频生产提供了非生成式、可解释的基础。
+**价值：** 为横竖屏混合素材进入短视频生产提供了非生成式、可解释的基础。当前同样是普通 ProductFlow 集成问题，不是能力从零问题。
 
 ## R6. Windows 执行与诊断基础不是纸面设计
 
@@ -105,16 +106,50 @@ Import-linter 当前持续约束：
 
 # 黑榜 — 未解决问题 / 重大攻关目标 / 隐患
 
-## B0. Editing 普通用户 Product/Human Gate 仍未闭环【最高优先级】
+## B0. 普通 Editing ProductFlow 尚未接齐 Stage-A 必须的编辑表达链【最高优先级 / Gate Blocker】
 
-- Engineering mechanism：PASS；
-- 真实 Product Probe：进行中；
-- Human Gate：OPEN；
-- 当前同日重跑曾被 Gemini free-tier HTTP 429 阻断。
+2026-08-19 大排查发现：**我们已有不少强能力，但普通“一键自动剪辑”编排没有把它们全部接进来。**
 
-**闭环条件：** 用户本地素材通过完整自动链生成真实 final MP4，source hash 不变，Review PASS，用户实际观看并判断可用。
+冻结的 Stage-A Gate 要求：
 
-## B1. 普通产品壳层存在明显 Provider/Vendor 锁定【P0 商用架构债】
+`Resolver → music/rhythm + spatial/audio + subtitle/graphics/minimal transitions → canonical EDL → Renderer/Review`
+
+但当前 `build_editing_product_flow()` 实际只把：
+
+- media understanding；
+- Director；
+- grounded Resolver；
+- conservative source audio；
+- EDLBuilder；
+- Renderer / Review
+
+接成了普通产品路线。
+
+当前没有在该 route 中提供：
+
+- 已有 R0.10 MusicSelection / BeatMap / Audio Editorial 决策；
+- 已有 R0.11 Spatial / Auto Reframe 决策；
+- structured Subtitle product wiring；
+- Stage-A 要求的 basic title/CTA/price-card graphics；
+- minimum transition vocabulary。
+
+**危险：** 如果不纠正控制面，我们可能拿到一个“能播放的纯切 MP4”就误判 Stage A 完成。
+
+**闭环条件：** 先做一个 bounded integration repair，复用既有 capability owners，把批准的决策真正送入 EDLBuilder；对 graphics/transition 只补 Stage-A 所需的小型 typed semantics；再通过 decision→EDL→render 集成测试，之后才允许真实 Editing Gate。
+
+## B1. Editing 普通用户 Product/Human Gate 仍未闭环【P0】
+
+当前状态已从“等 Gemini 配额”升级为：
+
+- Planning Product/Human Gate：PASS；
+- Editing subsystem mechanisms：已有大量 PASS 证据；
+- Editing ordinary ProductFlow integration：OPEN；
+- Product Probe：在 B0 修复前 **NOT GATE-READY**；
+- Human Gate：OPEN。
+
+**闭环条件：** B0 修复 → 用户本地素材走完整自动链 → 真实 final MP4 → source hash 不变 → Review PASS → 用户实际观看并判断可用。
+
+## B2. 普通产品壳层存在明显 Provider/Vendor 锁定【P0 商用架构债】
 
 虽然 Constitution/Architecture 已明确 Provider Neutral，但当前远端产品壳层仍硬编码：
 
@@ -125,7 +160,17 @@ Import-linter 当前持续约束：
 
 **目标：** UI 和 product runtime 以“能力角色”配置，厂家/协议/模型只是可替换绑定；不得通过这次改造改变 Domain/Resolver/EDL ownership，也不得静默 provider fallback。
 
-## B2. 当前 Tk/ttk 主界面功能可用，但产品门面与信息层级不足【P1】
+实施计划：`docs/architecture/PROVIDER_NEUTRAL_PRODUCT_BINDING_PLAN.md`。
+
+## B3. 本地 UX stabilization 候选还没有最终 commit/CI【P0 流程风险】
+
+已观察：完整本地 Quality Gate 曾为 713 passed，人工 UI smoke 通过；之后又补了 Splash 真正显示与像素标记。
+
+**风险：** 最终 Splash 微调发生在上一次完整 713-test gate 之后。
+
+**必须做：** 最终提交前重跑 formatter / Ruff / mypy / full pytest / import-linter / build / diff-check / repo-doctor / launcher smoke；先本地 commit，再 rebase 最新 docs main，push 后远端 CI 复审。
+
+## B4. 当前 Tk/ttk 主界面功能可用，但产品门面与信息层级不足【P1】
 
 真实截图显示：
 
@@ -137,19 +182,13 @@ Import-linter 当前持续约束：
 
 **目标：** 在不换核心 UI 技术栈、不引入重型主题依赖的前提下，建立 design tokens、卡片/分组、明显主 CTA、状态栏、结果动作区和更好的高 DPI/键盘/窗口布局。
 
-## B3. 本地 UX stabilization 候选还没有最终 commit/CI【P0 流程风险】
+设计基线：`docs/product/DESKTOP_UI_DESIGN_SYSTEM_V0.1.md`。
 
-已观察：完整本地 Quality Gate 曾为 713 passed，人工 UI smoke 大部分 PASS；之后又补了 Splash 真正显示与像素标记。
-
-**风险：** 最终 Splash 微调发生在上一次完整 713-test gate 之后。
-
-**必须做：** 最终提交前重跑 formatter / Ruff / mypy / full pytest / import-linter / build / diff-check / repo-doctor / launcher smoke；再 commit、rebase 最新 docs main、push、远端 CI 复审。
-
-## B4. 输出覆盖 UX 仍需商用级确认【P1】
+## B5. 输出覆盖 UX 仍需商用级确认【P1】
 
 Renderer 当前 FFmpeg invocation 使用 `-y`，并已防止 output 覆盖 canonical source media；但普通用户仍需要明确处理“目标 MP4 已存在”的覆盖确认/版本策略，避免误覆盖已有成片。
 
-## B5. 取消 / 恢复 / 失败重试尚未形成完整普通用户语义【P1】
+## B6. 取消 / 恢复 / 失败重试尚未形成完整普通用户语义【P1】
 
 后台线程让 UI 不再冻结是必要基础，但商用长任务还需要：
 
@@ -161,7 +200,7 @@ Renderer 当前 FFmpeg invocation 使用 `-y`，并已防止 output 覆盖 canon
 
 在真正机制完成前，不应加一个装饰性“取消”按钮。
 
-## B6. 打包分发尚未闭环【P0 商用发布门】
+## B7. 打包分发尚未闭环【P0 商用发布门】
 
 当前 `pyproject.toml` 没有普通 runtime dependencies，真实 Windows 启动仍会使用 `uv run --with transnetv2-pytorch==1.0.5 ...` 这类开发/验证路径；普通客户不能被要求安装 uv/Python/模型依赖。
 
@@ -175,7 +214,9 @@ Renderer 当前 FFmpeg invocation 使用 `-y`，并已防止 output 覆盖 canon
 - 首次启动与无 Python/uv 机器 smoke；
 - installer/update/rollback。
 
-## B7. 外部依赖许可证仍有几个发布级硬门【P0】
+准备基线：`docs/operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md`。
+
+## B8. 外部依赖许可证仍有几个发布级硬门【P0】
 
 已知包括：
 
@@ -184,7 +225,7 @@ Renderer 当前 FFmpeg invocation 使用 `-y`，并已防止 output 覆盖 canon
 - 预览候选的插件/build license 需要按实际发行包审查；
 - 上游 `REFERENCE-*` 只能学习机制，不能自动转化为可复制代码。
 
-## B8. 真实视觉 API 成本/配额与调用整形还不够产品化【P1】
+## B9. 真实视觉 API 成本/配额与调用整形还不够产品化【P1】
 
 当前 understanding 按 Shot 调视觉 provider，一次 request 可包含多帧；已处理 transient retry 与 provider retry hint，但仍缺：
 
@@ -193,19 +234,19 @@ Renderer 当前 FFmpeg invocation 使用 `-y`，并已防止 output 覆盖 canon
 - 可观察的调用量/成本预算；
 - 能力降级策略（明确失败，而不是伪装等价或静默换厂）。
 
-## B9. 自动视觉语义质量仍需要更广真实素材证据【P1 核心质量】
+## B10. 自动视觉语义质量仍需要更广真实素材证据【P1 核心质量】
 
 R0.9 closure 明确记录：当时语义检索部分仍用了 human-confirmed managed-corpus coverage text；当前 Stage-A Editing 正是在继续验证真实 VisualUnderstanding 驱动完整链路。
 
 **目标：** 让用户随手投入的无序素材，而不是人工整理描述，真正驱动 Resolver 与最终成片。
 
-## B10. BeatMap / Auto Reframe 仍有已知质量尾巴【P2 质量扩展】
+## B11. BeatMap / Auto Reframe 仍有已知质量尾巴【P2 质量扩展】
 
 - R0.10 real-music probe 中存在低 BeatMap confidence 样例，虽未影响该次 Human Gate；
 - R0.11 occlusion recovery 有轻微 micro-jump；
 - 需要更广 corpus 才能判断是否系统性问题，不能因为单样本继续盲调参数。
 
-## B11. `tkinter_app.py` 膨胀风险【P1 可维护性】
+## B12. `tkinter_app.py` 膨胀风险【P1 可维护性】
 
 本轮 UX 候选对 Tk launcher 增加了大量界面行为。应继续把：
 
@@ -217,10 +258,11 @@ R0.9 closure 明确记录：当时语义检索部分仍用了 human-confirmed ma
 
 维持为可测试的小模块，避免 GUI 文件重新变成“万能上帝文件”。
 
-## B12. 日志、崩溃恢复、磁盘空间、长路径等桌面商用边界仍需系统验证【P1】
+## B13. 多实例/项目目录/磁盘/长路径等桌面边界仍需系统验证【P1】
 
 后续 fresh-Windows / packaging probe 至少覆盖：
 
+- 同一项目多实例打开；
 - 中文/Unicode/长路径；
 - 无写权限目录；
 - 低磁盘空间；
@@ -236,4 +278,4 @@ R0.9 closure 明确记录：当时语义检索部分仍用了 human-confirmed ma
 
 # 当前一句话状态
 
-> **我们已经拥有一个证据链很强、核心生产关系清楚的 AI 剪辑引擎；现在最大的风险不是“没有算法”，而是 Editing 最终 Product/Human Gate、Provider Neutral 产品壳层、商用桌面 UX 与 Windows 可分发性还没有一起闭环。**
+> **我们并不是“缺剪辑算法”，而是已经有很多被独立验证过的能力，却还差最后一段关键工作：把这些能力真实接入普通用户的一键 Editing ProductFlow；在这条主线之外，再逐步完成 Provider Neutral、商业 UI 与 Windows 可分发性。**
