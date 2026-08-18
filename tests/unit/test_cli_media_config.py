@@ -3,7 +3,12 @@ from pathlib import Path
 import pytest
 
 from video_editing_agent.adapters.cli.main import main
-from video_editing_agent.adapters.cli.media_config import transnetv2_detector
+from video_editing_agent.adapters.cli.media_config import (
+    transnetv2_detector,
+    visual_understanding_port,
+)
+from video_editing_agent.providers.vision.retry import RetryingVisualUnderstandingPort
+from video_editing_agent.storage.artifact.local_store import LocalArtifactStore
 from video_editing_agent.storage.project import ProjectWorkspace
 
 
@@ -19,6 +24,20 @@ def test_transnet_composition_requires_existing_model_before_detection(tmp_path:
         )
 
     assert workspace.status()["counts"]["shots"] == 0
+
+
+def test_visual_provider_composition_retries_transient_failures(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("GEMINI_API_KEY", "configured")
+
+    port = visual_understanding_port(
+        "gemini",
+        model="gemini-3.6-flash",
+        artifacts=LocalArtifactStore(tmp_path / "artifacts"),
+    )
+
+    assert isinstance(port, RetryingVisualUnderstandingPort)
 
 
 @pytest.mark.parametrize(
