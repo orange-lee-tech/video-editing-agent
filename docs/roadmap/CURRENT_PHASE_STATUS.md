@@ -17,7 +17,7 @@ The hard 100% contract remains:
 
 Current Product Gate state:
 
-- Planning Engineering mechanism: PASS; Product Probe / Human Gate: OPEN.
+- Planning Engineering mechanism: PASS; real Product Probe: IN PROGRESS after provider compatibility repair; Human Gate: OPEN.
 - Editing Engineering mechanism: PASS; Product Probe / Human Gate: OPEN.
 - Stage-A completion gate: OPEN.
 
@@ -25,11 +25,11 @@ Therefore structural progress remains **90%**.
 
 ## Current accepted production-code baseline
 
-`fadefcbb2418477e794a782f5e94b6865a80297a`
+`c054ea7198334380dbbcd010145abb3043bc630e`
 
 Exact-head deterministic CI:
 
-`32117815321` — PASS (`ci/quality-gate-diagnostic = success`).
+`32122290513` — PASS (`ci/quality-gate-diagnostic = success`).
 
 ## Stage-A ordinary-user product surface — PASS / ACCEPTED
 
@@ -37,7 +37,7 @@ Implementation closure evidence:
 
 `docs/validation/R0.12_STAGE_A_PRODUCT_SURFACE_IMPLEMENTATION_CLOSURE.md`
 
-The accepted ordinary-user capabilities now include:
+The accepted ordinary-user capabilities include:
 
 - stdlib Tkinter `video-editing-agent launch`;
 - Simplified Chinese / English switching;
@@ -65,6 +65,21 @@ Current Settings semantics:
 
 These are product-surface capabilities, not Product/Human Gate evidence.
 
+## Real Planning Product Probe — provider compatibility repair
+
+A real Windows Planning run with a user-selected local reference video successfully advanced through the ordinary launcher, local media ingest, shot detection/frame preparation and into Gemini visual understanding.
+
+The run then failed because the Stage-A runtime still selected `gemini-2.5-flash`. Direct provider evidence showed that the user-owned credential was valid and could list the model, but `generateContent` returned `NOT_FOUND` and explicitly directed new users to `gemini-3.6-flash`.
+
+The accepted repair through `c054ea7198334380dbbcd010145abb3043bc630e`:
+
+- selects `gemini-3.6-flash` for the Stage-A Gemini visual path;
+- aligns structured output with the current `responseFormat.text` schema request contract;
+- preserves provider error details in bounded diagnostics;
+- adds regression coverage for the Stage-A default and request shape.
+
+Exact-head CI is green. This closes the identified Engineering defect only; the real Planning Product Probe must now be rerun from the ordinary launcher.
+
 ## Active Work Order
 
 `R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001` remains ACTIVE, with execution mode:
@@ -73,7 +88,7 @@ These are product-surface capabilities, not Product/Human Gate evidence.
 
 There is **no active Codex writer**.
 
-The remaining Stage-A work is real environment readiness and real ordinary-user evidence, not more speculative backend construction.
+The remaining Stage-A work is real ordinary-user evidence, not speculative backend construction.
 
 ## Planning Product Gate target
 
@@ -86,7 +101,9 @@ real user intent / optional supported reference / commercial facts
 → Human Gate
 ```
 
-Planning may be probed first without reference. That path requires the current reasoning/direction API but does not require visual-understanding capability.
+The immediate action is to rerun the same real Planning probe after synchronizing the accepted Gemini compatibility repair.
+
+Planning without reference also remains a legitimate independent path. It requires the current reasoning/direction API but does not require visual-understanding capability.
 
 ## Editing Product Gate target
 
@@ -114,9 +131,10 @@ Do not spend Codex quota on:
 - API-secret configuration;
 - launcher operation;
 - ordinary deterministic checks;
+- deterministic provider-version compatibility updates;
 - documentation/governance maintenance.
 
-Codex may be re-released only for a concrete implementation defect after ChatGPT classifies the failure.
+Codex may be re-released only for a concrete nontrivial implementation defect after ChatGPT classifies the failure.
 
 ## Human Gate
 
@@ -153,8 +171,8 @@ Do not ask the user to invent professional scoring criteria.
 ## Immediate corridor
 
 1. synchronize the accepted baseline and current control plane to the Windows workspace;
-2. configure user-owned API credentials in the product Settings surface as required;
-3. run real Planning Product Probe through the launcher and complete its Human Gate;
+2. relaunch the ordinary product surface and configure user-owned API credentials in Settings;
+3. rerun the same real Planning Product Probe and complete its Human Gate only if a real ScriptPlan/ShootingPlan is produced;
 4. run real Editing Product Probe through the launcher using real local footage and complete its Human Gate;
 5. classify any failure before changing code;
 6. set Stage-A to 100% only if both core gates and `STAGE_A_COMPLETION_GATE.md` genuinely PASS.
