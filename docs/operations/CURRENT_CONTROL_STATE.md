@@ -2,16 +2,16 @@
 
 ---
 schema: video-editing-agent-control-state/v1
-updated: 2026-08-18
+updated: 2026-08-19
 current_phase: R0.12
-phase_state: STAGE_A_PRODUCT_GATE_EXECUTION_ACTIVE
+phase_state: STAGE_A_EDITING_INTEGRATION_GAP_OPEN
 active_work_order: R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001
 accepted_code_baseline: af5865df14b9f1cceaa9e6c1fe4dadf14cc60058
 control_plane_baseline: 79c3be540f335477699223292580f32f6bb3c807
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
 core_1_planning_product_gate: PASS
-core_2_editing_product_gate: ENGINEERING_PASS_PRODUCT_HUMAN_OPEN
+core_2_editing_product_gate: INTEGRATION_GAP_OPEN_PRODUCT_HUMAN_OPEN
 previous_work_order: R0.12-PRODUCT-FLOW-ORCHESTRATION-001
 previous_work_order_result: PASS
 foreman: v2-trigger-first
@@ -27,7 +27,11 @@ Frozen product architecture remains unchanged:
 - Planning-only: `Brief → ScriptPlan → ShootingPlan`;
 - Editing-only: `Brief/editorial intent + user local footage → Editing Core`;
 - Combined: exact Planning revisions optionally enrich the same Editing Core;
-- canonical EDL remains sole exact timeline authority.
+- source-time grounding remains Resolver-owned;
+- approved Music/Audio/Spatial/Subtitle/Graphics/transition decisions belong upstream of EDL assembly;
+- canonical EDL remains the sole exact timeline authority;
+- Renderer executes only;
+- Review classifies/routes only.
 
 ## Accepted production baseline
 
@@ -37,7 +41,7 @@ Exact-head CI:
 
 `32145822611` — `ci/quality-gate-diagnostic = success`.
 
-This baseline includes the accepted Director proposal repair and Gemini provider-aware retry-delay repair discovered through real Windows Product Probes.
+This remains the accepted **remote production-code** baseline until the currently preserved Windows UX candidate is committed, pushed, reviewed and green in CI.
 
 ## Gate truth
 
@@ -53,42 +57,97 @@ The ordinary Windows launcher completed a real Planning run and the user judged 
 
 ### Editing
 
-**Engineering mechanism: PASS / Product Probe: IN PROGRESS / Human Gate: OPEN**.
+**Engineering mechanisms exist / ordinary ProductFlow integration gap: OPEN / Product Probe: NOT GATE-READY / Human Gate: OPEN**.
 
-Real Editing-only probes have reached local-media understanding and Director boundaries, exposing and repairing several evidence-backed defects. The latest same-day probe is currently blocked by the user's Gemini free-tier quota after legitimate real-product requests. Persistent provider quota exhaustion must fail explicitly and does not authorize silent provider/model switching.
+A 2026-08-19 static integration audit found a gate-blocking mismatch between the already-frozen Stage-A product contract and the current ordinary Editing ProductFlow composition:
 
-## Temporary UX stabilization boundary
+- `docs/roadmap/STAGE_A_COMPLETION_GATE.md` requires the real Editing route to include `music/rhythm + spatial/audio + subtitle/graphics/minimal transitions` before canonical EDL;
+- `docs/product/STAGE_A_PRODUCT_IO_CONTRACT.md` likewise requires `Music / Audio / Spatial / Subtitle / Graphics decisions → EDLBuilder`;
+- current `EditingProductCapabilities` / `build_editing_product_flow()` wires media understanding, Director, Resolver, conservative source audio, EDLBuilder, Renderer and Review, but does not yet wire the full required Music/Spatial/Subtitle/Graphics/minimal-transition expression floor into the ordinary product route.
 
-The user explicitly chose to use the provider-quota reset interval to consolidate already-recorded ordinary-user UX/robustness work.
+Therefore **a plain-cut MP4 from the current abbreviated ProductFlow must not be accepted as the Stage-A gate-closing result**, even if it renders successfully.
 
-Current execution mode:
+Durable incident record:
 
-`PRODUCT PROBE → TEMPORARY UX STABILIZATION → HUMAN GATE`
+`docs/logs/INCIDENT_LEDGER.md` — `R0.12 Stage-A ordinary Editing integration gap — OPEN`.
 
-Active Codex release:
+This finding does not reopen already-accepted R0.8/R0.9/R0.10/R0.11 subsystem evidence and does not authorize a core redesign. It is an integration obligation: existing approved decision owners must be composed into the ordinary path before EDL assembly.
 
-`OPEN — BOUNDED UX STABILIZATION WAVE ONLY`
+## Preserved local UX candidate
 
-Execution spec:
+The user-authorized Stage-A UX stabilization wave has been implemented as a **Windows local, still-uncommitted candidate** after Codex execution quota was exhausted.
 
-`docs/operations/STAGE_A_UX_STABILIZATION_WAVE.md`
+Observed local evidence before the final Splash micro-edits included:
 
-Primary wave includes:
+- Ruff / mypy / import contracts / build / repo doctor: PASS;
+- pytest: `713 passed`;
+- launcher smoke: PASS;
+- manual UI smoke: placeholder, single multi-select media input, export, localization, profiles, responsiveness and protected API-secret storage: PASS.
 
-- responsive Tkinter background execution;
-- output scrollbar and UTF-8 TXT export;
-- UI-aligned localization;
-- honest ETA/progress with at least 30-second recalculation;
-- one Editing source-selection mechanism: multi-select `Media Files`; remove ordinary `Media Folder` UI;
-- first-run required/optional placeholders;
-- local form/API profile files with Windows-protected API secrets;
-- bounded Planning no-facts repair without weakening factual review;
-- bounded share-text HTTPS extraction without platform scraping;
-- real-milestone startup splash;
-- localized provider/quota UX;
-- focused regression tests and Windows manual smoke.
+After that full gate, Splash repaint and a dependency-free Canvas pixel mark were repaired manually and the user confirmed the startup icon is visible. Because those final micro-edits happened **after** the 713-test gate, the candidate still requires a fresh complete local Quality Gate before commit/push.
 
-The `公共素材` / `类似方案` concepts remain backlog-only until real replaceable research/material adapters exist; do not ship decorative controls that do nothing.
+No remote production source file should be edited from GitHub until this local candidate is safely committed/rebased/pushed.
+
+## Codex state
+
+Codex execution quota is exhausted for this wave.
+
+**No further Codex execution is currently authorized or required.**
+
+The existing local work must be finalized through PowerShell/manual verification rather than re-created.
+
+## Current execution corridor
+
+`LOCAL UX CANDIDATE FINALIZATION → STAGE-A EDITING INTEGRATION REPAIR → REAL PRODUCT/HUMAN GATE`
+
+### 1. Finalize the preserved UX candidate
+
+- rerun the complete local Quality Gate after final Splash edits;
+- commit the local product-adapter/UI/test changes without pulling over them;
+- fetch/rebase onto the latest docs-only `origin/main`;
+- rerun required checks after rebase;
+- push and let ChatGPT inspect exact commit/diff/CI before changing the accepted code baseline.
+
+### 2. Repair the Stage-A Editing integration gap
+
+Use existing capability ownership wherever already implemented:
+
+- Resolver continues to own grounded source windows;
+- existing R0.10 Music/Audio decisions are integrated upstream of EDL assembly rather than recreated in Renderer;
+- existing R0.11 Spatial/Auto-Reframe decisions are integrated for resolved selections;
+- existing subtitle structured-cue/builder path is integrated into canonical EDL;
+- the minimum graphics/title/CTA/price-card and transition vocabulary required by the Stage-A gate must obtain explicit typed decision/execution semantics before claiming completion;
+- EDLBuilder assembles approved decisions only;
+- Renderer remains execution-only;
+- Review remains classification/routing only.
+
+This repair must be one bounded integration wave, not a new microphase and not a monolithic Effects Engine.
+
+### 3. Resume the real Editing Product/Human Gate
+
+Only after the integration repair is accepted and provider quota/runtime are available:
+
+1. use the ordinary multi-select media-file surface with Combined unchecked for Editing-only proof;
+2. record source SHA-256 hashes;
+3. run actual ingest / shot detection / visual understanding / Director / grounded Resolver;
+4. execute the Stage-A editing-expression floor through canonical EDL;
+5. Renderer produces the real final MP4;
+6. Review passes under the real route;
+7. source hashes remain unchanged;
+8. user watches the final MP4 and completes the ordinary Editing Human Gate.
+
+## Parallel commercial-product preparation
+
+The following are now documented but must not be mixed into the gate-critical integration repair:
+
+- `docs/product/DESKTOP_UI_DESIGN_SYSTEM_V0.1.md`;
+- `docs/architecture/PROVIDER_NEUTRAL_PRODUCT_BINDING_PLAN.md`;
+- `docs/operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md`;
+- `docs/roadmap/PRODUCT_RED_BLACK_BOARD.md`;
+- `docs/logs/PROJECT_CHRONICLE.md`;
+- `docs/logs/COMMERCIAL_DESKTOP_RISK_AUDIT_2026-08-19.md`.
+
+Provider-neutral product binding and the next commercial UI shell polish follow as bounded adapter/composition/product-shell work. Packaging starts with a reproducible Windows `onedir` Engineering Probe after the runtime/license closure is explicit.
 
 ## Structural progress
 
@@ -97,21 +156,9 @@ Remain at **90%**.
 - Stage-A completion gate: OPEN.
 - Planning Product/Human Gate: PASS.
 - Editing Product/Human Gate: OPEN.
+- Editing ordinary ProductFlow integration gap: OPEN.
 
-The UX wave cannot raise progress or close the gate.
-
-## Return path after UX acceptance/provider reset
-
-1. reobserve and accept exact UX implementation commit + CI;
-2. synchronize accepted `main` to Windows;
-3. use the single multi-select media-file mechanism;
-4. record non-empty source SHA-256 hashes;
-5. run Editing-only with Combined unchecked;
-6. execute ingest / shot detection / understanding / Director / grounded Resolver / canonical EDL / Renderer / Review;
-7. produce final MP4 only on Review PASS;
-8. verify source hashes unchanged;
-9. user watches the MP4 and completes the ordinary Editing Human Gate;
-10. set Stage A to 100 only if every completion invariant passes.
+Neither a polished GUI, a successful plain-cut MP4, subsystem closure evidence nor packaging work may raise progress to 100 by itself.
 
 ## Constitutional constraints
 
@@ -129,4 +176,5 @@ The UX wave cannot raise progress or close the gate.
 - no silent provider switching;
 - no plaintext API-secret profiles;
 - no Product/Human PASS inferred from tests alone;
+- no Stage-A Editing PASS from a route that omits the required editing-expression floor;
 - no structural-progress bump before both real gates pass.
