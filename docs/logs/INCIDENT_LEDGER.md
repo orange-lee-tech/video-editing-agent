@@ -73,3 +73,66 @@ Diagnostic execution must consume canonical decisions. Changing the decision mus
 ### Fix / verification
 
 Commit `81afb604b96486587a308f6f4c69d89f1450f46e` added a non-authoritative compiler from MusicSelectionDecision + AudioMixDecision to an inspectable FFmpeg execution plan, executed the selected source segments, decoded final preview audio for QC, and added decision-mutation/executed-range/clipped-control regressions. CI run `31712962989` succeeded.
+
+## R0.12 Stage-A ordinary Editing integration gap — OPEN
+
+**Discovered:** 2026-08-19 during commercial-desktop audit
+
+### Symptom
+
+The live Stage-A completion contract requires the ordinary Editing path to include:
+
+`music/rhythm + spatial/audio + subtitle/graphics/minimal transitions`
+
+before canonical EDL → Renderer → Review.
+
+The accepted Stage-A Product I/O contract likewise defines the Editing owner chain as:
+
+`Director → Resolver → Music / Audio / Spatial / Subtitle / Graphics decisions → EDLBuilder`.
+
+However the current production `build_editing_product_flow()` composition does not yet wire that full expression floor into the ordinary product route.
+
+### Evidence
+
+At the audited `main`:
+
+- `EditingProductCapabilities` exposes media probe, shot detector, understanding, Director, Renderer and rendered-media QC, but no music-selection, BeatMap/audio-editorial, spatial-composer, subtitle/graphics or transition capability;
+- `build_edl()` calls `DeterministicEDLBuilder` with grounded ResolutionDecision plus `build_conservative_source_audio_mix(...)`, but supplies no `spatial_decisions` or `music_selection`;
+- `DeterministicEDLBuilder` already has optional seams for `spatial_decisions`, `music_selection` and `audio_mix`, proving these decisions belong upstream of the builder rather than in Renderer;
+- the live Work Order / Current Phase return corridor currently abbreviates the gate-closing chain to `Resolver → canonical EDL / Renderer / Review`, omitting the Stage-A editing-expression floor.
+
+Subtitle/graphics/minimal-transition product wiring is also not present in this ordinary ProductFlow path.
+
+### Mechanism
+
+R0.10/R0.11 and R0.12 capability construction produced real, independently validated mechanisms, but the later ordinary-user ProductFlow orchestration closed a **minimum mechanical path** rather than integrating every capability required by the already-frozen Stage-A Product Gate.
+
+The control plane then inherited the abbreviated ProductFlow chain and risked treating a plain-cut/source-audio MP4 as sufficient gate-closing evidence.
+
+### Durable invariant
+
+A Stage-A Editing Product/Human Gate may close only when the **actual ordinary product route** consumes the required approved decision families before EDL assembly. Existing subsystem closure evidence cannot substitute for integration into that route.
+
+The fix must preserve ownership:
+
+- Music/Audio/Spatial/Subtitle/Graphics owners decide;
+- Resolver still owns grounded source windows;
+- EDLBuilder only assembles approved decisions;
+- canonical EDL remains sole exact timeline authority;
+- Renderer only executes;
+- Review only classifies/routes.
+
+### Required correction
+
+Before the next gate-closing real Editing run:
+
+1. update the live control corridor so it cannot falsely close on the abbreviated path;
+2. define one bounded Stage-A Editing integration repair work boundary;
+3. wire existing approved music/audio/spatial capabilities into ProductFlow rather than reimplementing them;
+4. wire the minimum transition/subtitle/graphics expression floor required by `STAGE_A_COMPLETION_GATE.md`;
+5. add integration regressions showing canonical EDL actually contains/executes the decisions;
+6. only then resume the real final-MP4 Product/Human Gate.
+
+### Current classification
+
+**OPEN — gate-blocking integration gap, not a reason to redesign the core architecture.**
