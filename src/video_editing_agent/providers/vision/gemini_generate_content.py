@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import base64
 import json
+import math
+import re
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -31,6 +33,8 @@ _PROPOSAL_KEYS = frozenset(
         "quality_scores",
     }
 )
+_RETRY_DELAY_PATTERN = re.compile(r"^([0-9]+(?:\.[0-9]+)?)s$")
+_RETRY_MESSAGE_PATTERN = re.compile(r"retry\s+in\s+([0-9]+(?:\.[0-9]+)?)s", re.IGNORECASE)
 
 _VISUAL_PROPOSAL_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -99,27 +103,59 @@ class GeminiVisualConfig:
             raise ValueError("max_output_tokens must be >= 1")
 
 
-def _http_error_detail(exc: urllib.error.HTTPError) -> str | None:
+def _parse_retry_delay(value: object) -> float | None:
+    if not isinstance(value, str):
+        return None
+    match = _RETRY_DELAY_PATTERN.fullmatch(value.strip())
+    if match is None:
+        return None
+    delay = float(match.group(1))
+    return delay if math.isfinite(delay) else None
+
+
+def _http_error_metadata(exc: urllib.error.HTTPError) -> tuple[str | None, float | None]:
     try:
         body = exc.read()
     except (OSError, ValueError):
-        return None
+        return None, None
     if not body:
-        return None
+        return None, None
     try:
         decoded: Any = json.loads(body.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError):
-        return None
+        return None, None
     if not isinstance(decoded, dict):
-        return None
+        return None, None
     error = decoded.get("error")
     if not isinstance(error, dict):
-        return None
+        return None, None
+
+    detail: str | None = None
     message = error.get("message")
-    if not isinstance(message, str):
-        return None
-    normalized = " ".join(message.split())
-    return normalized[:500] or None
+    if isinstance(message, str):
+        normalized = " ".join(message.split())
+        detail = normalized[:500] or None
+
+    retry_after_seconds: float | None = None
+    details = error.get("details")
+    if isinstance(details, list):
+        for item in details:
+            if not isinstance(item, dict):
+                continue
+            if item.get("@type") != "type.googleapis.com/google.rpc.RetryInfo":
+                continue
+            retry_after_seconds = _parse_retry_delay(item.get("retryDelay"))
+            if retry_after_seconds is not None:
+                break
+
+    if retry_after_seconds is None and isinstance(message, str):
+        match = _RETRY_MESSAGE_PATTERN.search(message)
+        if match is not None:
+            candidate = float(match.group(1))
+            if math.isfinite(candidate):
+                retry_after_seconds = candidate
+
+    return detail, retry_after_seconds
 
 
 def _transport_error_detail(exc: urllib.error.URLError) -> str | None:
@@ -169,11 +205,12 @@ class UrllibGeminiGenerateContentTransport(GeminiGenerateContentTransport):
             with urllib.request.urlopen(request, timeout=self._timeout_seconds) as response:
                 response_body = response.read()
         except urllib.error.HTTPError as exc:
-            detail = _http_error_detail(exc)
+            detail, retry_after_seconds = _http_error_metadata(exc)
             suffix = "" if detail is None else f": {detail}"
             if exc.code in {408, 409, 429} or 500 <= exc.code <= 599:
                 raise VisualProviderTransientError(
-                    f"Gemini request returned retryable HTTP {exc.code}{suffix}"
+                    f"Gemini request returned retryable HTTP {exc.code}{suffix}",
+                    retry_after_seconds=retry_after_seconds,
                 ) from exc
             raise VisualProviderResponseError(
                 f"Gemini request returned HTTP {exc.code}{suffix}"
