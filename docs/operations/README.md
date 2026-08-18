@@ -17,6 +17,8 @@ Stable supporting files:
 - `CODEX_EXECUTION_ENTRY.md` — minimal local Codex startup/read-order.
 - `CODEX_TOOLBOX.md` — bounded escalation/tool routes.
 - `CONTROL_PLANE_ARCHITECTURE.md` — control-plane design.
+- `STAGE_A_UX_STABILIZATION_WAVE.md` — current bounded ordinary-user UX stabilization specification; it does not close Editing Product/Human Gate.
+- `WINDOWS_DESKTOP_PACKAGING_READINESS.md` — operational preparation for a reproducible Windows desktop bundle/installer path; it is not a claim that release packaging is already approved.
 
 ## Live-state synchronization contract
 
@@ -58,10 +60,27 @@ A visually polished UI, green Engineering Probe, hand-authored EditPlan/EDL, or 
 1. Planning core: real intent/reference → visible persisted ScriptPlan + usable ShootingPlan.
 2. Editing core: selected local footage → actual automatic pipeline → final MP4.
 
+## Packaging preparation boundary
+
+Packaging work may prepare:
+
+- private runtime/bundle layout;
+- resource locator;
+- release manifest;
+- fresh-Windows smoke;
+- installer/update strategy;
+
+but it must not:
+
+- smuggle unresolved-license binaries/models into distribution;
+- move user-writable project/profile data into the install directory;
+- make a successful installer substitute for Product/Human editing evidence;
+- introduce a second composition path that bypasses the ordinary product runtime.
+
 ## Authority boundary
 
 Operations documents coordinate work but cannot override:
 
 `Product Constitution → Architecture Contract → Capability Specs → ADRs → Roadmap`
 
-Do not store design essays, incident histories or phase closure evidence here; use the appropriate canonical directory instead.
+Do not store broad product-design essays or phase closure evidence here; use the appropriate canonical directory. Operational release/readiness documents are appropriate only when they describe execution preparation rather than redefine product/architecture policy.
