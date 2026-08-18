@@ -9,6 +9,7 @@ from video_editing_agent.adapters.product.controller import (
     BriefForm,
     EditingForm,
     PlanningForm,
+    PlanningSessionContext,
 )
 from video_editing_agent.adapters.product.presentation import (
     editing_presentation,
@@ -63,6 +64,8 @@ def launch() -> int:
     editing_output = tk.Text(editing_tab, height=22, wrap="word")
     planning_output.grid(row=12, column=0, columnspan=3, sticky="nsew")
     editing_output.grid(row=11, column=0, columnspan=3, sticky="nsew")
+    planning_context: PlanningSessionContext | None = None
+    use_planning = tk.BooleanVar(value=False)
 
     def show_event(widget: Any, event: ProductFlowEvent) -> None:
         widget.insert("end", f"[{event.stage.value}] {event.message}\n")
@@ -87,6 +90,7 @@ def launch() -> int:
         )
 
     def run_planning() -> None:
+        nonlocal planning_context
         try:
             reference_url = planning_values["reference_url"].get().strip() or None
             local_reference_text = planning_values["reference_local"].get().strip()
@@ -111,6 +115,12 @@ def launch() -> int:
             flow = planning_flow(form.project, resolution.config, reference=has_reference)
             planning_output.delete("1.0", "end")
             result = flow.run(form.to_request(), lambda event: show_event(planning_output, event))
+            planning_context = PlanningSessionContext.from_result(result)
+            use_planning_check.configure(
+                state="normal" if planning_context is not None else "disabled"
+            )
+            if planning_context is None:
+                use_planning.set(False)
             planning_output.insert("end", "\n" + planning_presentation(result))
         except Exception as exc:
             messagebox.showerror("Planning unavailable", str(exc))
@@ -132,6 +142,8 @@ def launch() -> int:
                 Path(editing_values["output_mp4"].get()),
                 raw_files,
                 None if not folder_text else Path(folder_text),
+                use_planning_result=use_planning.get(),
+                planning_context=planning_context,
             )
             flow = editing_flow(form.project, resolution.config)
             editing_output.delete("1.0", "end")
@@ -171,6 +183,13 @@ def launch() -> int:
             filedialog.asksaveasfilename(defaultextension=".mp4")
         ),
     ).grid(row=8, column=2)
+    use_planning_check = ttk.Checkbutton(
+        editing_tab,
+        text="Use Planning result from this session",
+        variable=use_planning,
+        state="disabled",
+    )
+    use_planning_check.grid(row=9, column=1, sticky="w")
     ttk.Button(editing_tab, text="Start Editing", command=run_editing).grid(
         row=10, column=1, sticky="e"
     )

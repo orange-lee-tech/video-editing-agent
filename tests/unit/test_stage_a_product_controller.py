@@ -7,10 +7,16 @@ from video_editing_agent.adapters.product.controller import (
     BriefForm,
     EditingForm,
     PlanningForm,
+    PlanningSessionContext,
     expand_media_inputs,
 )
 from video_editing_agent.adapters.product.runtime import resolve_product_runtime
-from video_editing_agent.application.use_cases.product_flow import PlanningReferenceKind
+from video_editing_agent.application.use_cases.product_flow import (
+    PlanningProductResult,
+    PlanningReferenceKind,
+    ProductFlowOutcome,
+)
+from video_editing_agent.domain.common.entity import EntityRevisionRef
 
 
 def _brief() -> BriefForm:
@@ -109,3 +115,99 @@ def test_reference_runtime_auto_resolves_package_weights(tmp_path: Path) -> None
 def test_invalid_runtime_mode_fails_closed() -> None:
     with pytest.raises(ValueError, match="planning or editing"):
         resolve_product_runtime(mode="unknown")
+
+
+def _planning_context(project: Path) -> PlanningSessionContext:
+    result = PlanningProductResult(
+        ProductFlowOutcome.COMPLETED,
+        project,
+        EntityRevisionRef("brief", 1),
+        EntityRevisionRef("script", 2),
+        EntityRevisionRef("shooting", 3),
+        (),
+    )
+    context = PlanningSessionContext.from_result(result)
+    assert context is not None
+    return context
+
+
+def test_same_project_combined_opt_in_forwards_exact_session_refs(tmp_path: Path) -> None:
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"source")
+    context = _planning_context(tmp_path / "project")
+
+    request = EditingForm(
+        tmp_path / "project",
+        _brief(),
+        tmp_path / "final.mp4",
+        (source,),
+        use_planning_result=True,
+        planning_context=context,
+    ).to_request()
+
+    assert request.script_plan_ref == EntityRevisionRef("script", 2)
+    assert request.shooting_plan_ref == EntityRevisionRef("shooting", 3)
+
+
+def test_editing_only_has_no_planning_refs_or_internal_id_inputs(tmp_path: Path) -> None:
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"source")
+    form = EditingForm(tmp_path / "project", _brief(), tmp_path / "final.mp4", (source,))
+
+    request = form.to_request()
+
+    assert request.script_plan_ref is None and request.shooting_plan_ref is None
+    assert not hasattr(form, "script_plan_ref") and not hasattr(form, "shooting_plan_ref")
+
+
+def test_different_project_planning_context_is_rejected(tmp_path: Path) -> None:
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"source")
+    form = EditingForm(
+        tmp_path / "editing-project",
+        _brief(),
+        tmp_path / "final.mp4",
+        (source,),
+        use_planning_result=True,
+        planning_context=_planning_context(tmp_path / "planning-project"),
+    )
+
+    with pytest.raises(ValueError, match="different project"):
+        form.to_request()
+
+
+@pytest.mark.parametrize(
+    ("form", "message"),
+    [
+        (PlanningForm(Path(""), _brief()), "Planning project directory"),
+        (
+            EditingForm(Path(""), _brief(), Path("final.mp4"), (Path("source.mp4"),)),
+            "Editing project directory",
+        ),
+        (
+            EditingForm(Path("project"), _brief(), Path(""), (Path("source.mp4"),)),
+            "output path",
+        ),
+        (
+            EditingForm(Path("project"), _brief(), Path("final.mov"), (Path("source.mp4"),)),
+            "MP4 destination",
+        ),
+    ],
+)
+def test_blank_or_non_mp4_paths_fail_before_composition(form, message: str) -> None:  # type: ignore[no-untyped-def]
+    with pytest.raises(ValueError, match=message):
+        form.to_request()
+
+
+def test_planning_reference_diagnostics_name_the_correct_context() -> None:
+    result = resolve_product_runtime(
+        mode="planning",
+        reference_required=True,
+        environment={"DEEPSEEK_API_KEY": "configured"},
+        executable_locator=lambda name: None,
+        module_finder=lambda name: None,
+    )
+
+    assert not result.is_ready
+    assert all("for Editing" not in item for item in result.diagnostics)
+    assert any("Planning reference-video analysis" in item for item in result.diagnostics)

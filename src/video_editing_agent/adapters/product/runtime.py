@@ -51,8 +51,9 @@ def resolve_product_runtime(
     visual_model: str | None = None
     ffmpeg, ffprobe = executable_locator("ffmpeg"), executable_locator("ffprobe")
     if media_required and (ffmpeg is None or ffprobe is None):
+        purpose = "Editing" if mode == "editing" else "Planning reference-video analysis"
         diagnostics.append(
-            "FFmpeg/ffprobe are required for Editing but are not resolvable; run Doctor."
+            f"FFmpeg/ffprobe are required for {purpose} but are not resolvable; run Doctor."
         )
     try:
         spec = module_finder("transnetv2_pytorch")
@@ -64,8 +65,10 @@ def resolve_product_runtime(
         if candidate.is_file():
             weights = candidate
     if media_required and weights is None:
+        purpose = "Editing" if mode == "editing" else "Planning reference-video analysis"
         diagnostics.append(
-            "Reviewed TransNetV2 runtime/weights were not auto-resolved; run Doctor."
+            f"Reviewed TransNetV2 runtime/weights required for {purpose} were not "
+            "auto-resolved; run Doctor."
         )
     if env.get("GEMINI_API_KEY", "").strip():
         visual_provider, visual_model = "gemini", "gemini-2.5-flash"
@@ -73,8 +76,9 @@ def resolve_product_runtime(
         visual_provider, visual_model = "openai", "gpt-5-mini"
     elif media_required:
         visual_provider, visual_model = "", ""
+        purpose = "Editing" if mode == "editing" else "Planning reference-video analysis"
         diagnostics.append(
-            "Editing requires one configured visual provider (GEMINI_API_KEY or OPENAI_API_KEY)."
+            f"{purpose} requires one configured visual provider (GEMINI_API_KEY or OPENAI_API_KEY)."
         )
     if not env.get("DEEPSEEK_API_KEY", "").strip():
         diagnostics.append("Planning/Director requires DEEPSEEK_API_KEY to be configured.")
