@@ -234,7 +234,7 @@ class GeminiGenerateContentVisualUnderstanding(VisualUnderstandingPort):
                 "maxOutputTokens": self._config.max_output_tokens,
                 "responseFormat": {
                     "text": {
-                        "mimeType": "application/json",
+                        "mimeType": "APPLICATION_JSON",
                         "schema": _VISUAL_PROPOSAL_SCHEMA,
                     }
                 },
