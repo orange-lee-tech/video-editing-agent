@@ -25,11 +25,11 @@ Therefore structural progress remains **90%**.
 
 ## Current accepted production-code baseline
 
-`0134d0c4a741eb2babed7275c0aaef42045f2dc4`
+`fadefcbb2418477e794a782f5e94b6865a80297a`
 
 Exact-head deterministic CI:
 
-`32111192942` — PASS (`ci/quality-gate-diagnostic = success`).
+`32117815321` — PASS (`ci/quality-gate-diagnostic = success`).
 
 ## Stage-A ordinary-user product surface — PASS / ACCEPTED
 
@@ -37,16 +37,10 @@ Implementation closure evidence:
 
 `docs/validation/R0.12_STAGE_A_PRODUCT_SURFACE_IMPLEMENTATION_CLOSURE.md`
 
-Accepted commits:
-
-- `c765d4095f5337e1dc30ba2ef11308cc425d904e` — thin Stage-A launcher/product surface;
-- `0134d0c4a741eb2babed7275c0aaef42045f2dc4` — safe Combined/path/diagnostic repair.
-
-Independent ChatGPT review confirmed the implementation and repair stayed within the frozen surface boundary and exact pushed CI is green.
-
-Accepted ordinary-user capabilities include:
+The accepted ordinary-user capabilities now include:
 
 - stdlib Tkinter `video-editing-agent launch`;
+- Simplified Chinese / English switching;
 - Planning authoritative facts and optional URL/local reference video;
 - `REFERENCE_ANALYSIS_ONLY` reference bridge and exact guidance into both Planning owners;
 - live progress observation;
@@ -56,13 +50,24 @@ Accepted ordinary-user capabilities include:
 - Editing final MP4 / correction presentation;
 - Editing-only default path;
 - optional same-session/same-project Combined enrichment with exact Planning revisions and no user-entered internal IDs;
-- fail-closed ordinary-user path validation.
+- fail-closed ordinary-user path validation;
+- an API Settings surface organized around `思考指挥 / Reasoning & Direction` and `视觉理解 / Visual Understanding` rather than raw environment-variable names.
 
-This is Engineering/product-surface acceptance, not Product/Human Gate evidence.
+Current Settings semantics:
+
+- software does not include or gift API keys;
+- the current reasoning/direction provider is DeepSeek;
+- the current visual-understanding providers are Gemini and OpenAI;
+- the same key string may be entered in both capability slots;
+- the visual slot explicitly warns that its selected API/model must support image input;
+- APIs are described as understanding/reasoning/planning/editing-decision services, not video-generation services;
+- Stage-A keys are session-local and are not persisted into project state, repository files or logs.
+
+These are product-surface capabilities, not Product/Human Gate evidence.
 
 ## Active Work Order
 
-`R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001` remains ACTIVE, but its execution mode has advanced to:
+`R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001` remains ACTIVE, with execution mode:
 
 `PRODUCT PROBE → HUMAN GATE`
 
@@ -81,7 +86,7 @@ real user intent / optional supported reference / commercial facts
 → Human Gate
 ```
 
-Planning may be probed first without reference, because Planning-only without reference is a legitimate product path and does not require FFmpeg/visual/TransNet capability. A later reference-video run may add evidence once those capabilities are ready.
+Planning may be probed first without reference. That path requires the current reasoning/direction API but does not require visual-understanding capability.
 
 ## Editing Product Gate target
 
@@ -96,11 +101,11 @@ user-selected real local footage
 → Human Gate
 ```
 
-Editing requires the actual media/provider runtime readiness reported by Environment Doctor.
+Editing requires the actual media runtime plus both configured product capabilities required by the current provider composition.
 
 ## Runtime readiness strategy
 
-Use the actual Windows host and repository Doctor. Repair environment/configuration with PowerShell before considering source changes.
+Use the actual Windows host and repository Doctor. Repair environment/configuration with PowerShell or the product Settings surface before considering source changes.
 
 Do not spend Codex quota on:
 
@@ -148,7 +153,7 @@ Do not ask the user to invent professional scoring criteria.
 ## Immediate corridor
 
 1. synchronize the accepted baseline and current control plane to the Windows workspace;
-2. repair only the runtime/provider capabilities required for the selected real probe;
+2. configure user-owned API credentials in the product Settings surface as required;
 3. run real Planning Product Probe through the launcher and complete its Human Gate;
 4. run real Editing Product Probe through the launcher using real local footage and complete its Human Gate;
 5. classify any failure before changing code;
