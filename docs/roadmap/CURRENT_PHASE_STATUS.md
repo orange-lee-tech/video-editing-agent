@@ -18,18 +18,18 @@ The hard 100% contract remains:
 Current Product Gate state:
 
 - Planning Engineering mechanism: PASS; Product Probe: PASS; Human Gate: PASS.
-- Editing Engineering mechanism: PASS; real Product Probe: IN PROGRESS after Director proposal repair; Human Gate: OPEN.
+- Editing Engineering mechanism: PASS; real Product Probe: IN PROGRESS after provider-aware retry repair; Human Gate: OPEN.
 - Stage-A completion gate: OPEN.
 
 Therefore structural progress remains **90%**.
 
 ## Current accepted production-code baseline
 
-`c61c7e5abc8b7b388e0e92ad9ae533d094a27707`
+`af5865df14b9f1cceaa9e6c1fe4dadf14cc60058`
 
 Exact-head deterministic CI:
 
-`32139988645` — PASS (`ci/quality-gate-diagnostic = success`).
+`32145822611` — PASS (`ci/quality-gate-diagnostic = success`).
 
 ## Planning Product Gate — PASS
 
@@ -51,27 +51,26 @@ These refinements do not reopen Planning PASS.
 
 ## Real Editing Product Probe — in progress
 
-The first real Editing-only Windows probe used real local MP4 footage with the Combined checkbox left unchecked and reached:
+The real Editing-only Windows probe uses real local MP4 footage with the Combined checkbox left unchecked.
 
-`project_ready → input_validation → ingest_understanding → editing_decision`.
+An earlier run reached `editing_decision` and exposed an invalid DeepSeek `minimum_duration` proposal. Accepted baseline `c61c7e5abc8b7b388e0e92ad9ae533d094a27707` added strict Director proposal guidance, specific exact-time diagnostics and exactly one bounded local-contract repair proposal without coercing provider values.
 
-It then failed at the DeepSeek Director/EditPlan proposal boundary with `DeepSeekPlanningResponseError: invalid minimum_duration`.
+After that repair was synchronized and a fresh Windows process was launched, a later real run reached local-media `ingest_understanding` and received a genuine Gemini HTTP 429 response reporting:
 
-Audit found that DeepSeek JSON mode produced a provider proposal that still had to satisfy the stricter local exact-time/EditSlot contract. The Director adapter previously had no bounded repair path for a syntactically valid JSON proposal that failed local contract validation.
+`generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash; Please retry in 10.577272831s`.
 
-Accepted repair through `c61c7e5abc8b7b388e0e92ad9ae533d094a27707`:
+Audit found the visual retry decorator still waited only 0.3 and 0.6 seconds, so it ignored the provider's explicit recovery window. Accepted baseline `af5865df14b9f1cceaa9e6c1fe4dadf14cc60058` now:
 
-- adds a complete valid Director JSON example to the prompt;
-- explicitly constrains exact duration `value` / `scale`, positive scale/value and max/min ordering;
-- keeps local `MediaTime` and EditSlot validation strict;
-- never silently coerces invalid provider durations;
-- allows exactly one second Director proposal only after a locally invalid first proposal, carrying the specific local validation reason as repair feedback;
-- fails closed after the second invalid proposal;
-- adds precise exact-time diagnostics and bounded-repair regression coverage.
+- carries optional validated provider retry hints on transient visual errors;
+- extracts Google `RetryInfo.retryDelay`, with bounded message fallback;
+- waits for the greater of local backoff and provider-required delay;
+- keeps the maximum attempt count at three;
+- preserves fail-closed behavior, provider identity and real error reporting;
+- has regression coverage for RetryInfo propagation and provider-directed waiting.
 
-The pre-format repair run had 696 tests, mypy, import contracts and build passing with only two Ruff line-length findings. The exact accepted head is fully green in run `32139988645`.
+Exact-head CI run `32145822611` is green.
 
-The same real Editing-only probe must now be rerun. This Engineering repair does not constitute Editing Product/Human PASS.
+The same real Editing-only probe must now be rerun. A true account-level/quota exhaustion may still fail after bounded retries and remains a provider condition, not grounds for silent fallback. This Engineering repair does not constitute Editing Product/Human PASS.
 
 ## Active Work Order
 
@@ -106,7 +105,7 @@ Required evidence remains:
 - original user media unchanged;
 - user watches the result and judges usefulness/obvious defects/workflow clarity.
 
-For the gate-closing rerun, use one unambiguous source-selection mode instead of simultaneously filling both explicit files and a source folder, and record source hashes before/after.
+For the gate-closing rerun, use one unambiguous source-selection mode instead of simultaneously filling both explicit files and a source folder, record source hashes before/after, and allow the application to honor short provider-directed retry waits rather than manually restarting the run.
 
 ## Current ordinary-user feedback backlog
 
@@ -135,7 +134,7 @@ Do not spend Codex quota on:
 - API-secret configuration;
 - launcher operation;
 - ordinary deterministic checks;
-- bounded deterministic provider proposal repair;
+- bounded deterministic provider proposal/retry repair;
 - documentation/governance maintenance;
 - cosmetic backlog work.
 
@@ -167,13 +166,14 @@ Do not ask the user to invent a professional scoring rubric.
 
 ## Immediate corridor
 
-1. synchronize the accepted Director repair to the Windows workspace;
-2. launch the ordinary product surface and configure user-owned API credentials;
+1. synchronize current `main` to the Windows workspace;
+2. launch a fresh ordinary product process and configure user-owned API credentials;
 3. open the `自动剪辑` tab and keep Combined unchecked;
-4. select real footage through one source-selection method and record before-run SHA-256 hashes;
-5. rerun Editing-only with real editing intent and a real MP4 destination;
-6. inspect the actual final MP4 if Review PASSes;
-7. verify source hashes remain unchanged;
-8. complete Editing Human Gate;
-9. classify and repair any further evidence-backed failure;
-10. set Stage-A to 100% only if Editing Product/Human Gate PASSes and `STAGE_A_COMPLETION_GATE.md` is fully satisfied.
+4. select real footage through one source-selection method and preserve before-run SHA-256 hashes;
+5. rerun Editing-only and allow bounded provider-directed 429 waits to complete;
+6. continue through Director / Resolver / canonical EDL / Renderer / Review;
+7. inspect the actual final MP4 if Review PASSes;
+8. verify source hashes remain unchanged;
+9. complete Editing Human Gate;
+10. classify and repair any further evidence-backed failure;
+11. set Stage-A to 100% only if Editing Product/Human Gate PASSes and `STAGE_A_COMPLETION_GATE.md` is fully satisfied.
