@@ -20,6 +20,7 @@ Research notes here MAY be revised, split, superseded, or rejected after further
 - `AUDIO_EDITORIAL_MUSIC_SELECTION_RIGHTS.md` — focused Survey closure for rights-aware music discovery, semantic/temporal music selection, music moment localization, deterministic audio editing/mixing and license evidence.
 - `AUTO_REFRAME_ASPECT_RATIO_COMPOSITION.md` — focused Survey closure for aspect-ratio transformation, semantic subject/product framing, smooth deterministic crop-path optimization, safe zones and non-generative fallbacks.
 - `SURVEY_V2_FINAL_CLOSURE.md` — final product-wide closure gate. **Current verdict: Survey V2 CLOSED.**
+- `DESKTOP_PRODUCT_UI_REFERENCE_REVIEW_2026-08-19.md` — post-Survey focused product-shell research using official ttk/ttkbootstrap/CustomTkinter/Kdenlive/LosslessCut sources; extracts UI/layout/DPI/packaging ideas without reopening core capability Survey V2 or authorizing a framework migration.
 
 ## Current closure posture
 
@@ -49,6 +50,8 @@ implementation
 ```
 
 Do not reopen Survey V2 merely because a benchmark parameter, model/provider winner, release license approval or implementation detail remains undecided. Those belong to the architecture/specification/benchmark/release process unless a genuinely new major capability is introduced.
+
+Focused research notes about **implementation presentation, packaging or a bounded new dependency** may still be added when they help an active Work Order. They do not reactivate broad Survey V2 by themselves.
 
 ## Research discipline retained after closure
 
