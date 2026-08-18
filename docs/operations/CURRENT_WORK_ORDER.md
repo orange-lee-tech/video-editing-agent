@@ -1,12 +1,20 @@
 # Current Work Order
 
 **ID:** `R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001`  
-**Status:** ACTIVE  
+**Status:** PAUSED  
 **Phase:** R0.12 — Stage-A ordinary-user Product Gate closure  
 **Mode:** PRODUCT SURFACE → PRODUCT PROBE → HUMAN GATE  
 **Accepted production-code baseline:** `1e90e2dd3d235271ef48bb7a708a1899ce5b87a4`  
 **Activated:** 2026-08-18  
-**Codex release:** ACTIVE — SINGLE COMPLEX BATCH
+**Codex release:** PAUSED — DO NOT START OR CONTINUE WITHOUT EXPLICIT USER RESUME
+
+## Pause checkpoint — 2026-08-18
+
+The user explicitly paused construction for record and handoff.
+
+No Product Gate/Human Gate work is authorized while paused. Do not start Codex, do not continue the product-surface batch, and do not infer permission to resume from this Work Order remaining the active boundary.
+
+Resume only after an explicit user instruction to continue. On resume, first reobserve live GitHub `main`, CI and local/Codex state before acting; do not assume that no external/local work occurred during the pause.
 
 ## Previous Work Order result
 
@@ -81,7 +89,7 @@ Canonical EDL remains sole exact timeline authority.
 
 ## Codex implementation batch
 
-Codex is the single writer for this implementation surface until it commits/pushes and stops.
+When explicitly resumed, Codex is the single writer for this implementation surface until it commits/pushes and stops.
 
 ### A. Complete the Planning reference bridge
 
@@ -244,7 +252,7 @@ At the end, perform a bounded launcher smoke that does not require fake Product 
 
 ## Exit from Codex batch
 
-Codex must:
+After explicit resume, Codex must:
 
 1. inspect current local state first;
 2. fast-forward to current `origin/main` only if working tree is clean;
