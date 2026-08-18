@@ -204,3 +204,53 @@ Fold this into the same bounded Stage-A Editing integration repair, not a new ph
 ### Current classification
 
 **OPEN — gate-blocking product-output lifecycle defect; fix at ProductFlow/artifact-publication boundary, not by giving Review or Renderer new editorial authority.**
+
+## R0.12 fixed output-profile / aspect-ratio gap — OPEN
+
+**Discovered:** 2026-08-19 during ordinary ProductFlow audit
+
+### Symptom
+
+The ordinary Editing request captures `platform` inside Brief and the product is focused on commercial short-form video, but the current output canvas is not selected by the user or derived through an explicit Output Profile.
+
+`EditingProductCapabilities` currently defaults every ordinary render to:
+
+```text
+1920 × 1080 @ 30 fps
+```
+
+and `EditingForm` only asks for an MP4 destination, not aspect/resolution/fps.
+
+### Why this matters
+
+R0.11 Spatial/Auto Reframe decisions are target-canvas dependent. Integrating Auto Reframe into the ordinary route while the product silently fixes every output to 16:9 can produce a technically valid spatial plan for the **wrong product canvas**.
+
+The platform field may be useful for a default suggestion, but a hidden string→resolution mapping would also be poor product authority: the user needs to see and, where appropriate, override the intended output profile.
+
+### Durable invariant
+
+The ordinary product route must carry an explicit, typed output profile before spatial composition and rendering:
+
+```text
+user-visible output profile
+→ target width / height / fps (and stable aspect identity)
+→ SpatialComposer target canvas
+→ canonical EDL / Render OutputSpec provenance
+```
+
+Platform may propose a default; it must not invisibly own the final canvas.
+
+### Required correction
+
+Fold this into the same Stage-A Editing integration repair because Spatial integration needs it:
+
+1. define the smallest typed product Output Profile needed by Stage A;
+2. expose/select it in the ordinary Editing surface after the preserved local UX candidate is accepted;
+3. keep resolution/fps validation outside provider authority;
+4. feed target canvas to SpatialComposer and renderer consistently;
+5. persist/inspect the actual output profile used;
+6. add a regression proving a vertical profile yields vertical canonical/execution geometry rather than silently falling back to 1920×1080.
+
+### Current classification
+
+**OPEN — gate-path integration prerequisite, not a reason to reopen R0.11 or redesign Spatial ownership.**
