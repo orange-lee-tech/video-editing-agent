@@ -1,6 +1,6 @@
 # 商用桌面化大排查 — 2026-08-19
 
-**状态：** STATIC AUDIT SNAPSHOT  
+**状态：** STATIC AUDIT SNAPSHOT — amended after ProductFlow integration audit  
 **范围：** 当前 `main` + 已知 Stage-A Product Probe / Windows 实测 + Packaging / Provider / UI 商用边界。  
 **注意：** 这是一轮证据导向的静态大排查，不宣称替代未来 clean-machine security review、fuzz、installer probe 或完整代码逐行审计。
 
@@ -19,6 +19,8 @@ Director
         ↓
 Resolver
         ↓
+approved Music/Audio/Spatial/Subtitle/Graphics decisions
+        ↓
 canonical EDL
         ↓
 Renderer
@@ -26,20 +28,82 @@ Renderer
 Review
 ```
 
-任何“改善 UX / 增加 Provider / 打包”都不得把 source-window authority 偷给 LLM、UI、Renderer 或第三方库。
+任何“改善 UX / 增加 Provider / 打包 / 补表达能力”都不得把 source-window authority 偷给 LLM、UI、Renderer 或第三方库。
 
 ---
 
 # 1. P0 — 当前必须盯住
 
+## P0-00 普通 Editing ProductFlow 与冻结 Stage-A Gate 不一致【Gate Blocker】
+
+**类型：** Product integration correctness  
+**状态：** VERIFIED
+
+这是本轮大排查中最重要的新发现。
+
+冻结的 `STAGE_A_COMPLETION_GATE.md` 要求普通 Editing 路径包含：
+
+```text
+understanding / Director / grounded Resolver
+→ music/rhythm + spatial/audio + subtitle/graphics/minimal transitions
+→ canonical EDL
+→ Renderer / Review
+→ final MP4
+```
+
+`STAGE_A_PRODUCT_IO_CONTRACT.md` 同样要求：
+
+```text
+Director → Resolver
+→ Music / Audio / Spatial / Subtitle / Graphics decisions
+→ EDLBuilder → canonical EDL
+```
+
+但当前普通 `build_editing_product_flow()` 的实际 composition 是：
+
+- ingest / Shot detection / VisualUnderstanding；
+- Director → persisted EditPlan；
+- grounded Resolver；
+- `DeterministicEDLBuilder` + conservative source-audio mix；
+- Renderer；
+- Review。
+
+`EditingProductCapabilities` 当前没有 Music/BeatMap/Audio Editorial、SpatialComposer、Subtitle、Graphics、transition capability slots；`build_edl()` 也没有给 `EDLBuildRequest` 传 `spatial_decisions` 或 `music_selection`。
+
+与此同时：
+
+- R0.10 已经独立验证 Music/Audio Editorial；
+- R0.11 已经独立验证 Spatial/Auto Reframe；
+- EDL 已有 BGM、Spatial automation、SUBTITLE、GRAPHICS track family；
+- Subtitle builder 已存在；
+- Renderer 已支持 canonical subtitle execution；
+- 但这些没有完整接回普通“一键 Editing”路径。
+
+另外，当前 EDL/Renderer 还没有足够明确的 Stage-A graphics + minimum transition typed semantics。因此这一小块不是“调用已有函数”就全部结束，而是需要一个**很小、明确、可验证的 canonical semantics 补口**。
+
+**危险：** 如果只看“产品流最后能生成 MP4”，可能把一个 plain-cut/source-audio MP4 误当 Stage-A 100% 证据。
+
+**处理：**
+
+1. 已立即纠正 live control trio，禁止在该 gap 修复前做 gate-closing Product Probe；
+2. 保留 Resolver/EDL/Renderer/Review ownership；
+3. 做一个 bounded Editing integration repair，优先复用 R0.10/R0.11/Subtitle 已有 owners；
+4. 只为 Stage-A minimum graphics/transition 补最小 typed semantics，不造 Effects Engine；
+5. 用 mutation-based integration test 证明 decision → EDL → render alignment；
+6. 之后再跑真实 final-MP4 Human Gate。
+
+Durable incident：`INCIDENT_LEDGER.md` — `R0.12 Stage-A ordinary Editing integration gap — OPEN`。
+
+---
+
 ## P0-01 Editing Product/Human Gate 尚未完成
 
 **类型：** Product gate  
-**证据：** 当前 Stage A 仍 90%；Planning PASS；Editing Engineering PASS，但真实 final-MP4 Product/Human Gate OPEN。
+**证据：** 当前 Stage A 仍 90%；Planning PASS；Editing Human Gate OPEN。
 
-最新真实 Editing 路径已经推进到视觉 provider，失败原因从 Director typed proposal 移到了 Gemini HTTP 429 quota。
+此前真实 Editing 路径已推进到视觉 provider，失败原因从 Director typed proposal 移到了 Gemini HTTP 429 quota。但在 P0-00 发现之后，**配额恢复本身已不足以直接恢复 gate run**。
 
-**处理：** provider quota 恢复后继续真实 Editing-only gate；不得用 synthetic probe/GUI 完成度替代。
+**处理：** 先修 P0-00，再在 provider/runtime 可用时继续真实 Editing-only gate。不得用 synthetic probe、独立 subsystem closure、GUI 完成度或 plain-cut MP4 替代。
 
 ---
 
@@ -58,7 +122,7 @@ Review
 
 而 Product Constitution / Architecture Contract 已明确 provider/model 可替换。
 
-**处理：** 按 `PROVIDER_NEUTRAL_PRODUCT_BINDING_PLAN.md` 在 adapter/composition 层迁移。禁止借机改 Domain/Resolver/EDL。
+**处理：** 按 `PROVIDER_NEUTRAL_PRODUCT_BINDING_PLAN.md` 在 adapter/composition 层迁移。禁止借机改 Domain/Resolver/EDL，也禁止 silent provider fallback。
 
 ---
 
@@ -76,7 +140,7 @@ Review
 
 但之后又补了 Splash repaint 与 Canvas pixel mark。
 
-**处理：** 最终 commit 前完整重跑 gate；本审计期间 GitHub 不碰同一批 UI source files，以免覆盖本地工作树。
+**处理：** 最终 commit 前完整重跑 gate；本审计期间 GitHub 不碰同一批 UI source files，以免覆盖本地工作树。先 local commit，再 fetch/rebase 最新 docs main，最后 push/CI。
 
 ---
 
@@ -343,7 +407,7 @@ LocalArtifactStore 已采用 temp file + fsync + `os.replace`，这一点很稳�
 
 # 4. 安全/生产关系检查结果
 
-本轮复查几个负载点，没有发现需要立刻推翻核心架构的证据：
+本轮复查几个负载点，没有发现需要推翻核心架构的证据；相反，新发现 P0-00 的正确修法正是**把已有 owners 接进产品流**。
 
 ## Renderer
 
@@ -372,6 +436,17 @@ LocalArtifactStore 已采用 temp file + fsync + `os.replace`，这一点很稳�
 
 未来要补的是 desktop concurrency/product UX，而不是重做 persistence。
 
+## Canonical EDL
+
+- 已有 typed tracks；
+- 已有 spatial automation；
+- 已有 audio automation；
+- 已有 subtitle cues；
+- 有 GRAPHICS track family；
+- EDLBuilder 已能接 approved spatial/music/audio decisions。
+
+这说明 B0 的主体是 integration；但 graphics/minimum-transition 仍需要小型 typed semantics，而不是靠 Renderer 自由发挥。
+
 ---
 
 # 5. 推荐施工顺序
@@ -379,20 +454,22 @@ LocalArtifactStore 已采用 temp file + fsync + `os.replace`，这一点很稳�
 在不破坏当前本地 UX 候选的前提下：
 
 1. **先把本地 UX candidate 最终 gate + commit + CI 接受**；
-2. quota 可用后完成 Editing Product/Human Gate；
-3. Provider-neutral product binding，限定 adapter/composition；
-4. commercial UI shell polish，限定 product adapter/UI；
-5. first Windows onedir packaging Engineering Probe；
-6. fresh machine + license manifest；
-7. 再决定 installer/update/onefile。
+2. **修复 P0-00 Stage-A Editing ordinary ProductFlow integration gap**；
+3. 重新做完整 Integration/Quality Gate；
+4. provider/runtime 可用后完成真实 Editing Product/Human Gate；
+5. Provider-neutral product binding，限定 adapter/composition/profile/doctor；
+6. commercial UI shell polish，限定 product adapter/UI；
+7. first Windows `onedir` packaging Engineering Probe；
+8. fresh machine + license manifest；
+9. 再决定 installer/update/onefile。
 
-不要把 2～5 混成一个巨型 commit。
+不要把 2、5、6、7 混成一个巨型 commit。尤其不能用 UI/Provider/Packaging 工作掩盖 P0-00。
 
 ---
 
 # 6. 本轮没有做的事
 
-为了保护本地未提交工作，本轮 GitHub 审计**没有**：
+为了保护本地未提交工作和核心生产关系，本轮 GitHub 审计**没有**：
 
 - 远程修改 `tkinter_app.py`；
 - 改 Provider production code；
@@ -400,7 +477,8 @@ LocalArtifactStore 已采用 temp file + fsync + `os.replace`，这一点很稳�
 - 改 EDL；
 - 改 Renderer；
 - 改 Review；
+- 直接实现 Music/Spatial/Subtitle/Graphics integration；
 - 宣布 Stage A PASS/100%；
 - 引入新的 UI/framework/runtime dependency。
 
-这不是保守不干活，而是避免 GitHub 远端提交与用户 Windows 本地候选互相覆盖。
+本轮做的是：找出真实缺口、修正控制面、把后续施工边界写死，避免在用户睡觉期间用远端代码改动覆盖本地 UX candidate 或把多个高风险方向糊成一个巨型提交。
