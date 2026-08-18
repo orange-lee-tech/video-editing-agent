@@ -64,13 +64,14 @@ _SYSTEM_PROMPT = (
     "strings; continuity_hint must be a non-empty string or null; allow_reuse must be boolean; "
     "importance must be an integer from 1 through 3. minimum_duration and maximum_duration must "
     "either both be omitted/null or both use exact {value:int,scale:int} objects. Every scale must "
-    "be a positive integer greater than 0. Every non-null duration value must be a positive integer "
-    "greater than 0, and maximum_duration must be >= minimum_duration. A valid example JSON is: "
+    "be a positive integer greater than 0. Every non-null duration value must be a positive "
+    "integer greater than 0, and maximum_duration must be >= minimum_duration. A valid example "
+    "JSON is: "
     + json.dumps(_DIRECTOR_EXAMPLE, ensure_ascii=False, separators=(",", ":"))
     + " If the user context contains repair_feedback, a previous proposal failed local validation. "
-    "Regenerate one fresh complete Director JSON proposal that corrects the reported contract error "
-    "without weakening any other rule. Never return Shot IDs, Asset IDs, source timestamps, source "
-    "ranges, CandidateWindows, ResolutionDecisions, EDL coordinates, paths, or commands."
+    "Regenerate one fresh complete Director JSON proposal that corrects the reported contract "
+    "error without weakening any other rule. Never return Shot IDs, Asset IDs, source timestamps, "
+    "source ranges, CandidateWindows, ResolutionDecisions, EDL coordinates, paths, or commands."
 )
 
 
