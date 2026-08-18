@@ -235,6 +235,37 @@ def test_transport_surfaces_bounded_provider_error_message(
         transport.generate_content("gemini-old", {"contents": []})
 
 
+def test_transport_surfaces_timeout_budget(monkeypatch: pytest.MonkeyPatch) -> None:
+    def raise_timeout(*args: object, **kwargs: object) -> FakeHttpResponse:
+        del args, kwargs
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr("urllib.request.urlopen", raise_timeout)
+    transport = UrllibGeminiGenerateContentTransport(
+        api_key="secret",
+        api_root="https://example.invalid",
+        timeout_seconds=12.5,
+    )
+
+    with pytest.raises(VisualProviderTransientError, match="timed out after 12.5 seconds"):
+        transport.generate_content("gemini-3.6-flash", {"contents": []})
+
+
+def test_transport_surfaces_url_error_reason(monkeypatch: pytest.MonkeyPatch) -> None:
+    def raise_url_error(*args: object, **kwargs: object) -> FakeHttpResponse:
+        del args, kwargs
+        raise urllib.error.URLError("proxy tunnel reset")
+
+    monkeypatch.setattr("urllib.request.urlopen", raise_url_error)
+    transport = UrllibGeminiGenerateContentTransport(
+        api_key="secret",
+        api_root="https://example.invalid",
+    )
+
+    with pytest.raises(VisualProviderTransientError, match="proxy tunnel reset"):
+        transport.generate_content("gemini-3.6-flash", {"contents": []})
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [
