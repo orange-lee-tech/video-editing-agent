@@ -6,7 +6,7 @@ updated: 2026-08-18
 current_phase: R0.12
 phase_state: STAGE_A_PRODUCT_GATE_EXECUTION_ACTIVE
 active_work_order: R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001
-accepted_code_baseline: 0134d0c4a741eb2babed7275c0aaef42045f2dc4
+accepted_code_baseline: fadefcbb2418477e794a782f5e94b6865a80297a
 control_plane_baseline: 79c3be540f335477699223292580f32f6bb3c807
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
@@ -34,17 +34,27 @@ Canonical EDL remains sole exact timeline authority.
 
 Current accepted production-code baseline:
 
-`0134d0c4a741eb2babed7275c0aaef42045f2dc4`
+`fadefcbb2418477e794a782f5e94b6865a80297a`
 
-Implementation closure:
+Original Stage-A product-surface implementation closure:
 
 `docs/validation/R0.12_STAGE_A_PRODUCT_SURFACE_IMPLEMENTATION_CLOSURE.md`
 
-Exact-head CI:
+Current exact-head CI:
 
-`32111192942` — `ci/quality-gate-diagnostic = success`.
+`32117815321` — `ci/quality-gate-diagnostic = success`.
 
-The ordinary-user Stage-A product surface is accepted. The implementation includes the stdlib Tkinter launcher, user-semantic Planning/Editing inputs, reference-only guidance bridge, live progress observation, runtime discovery/diagnostics, exact Planning presentation, Editing result presentation, deterministic folder expansion, and safe optional same-session/same-project Combined enrichment.
+The ordinary-user Stage-A surface now additionally includes:
+
+- Simplified Chinese / English launcher switching;
+- a user-facing API Settings entry organized by product capability rather than environment-variable names;
+- independent `思考指挥 / Reasoning & Direction` and `视觉理解 / Visual Understanding` credential slots;
+- current supported provider disclosure: DeepSeek for reasoning/direction, Gemini or OpenAI for visual understanding;
+- explicit notice that these APIs are used for understanding, reasoning, planning and editing decisions, not video generation;
+- permission to enter the same key string in both capability slots, while warning that the selected visual API/model must actually support image input;
+- session-local secret application only: keys are not written to project state, repository files or logs.
+
+The existing provider adapters and ownership boundaries remain unchanged. The Settings adapter only maps user capability configuration onto the already-accepted provider environment contract.
 
 ## Stage-A completion truth
 
@@ -54,7 +64,7 @@ Structural progress remains **90%**.
 - Planning: Engineering mechanism PASS; Product Probe / Human Gate OPEN.
 - Editing: Engineering mechanism PASS; Product Probe / Human Gate OPEN.
 
-Engineering tests, CI and launcher smoke do not authorize 100%.
+Engineering tests, CI, launcher smoke, bilingual UI or API Settings do not authorize 100%.
 
 ## Current active boundary — real Product Gates
 
@@ -67,7 +77,7 @@ There is **no active Codex release**.
 The remaining work is:
 
 1. synchronize this accepted state to the actual Windows workspace;
-2. repair required runtime/provider capabilities using local PowerShell/configuration;
+2. use the product Settings surface for user-owned API credentials as needed;
 3. run a real Planning Product Probe through `video-editing-agent launch`;
 4. complete the Planning Human Gate;
 5. run a real Editing Product Probe using user-selected real/private local footage through the launcher;
@@ -100,13 +110,13 @@ Known capability classes:
 - Windows/Python host runtime;
 - FFmpeg + ffprobe;
 - reviewed TransNetV2 runtime/package-owned weights;
-- DeepSeek credential;
+- user-owned DeepSeek credential for the current reasoning/direction provider;
 - one explicitly configured supported visual-understanding provider when reference-video analysis or Editing requires it;
 - approved private GStreamer Preview runtime only when Preview evidence is required.
 
 Secret values must not be committed, logged or pasted into governance evidence.
 
-Planning without reference remains a valid independent path and may be probed before media-analysis runtime is fully ready.
+Planning without reference remains a valid independent path and may be probed before visual-understanding capability is configured.
 
 ## Product evidence boundary
 
