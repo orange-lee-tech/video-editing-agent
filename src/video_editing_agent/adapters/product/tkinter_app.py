@@ -65,22 +65,14 @@ _TEXT = {
         "settings": "设置",
         "settings_title": "API 设置",
         "settings_intro": "本软件不附赠 API 密钥。请使用你自己的 API 服务。",
-        "settings_no_video": (
-            "这些 API 仅用于理解、推理、规划和剪辑决策，不用于视频生成。"
-        ),
-        "settings_session": (
-            "当前 Stage A 仅在本次应用会话中使用密钥；不会写入项目、仓库或日志。"
-        ),
+        "settings_no_video": ("这些 API 仅用于理解、推理、规划和剪辑决策，不用于视频生成。"),
+        "settings_session": ("当前 Stage A 仅在本次应用会话中使用密钥；不会写入项目、仓库或日志。"),
         "thinking_title": "思考指挥",
         "thinking_provider": "当前支持：DeepSeek",
-        "thinking_usage": (
-            "用于脚本规划、拍摄规划、方案复审，以及自动剪辑中的导演/编辑决策。"
-        ),
+        "thinking_usage": ("用于脚本规划、拍摄规划、方案复审，以及自动剪辑中的导演/编辑决策。"),
         "visual_title": "视觉理解",
         "visual_provider": "视觉 API 提供方",
-        "visual_usage": (
-            "用于理解参考视频和本地素材抽帧后的画面内容，为镜头选择提供语义证据。"
-        ),
+        "visual_usage": ("用于理解参考视频和本地素材抽帧后的画面内容，为镜头选择提供语义证据。"),
         "visual_warning": (
             "允许两个能力位使用相同密钥；但视觉理解所对应的 API / 模型必须支持图像输入，"
             "否则素材分析会失败。"
@@ -152,8 +144,8 @@ _TEXT = {
         "visual_title": "Visual Understanding",
         "visual_provider": "Visual API Provider",
         "visual_usage": (
-            "Used to understand frames extracted from reference videos and local footage, producing "
-            "semantic evidence for shot selection."
+            "Used to understand frames extracted from reference videos and local "
+            "footage, producing semantic evidence for shot selection."
         ),
         "visual_warning": (
             "The same key may be entered for both capabilities, but the API/model used for Visual "
@@ -319,9 +311,7 @@ def launch() -> int:
             state="readonly",
             width=16,
         ).grid(row=1, column=1, sticky="w", padx=(4, 10), pady=6)
-        ttk.Label(visual, text=text("api_key")).grid(
-            row=2, column=0, sticky="w", padx=10, pady=6
-        )
+        ttk.Label(visual, text=text("api_key")).grid(row=2, column=0, sticky="w", padx=10, pady=6)
         visual_key = tk.StringVar(value=api_settings.visual_key)
         ttk.Entry(visual, textvariable=visual_key, show="•", width=60).grid(
             row=2, column=1, sticky="ew", padx=(4, 10), pady=6
@@ -460,9 +450,7 @@ def launch() -> int:
     start_planning.grid(row=11, column=1, sticky="e")
     translated_widgets.append((start_planning, "start_planning"))
 
-    choose_editing_project = ttk.Button(
-        editing_tab, command=lambda: choose_project(editing_values)
-    )
+    choose_editing_project = ttk.Button(editing_tab, command=lambda: choose_project(editing_values))
     choose_editing_project.grid(row=0, column=2)
     translated_widgets.append((choose_editing_project, "choose_project"))
 
