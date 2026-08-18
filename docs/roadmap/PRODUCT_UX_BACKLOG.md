@@ -36,6 +36,21 @@ Desired behavior:
 - default export directory: Desktop;
 - export must contain the exact user-visible output, not secrets or hidden internal diagnostics.
 
+## P1 — Runtime ETA in the output surface
+
+During Planning and Editing work, the ordinary-user output area should report an estimated completion time.
+
+Required behavior:
+
+- display the predicted completion clock time to the minute, for example `预计 20:58 完成（约 7 分钟）`;
+- recalculate the estimate at least every 30 seconds while work remains active;
+- also recalculate immediately on meaningful stage transitions or workload changes;
+- before enough evidence exists, show an honest estimating state rather than an invented ETA;
+- derive the prediction from real observed stage timing, remaining workload and relevant media/runtime characteristics where available;
+- allow the estimate to move earlier or later as evidence improves;
+- never present a fixed timer, fake percentage or cosmetic countdown as measured progress;
+- ETA display is advisory only and must not become execution authority or block the workflow.
+
 ## P1 — UI-aligned localization
 
 When the UI language is Simplified Chinese, ordinary-user output should also be Simplified Chinese; when English is selected, ordinary-user output should be English.
