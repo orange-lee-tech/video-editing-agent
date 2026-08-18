@@ -22,17 +22,14 @@ writer: chatgpt
 
 ## Routing truth
 
-The frozen two-core architecture remains unchanged:
+Frozen product architecture remains unchanged:
 
 - Planning-only: `Brief → ScriptPlan → ShootingPlan`;
 - Editing-only: `Brief/editorial intent + user local footage → Editing Core`;
-- Combined: exact Planning revisions optionally enrich the same Editing Core.
-
-Canonical EDL remains sole exact timeline authority.
+- Combined: exact Planning revisions optionally enrich the same Editing Core;
+- canonical EDL remains sole exact timeline authority.
 
 ## Accepted production baseline
-
-Current accepted production-code baseline:
 
 `af5865df14b9f1cceaa9e6c1fe4dadf14cc60058`
 
@@ -40,145 +37,81 @@ Exact-head CI:
 
 `32145822611` — `ci/quality-gate-diagnostic = success`.
 
-The accepted baseline includes both the bounded DeepSeek Director proposal repair and the provider-aware visual retry repair discovered by the real Editing Product Probe.
+This baseline includes the accepted Director proposal repair and Gemini provider-aware retry-delay repair discovered through real Windows Product Probes.
 
-## Planning Product Gate — PASS
+## Gate truth
+
+### Planning
+
+**Product/Human Gate: PASS**.
 
 Durable evidence:
 
 `docs/validation/R0.12_STAGE_A_PLANNING_PRODUCT_GATE.md`
 
-On 2026-08-18 the ordinary Windows launcher completed a real reference-assisted Planning run through:
+The ordinary Windows launcher completed a real Planning run and the user judged both ScriptPlan and ShootingPlan acceptable with no blocking issue.
 
-`project_ready → input_validation → ingest_understanding → ScriptPlan generation → ShootingPlan generation → completed`.
+### Editing
 
-The launcher presented exact persisted ScriptPlan and ShootingPlan revisions. The user explicitly judged the script acceptable, the shooting plan acceptable and identified no blocking problem in the accepted result.
+**Engineering mechanism: PASS / Product Probe: IN PROGRESS / Human Gate: OPEN**.
 
-Therefore:
+Real Editing-only probes have reached local-media understanding and Director boundaries, exposing and repairing several evidence-backed defects. The latest same-day probe is currently blocked by the user's Gemini free-tier quota after legitimate real-product requests. Persistent provider quota exhaustion must fail explicitly and does not authorize silent provider/model switching.
 
-- Planning Engineering mechanism: PASS;
-- Planning real Product Probe: PASS;
-- Planning Human Gate: PASS;
-- `core_1_planning_product_gate: PASS`.
+## Temporary UX stabilization boundary
 
-The successful gate does not imply feature completeness. Ordinary-user follow-up feedback is preserved in:
+The user explicitly chose to use the provider-quota reset interval to consolidate already-recorded ordinary-user UX/robustness work.
 
-`docs/roadmap/PRODUCT_UX_BACKLOG.md`.
+Current execution mode:
 
-## Real Editing Product Probe — Director proposal repair
+`PRODUCT PROBE → TEMPORARY UX STABILIZATION → HUMAN GATE`
 
-The ordinary-user Editing-only probe used user-selected local MP4 footage, real editing intent and a real output MP4 destination with Combined mode left unchecked.
+Active Codex release:
 
-An earlier run advanced through:
+`OPEN — BOUNDED UX STABILIZATION WAVE ONLY`
 
-`project_ready → input_validation → ingest_understanding → editing_decision`
+Execution spec:
 
-and failed while generating the EditPlan with:
+`docs/operations/STAGE_A_UX_STABILIZATION_WAVE.md`
 
-`DeepSeekPlanningResponseError: invalid minimum_duration`.
+Primary wave includes:
 
-Accepted repair through `c61c7e5abc8b7b388e0e92ad9ae533d094a27707`:
+- responsive Tkinter background execution;
+- output scrollbar and UTF-8 TXT export;
+- UI-aligned localization;
+- honest ETA/progress with at least 30-second recalculation;
+- one Editing source-selection mechanism: multi-select `Media Files`; remove ordinary `Media Folder` UI;
+- first-run required/optional placeholders;
+- local form/API profile files with Windows-protected API secrets;
+- bounded Planning no-facts repair without weakening factual review;
+- bounded share-text HTTPS extraction without platform scraping;
+- real-milestone startup splash;
+- localized provider/quota UX;
+- focused regression tests and Windows manual smoke.
 
-- the Director prompt includes a complete valid JSON example and exact duration constraints;
-- invalid provider duration values are never silently coerced;
-- a locally invalid first Director proposal receives exactly one bounded repair proposal carrying the validation reason;
-- a second invalid proposal still fails closed;
-- diagnostics distinguish malformed/non-integer/non-positive exact-time values;
-- regression coverage proves repair and bounded failure behavior.
+The `公共素材` / `类似方案` concepts remain backlog-only until real replaceable research/material adapters exist; do not ship decorative controls that do nothing.
 
-## Real Editing Product Probe — Gemini quota-aware retry
+## Structural progress
 
-After synchronizing the Director repair and launching a fresh Windows process, the real Editing-only probe reached local-media `ingest_understanding` and received a genuine Gemini HTTP 429 response:
-
-`generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash; Please retry in 10.577272831s`.
-
-This proved the current Gemini model, user credential, proxy path and improved provider diagnostics were active. Audit then found a product-runtime defect: `RetryingVisualUnderstandingPort` retried transient visual failures after only 0.3 and 0.6 seconds, ignoring the provider's explicit retry delay.
-
-Accepted repair through `af5865df14b9f1cceaa9e6c1fe4dadf14cc60058`:
-
-- `VisualProviderTransientError` can carry an optional validated `retry_after_seconds` hint;
-- the Gemini transport reads Google `RetryInfo.retryDelay`, with a bounded message fallback for `retry in <seconds>s`;
-- the retry decorator waits for the greater of local bounded backoff and the provider-required delay;
-- retry attempts remain capped at three;
-- no silent provider switch, fake semantic output or quota bypass is introduced;
-- regression coverage locks structured RetryInfo propagation, message fallback and provider-directed waiting.
-
-Exact-head run `32145822611` is green.
-
-This is Engineering repair evidence only. A persistent provider-account quota exhaustion may still correctly fail after bounded retries. Editing Product/Human Gate remains OPEN until a clean real rerun reaches a final MP4, source integrity is verified and Human judgment passes.
-
-## Stage-A completion truth
-
-Structural progress remains **90%** because Editing Product/Human Gate remains OPEN.
+Remain at **90%**.
 
 - Stage-A completion gate: OPEN.
 - Planning Product/Human Gate: PASS.
-- Editing Engineering mechanism: PASS; real Product Probe in progress; Human Gate OPEN.
+- Editing Product/Human Gate: OPEN.
 
-No UI polish, backlog item or Planning PASS authorizes Stage-A 100% before a real Editing final MP4 and Human Gate PASS.
+The UX wave cannot raise progress or close the gate.
 
-## Current active boundary — Editing Product Gate
+## Return path after UX acceptance/provider reset
 
-`R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001` remains ACTIVE with mode:
-
-`PRODUCT PROBE → HUMAN GATE`
-
-There is **no active Codex release**.
-
-The immediate remaining work is:
-
-1. synchronize current `main` to the real Windows workspace;
-2. rerun Editing-only with one unambiguous input-selection method and real local footage;
-3. preserve non-empty source hashes before the gate-closing run;
-4. allow provider-directed bounded waits if Gemini reports a short-lived 429;
-5. execute actual ingest / shot detection / understanding / Director / grounded Resolver / canonical EDL / Renderer / Review;
-6. verify original local media hashes are unchanged;
-7. obtain and watch the real final MP4 on Review PASS;
-8. complete the ordinary Editing Human Gate;
-9. repair only evidence-backed blockers;
-10. set Stage-A gate and structural progress to 100 only if Editing also passes and all completion invariants remain true.
-
-## Product UX backlog boundary
-
-`docs/roadmap/PRODUCT_UX_BACKLOG.md` records current ordinary-user feedback including:
-
-- output scrollbar and TXT export;
-- real-data runtime ETA to the minute, recalculated at least every 30 seconds;
-- UI-aligned localization;
-- safe local profile/API credential persistence;
-- required/optional placeholder guidance;
-- bounded reference-share-link handling;
-- no-facts safe creative repair;
-- opt-in public-material guidance and similar-example research;
-- startup splash/progress polish.
-
-These items do not reopen Planning PASS and should not preempt the active Editing Product Gate unless one directly blocks it.
-
-## Resource policy
-
-Codex quota is reserved for a proven nontrivial code defect only.
-
-Do not use Codex for environment setup, API-secret configuration, routine launcher use, documentation/governance, deterministic provider compatibility fixes, bounded provider proposal/retry repairs, or cosmetic backlog work.
-
-Prefer user-run PowerShell for the local Windows target and ChatGPT/GitHub for observation, evidence review and governance.
-
-## Product evidence boundary
-
-Synthetic hosted Engineering media cannot close Editing Product Gate.
-
-Editing Product Gate requires real user-selected local footage through the ordinary launcher, actual automatic processing to a real final MP4 on Review PASS, original-media protection and Human judgment of the resulting video/workflow.
-
-## Failure classification
-
-Before changing code, classify any failure as:
-
-1. environment/configuration;
-2. provider/network/input condition;
-3. product-surface usability defect;
-4. implementation/architecture defect;
-5. Human Gate quality failure.
-
-Only category 4, or a clearly nontrivial category 3, can justify a bounded Codex release.
+1. reobserve and accept exact UX implementation commit + CI;
+2. synchronize accepted `main` to Windows;
+3. use the single multi-select media-file mechanism;
+4. record non-empty source SHA-256 hashes;
+5. run Editing-only with Combined unchecked;
+6. execute ingest / shot detection / understanding / Director / grounded Resolver / canonical EDL / Renderer / Review;
+7. produce final MP4 only on Review PASS;
+8. verify source hashes unchanged;
+9. user watches the MP4 and completes the ordinary Editing Human Gate;
+10. set Stage A to 100 only if every completion invariant passes.
 
 ## Constitutional constraints
 
@@ -191,8 +124,9 @@ Only category 4, or a clearly nontrivial category 3, can justify a bounded Codex
 - Renderer executes only;
 - Review classifies/routes only;
 - originals remain protected;
-- no LLM-generated timestamps or internal IDs as authority;
-- no silent stock/generated replacement visuals;
+- no LLM-generated timestamps/internal IDs as authority;
+- no silent stock/generated visual replacement;
 - no silent provider switching;
-- no Product/Human PASS inferred from Engineering evidence;
+- no plaintext API-secret profiles;
+- no Product/Human PASS inferred from tests alone;
 - no structural-progress bump before both real gates pass.
