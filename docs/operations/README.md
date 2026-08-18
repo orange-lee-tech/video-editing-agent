@@ -19,6 +19,7 @@ Stable supporting files:
 - `CONTROL_PLANE_ARCHITECTURE.md` — control-plane design.
 - `STAGE_A_UX_STABILIZATION_WAVE.md` — current bounded ordinary-user UX stabilization specification; it does not close Editing Product/Human Gate.
 - `WINDOWS_DESKTOP_PACKAGING_READINESS.md` — operational preparation for a reproducible Windows desktop bundle/installer path; it is not a claim that release packaging is already approved.
+- `WINDOWS_RUNTIME_DEPENDENCY_INVENTORY.md` — active packaging input that separates current mandatory runtime, gate-integration runtime, optional/advanced components and release/license unknowns.
 
 ## Live-state synchronization contract
 
@@ -76,6 +77,8 @@ but it must not:
 - move user-writable project/profile data into the install directory;
 - make a successful installer substitute for Product/Human editing evidence;
 - introduce a second composition path that bypasses the ordinary product runtime.
+
+The runtime dependency inventory deliberately distinguishes “module exists in repository” from “must ship in the first installer”. Packaging may promote a dependency to mandatory only after the real ordinary product path proves it is required and its runtime/license closure is known.
 
 ## Authority boundary
 
