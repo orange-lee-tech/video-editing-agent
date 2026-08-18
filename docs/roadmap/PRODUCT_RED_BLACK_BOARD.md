@@ -2,7 +2,7 @@
 
 **状态：** ACTIVE DASHBOARD  
 **首次建立：** 2026-08-19  
-**最后更新：** 2026-08-19 — Stage-A Editing 集成审计  
+**最后更新：** 2026-08-19 — Stage-A Editing 产品流大排查  
 **用途：** 用普通人能快速理解的方式，持续记录已经被证据证明的核心优势，以及尚未解决的攻关目标/风险。  
 **权威边界：** 本文件是动态看板，不替代 Product Constitution、Architecture Contract、`CURRENT_CONTROL_STATE.md`、`CURRENT_PHASE_STATUS.md` 或 `CURRENT_WORK_ORDER.md`。
 
@@ -102,6 +102,20 @@ Import-linter 当前持续约束：
 
 **状态说明：** 该成果仍在 Windows 本地未提交候选中，必须在最终 commit + CI 后才能升级为远端 accepted baseline。
 
+## R11. Direct HTTPS 参考视频入口有明确的网络安全边界
+
+当前 `DirectHttpsReferenceAcquirer` 不是“给 URL 就下载”：
+
+- 只允许 HTTPS；
+- URL 不允许内嵌 username/password；
+- DNS 解析后只接受 public/global IP；
+- 实际连接固定到已验证 public IP，Host/SNI 仍保持原 host；
+- 每次 redirect 都重新验证；
+- 有 redirect/timeout/size 上限；
+- staged file 最终按内容 SHA-256 命名并清理 partial file。
+
+**价值：** Reference acquisition 已经按“不信任公网 URL”的思路设计，不应为了兼容平台分享链接而退化成任意 URL 抓取器。
+
 ---
 
 # 黑榜 — 未解决问题 / 重大攻关目标 / 隐患
@@ -137,19 +151,47 @@ Import-linter 当前持续约束：
 
 **闭环条件：** 先做一个 bounded integration repair，复用既有 capability owners，把批准的决策真正送入 EDLBuilder；对 graphics/transition 只补 Stage-A 所需的小型 typed semantics；再通过 decision→EDL→render 集成测试，之后才允许真实 Editing Gate。
 
-## B1. Editing 普通用户 Product/Human Gate 仍未闭环【P0】
+## B1. Review 之前已经把候选 MP4 写到用户“最终输出”位置【P0 / Gate Blocker】
 
-当前状态已从“等 Gemini 配额”升级为：
+当前 `EditingProductFlow.run()` 是：
+
+`EDL → render(request.output_path) → Review → non-PASS 时 result.final_output_path=None`
+
+这在 Python 返回值层面是诚实的，但文件系统层面并不诚实：Review 还没 PASS，用户选定的最终路径就可能已经出现一个看起来完整的 MP4；FFmpeg `-y` 还可能覆盖之前的非源输出。
+
+**必须改成：**
+
+`EDL → controlled render candidate → Review → PASS-only publish/promote → user final path`
+
+Review 仍只分类/路由；“发布最终成片”属于 product/artifact lifecycle，不是 Review 或 Renderer 的编辑权力。
+
+## B2. 输出规格当前固定为 1920×1080@30，UI/Brief 没有真正决定成片比例【P0 集成前置】
+
+当前 `EditingProductCapabilities` 默认：
+
+- `output_width = 1920`；
+- `output_height = 1080`；
+- `output_fps = 30`。
+
+普通 EditingForm/UI 只让用户选 MP4 路径，没有 Output Profile。Brief 虽然有 `platform`，但当前 ProductFlow 没有把平台/用户选择转成明确输出规格。
+
+**为什么现在必须处理：** R0.11 Spatial/Auto Reframe 要接回 ordinary ProductFlow 时，目标画布比例是空间构图的必要输入。若一直固定 16:9，就算 Auto Reframe 接进来，也可能针对错误的目标画布求解。
+
+**目标：** 增加 typed、用户可见的 Output Profile；至少明确 aspect/resolution/fps。平台可以给默认建议，但不能变成不可见硬规则，用户必须可覆盖。实际输出 profile 进入 EDL/Render provenance。
+
+## B3. Editing 普通用户 Product/Human Gate 仍未闭环【P0】
+
+当前状态：
 
 - Planning Product/Human Gate：PASS；
 - Editing subsystem mechanisms：已有大量 PASS 证据；
-- Editing ordinary ProductFlow integration：OPEN；
-- Product Probe：在 B0 修复前 **NOT GATE-READY**；
+- Editing ordinary ProductFlow integration/publication/output-profile：OPEN；
+- Product Probe：在 B0–B2 修复前 **NOT GATE-READY**；
 - Human Gate：OPEN。
 
-**闭环条件：** B0 修复 → 用户本地素材走完整自动链 → 真实 final MP4 → source hash 不变 → Review PASS → 用户实际观看并判断可用。
+**闭环条件：** B0–B2 修复 → 用户本地素材走完整自动链 → reviewed/published final MP4 → source hash 不变 → 用户实际观看并判断可用。
 
-## B2. 普通产品壳层存在明显 Provider/Vendor 锁定【P0 商用架构债】
+## B4. 普通产品壳层存在明显 Provider/Vendor 锁定【P0 商用架构债】
 
 虽然 Constitution/Architecture 已明确 Provider Neutral，但当前远端产品壳层仍硬编码：
 
@@ -162,7 +204,7 @@ Import-linter 当前持续约束：
 
 实施计划：`docs/architecture/PROVIDER_NEUTRAL_PRODUCT_BINDING_PLAN.md`。
 
-## B3. 本地 UX stabilization 候选还没有最终 commit/CI【P0 流程风险】
+## B5. 本地 UX stabilization 候选还没有最终 commit/CI【P0 流程风险】
 
 已观察：完整本地 Quality Gate 曾为 713 passed，人工 UI smoke 通过；之后又补了 Splash 真正显示与像素标记。
 
@@ -170,7 +212,7 @@ Import-linter 当前持续约束：
 
 **必须做：** 最终提交前重跑 formatter / Ruff / mypy / full pytest / import-linter / build / diff-check / repo-doctor / launcher smoke；先本地 commit，再 rebase 最新 docs main，push 后远端 CI 复审。
 
-## B4. 当前 Tk/ttk 主界面功能可用，但产品门面与信息层级不足【P1】
+## B6. 当前 Tk/ttk 主界面功能可用，但产品门面与信息层级不足【P1】
 
 真实截图显示：
 
@@ -184,11 +226,13 @@ Import-linter 当前持续约束：
 
 设计基线：`docs/product/DESKTOP_UI_DESIGN_SYSTEM_V0.1.md`。
 
-## B5. 输出覆盖 UX 仍需商用级确认【P1】
+## B7. 输出覆盖 UX 仍需商用级确认【P1】
 
-Renderer 当前 FFmpeg invocation 使用 `-y`，并已防止 output 覆盖 canonical source media；但普通用户仍需要明确处理“目标 MP4 已存在”的覆盖确认/版本策略，避免误覆盖已有成片。
+Renderer 当前 FFmpeg invocation 使用 `-y`，并已防止 output 覆盖 canonical source media；但普通用户仍需要明确处理“目标 MP4 已存在”的覆盖确认/版本策略。
 
-## B6. 取消 / 恢复 / 失败重试尚未形成完整普通用户语义【P1】
+这项必须与 B1 的 PASS-only publication 一起设计：候选 render 不能覆盖 final；Review PASS 后真正 publish 时才根据用户明确的覆盖/另存为选择处理目标冲突。
+
+## B8. 取消 / 恢复 / 失败重试尚未形成完整普通用户语义【P1】
 
 后台线程让 UI 不再冻结是必要基础，但商用长任务还需要：
 
@@ -200,7 +244,7 @@ Renderer 当前 FFmpeg invocation 使用 `-y`，并已防止 output 覆盖 canon
 
 在真正机制完成前，不应加一个装饰性“取消”按钮。
 
-## B7. 打包分发尚未闭环【P0 商用发布门】
+## B9. 打包分发尚未闭环【P0 商用发布门】
 
 当前 `pyproject.toml` 没有普通 runtime dependencies，真实 Windows 启动仍会使用 `uv run --with transnetv2-pytorch==1.0.5 ...` 这类开发/验证路径；普通客户不能被要求安装 uv/Python/模型依赖。
 
@@ -209,14 +253,17 @@ Renderer 当前 FFmpeg invocation 使用 `-y`，并已防止 output 覆盖 canon
 - Windows private runtime / executable bundle；
 - FFmpeg/ffprobe 分发配置和许可证；
 - TransNetV2 runtime/weights 分发边界；
-- 可选 MediaPipe recovery 模型的 redistribution 条款；
+- 可选 MediaPipe recovery 模型 redistribution 条款；
 - 图标/字体/模型/notice 资源定位；
 - 首次启动与无 Python/uv 机器 smoke；
 - installer/update/rollback。
 
-准备基线：`docs/operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md`。
+准备基线：
 
-## B8. 外部依赖许可证仍有几个发布级硬门【P0】
+- `docs/operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md`；
+- `docs/operations/WINDOWS_RUNTIME_DEPENDENCY_INVENTORY.md`。
+
+## B10. 外部依赖许可证仍有几个发布级硬门【P0】
 
 已知包括：
 
@@ -225,7 +272,7 @@ Renderer 当前 FFmpeg invocation 使用 `-y`，并已防止 output 覆盖 canon
 - 预览候选的插件/build license 需要按实际发行包审查；
 - 上游 `REFERENCE-*` 只能学习机制，不能自动转化为可复制代码。
 
-## B9. 真实视觉 API 成本/配额与调用整形还不够产品化【P1】
+## B11. 真实视觉 API 成本/配额与调用整形还不够产品化【P1】
 
 当前 understanding 按 Shot 调视觉 provider，一次 request 可包含多帧；已处理 transient retry 与 provider retry hint，但仍缺：
 
@@ -234,19 +281,19 @@ Renderer 当前 FFmpeg invocation 使用 `-y`，并已防止 output 覆盖 canon
 - 可观察的调用量/成本预算；
 - 能力降级策略（明确失败，而不是伪装等价或静默换厂）。
 
-## B10. 自动视觉语义质量仍需要更广真实素材证据【P1 核心质量】
+## B12. 自动视觉语义质量仍需要更广真实素材证据【P1 核心质量】
 
 R0.9 closure 明确记录：当时语义检索部分仍用了 human-confirmed managed-corpus coverage text；当前 Stage-A Editing 正是在继续验证真实 VisualUnderstanding 驱动完整链路。
 
 **目标：** 让用户随手投入的无序素材，而不是人工整理描述，真正驱动 Resolver 与最终成片。
 
-## B11. BeatMap / Auto Reframe 仍有已知质量尾巴【P2 质量扩展】
+## B13. BeatMap / Auto Reframe 仍有已知质量尾巴【P2 质量扩展】
 
 - R0.10 real-music probe 中存在低 BeatMap confidence 样例，虽未影响该次 Human Gate；
 - R0.11 occlusion recovery 有轻微 micro-jump；
 - 需要更广 corpus 才能判断是否系统性问题，不能因为单样本继续盲调参数。
 
-## B12. `tkinter_app.py` 膨胀风险【P1 可维护性】
+## B14. `tkinter_app.py` 膨胀风险【P1 可维护性】
 
 本轮 UX 候选对 Tk launcher 增加了大量界面行为。应继续把：
 
@@ -258,7 +305,7 @@ R0.9 closure 明确记录：当时语义检索部分仍用了 human-confirmed ma
 
 维持为可测试的小模块，避免 GUI 文件重新变成“万能上帝文件”。
 
-## B13. 多实例/项目目录/磁盘/长路径等桌面边界仍需系统验证【P1】
+## B15. 多实例/项目目录/磁盘/长路径等桌面边界仍需系统验证【P1】
 
 后续 fresh-Windows / packaging probe 至少覆盖：
 
@@ -278,4 +325,4 @@ R0.9 closure 明确记录：当时语义检索部分仍用了 human-confirmed ma
 
 # 当前一句话状态
 
-> **我们并不是“缺剪辑算法”，而是已经有很多被独立验证过的能力，却还差最后一段关键工作：把这些能力真实接入普通用户的一键 Editing ProductFlow；在这条主线之外，再逐步完成 Provider Neutral、商业 UI 与 Windows 可分发性。**
+> **我们并不是“缺剪辑算法”，而是已经有很多被独立验证过的能力，却还差最后一段关键工作：把这些能力用正确的输出规格、Review-before-publish 语义真实接入普通用户的一键 Editing ProductFlow；在这条主线之外，再逐步完成 Provider Neutral、商业 UI 与 Windows 可分发性。**
