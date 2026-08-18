@@ -230,8 +230,9 @@ class GeminiGenerateContentVisualUnderstanding(VisualUnderstandingPort):
         for frame in request.frames:
             content = self._artifact_store.get(frame.artifact_ref)
             encoded = base64.b64encode(content).decode("ascii")
+            timestamp_text = frame.source_timestamp.to_decimal_seconds_string()
             parts.append(
-                {"text": f"Frame {frame.ordinal} at source {frame.source_timestamp_ms} ms."}
+                {"text": f"Frame {frame.ordinal} at source {timestamp_text} s."}
             )
             parts.append(
                 {
