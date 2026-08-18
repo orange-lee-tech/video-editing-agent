@@ -20,14 +20,14 @@ A0 acceptance is recorded in `roadmap/A0_PLANNING_BASELINE_ACCEPTANCE.md`.
 
 ## Directory roles
 
-- `product/` — constitutional product policy. Rarely changed; explicit user approval required for constitutional revision.
-- `architecture/` — active Architecture Contract v0.2.
+- `product/` — constitutional product policy plus subordinate product-design guidance. Constitutional revision still requires explicit user approval.
+- `architecture/` — active Architecture Contract v0.2 plus clearly marked non-normative implementation/migration plans.
 - `capabilities/` — active capability specifications CAP-01…CAP-10.
 - `adr/` — **current ADR home**.
-- `roadmap/` — Roadmap V2, Stage-A completion gate, live phase state and planning acceptance records.
-- `operations/` — dynamic ChatGPT/GitHub/Codex/PowerShell execution control and live Work Order state. Operational, not product authority.
+- `roadmap/` — Roadmap V2, Stage-A completion gate, live phase state, product red-black dashboard and planning acceptance records.
+- `operations/` — dynamic ChatGPT/GitHub/Codex/PowerShell execution control, live Work Order state and operational release/packaging readiness. Operational, not product authority.
 - `validation/` — durable phase/probe closure evidence.
-- `logs/` — non-authoritative incident, probe, collaboration and repository-maintenance lessons worth retaining.
+- `logs/` — non-authoritative incident, probe, collaboration, project chronicle, audit and repository-maintenance lessons worth retaining.
 - `research/` — Survey/research evidence explaining why choices were made; not normative by itself.
 - `upstream/` — active dependency/reference ledger and reuse/license policy.
 - `archive/` — retired documents preserved only for provenance; never an active entry point.
@@ -49,6 +49,17 @@ Use these for **why / what was proven**:
 - `research/`
 
 Use `archive/` only when historical provenance is genuinely needed.
+
+## Product evolution references
+
+These documents are durable helpers, but they do **not** become a second authority stack:
+
+- `logs/PROJECT_CHRONICLE.md` — Simplified-Chinese engineering chronicle: why the project changed, what real probes proved, and which failures changed design;
+- `roadmap/PRODUCT_RED_BLACK_BOARD.md` — live red/black dashboard: proven strengths vs unresolved product/engineering/commercial risks;
+- `product/DESKTOP_UI_DESIGN_SYSTEM_V0.1.md` — current Windows desktop shell/design guidance; subordinate to Constitution and architecture;
+- `architecture/PROVIDER_NEUTRAL_PRODUCT_BINDING_PLAN.md` — non-normative migration plan from vendor-bound product configuration to capability-role bindings;
+- `operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md` — packaging/release-readiness plan; does not claim an installer is already release-ready;
+- `logs/COMMERCIAL_DESKTOP_RISK_AUDIT_2026-08-19.md` — static evidence-backed commercial desktop risk audit snapshot.
 
 ## Stage-A 100% gate
 
