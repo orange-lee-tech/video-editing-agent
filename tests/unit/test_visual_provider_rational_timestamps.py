@@ -34,11 +34,7 @@ class CapturingGeminiTransport:
     def generate_content(self, model: str, payload: dict[str, Any]) -> dict[str, Any]:
         del model
         self.payload = payload
-        return {
-            "candidates": [
-                {"content": {"parts": [{"text": json.dumps(_valid_semantics())}]}}
-            ]
-        }
+        return {"candidates": [{"content": {"parts": [{"text": json.dumps(_valid_semantics())}]}}]}
 
 
 class CapturingOpenAITransport:
@@ -52,9 +48,7 @@ class CapturingOpenAITransport:
             "output": [
                 {
                     "type": "message",
-                    "content": [
-                        {"type": "output_text", "text": json.dumps(_valid_semantics())}
-                    ],
+                    "content": [{"type": "output_text", "text": json.dumps(_valid_semantics())}],
                 }
             ],
         }
