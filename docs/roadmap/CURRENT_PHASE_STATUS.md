@@ -21,7 +21,8 @@ Current gate state:
 - Editing subsystem mechanisms: substantially built/validated.
 - Editing ordinary ProductFlow integration gap: OPEN.
 - Review-before-final-output publication gap: OPEN.
-- Editing Product Probe: NOT GATE-READY until both gate-path defects are repaired.
+- explicit Output Profile / target-canvas gap: OPEN.
+- Editing Product Probe: NOT GATE-READY until all three gate-path issues are repaired.
 - Editing Human Gate: OPEN.
 - Stage-A completion gate: OPEN.
 
@@ -47,11 +48,11 @@ A real ordinary-user Windows Planning run completed end-to-end, produced persist
 
 Planning-only is proven usable for Stage A. Follow-up refinements do not reopen this PASS.
 
-## Editing Product Gate — two gate-path corrections before further attempt
+## Editing Product Gate — three gate-path corrections before further attempt
 
 Real Editing-only Windows probes have crossed input validation, local-media understanding and Director boundaries, exposing and repairing several concrete runtime defects. The most recent same-day cloud failure was an explicit Gemini HTTP 429/provider quota condition; it did not authorize silent provider/model switching.
 
-A 2026-08-19 static ProductFlow audit then found two more fundamental gate blockers.
+A 2026-08-19 static ProductFlow audit then found three more fundamental gate-path issues.
 
 ### 1. Required editing-expression families are not all wired into ordinary ProductFlow
 
@@ -94,12 +95,28 @@ canonical EDL
 
 Review still only classifies/routes; publication is a product/artifact lifecycle step, not Review editorial authority.
 
-Durable incidents:
+### 3. Output canvas/fps is currently a hidden fixed 1920×1080@30 default
+
+`EditingProductCapabilities` currently defaults all ordinary renders to `1920 × 1080 @ 30 fps`. The user supplies platform and output path, but there is no typed/user-visible Output Profile deciding aspect/resolution/fps.
+
+This becomes a gate prerequisite when R0.11 Spatial/Auto-Reframe is integrated: a reframe decision must know its actual target canvas. A valid auto-reframe computed against a silently fixed 16:9 target may be the wrong product output for a short-form/vertical intent.
+
+Required direction:
+
+```text
+user-visible typed Output Profile
+→ target width / height / fps
+→ SpatialComposer target canvas
+→ canonical EDL / Render provenance
+```
+
+Platform may suggest a default profile, but must not invisibly own or hardcode the final canvas. User-visible selected profile is the product authority.
+
+Durable incidents in `docs/logs/INCIDENT_LEDGER.md`:
 
 - `R0.12 Stage-A ordinary Editing integration gap — OPEN`;
 - `R0.12 Review-before-final-output publication defect — OPEN`;
-
-in `docs/logs/INCIDENT_LEDGER.md`.
+- `R0.12 fixed output-profile / aspect-ratio gap — OPEN`.
 
 ## Preserved local UX stabilization candidate
 
@@ -123,7 +140,7 @@ Codex is **closed for this wave because execution quota is exhausted**. Do not r
 
 ## Current execution mode
 
-`LOCAL UX CANDIDATE FINALIZATION → EDITING INTEGRATION/PUBLICATION REPAIR → PRODUCT/HUMAN GATE`
+`LOCAL UX CANDIDATE FINALIZATION → EDITING INTEGRATION/PUBLICATION/OUTPUT-PROFILE REPAIR → PRODUCT/HUMAN GATE`
 
 Active Work Order:
 
@@ -150,16 +167,18 @@ Control documents:
 
 ### Step 2 — bounded Editing gate-path repair
 
-Compose already-approved decision owners into the ordinary path and correct final-output publication:
+Correct target-output authority first, then compose already-approved decision owners and final-output publication:
 
+- typed/user-visible Output Profile for aspect/resolution/fps;
 - R0.10 Music/Audio Editorial;
-- R0.11 Spatial/Auto Reframe;
+- R0.11 Spatial/Auto Reframe against the selected target canvas;
 - structured Subtitle path;
 - bounded title/CTA/price-card graphics and minimal-transition semantics required by Stage A;
 - controlled render candidate → Review → PASS-only final publication.
 
 The repair must prove decision → canonical EDL → rendered execution alignment and keep:
 
+- output profile as explicit product input/configuration, not provider authority;
 - Resolver as source-time owner;
 - EDLBuilder as assembler, not editor;
 - EDL as exact timeline authority;
@@ -172,14 +191,15 @@ The repair must prove decision → canonical EDL → rendered execution alignmen
 Only after Step 2 is accepted:
 
 1. ordinary multi-select local footage; Combined unchecked for Editing-only proof;
-2. record source SHA-256 hashes;
-3. run the real automatic chain including the Stage-A expression floor;
-4. render to controlled candidate;
-5. Review PASS;
-6. publish/promote to requested final MP4;
-7. verify sources unchanged;
-8. user watches the final MP4 and completes Human Gate;
-9. Stage A reaches 100 only if every completion invariant passes.
+2. select/confirm intended Output Profile;
+3. record source SHA-256 hashes;
+4. run the real automatic chain including Stage-A expression floor;
+5. render to controlled candidate;
+6. Review PASS;
+7. publish/promote to requested final MP4;
+8. verify sources unchanged;
+9. user watches final MP4 and completes Human Gate;
+10. Stage A reaches 100 only if every completion invariant passes.
 
 ## Parallel productization backlog — important but not mixed into the gate repair
 
@@ -188,6 +208,7 @@ Durable preparation exists for:
 - UI/design system: `docs/product/DESKTOP_UI_DESIGN_SYSTEM_V0.1.md`;
 - Provider-neutral product binding: `docs/architecture/PROVIDER_NEUTRAL_PRODUCT_BINDING_PLAN.md`;
 - Windows packaging: `docs/operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md`;
+- Windows runtime inventory: `docs/operations/WINDOWS_RUNTIME_DEPENDENCY_INVENTORY.md`;
 - product health: `docs/roadmap/PRODUCT_RED_BLACK_BOARD.md`;
 - history: `docs/logs/PROJECT_CHRONICLE.md`;
 - risk audit: `docs/logs/COMMERCIAL_DESKTOP_RISK_AUDIT_2026-08-19.md`;
@@ -200,6 +221,7 @@ These proceed as separate bounded waves after the gate-critical route is truthfu
 - Planning remains independently usable;
 - Editing remains independently activatable;
 - Combined remains optional enrichment;
+- output canvas/fps is explicit product input/configuration and visible to the user;
 - canonical EDL remains sole exact timeline authority;
 - Resolver owns source-time grounding;
 - Renderer has no editorial authority;
