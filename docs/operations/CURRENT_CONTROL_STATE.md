@@ -11,7 +11,7 @@ control_plane_baseline: 79c3be540f335477699223292580f32f6bb3c807
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
 core_1_planning_product_gate: PASS
-core_2_editing_product_gate: INTEGRATION_AND_PUBLICATION_GAPS_OPEN_PRODUCT_HUMAN_OPEN
+core_2_editing_product_gate: INTEGRATION_PUBLICATION_OUTPUT_PROFILE_GAPS_OPEN_PRODUCT_HUMAN_OPEN
 previous_work_order: R0.12-PRODUCT-FLOW-ORCHESTRATION-001
 previous_work_order_result: PASS
 foreman: v2-trigger-first
@@ -28,6 +28,7 @@ Frozen product architecture remains unchanged:
 - Editing-only: `Brief/editorial intent + user local footage → Editing Core`;
 - Combined: exact Planning revisions optionally enrich the same Editing Core;
 - source-time grounding remains Resolver-owned;
+- the user-visible/typed Output Profile supplies the target canvas/fps used by Spatial and rendering; platform may suggest a default but must not invisibly own the final canvas;
 - approved Music/Audio/Spatial/Subtitle/Graphics/transition decisions belong upstream of EDL assembly;
 - canonical EDL remains the sole exact timeline authority;
 - Renderer executes only;
@@ -56,9 +57,9 @@ Durable evidence:
 
 ### Editing
 
-**Engineering mechanisms exist / ordinary ProductFlow integration + final-output-publication gaps: OPEN / Product Probe: NOT GATE-READY / Human Gate: OPEN**.
+**Engineering mechanisms exist / ordinary ProductFlow integration + publication + output-profile gaps: OPEN / Product Probe: NOT GATE-READY / Human Gate: OPEN**.
 
-The 2026-08-19 audit found two gate blockers in the ordinary Editing route.
+The 2026-08-19 audit found three gate-path blockers/prerequisites in the ordinary Editing route.
 
 #### A. Editing-expression integration gap
 
@@ -70,22 +71,29 @@ Therefore a plain-cut MP4 from the current abbreviated ProductFlow cannot close 
 
 Current `EditingProductFlow.run()` renders directly to `request.output_path` **before** Review. If Review returns `CORRECTION_REQUIRED`, the product result correctly exposes no final path, but the rendered MP4 may already exist at the user-selected final destination.
 
-That violates the intended product meaning of:
-
-`Renderer → Review/repair → final MP4`.
-
 Required publication boundary:
 
 `canonical EDL → controlled render candidate → Review → PASS → publish/promote to requested final destination`.
 
 A non-PASS candidate may remain internal evidence only if policy permits; it must not overwrite or masquerade as an accepted final output.
 
-Durable incident records:
+#### C. Fixed 1920×1080@30 output profile gap
+
+Current `EditingProductCapabilities` defaults every ordinary render to `1920 × 1080 @ 30 fps`; `EditingForm` only asks for an output MP4 path. Brief contains a platform string, but no explicit user-visible Output Profile controls aspect/resolution/fps.
+
+This must be corrected before ordinary R0.11 Spatial/Auto-Reframe integration: target canvas is a required spatial input, and silently composing for fixed 16:9 can make a technically valid reframe solve the wrong product geometry.
+
+Required direction:
+
+`user-visible typed Output Profile → target canvas/fps → SpatialComposer → canonical EDL/Render provenance`.
+
+Platform may propose a default; user-visible output profile remains the actual product authority.
+
+Durable incident records in `docs/logs/INCIDENT_LEDGER.md`:
 
 - `R0.12 Stage-A ordinary Editing integration gap — OPEN`;
 - `R0.12 Review-before-final-output publication defect — OPEN`;
-
-in `docs/logs/INCIDENT_LEDGER.md`.
+- `R0.12 fixed output-profile / aspect-ratio gap — OPEN`.
 
 These findings do not reopen accepted R0.8/R0.9/R0.10/R0.11 subsystem evidence and do not authorize a core redesign.
 
@@ -112,7 +120,7 @@ Codex execution quota is exhausted for this wave.
 
 ## Current execution corridor
 
-`LOCAL UX CANDIDATE FINALIZATION → STAGE-A EDITING INTEGRATION/PUBLICATION REPAIR → REAL PRODUCT/HUMAN GATE`
+`LOCAL UX CANDIDATE FINALIZATION → STAGE-A EDITING INTEGRATION/PUBLICATION/OUTPUT-PROFILE REPAIR → REAL PRODUCT/HUMAN GATE`
 
 ### 1. Finalize the preserved UX candidate
 
@@ -126,9 +134,10 @@ Codex execution quota is exhausted for this wave.
 
 Use existing capability ownership wherever implemented:
 
+- add the smallest typed user-visible Output Profile needed by Stage A; feed its target canvas/fps consistently into Spatial/EDL/Render provenance;
 - Resolver remains grounded source-window owner;
 - R0.10 Music/Audio decisions are integrated upstream of EDL assembly;
-- R0.11 Spatial/Auto-Reframe decisions are integrated for resolved selections;
+- R0.11 Spatial/Auto-Reframe decisions are integrated for resolved selections against the selected target canvas;
 - structured subtitle path is integrated into canonical EDL;
 - Stage-A minimum graphics/title/CTA/price-card and transition vocabulary receives small explicit typed semantics;
 - EDLBuilder assembles approved decisions only;
@@ -145,14 +154,15 @@ This remains one bounded integration repair, not a new microphase or monolithic 
 Only after the repair is accepted and provider/runtime are available:
 
 1. ordinary multi-select local footage, Combined unchecked for Editing-only proof;
-2. record source SHA-256 hashes;
-3. run actual ingest / shot detection / visual understanding / Director / grounded Resolver;
-4. execute the Stage-A editing-expression floor through canonical EDL;
-5. render to controlled candidate;
-6. Review PASS;
-7. publish/promote the reviewed candidate to the user final MP4 destination;
-8. source hashes remain unchanged;
-9. user watches final MP4 and completes Human Gate.
+2. select/confirm the intended Output Profile;
+3. record source SHA-256 hashes;
+4. run actual ingest / shot detection / visual understanding / Director / grounded Resolver;
+5. execute the Stage-A editing-expression floor against the selected target canvas through canonical EDL;
+6. render to controlled candidate;
+7. Review PASS;
+8. publish/promote the reviewed candidate to the user final MP4 destination;
+9. source hashes remain unchanged;
+10. user watches final MP4 and completes Human Gate.
 
 ## Parallel commercial-product preparation
 
@@ -161,6 +171,7 @@ Documented but not mixed into the gate-critical repair:
 - `docs/product/DESKTOP_UI_DESIGN_SYSTEM_V0.1.md`;
 - `docs/architecture/PROVIDER_NEUTRAL_PRODUCT_BINDING_PLAN.md`;
 - `docs/operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md`;
+- `docs/operations/WINDOWS_RUNTIME_DEPENDENCY_INVENTORY.md`;
 - `docs/roadmap/PRODUCT_RED_BLACK_BOARD.md`;
 - `docs/logs/PROJECT_CHRONICLE.md`;
 - `docs/logs/COMMERCIAL_DESKTOP_RISK_AUDIT_2026-08-19.md`;
@@ -175,6 +186,7 @@ Remain at **90%**.
 - Editing Product/Human Gate: OPEN.
 - Editing ordinary ProductFlow integration gap: OPEN.
 - Review-before-final-output publication gap: OPEN.
+- fixed output-profile/aspect-ratio gap: OPEN.
 
 Neither a polished GUI, a successful plain-cut MP4, subsystem closure evidence nor packaging work may raise progress to 100 by itself.
 
@@ -185,6 +197,7 @@ Neither a polished GUI, a successful plain-cut MP4, subsystem closure evidence n
 - reference-only media remains Resolver-ineligible;
 - commercial final visuals come from user-selected local footage;
 - source-time grounding remains Resolver-owned;
+- output canvas/fps is explicit product input/configuration, not hidden provider authority;
 - canonical EDL remains sole exact timeline authority;
 - Renderer executes only;
 - Review classifies/routes only;
