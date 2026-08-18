@@ -16,6 +16,13 @@ Acceptance record: `docs/roadmap/A0_PLANNING_BASELINE_ACCEPTANCE.md`.
 
 The `CANDIDATE` wording inside the original v0.2 draft header records its pre-acceptance drafting state. A0 supersedes that status label for current authority.
 
+## Subordinate implementation plans
+
+- `PROVIDER_NEUTRAL_PRODUCT_BINDING_PLAN.md` — non-normative migration plan for replacing current vendor-bound product configuration/composition with capability-role provider bindings. It implements existing Provider Neutrality rules; it does not amend the Architecture Contract.
+- `TWO_CORE_WORKFLOWS_PARALLELISM_AND_RISK_GOVERNANCE.md` — durable analysis of Planning/Editing/Combined parallelism and risk governance.
+
+If an implementation plan conflicts with `ARCHITECTURE_CONTRACT_V0.2.md`, the Contract wins.
+
 ## Retired architecture contracts
 
 The v0.1.x series is preserved centrally under `docs/archive/architecture/` as provenance only.
