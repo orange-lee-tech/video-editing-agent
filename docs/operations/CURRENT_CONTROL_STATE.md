@@ -6,7 +6,7 @@ updated: 2026-08-18
 current_phase: R0.12
 phase_state: STAGE_A_PRODUCT_GATE_EXECUTION_ACTIVE
 active_work_order: R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001
-accepted_code_baseline: 49f14cc0a9b4a798491314f58b9d6df9120f350f
+accepted_code_baseline: b6572602c0f7faaa22383dab9fffa361fb946e75
 control_plane_baseline: 79c3be540f335477699223292580f32f6bb3c807
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
@@ -34,7 +34,7 @@ Canonical EDL remains sole exact timeline authority.
 
 Current accepted production-code baseline:
 
-`49f14cc0a9b4a798491314f58b9d6df9120f350f`
+`b6572602c0f7faaa22383dab9fffa361fb946e75`
 
 Original Stage-A product-surface implementation closure:
 
@@ -42,7 +42,7 @@ Original Stage-A product-surface implementation closure:
 
 Current exact-head CI:
 
-`32125492197` — `ci/quality-gate-diagnostic = success`.
+`32127020333` — `ci/quality-gate-diagnostic = success`.
 
 The accepted Stage-A ordinary-user surface includes:
 
@@ -56,9 +56,9 @@ The accepted Stage-A ordinary-user surface includes:
 
 The existing provider adapters and ownership boundaries remain unchanged. The Settings adapter only maps user capability configuration onto the provider environment contract.
 
-## Real Product Probe defect evidence — Gemini compatibility and transient transport
+## Real Product Probe defect evidence — visual-provider path and rational time projection
 
-The real Windows Planning Product Probe with a user-selected local reference video has now exposed three sequential provider-path defects or robustness gaps after successfully reaching visual understanding.
+The real Windows Planning Product Probe with a user-selected local reference video has exposed four sequential implementation/robustness issues while progressively advancing through real visual understanding.
 
 First, `gemini-2.5-flash` returned provider `NOT_FOUND` for `generateContent` and directed new users to `gemini-3.6-flash`. The repair moved the Stage-A Gemini visual default to `gemini-3.6-flash` and preserved bounded provider HTTP error detail.
 
@@ -66,14 +66,19 @@ Second, the rerun reached `gemini-3.6-flash` but returned HTTP 400 because `gene
 
 Third, the next real rerun failed with `VisualProviderTransientError: Gemini request failed in transport`. The old transport collapsed `TimeoutError` and `URLError` into the same message, and the real Stage-A composition bypassed the repository's existing `RetryingVisualUnderstandingPort`, so a single transient visual-provider failure could abort the entire Planning run.
 
-Accepted repair through `49f14cc0a9b4a798491314f58b9d6df9120f350f`:
+Fourth, the following rerun advanced beyond the provider compatibility/transport failures and failed with `ValueError: MediaTime cannot be represented as an exact integer millisecond`. Audit showed the exact rational media-time model was correct: frame sampling and extraction intentionally support timestamps such as `1/24 s` that cannot be represented as integer milliseconds. The defect was confined to Gemini and OpenAI prompt construction, which unnecessarily projected exact `MediaTime` through `source_timestamp_ms` merely to describe frame timestamps to the provider.
+
+Accepted repair through `b6572602c0f7faaa22383dab9fffa361fb946e75`:
 
 - real Gemini and OpenAI visual-provider composition is wrapped by the existing retry decorator;
 - only explicit `VisualProviderTransientError` is retried, up to the existing three-attempt policy; response/schema failures are not retried and no fake visual semantics or silent provider switching is introduced;
-- Gemini timeout failures now report the configured timeout budget;
-- Gemini `URLError` failures now preserve a bounded safe transport reason;
+- Gemini timeout failures report the configured timeout budget and `URLError` failures preserve a bounded safe transport reason;
 - the 60-second per-request timeout remains unchanged until a rerun provides evidence that the budget itself is inadequate;
-- regression coverage verifies retry composition and the new transient transport diagnostics.
+- Gemini and OpenAI provider-facing frame descriptions now render the existing exact `MediaTime` as deterministic decimal seconds instead of requiring integer milliseconds;
+- internal shot/sample/artifact/EDL timing contracts remain exact and unchanged;
+- regression coverage explicitly proves a `MediaTime(1, 24)` frame remains non-representable as exact integer milliseconds while both provider adapters accept it and describe it as deterministic seconds.
+
+The first CI run of the rational-timestamp repair had only Ruff formatting failures; all 694 tests, mypy, lint, import contracts and build passed. The formatter-only follow-up produced exact-head CI PASS in run `32127020333`.
 
 These repairs are Engineering PASS only. The same real Planning Product Probe must be rerun before any Product/Human Gate can pass.
 
@@ -82,7 +87,7 @@ These repairs are Engineering PASS only. The same real Planning Product Probe mu
 Structural progress remains **90%**.
 
 - Stage-A completion gate: OPEN.
-- Planning: Engineering mechanism PASS; real Product Probe remains in progress after provider-path repair; Human Gate OPEN.
+- Planning: Engineering mechanism PASS; real Product Probe remains in progress after evidence-backed provider/time-projection repairs; Human Gate OPEN.
 - Editing: Engineering mechanism PASS; Product Probe / Human Gate OPEN.
 
 Engineering tests, CI, launcher smoke, bilingual UI, API Settings or provider repairs do not authorize 100%.
@@ -119,7 +124,7 @@ Do not use Codex for:
 - launcher operation;
 - routine local verification;
 - deterministic provider-version compatibility updates;
-- small deterministic provider composition/diagnostic repairs;
+- small deterministic provider composition/diagnostic/time-projection repairs;
 - documentation/governance edits.
 
 Prefer user-run PowerShell for local operations and ChatGPT/GitHub for observation/governance.
