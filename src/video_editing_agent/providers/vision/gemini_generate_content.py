@@ -122,6 +122,13 @@ def _http_error_detail(exc: urllib.error.HTTPError) -> str | None:
     return normalized[:500] or None
 
 
+def _transport_error_detail(exc: urllib.error.URLError) -> str | None:
+    reason = getattr(exc, "reason", None)
+    value = reason if reason is not None else exc
+    normalized = " ".join(str(value).split())
+    return normalized[:300] or None
+
+
 class UrllibGeminiGenerateContentTransport(GeminiGenerateContentTransport):
     """Minimal stdlib transport for Gemini generateContent."""
 
@@ -171,8 +178,16 @@ class UrllibGeminiGenerateContentTransport(GeminiGenerateContentTransport):
             raise VisualProviderResponseError(
                 f"Gemini request returned HTTP {exc.code}{suffix}"
             ) from exc
-        except (urllib.error.URLError, TimeoutError) as exc:
-            raise VisualProviderTransientError("Gemini request failed in transport") from exc
+        except TimeoutError as exc:
+            raise VisualProviderTransientError(
+                f"Gemini request timed out after {self._timeout_seconds:g} seconds"
+            ) from exc
+        except urllib.error.URLError as exc:
+            detail = _transport_error_detail(exc)
+            suffix = "" if detail is None else f": {detail}"
+            raise VisualProviderTransientError(
+                f"Gemini request failed in transport{suffix}"
+            ) from exc
 
         try:
             decoded: Any = json.loads(response_body.decode("utf-8"))
