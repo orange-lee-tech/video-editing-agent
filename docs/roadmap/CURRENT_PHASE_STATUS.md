@@ -17,7 +17,7 @@ The hard 100% contract remains:
 
 Current Product Gate state:
 
-- Planning Engineering mechanism: PASS; real Product Probe: IN PROGRESS after provider-path repair; Human Gate: OPEN.
+- Planning Engineering mechanism: PASS; real Product Probe: IN PROGRESS after evidence-backed visual-provider/time-projection repairs; Human Gate: OPEN.
 - Editing Engineering mechanism: PASS; Product Probe / Human Gate: OPEN.
 - Stage-A completion gate: OPEN.
 
@@ -25,11 +25,11 @@ Therefore structural progress remains **90%**.
 
 ## Current accepted production-code baseline
 
-`49f14cc0a9b4a798491314f58b9d6df9120f350f`
+`b6572602c0f7faaa22383dab9fffa361fb946e75`
 
 Exact-head deterministic CI:
 
-`32125492197` — PASS (`ci/quality-gate-diagnostic = success`).
+`32127020333` — PASS (`ci/quality-gate-diagnostic = success`).
 
 ## Stage-A ordinary-user product surface — PASS / ACCEPTED
 
@@ -65,26 +65,29 @@ Current Settings semantics:
 
 These are product-surface capabilities, not Product/Human Gate evidence.
 
-## Real Planning Product Probe — provider-path repair
+## Real Planning Product Probe — visual-provider and rational-time repair
 
-The real Windows Planning probe has successfully reached visual understanding and exposed three sequential issues:
+The real Windows Planning probe has progressively advanced through local reference ingest, shot/frame preparation and visual understanding while exposing four sequential implementation/robustness issues:
 
 1. `gemini-2.5-flash` was rejected for `generateContent` for the tested new-user credential and Google directed migration to `gemini-3.6-flash`.
 2. After that migration, the live provider rejected `generationConfig.responseFormat.text.mimeType = "application/json"`; the accepted contract uses enum `APPLICATION_JSON`.
 3. The next rerun failed with a transient Gemini transport error. Audit showed the Stage-A visual composition bypassed the repository's existing `RetryingVisualUnderstandingPort`, while Gemini transport collapsed timeout and `URLError` conditions into one opaque diagnostic.
+4. The following rerun failed with `MediaTime cannot be represented as an exact integer millisecond`. Audit proved this was not an invalid media timestamp: exact rational timestamps such as `1/24 s` are a supported part of sampling/extraction. The defect was provider prompt formatting that unnecessarily requested `source_timestamp_ms`.
 
-The accepted repair through `49f14cc0a9b4a798491314f58b9d6df9120f350f`:
+The accepted repair through `b6572602c0f7faaa22383dab9fffa361fb946e75`:
 
 - selects `gemini-3.6-flash` for the Stage-A Gemini visual path;
-- uses the accepted `responseFormat.text` structured-output request shape and `APPLICATION_JSON` enum;
-- preserves bounded provider HTTP error details;
-- wraps real Gemini and OpenAI visual providers with the existing transient-only retry decorator;
-- preserves the existing three-attempt retry policy without fake semantics, provider fallback or retries of response/schema failures;
-- distinguishes Gemini timeout failures from other URL/transport failures and surfaces a bounded transport reason;
-- retains the current 60-second per-attempt timeout until real evidence shows that the timeout budget itself is insufficient;
-- adds regression coverage for retry composition and transient transport diagnostics.
+- uses the accepted `responseFormat.text` structured-output shape and `APPLICATION_JSON` enum;
+- preserves bounded provider HTTP and Gemini transport diagnostics;
+- wraps real Gemini and OpenAI visual providers with the existing transient-only three-attempt retry decorator;
+- retains the current 60-second per-attempt timeout until real evidence shows it is insufficient;
+- projects provider-facing frame timestamp descriptions from exact `MediaTime` to deterministic decimal seconds, rather than requiring exact integer milliseconds;
+- leaves internal exact timing, sampling, artifact identity, source grounding and canonical timeline authority unchanged;
+- covers a `MediaTime(1, 24)` frame in both Gemini and OpenAI adapters while retaining the domain rule that this timestamp cannot be represented as an exact integer millisecond.
 
-Exact-head CI is green. This closes the identified Engineering defects only; the same real Planning Product Probe must now be rerun from the ordinary launcher.
+The first CI run of the rational-time repair had only Ruff format failures while 694 tests, mypy, lint, import contracts and build passed. The formatter-only follow-up produced exact-head PASS in run `32127020333`.
+
+This closes the identified Engineering defects only; the same real Planning Product Probe must now be rerun from the ordinary launcher.
 
 ## Active Work Order
 
@@ -107,7 +110,7 @@ real user intent / optional supported reference / commercial facts
 → Human Gate
 ```
 
-The immediate action is to rerun the same real Planning probe after synchronizing the accepted visual-provider repair.
+The immediate action is to rerun the same real Planning probe after synchronizing the accepted rational-time repair.
 
 Planning without reference also remains a legitimate independent path. It requires the current reasoning/direction API but does not require visual-understanding capability.
 
@@ -138,7 +141,7 @@ Do not spend Codex quota on:
 - launcher operation;
 - ordinary deterministic checks;
 - deterministic provider-version compatibility updates;
-- small deterministic provider composition/diagnostic repairs;
+- small deterministic provider composition/diagnostic/time-projection repairs;
 - documentation/governance maintenance.
 
 Codex may be re-released only for a concrete nontrivial implementation defect after ChatGPT classifies the failure.
