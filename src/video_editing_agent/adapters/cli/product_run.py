@@ -18,8 +18,11 @@ from video_editing_agent.application.use_cases.product_flow import (
     EditingProductResult,
     PlanningProductRequest,
     PlanningProductResult,
+    PlanningReferenceInput,
+    PlanningReferenceKind,
     ProductBriefInput,
 )
+from video_editing_agent.domain.brief.model import AuthoritativeFact
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.domain.shooting.model import ProductionConstraints, ProductionLocation
@@ -160,10 +163,31 @@ def _brief(value: object) -> ProductBriefInput:
             "prohibited_content",
             "brand_constraints",
             "user_notes",
+            "authoritative_facts",
         }
     )
     required = frozenset({"title", "objective", "audience", "platform", "core_message"})
     _strict_keys(data, name="brief", allowed=allowed, required=required)
+    facts_value = data.get("authoritative_facts", [])
+    if not isinstance(facts_value, list):
+        raise ValueError("brief.authoritative_facts must be a JSON array")
+    facts: list[AuthoritativeFact] = []
+    for index, raw_fact in enumerate(facts_value):
+        name = f"brief.authoritative_facts[{index}]"
+        fact = _object(raw_fact, name)
+        _strict_keys(
+            fact,
+            name=name,
+            allowed=frozenset({"fact_id", "statement", "source_note"}),
+            required=frozenset({"fact_id", "statement"}),
+        )
+        facts.append(
+            AuthoritativeFact(
+                _text(fact["fact_id"], f"{name}.fact_id"),
+                _text(fact["statement"], f"{name}.statement"),
+                _optional_text(fact.get("source_note"), f"{name}.source_note"),
+            )
+        )
     return ProductBriefInput(
         title=_text(data["title"], "brief.title"),
         objective=_text(data["objective"], "brief.objective"),
@@ -181,7 +205,37 @@ def _brief(value: object) -> ProductBriefInput:
         ),
         brand_constraints=_string_tuple(data.get("brand_constraints"), "brief.brand_constraints"),
         user_notes=_optional_text(data.get("user_notes"), "brief.user_notes"),
+        authoritative_facts=tuple(facts),
     )
+
+
+def _planning_references(base: Path, value: object) -> tuple[PlanningReferenceInput, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list):
+        raise ValueError("references must be a JSON array")
+    results: list[PlanningReferenceInput] = []
+    for index, raw in enumerate(value):
+        name = f"references[{index}]"
+        item = _object(raw, name)
+        _strict_keys(
+            item,
+            name=name,
+            allowed=frozenset({"reference_id", "kind", "description", "url", "path"}),
+            required=frozenset({"reference_id", "kind", "description"}),
+        )
+        results.append(
+            PlanningReferenceInput(
+                _text(item["reference_id"], f"{name}.reference_id"),
+                PlanningReferenceKind(_text(item["kind"], f"{name}.kind")),
+                _text(item["description"], f"{name}.description"),
+                url=_optional_text(item.get("url"), f"{name}.url"),
+                local_path=(
+                    None if item.get("path") is None else _path(base, item["path"], f"{name}.path")
+                ),
+            )
+        )
+    return tuple(results)
 
 
 def _production_constraints(value: object) -> ProductionConstraints:
@@ -264,13 +318,16 @@ def load_planning_request(path: Path) -> PlanningProductRequest:
     _strict_keys(
         data,
         name="planning request",
-        allowed=frozenset({"schema_version", "project", "brief", "production_constraints"}),
+        allowed=frozenset(
+            {"schema_version", "project", "brief", "production_constraints", "references"}
+        ),
         required=frozenset({"schema_version", "project", "brief"}),
     )
     return PlanningProductRequest(
         _path(base, data["project"], "project"),
         _brief(data["brief"]),
         _production_constraints(data.get("production_constraints")),
+        reference_inputs=_planning_references(base, data.get("references")),
     )
 
 

@@ -215,6 +215,15 @@ class ProjectWorkspace:
                 lambda ref, constraints, policy: shooting_workflow.generate(
                     ref, constraints, policy_guidance=policy
                 ),
+                lambda ref, policy, references: script_workflow.generate(
+                    ref, policy_guidance=policy, reference_guidance=references
+                ),
+                lambda ref, constraints, policy, references: shooting_workflow.generate(
+                    ref,
+                    constraints,
+                    policy_guidance=policy,
+                    reference_guidance=references,
+                ),
             ),
             media=None
             if media_probe is None or understanding is None

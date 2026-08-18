@@ -22,6 +22,7 @@ class ProductCapability(StrEnum):
     EDITING_CLOUD_DIRECTOR = "editing_cloud_director"
     VISUAL_UNDERSTANDING = "visual_understanding"
     OPTIONAL_LOCAL_ACCELERATION = "optional_local_acceleration"
+    SHOT_DETECTION = "shot_detection"
 
 
 @dataclass(frozen=True, slots=True)

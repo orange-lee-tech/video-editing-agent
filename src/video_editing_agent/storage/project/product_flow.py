@@ -9,12 +9,17 @@ from pathlib import Path
 from video_editing_agent.application.edl_builder import DeterministicEDLBuilder, EDLBuildRequest
 from video_editing_agent.application.ports.director import DirectorPort
 from video_editing_agent.application.ports.preproduction_planning import (
+    ReferenceStyleGuidance,
     ScriptPlanningPort,
     ShootingPlanningPort,
 )
 from video_editing_agent.application.ports.preproduction_review import (
     ScriptProposalReviewPort,
     ShootingProposalReviewPort,
+)
+from video_editing_agent.application.ports.reference_acquisition import (
+    ReferenceAcquisitionPort,
+    ReferenceAcquisitionRequest,
 )
 from video_editing_agent.application.ports.rendered_media_qc import RenderedMediaQc
 from video_editing_agent.application.ports.renderer import (
@@ -34,6 +39,9 @@ from video_editing_agent.application.use_cases.product_flow import (
     EditingProductOperations,
     PlanningProductFlow,
     PlanningProductOperations,
+    PlanningReferenceInput,
+    PlanningReferenceKind,
+    PreparedPlanningReferences,
     ProductBriefInput,
 )
 from video_editing_agent.application.use_cases.review_runtime import (
@@ -42,7 +50,7 @@ from video_editing_agent.application.use_cases.review_runtime import (
 )
 from video_editing_agent.domain.asset.model import AssetProvenance
 from video_editing_agent.domain.asset.policy import AssetUsageRole
-from video_editing_agent.domain.brief.model import Brief
+from video_editing_agent.domain.brief.model import Brief, BriefReference
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevisionRef, EntityStatus
 from video_editing_agent.domain.edit.model import EditPlan
 from video_editing_agent.domain.edit.resolution import ResolutionDecision, ResolutionDecisionType
@@ -54,6 +62,8 @@ from video_editing_agent.media.ingest.probe import MediaProbe
 from video_editing_agent.media.ingest.service import AssetIngestService
 from video_editing_agent.media.ingest.source import LocalMediaSource
 from video_editing_agent.planning.brief.service import BriefContent
+from video_editing_agent.planning.reference.guidance import to_reference_style_guidance
+from video_editing_agent.planning.reference.service import ReferenceStyleEvidenceService
 from video_editing_agent.storage.asset.repository_media import RepositoryLocalAssetMediaResolver
 from video_editing_agent.storage.project.workspace import ProjectWorkspace
 
@@ -76,6 +86,17 @@ class PlanningProductCapabilities:
     script_review: ScriptProposalReviewPort
     shooting_planning: ShootingPlanningPort
     shooting_review: ShootingProposalReviewPort
+    reference: PlanningReferenceCapabilities | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class PlanningReferenceCapabilities:
+    media_probe: MediaProbe
+    shot_detector: ShotDetector
+    shot_detection_options: ShotDetectionOptions
+    understanding: UnderstandingService
+    acquisition: ReferenceAcquisitionPort | None = None
+    analysis_profile: AnalysisProfile = AnalysisProfile.SEMANTIC
 
 
 @dataclass(frozen=True, slots=True)
@@ -142,11 +163,79 @@ def build_planning_product_flow(
         shooting_planning=capabilities.shooting_planning,
         shooting_review=capabilities.shooting_review,
     )
+    prepare_references = None
+    if capabilities.reference is not None:
+        reference_capabilities = capabilities.reference
+        ingest = AssetIngestService(reference_capabilities.media_probe, repository=workspace.assets)
+        evidence_service = ReferenceStyleEvidenceService(workspace.artifacts)
+
+        def prepare(
+            values: tuple[PlanningReferenceInput, ...],
+        ) -> PreparedPlanningReferences:
+            brief_references: list[BriefReference] = []
+            guidance: list[ReferenceStyleGuidance] = []
+            for value in values:
+                if value.kind is PlanningReferenceKind.DIRECT_HTTPS_VIDEO:
+                    if reference_capabilities.acquisition is None:
+                        raise RuntimeError("direct HTTPS reference acquisition is unavailable")
+                    assert value.url is not None
+                    acquired = reference_capabilities.acquisition.acquire(
+                        ReferenceAcquisitionRequest(value.url)
+                    )
+                    if acquired.acquired is None:
+                        message = "; ".join(item.message for item in acquired.diagnostics)
+                        raise RuntimeError(f"reference acquisition failed: {message}")
+                    path = acquired.acquired.local_path
+                    origin = "reference_https"
+                    provenance = AssetProvenance(
+                        origin_type="reference_https",
+                        source_page=acquired.acquired.original_url,
+                        provider=acquired.acquired.provider,
+                        retrieved_at=acquired.acquired.retrieved_at,
+                    )
+                else:
+                    assert value.local_path is not None
+                    path = value.local_path.expanduser().resolve(strict=True)
+                    origin = "local_reference"
+                    provenance = AssetProvenance(origin_type="local_reference")
+                asset = ingest.ingest(
+                    LocalMediaSource(
+                        path, origin, provenance, AssetUsageRole.REFERENCE_ANALYSIS_ONLY
+                    ),
+                    created_by="product-flow-reference",
+                )
+                asset_ref = EntityRevisionRef(asset.envelope.id, asset.envelope.revision)
+                shots = workspace.detect(
+                    asset_ref,
+                    reference_capabilities.shot_detector,
+                    reference_capabilities.shot_detection_options,
+                )
+                analyses = tuple(
+                    reference_capabilities.understanding.analyze(
+                        EntityRevisionRef(shot.envelope.id, shot.envelope.revision),
+                        reference_capabilities.analysis_profile,
+                    )
+                    for shot in shots
+                )
+                result = evidence_service.analyze(asset, shots, analyses)
+                guidance.append(to_reference_style_guidance(result))
+                brief_references.append(
+                    BriefReference(
+                        value.reference_id, value.kind.value, value.description, asset_ref
+                    )
+                )
+            return PreparedPlanningReferences(tuple(brief_references), tuple(guidance))
+
+        prepare_references = prepare
+
     return PlanningProductFlow(
         PlanningProductOperations(
             lambda value, created_by: _create_brief(workspace, value, created_by),
             runtime.preproduction.generate_script,
             runtime.preproduction.generate_shooting,
+            prepare_references,
+            runtime.preproduction.generate_script_with_references,
+            runtime.preproduction.generate_shooting_with_references,
         )
     )
 

@@ -47,12 +47,12 @@ class RepositoryExactVideoResolver:
 def transnetv2_detector(
     repository: AssetRepository,
     *,
-    model_path: Path,
+    model_path: Path | None,
     device: str,
     ffmpeg_executable: str,
 ) -> ExactPolicyDrivenShotDetector:
-    resolved_model = model_path.expanduser().resolve(strict=True)
-    if not resolved_model.is_file():
+    resolved_model = None if model_path is None else model_path.expanduser().resolve(strict=True)
+    if resolved_model is not None and not resolved_model.is_file():
         raise ValueError(f"TransNetV2 model must be a file: {resolved_model}")
     predictor = TorchTransNetV2WindowPredictor(
         TorchTransNetV2Config(device=device, weights_path=resolved_model)

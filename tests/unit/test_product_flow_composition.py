@@ -4,6 +4,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
 
+import pytest
+
+from video_editing_agent.adapters.product.presentation import (
+    editing_presentation,
+    planning_presentation,
+)
 from video_editing_agent.application.ports.director import (
     DirectorProposal,
     DirectorRequest,
@@ -24,6 +30,10 @@ from video_editing_agent.application.ports.preproduction_review import (
     ShootingProposalReview,
     ShootingProposalReviewRequest,
 )
+from video_editing_agent.application.ports.reference_acquisition import (
+    AcquiredReferenceMedia,
+    ReferenceAcquisitionResult,
+)
 from video_editing_agent.application.ports.rendered_media_qc import RenderedMediaQc
 from video_editing_agent.application.ports.renderer import (
     RenderArtifact,
@@ -37,10 +47,17 @@ from video_editing_agent.application.ports.shot_detector import (
 from video_editing_agent.application.use_cases.product_flow import (
     EditingProductRequest,
     PlanningProductRequest,
+    PlanningReferenceInput,
+    PlanningReferenceKind,
     ProductBriefInput,
     ProductFlowOutcome,
 )
 from video_editing_agent.application.use_cases.review_runtime import ReviewRequest
+from video_editing_agent.domain.asset.policy import (
+    AssetUsageRole,
+    is_visual_resolver_eligible,
+)
+from video_editing_agent.domain.brief.model import AuthoritativeFact
 from video_editing_agent.domain.common.entity import (
     EntityEnvelope,
     EntityRevisionRef,
@@ -65,6 +82,7 @@ from video_editing_agent.storage.project import product_flow as composition_modu
 from video_editing_agent.storage.project.product_flow import (
     EditingProductCapabilities,
     PlanningProductCapabilities,
+    PlanningReferenceCapabilities,
     build_editing_product_flow,
     build_planning_product_flow,
 )
@@ -116,6 +134,44 @@ class AcceptShootingReview:
     def review(self, request: ShootingProposalReviewRequest) -> ShootingProposalReview:
         assert request.proposal.requirements
         return ShootingProposalReview(True)
+
+
+class CapturingScriptPlanning(FakeScriptPlanning):
+    def __init__(self) -> None:
+        self.guidance = ()
+
+    def propose(self, request: ScriptPlanningRequest) -> ScriptPlanProposal:
+        self.guidance = request.reference_guidance
+        return super().propose(request)
+
+
+class CapturingShootingPlanning(FakeShootingPlanning):
+    def __init__(self) -> None:
+        self.guidance = ()
+
+    def propose(self, request: ShootingPlanningRequest) -> ShootingPlanProposal:
+        self.guidance = request.reference_guidance
+        return super().propose(request)
+
+
+class FakeReferenceAcquirer:
+    def __init__(self, path: Path) -> None:
+        self._path = path
+
+    def acquire(self, request) -> ReferenceAcquisitionResult:  # type: ignore[no-untyped-def]
+        return ReferenceAcquisitionResult(
+            AcquiredReferenceMedia(
+                self._path.resolve(),
+                request.url,
+                request.url,
+                "direct_https",
+                None,
+                NOW,
+                "sha256:" + "a" * 64,
+                self._path.stat().st_size,
+                "video/mp4",
+            )
+        )
 
 
 class FakeMediaProbe:
@@ -285,6 +341,81 @@ def test_concrete_planning_composition_persists_script_and_shooting_plan(tmp_pat
         workspace.shooting_plans.load(result.shooting_plan_ref).script_plan_ref
         == result.script_plan_ref
     )
+    presentation = planning_presentation(result)
+    assert "ScriptPlan" in presentation and "Here is the value." in presentation
+    assert "ShootingPlan" in presentation and "req_value" in presentation
+
+
+@pytest.mark.parametrize("kind", ["url", "local"])
+def test_product_reference_bridge_keeps_references_only_and_forwards_guidance(
+    tmp_path: Path, kind: str
+) -> None:
+    workspace = ProjectWorkspace.open(tmp_path / "reference-project")
+    reference_file = tmp_path / "reference.mp4"
+    reference_file.write_bytes(b"reference-original")
+    script, shooting = CapturingScriptPlanning(), CapturingShootingPlanning()
+    flow = build_planning_product_flow(
+        workspace,
+        PlanningProductCapabilities(
+            script,
+            AcceptScriptReview(),
+            shooting,
+            AcceptShootingReview(),
+            PlanningReferenceCapabilities(
+                FakeMediaProbe(),
+                FakeShotDetector(),
+                ShotDetectionOptions(),
+                FakeUnderstanding(workspace),
+                FakeReferenceAcquirer(reference_file),
+            ),
+        ),
+    )
+    brief = ProductBriefInput(
+        "Product value",
+        "show the product value",
+        "buyers",
+        "short-video",
+        "value product",
+        authoritative_facts=(AuthoritativeFact("fact_volume", "Volume is 500 mL"),),
+    )
+    reference_input = (
+        PlanningReferenceInput(
+            "reference_001",
+            PlanningReferenceKind.DIRECT_HTTPS_VIDEO,
+            "User reference",
+            url="https://example.test/reference.mp4",
+        )
+        if kind == "url"
+        else PlanningReferenceInput(
+            "reference_001",
+            PlanningReferenceKind.LOCAL_VIDEO,
+            "User reference",
+            local_path=reference_file,
+        )
+    )
+    result = flow.run(
+        PlanningProductRequest(
+            workspace.root,
+            brief,
+            ProductionConstraints(),
+            reference_inputs=(reference_input,),
+        )
+    )
+
+    assert result.outcome is ProductFlowOutcome.COMPLETED and result.brief_ref is not None
+    persisted = workspace.briefs.load(result.brief_ref)
+    assert persisted.authoritative_facts == brief.authoritative_facts
+    assert persisted.references[0].asset_ref is not None
+    asset = workspace.assets.load(persisted.references[0].asset_ref)
+    assert asset.usage_role is AssetUsageRole.REFERENCE_ANALYSIS_ONLY
+    assert not is_visual_resolver_eligible(
+        media_kind=asset.media_kind,
+        origin=asset.origin,
+        usage_role=asset.usage_role,
+    )
+    assert script.guidance and script.guidance == shooting.guidance
+    assert script.guidance[0].reference_asset_ref == persisted.references[0].asset_ref
+    assert reference_file.read_bytes() == b"reference-original"
 
 
 def test_concrete_editing_composition_reaches_durable_edl_render_and_review(
@@ -339,3 +470,4 @@ def test_concrete_editing_composition_reaches_durable_edl_render_and_review(
         MediaTime(0, 1),
         MediaTime(3, 1),
     )
+    assert str(output) in editing_presentation(result)

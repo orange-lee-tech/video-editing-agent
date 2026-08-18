@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import os
 import platform
 import shutil
@@ -17,6 +18,9 @@ from video_editing_agent.application.ports.preview import (
     PreviewBackend,
     PreviewDiagnosticCode,
     PreviewPlaybackState,
+)
+from video_editing_agent.media.shot_detection.transnet_runtime import (
+    TRANSNETV2_WEIGHTS_FILENAME,
 )
 
 ExecutableLocator = Callable[[str], str | None]
@@ -184,6 +188,36 @@ class FFmpegToolchainProbe:
                 CapabilityStatus.READY,
                 "FFmpeg and ffprobe both passed bounded execution probes",
                 tuple(evidence),
+            ),
+        )
+
+
+class TransNetRuntimeProbe:
+    """Read-only discovery of the reviewed package-owned runtime and weights."""
+
+    def probe(self) -> tuple[EnvironmentCapabilityCheck, ...]:
+        try:
+            spec = importlib.util.find_spec("transnetv2_pytorch")
+        except (ImportError, ModuleNotFoundError, ValueError):
+            spec = None
+        weights = (
+            None
+            if spec is None or spec.origin is None
+            else Path(spec.origin).resolve().parent / TRANSNETV2_WEIGHTS_FILENAME
+        )
+        ready = weights is not None and weights.is_file()
+        return (
+            EnvironmentCapabilityCheck(
+                ProductCapability.SHOT_DETECTION,
+                "transnetv2_runtime",
+                CapabilityStatus.READY if ready else CapabilityStatus.AVAILABLE_AFTER_INSTALL,
+                (
+                    "Reviewed TransNetV2 runtime and package-owned weights are ready"
+                    if ready
+                    else "Reviewed TransNetV2 runtime/weights could not be auto-resolved"
+                ),
+                ((f"weights={weights}",) if ready else ("weights=missing",)),
+                None if ready else "Install the reviewed TransNetV2 runtime, then rerun Doctor.",
             ),
         )
 

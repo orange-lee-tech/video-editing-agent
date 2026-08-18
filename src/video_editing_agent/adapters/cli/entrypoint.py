@@ -17,6 +17,7 @@ from video_editing_agent.providers.environment import (
     FFmpegToolchainProbe,
     PreviewRuntimeProbe,
     SystemHostProbe,
+    TransNetRuntimeProbe,
     VisualProviderConfigurationProbe,
 )
 from video_editing_agent.providers.preview.gstreamer import (
@@ -44,6 +45,7 @@ def _build_environment_doctor(preview_runtime: Path | None) -> EnvironmentDoctor
         (
             SystemHostProbe(),
             FFmpegToolchainProbe(),
+            TransNetRuntimeProbe(),
             PreviewRuntimeProbe(preview_backend),
             ConfiguredSecretProbe(
                 component="deepseek",
@@ -95,4 +97,8 @@ def main(argv: list[str] | None = None) -> int:
         from video_editing_agent.adapters.cli.product_run import main as product_run_main
 
         return product_run_main(arguments[1:])
+    if arguments and arguments[0] == "launch":
+        from video_editing_agent.adapters.product.tkinter_app import launch
+
+        return launch()
     return project_main(arguments)

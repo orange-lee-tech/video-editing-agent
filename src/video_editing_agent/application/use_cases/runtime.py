@@ -4,7 +4,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from video_editing_agent.application.ports.preproduction_planning import PlanningPolicyGuidance
+from video_editing_agent.application.ports.preproduction_planning import (
+    PlanningPolicyGuidance,
+    ReferenceStyleGuidance,
+)
 from video_editing_agent.application.ports.shot_detector import ShotDetectionOptions, ShotDetector
 from video_editing_agent.application.ports.shot_index import ShotCandidate
 from video_editing_agent.application.use_cases.editing_director import GenerateEditPlanRequest
@@ -38,6 +41,19 @@ class PreproductionOperations:
     revise_script: Callable[[EntityRevisionRef, str, PlanningPolicyGuidance | None], ScriptPlan]
     generate_shooting: Callable[
         [EntityRevisionRef, ProductionConstraints, PlanningPolicyGuidance | None], ShootingPlan
+    ]
+    generate_script_with_references: Callable[
+        [EntityRevisionRef, PlanningPolicyGuidance | None, tuple[ReferenceStyleGuidance, ...]],
+        ScriptPlan,
+    ]
+    generate_shooting_with_references: Callable[
+        [
+            EntityRevisionRef,
+            ProductionConstraints,
+            PlanningPolicyGuidance | None,
+            tuple[ReferenceStyleGuidance, ...],
+        ],
+        ShootingPlan,
     ]
 
 

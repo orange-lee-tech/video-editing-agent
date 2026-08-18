@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 from pathlib import Path
 
-from video_editing_agent.application.ports.preproduction_planning import PlanningPolicyGuidance
+from video_editing_agent.application.ports.preproduction_planning import (
+    PlanningPolicyGuidance,
+    ReferenceStyleGuidance,
+)
 from video_editing_agent.application.ports.renderer import RenderResult
 from video_editing_agent.domain.brief.model import (
     AuthoritativeFact,
@@ -41,6 +44,35 @@ class ProductFlowOutcome(StrEnum):
     COMPLETED = "completed"
     CORRECTION_REQUIRED = "correction_required"
     FAILED = "failed"
+
+
+class PlanningReferenceKind(StrEnum):
+    DIRECT_HTTPS_VIDEO = "direct_https_video"
+    LOCAL_VIDEO = "local_video"
+
+
+@dataclass(frozen=True, slots=True)
+class PlanningReferenceInput:
+    reference_id: str
+    kind: PlanningReferenceKind
+    description: str
+    url: str | None = None
+    local_path: Path | None = None
+
+    def __post_init__(self) -> None:
+        if not self.reference_id.strip() or not self.description.strip():
+            raise ValueError("reference_id and description must not be empty")
+        if self.kind is PlanningReferenceKind.DIRECT_HTTPS_VIDEO:
+            if self.url is None or not self.url.strip() or self.local_path is not None:
+                raise ValueError("direct HTTPS reference requires only url")
+        elif self.local_path is None or self.url is not None:
+            raise ValueError("local reference requires only local_path")
+
+
+@dataclass(frozen=True, slots=True)
+class PreparedPlanningReferences:
+    brief_references: tuple[BriefReference, ...]
+    guidance: tuple[ReferenceStyleGuidance, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,6 +121,7 @@ class PlanningProductRequest:
     production_constraints: ProductionConstraints
     policy_guidance: PlanningPolicyGuidance | None = None
     created_by: str = "product-flow"
+    reference_inputs: tuple[PlanningReferenceInput, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.created_by.strip():
@@ -102,6 +135,28 @@ class PlanningProductOperations:
     generate_shooting: Callable[
         [EntityRevisionRef, ProductionConstraints, PlanningPolicyGuidance | None], ShootingPlan
     ]
+    prepare_references: (
+        Callable[[tuple[PlanningReferenceInput, ...]], PreparedPlanningReferences] | None
+    ) = None
+    generate_script_with_references: (
+        Callable[
+            [EntityRevisionRef, PlanningPolicyGuidance | None, tuple[ReferenceStyleGuidance, ...]],
+            ScriptPlan,
+        ]
+        | None
+    ) = None
+    generate_shooting_with_references: (
+        Callable[
+            [
+                EntityRevisionRef,
+                ProductionConstraints,
+                PlanningPolicyGuidance | None,
+                tuple[ReferenceStyleGuidance, ...],
+            ],
+            ShootingPlan,
+        ]
+        | None
+    ) = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -177,39 +232,76 @@ class PlanningProductFlow:
     def __init__(self, operations: PlanningProductOperations) -> None:
         self._operations = operations
 
-    def run(self, request: PlanningProductRequest) -> PlanningProductResult:
-        events: list[ProductFlowEvent] = [
-            ProductFlowEvent(ProductFlowStage.PROJECT_READY, "Project is open and ready"),
-            ProductFlowEvent(ProductFlowStage.INPUT_VALIDATION, "Planning input accepted"),
-        ]
+    def run(
+        self,
+        request: PlanningProductRequest,
+        event_sink: Callable[[ProductFlowEvent], None] | None = None,
+    ) -> PlanningProductResult:
+        events: list[ProductFlowEvent] = []
+
+        def emit(event: ProductFlowEvent) -> None:
+            events.append(event)
+            if event_sink is not None:
+                event_sink(event)
+
+        emit(ProductFlowEvent(ProductFlowStage.PROJECT_READY, "Project is open and ready"))
+        emit(ProductFlowEvent(ProductFlowStage.INPUT_VALIDATION, "Planning input accepted"))
         brief_ref: EntityRevisionRef | None = None
         script_ref: EntityRevisionRef | None = None
         shooting_ref: EntityRevisionRef | None = None
         try:
-            brief = self._operations.create_brief(request.brief, request.created_by)
+            prepared = PreparedPlanningReferences((), ())
+            if request.reference_inputs:
+                if self._operations.prepare_references is None:
+                    raise RuntimeError("reference analysis capability is unavailable")
+                emit(
+                    ProductFlowEvent(
+                        ProductFlowStage.INGEST_UNDERSTANDING,
+                        "Acquiring and analyzing reference-only media",
+                    )
+                )
+                prepared = self._operations.prepare_references(request.reference_inputs)
+            brief_input = replace(
+                request.brief,
+                references=(*request.brief.references, *prepared.brief_references),
+            )
+            brief = self._operations.create_brief(brief_input, request.created_by)
             brief_ref = _ref(brief)
-            events.append(
+            emit(
                 ProductFlowEvent(
                     ProductFlowStage.PLANNING_GENERATION,
                     "Generating and validating ScriptPlan",
                 )
             )
-            script = self._operations.generate_script(brief_ref, request.policy_guidance)
+            script = (
+                self._operations.generate_script(brief_ref, request.policy_guidance)
+                if self._operations.generate_script_with_references is None
+                else self._operations.generate_script_with_references(
+                    brief_ref, request.policy_guidance, prepared.guidance
+                )
+            )
             script_ref = _ref(script)
-            events.append(
+            emit(
                 ProductFlowEvent(
                     ProductFlowStage.PLANNING_GENERATION,
                     "Generating and validating ShootingPlan",
                 )
             )
-            shooting = self._operations.generate_shooting(
-                script_ref,
-                request.production_constraints,
-                request.policy_guidance,
+            shooting = (
+                self._operations.generate_shooting(
+                    script_ref, request.production_constraints, request.policy_guidance
+                )
+                if self._operations.generate_shooting_with_references is None
+                else self._operations.generate_shooting_with_references(
+                    script_ref,
+                    request.production_constraints,
+                    request.policy_guidance,
+                    prepared.guidance,
+                )
             )
             shooting_ref = _ref(shooting)
         except Exception as exc:
-            events.append(ProductFlowEvent(ProductFlowStage.FAILED, "Planning flow failed"))
+            emit(ProductFlowEvent(ProductFlowStage.FAILED, "Planning flow failed"))
             return PlanningProductResult(
                 ProductFlowOutcome.FAILED,
                 request.project_location,
@@ -219,7 +311,7 @@ class PlanningProductFlow:
                 tuple(events),
                 _diagnostic(exc),
             )
-        events.append(ProductFlowEvent(ProductFlowStage.COMPLETED, "Planning flow completed"))
+        emit(ProductFlowEvent(ProductFlowStage.COMPLETED, "Planning flow completed"))
         return PlanningProductResult(
             ProductFlowOutcome.COMPLETED,
             request.project_location,
@@ -234,25 +326,34 @@ class EditingProductFlow:
     def __init__(self, operations: EditingProductOperations) -> None:
         self._operations = operations
 
-    def run(self, request: EditingProductRequest) -> EditingProductResult:
-        events: list[ProductFlowEvent] = [
-            ProductFlowEvent(ProductFlowStage.PROJECT_READY, "Project is open and ready"),
-            ProductFlowEvent(ProductFlowStage.INPUT_VALIDATION, "Editing input accepted"),
-        ]
+    def run(
+        self,
+        request: EditingProductRequest,
+        event_sink: Callable[[ProductFlowEvent], None] | None = None,
+    ) -> EditingProductResult:
+        events: list[ProductFlowEvent] = []
+
+        def emit(event: ProductFlowEvent) -> None:
+            events.append(event)
+            if event_sink is not None:
+                event_sink(event)
+
+        emit(ProductFlowEvent(ProductFlowStage.PROJECT_READY, "Project is open and ready"))
+        emit(ProductFlowEvent(ProductFlowStage.INPUT_VALIDATION, "Editing input accepted"))
         brief_ref: EntityRevisionRef | None = None
         edit_plan_ref: EntityRevisionRef | None = None
         edl_ref: EntityRevisionRef | None = None
         try:
             brief = self._operations.create_brief(request.brief, request.created_by)
             brief_ref = _ref(brief)
-            events.append(
+            emit(
                 ProductFlowEvent(
                     ProductFlowStage.INGEST_UNDERSTANDING,
                     "Ingesting and understanding local media",
                 )
             )
             self._operations.prepare_media(request.local_media_paths)
-            events.append(
+            emit(
                 ProductFlowEvent(
                     ProductFlowStage.EDITING_DECISION,
                     "Generating and persisting EditPlan",
@@ -265,7 +366,7 @@ class EditingProductFlow:
                 request.created_by,
             )
             edit_plan_ref = _ref(edit_plan)
-            events.append(
+            emit(
                 ProductFlowEvent(ProductFlowStage.RESOLVING, "Resolving grounded source selections")
             )
             decisions = self._operations.resolve_edit_plan(edit_plan)
@@ -279,7 +380,7 @@ class EditingProductFlow:
                     slot_id for decision in unresolved for slot_id in decision.target_slot_ids
                 )
                 raise ValueError(f"unresolved EditPlan slots: {slot_ids}")
-            events.append(ProductFlowEvent(ProductFlowStage.EDL_ASSEMBLY, "Building canonical EDL"))
+            emit(ProductFlowEvent(ProductFlowStage.EDL_ASSEMBLY, "Building canonical EDL"))
             edl = self._operations.build_edl(
                 edit_plan,
                 decisions,
@@ -287,18 +388,16 @@ class EditingProductFlow:
             )
             edl_ref = _ref(edl)
             self._operations.save_edl(edl)
-            events.append(ProductFlowEvent(ProductFlowStage.RENDERING, "Rendering canonical EDL"))
+            emit(ProductFlowEvent(ProductFlowStage.RENDERING, "Rendering canonical EDL"))
             render_result = self._operations.render(edl, request.output_path)
-            events.append(
-                ProductFlowEvent(ProductFlowStage.REVIEW_QC, "Reviewing delivered output")
-            )
+            emit(ProductFlowEvent(ProductFlowStage.REVIEW_QC, "Reviewing delivered output"))
             verdict = self._operations.review(
                 edl_ref,
                 render_result,
                 request.requires_audible_output,
             )
         except Exception as exc:
-            events.append(ProductFlowEvent(ProductFlowStage.FAILED, "Editing flow failed"))
+            emit(ProductFlowEvent(ProductFlowStage.FAILED, "Editing flow failed"))
             return EditingProductResult(
                 ProductFlowOutcome.FAILED,
                 request.project_location,
@@ -312,7 +411,7 @@ class EditingProductFlow:
             )
 
         if verdict.disposition is not ReviewDisposition.PASS:
-            events.append(
+            emit(
                 ProductFlowEvent(
                     ProductFlowStage.CORRECTION_REQUIRED,
                     f"Review requires correction via {verdict.correction_route.value}",
@@ -332,7 +431,7 @@ class EditingProductFlow:
 
         artifact = render_result.artifact
         if artifact is None:
-            events.append(ProductFlowEvent(ProductFlowStage.FAILED, "Review passed without output"))
+            emit(ProductFlowEvent(ProductFlowStage.FAILED, "Review passed without output"))
             return EditingProductResult(
                 ProductFlowOutcome.FAILED,
                 request.project_location,
@@ -344,7 +443,7 @@ class EditingProductFlow:
                 tuple(events),
                 "Review PASS requires a RenderArtifact",
             )
-        events.append(ProductFlowEvent(ProductFlowStage.COMPLETED, "Editing flow completed"))
+        emit(ProductFlowEvent(ProductFlowStage.COMPLETED, "Editing flow completed"))
         return EditingProductResult(
             ProductFlowOutcome.COMPLETED,
             request.project_location,

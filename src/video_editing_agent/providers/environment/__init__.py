@@ -3,6 +3,7 @@ from video_editing_agent.providers.environment.probes import (
     FFmpegToolchainProbe,
     PreviewRuntimeProbe,
     SystemHostProbe,
+    TransNetRuntimeProbe,
     VisualProviderConfigurationProbe,
 )
 
@@ -11,5 +12,6 @@ __all__ = [
     "FFmpegToolchainProbe",
     "PreviewRuntimeProbe",
     "SystemHostProbe",
+    "TransNetRuntimeProbe",
     "VisualProviderConfigurationProbe",
 ]

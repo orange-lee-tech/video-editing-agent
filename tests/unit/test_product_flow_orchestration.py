@@ -168,9 +168,13 @@ def test_planning_flow_calls_existing_owners_in_order_and_returns_exact_refs(
         calls.append("shooting")
         return _shooting(ref)
 
+    observed = []
     result = PlanningProductFlow(
         PlanningProductOperations(create_brief, generate_script, generate_shooting)
-    ).run(PlanningProductRequest(tmp_path, _brief_input(), ProductionConstraints()))
+    ).run(
+        PlanningProductRequest(tmp_path, _brief_input(), ProductionConstraints()),
+        observed.append,
+    )
 
     assert calls == ["brief", "script", "shooting"]
     assert result.outcome is ProductFlowOutcome.COMPLETED
@@ -178,6 +182,7 @@ def test_planning_flow_calls_existing_owners_in_order_and_returns_exact_refs(
     assert result.script_plan_ref == EntityRevisionRef("scp_flow", 1)
     assert result.shooting_plan_ref == EntityRevisionRef("shp_flow", 1)
     assert tuple(item.stage for item in result.events)[-1] is ProductFlowStage.COMPLETED
+    assert tuple(observed) == result.events
 
 
 def test_planning_failure_stops_at_owner_boundary_with_failed_progress(tmp_path: Path) -> None:
