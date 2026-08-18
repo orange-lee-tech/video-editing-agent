@@ -4,10 +4,10 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-18
 current_phase: R0.12
-phase_state: STAGE_A_PRODUCT_GATE_CLOSURE_ACTIVE
+phase_state: STAGE_A_PRODUCT_GATE_CLOSURE_PAUSED
 active_work_order: R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001
 accepted_code_baseline: 1e90e2dd3d235271ef48bb7a708a1899ce5b87a4
-control_plane_baseline: 79be7b863d1802ad4f92474b25a357d215ec0dec
+control_plane_baseline: f887496da74c842e2ad9b800db03f58c1646a209
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
 core_1_planning_product_gate: ENGINEERING_PASS_PRODUCT_HUMAN_OPEN
@@ -19,6 +19,14 @@ disclosure_policy: trigger-first
 development_stage: STRUCTURAL_CONSTRUCTION
 writer: chatgpt
 ---
+
+## Pause checkpoint — 2026-08-18
+
+The user explicitly paused construction for record and handoff.
+
+`R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001` remains the current boundary but is **PAUSED**. Codex has no active execution release while paused. Do not resume implementation, Product Probes or Human Gates without explicit user instruction.
+
+On resume, first reobserve current GitHub `main`, exact CI, and any local/Codex state before acting. Preserve unknown local edits and do not assume the repository remained unchanged during the pause.
 
 ## Routing truth
 
@@ -72,9 +80,9 @@ Accepted ProductFlow Engineering evidence:
 
 These facts are Engineering evidence only.
 
-## Current active boundary — Stage-A Product Gate closure
+## Current boundary — Stage-A Product Gate closure / PAUSED
 
-`R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001` is ACTIVE.
+`R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001` is the active boundary but execution is PAUSED.
 
 Ordinary-user surface audit:
 
@@ -96,7 +104,7 @@ The accepted mechanisms work, but the product surface still lacks the complete r
 - Editing folder selection convenience is absent;
 - Environment Doctor lacks mandatory Shot-detection runtime readiness.
 
-### Frozen implementation direction
+### Frozen implementation direction after resume
 
 Reuse the existing owner chain. Add only:
 
@@ -111,33 +119,36 @@ No new Editing architecture, NLE timeline or media authority is authorized.
 
 ## Codex/resource policy
 
-The audit crossed the threshold for one complex local batch.
+Codex: **PAUSED — NO ACTIVE RELEASE**.
 
-Codex: **ACTIVE RELEASE — SINGLE COMPLEX BATCH** for the exact implementation surface frozen in `CURRENT_WORK_ORDER.md` and `R0.12_STAGE_A_PRODUCT_SURFACE_AUDIT.md`.
+The audit previously crossed the threshold for one complex local batch, and its implementation boundary remains frozen in `CURRENT_WORK_ORDER.md`, but execution requires a new explicit user resume.
 
-Complex-batch single-writer rule is active:
+While paused:
 
-- Codex owns this implementation surface until it commits/pushes and stops;
-- ChatGPT must not concurrently modify the same source area;
-- ChatGPT may continue remote observation and independent governance only;
-- after Codex stops, ChatGPT independently reobserves GitHub/CI before acceptance.
+- ChatGPT may only observe and maintain handoff/governance state;
+- no source implementation should be started merely because the Work Order exists;
+- no paid Product Probe should be run;
+- no Product/Human Gate should be claimed.
+
+After explicit resume, the complex-batch single-writer rule applies again.
 
 ## Product evidence boundary
 
 Synthetic hosted Engineering media cannot close either Product Gate.
 
-After the Codex batch is accepted and `main` is green, closure requires real user conditions and Human Gate evidence on the ordinary Windows surface.
+After the product-surface batch is implemented, independently accepted, and exact `main` is green, closure still requires real user conditions and Human Gate evidence on the ordinary Windows surface.
 
 Do not loosen Planning Review, Resolver grounding, EDL authority, Review policy or commercial constraints merely to obtain a PASS.
 
-## Immediate corridor
+## Immediate corridor after explicit resume
 
-1. Codex implements the bounded Stage-A product surface batch and stops;
-2. ChatGPT reobserves exact `main`, diff and CI;
-3. repair only concrete implementation defects;
-4. run real Planning Product Probe + Human Gate;
-5. run real Editing automatic-final-MP4 Product Probe + Human Gate;
-6. set both core gates and Stage-A gate to PASS, and structural progress to 100%, only if all hard evidence passes.
+1. reobserve exact GitHub `main`, CI and local/Codex state;
+2. resume the frozen Stage-A product-surface implementation batch if no conflicting work exists;
+3. ChatGPT independently reobserves exact `main`, diff and CI after Codex stops;
+4. repair only concrete implementation defects;
+5. run real Planning Product Probe + Human Gate;
+6. run real Editing automatic-final-MP4 Product Probe + Human Gate;
+7. set both core gates and Stage-A gate to PASS, and structural progress to 100%, only if all hard evidence passes.
 
 ## Constitutional constraints
 
