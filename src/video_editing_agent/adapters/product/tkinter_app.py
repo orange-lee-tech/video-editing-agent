@@ -4,6 +4,11 @@ import os
 from pathlib import Path
 from typing import Any
 
+from video_editing_agent.adapters.product.api_settings import (
+    ApiCapabilitySettings,
+    apply_settings_to_environment,
+    settings_from_environment,
+)
 from video_editing_agent.adapters.product.composition import editing_flow, planning_flow
 from video_editing_agent.adapters.product.controller import (
     BriefForm,
@@ -57,6 +62,25 @@ _TEXT = {
         "filetype_mp4": "MP4 视频",
         "filetype_all": "所有文件",
         "switch_language": "English",
+        "settings": "设置",
+        "settings_title": "API 设置",
+        "settings_intro": "本软件不附赠 API 密钥。请使用你自己的 API 服务。",
+        "settings_no_video": "这些 API 仅用于理解、推理、规划和剪辑决策，不用于视频生成。",
+        "settings_session": "当前 Stage A 仅在本次应用会话中使用密钥；不会写入项目、仓库或日志。",
+        "thinking_title": "思考指挥",
+        "thinking_provider": "当前支持：DeepSeek",
+        "thinking_usage": "用于脚本规划、拍摄规划、方案复审，以及自动剪辑中的导演/编辑决策。",
+        "visual_title": "视觉理解",
+        "visual_provider": "视觉 API 提供方",
+        "visual_usage": "用于理解参考视频和本地素材抽帧后的画面内容，为镜头选择提供语义证据。",
+        "visual_warning": "允许两个能力位使用相同密钥；但视觉理解所对应的 API / 模型必须支持图像输入，否则素材分析会失败。",
+        "api_key": "API 密钥",
+        "save_settings": "应用设置",
+        "cancel": "取消",
+        "settings_applied": "API 设置已应用到本次会话。",
+        "api_none": "API：未配置",
+        "api_partial": "API：已配置 {count}/2",
+        "api_complete": "API：2/2 已配置",
     },
     "en": {
         "window_title": "Video Editing Agent — Stage A",
@@ -95,6 +119,25 @@ _TEXT = {
         "filetype_mp4": "MP4 video",
         "filetype_all": "All files",
         "switch_language": "简体中文",
+        "settings": "Settings",
+        "settings_title": "API Settings",
+        "settings_intro": "This application does not include API keys. Use your own API services.",
+        "settings_no_video": "These APIs are used only for understanding, reasoning, planning and editing decisions, not for video generation.",
+        "settings_session": "Stage A uses keys only for this application session; they are not written to the project, repository or logs.",
+        "thinking_title": "Reasoning & Direction",
+        "thinking_provider": "Currently supported: DeepSeek",
+        "thinking_usage": "Used for script planning, shooting planning, proposal review, and director/editorial decisions during automatic editing.",
+        "visual_title": "Visual Understanding",
+        "visual_provider": "Visual API Provider",
+        "visual_usage": "Used to understand frames extracted from reference videos and local footage, producing semantic evidence for shot selection.",
+        "visual_warning": "The same key may be entered for both capabilities, but the API/model used for Visual Understanding must support image input or media analysis will fail.",
+        "api_key": "API Key",
+        "save_settings": "Apply Settings",
+        "cancel": "Cancel",
+        "settings_applied": "API settings were applied to this session.",
+        "api_none": "API: not configured",
+        "api_partial": "API: {count}/2 configured",
+        "api_complete": "API: 2/2 configured",
     },
 }
 
@@ -106,14 +149,29 @@ def launch() -> int:
     root = tk.Tk()
     root.geometry("940x760")
     language = tk.StringVar(value="zh-CN")
+    api_settings = settings_from_environment(os.environ)
 
     def text(key: str) -> str:
         return _TEXT[language.get()][key]
+
+    def api_status_text() -> str:
+        configured = sum(
+            bool(value.strip()) for value in (api_settings.thinking_key, api_settings.visual_key)
+        )
+        if configured == 0:
+            return text("api_none")
+        if configured == 2:
+            return text("api_complete")
+        return text("api_partial").format(count=configured)
 
     header = ttk.Frame(root)
     header.pack(fill="x", padx=10, pady=(10, 0))
     language_button = ttk.Button(header)
     language_button.pack(side="right")
+    settings_button = ttk.Button(header)
+    settings_button.pack(side="right", padx=(0, 8))
+    api_status = ttk.Label(header)
+    api_status.pack(side="right", padx=(0, 8))
 
     notebook = ttk.Notebook(root)
     notebook.pack(fill="both", expand=True, padx=10, pady=10)
@@ -167,12 +225,100 @@ def launch() -> int:
         for widget, key in translated_widgets:
             widget.configure(text=text(key))
         language_button.configure(text=text("switch_language"))
+        settings_button.configure(text=text("settings"))
+        api_status.configure(text=api_status_text())
 
     def toggle_language() -> None:
         language.set("en" if language.get() == "zh-CN" else "zh-CN")
         update_language()
 
     language_button.configure(command=toggle_language)
+
+    def open_settings() -> None:
+        nonlocal api_settings
+        dialog = tk.Toplevel(root)
+        dialog.title(text("settings_title"))
+        dialog.geometry("660x540")
+        dialog.transient(root)
+        dialog.grab_set()
+        dialog.columnconfigure(0, weight=1)
+
+        ttk.Label(dialog, text=text("settings_intro"), wraplength=610).grid(
+            row=0, column=0, sticky="w", padx=18, pady=(18, 4)
+        )
+        ttk.Label(dialog, text=text("settings_no_video"), wraplength=610).grid(
+            row=1, column=0, sticky="w", padx=18, pady=4
+        )
+        ttk.Label(dialog, text=text("settings_session"), wraplength=610).grid(
+            row=2, column=0, sticky="w", padx=18, pady=(4, 14)
+        )
+
+        thinking = ttk.LabelFrame(dialog, text=text("thinking_title"))
+        thinking.grid(row=3, column=0, sticky="ew", padx=18, pady=8)
+        thinking.columnconfigure(1, weight=1)
+        ttk.Label(thinking, text=text("thinking_provider")).grid(
+            row=0, column=0, columnspan=2, sticky="w", padx=10, pady=(10, 4)
+        )
+        ttk.Label(thinking, text=text("thinking_usage"), wraplength=580).grid(
+            row=1, column=0, columnspan=2, sticky="w", padx=10, pady=4
+        )
+        ttk.Label(thinking, text=text("api_key")).grid(
+            row=2, column=0, sticky="w", padx=10, pady=(8, 10)
+        )
+        thinking_key = tk.StringVar(value=api_settings.thinking_key)
+        ttk.Entry(thinking, textvariable=thinking_key, show="•", width=60).grid(
+            row=2, column=1, sticky="ew", padx=(4, 10), pady=(8, 10)
+        )
+
+        visual = ttk.LabelFrame(dialog, text=text("visual_title"))
+        visual.grid(row=4, column=0, sticky="ew", padx=18, pady=8)
+        visual.columnconfigure(1, weight=1)
+        ttk.Label(visual, text=text("visual_usage"), wraplength=580).grid(
+            row=0, column=0, columnspan=2, sticky="w", padx=10, pady=(10, 4)
+        )
+        ttk.Label(visual, text=text("visual_provider")).grid(
+            row=1, column=0, sticky="w", padx=10, pady=6
+        )
+        visual_provider = tk.StringVar(value=api_settings.visual_provider.capitalize())
+        ttk.Combobox(
+            visual,
+            textvariable=visual_provider,
+            values=("Gemini", "OpenAI"),
+            state="readonly",
+            width=16,
+        ).grid(row=1, column=1, sticky="w", padx=(4, 10), pady=6)
+        ttk.Label(visual, text=text("api_key")).grid(
+            row=2, column=0, sticky="w", padx=10, pady=6
+        )
+        visual_key = tk.StringVar(value=api_settings.visual_key)
+        ttk.Entry(visual, textvariable=visual_key, show="•", width=60).grid(
+            row=2, column=1, sticky="ew", padx=(4, 10), pady=6
+        )
+        ttk.Label(visual, text=text("visual_warning"), wraplength=580).grid(
+            row=3, column=0, columnspan=2, sticky="w", padx=10, pady=(6, 10)
+        )
+
+        buttons = ttk.Frame(dialog)
+        buttons.grid(row=5, column=0, sticky="e", padx=18, pady=16)
+
+        def save_settings() -> None:
+            nonlocal api_settings
+            api_settings = ApiCapabilitySettings(
+                thinking_key=thinking_key.get(),
+                visual_key=visual_key.get(),
+                visual_provider=visual_provider.get().casefold(),
+            )
+            apply_settings_to_environment(api_settings, os.environ)
+            api_status.configure(text=api_status_text())
+            dialog.destroy()
+            messagebox.showinfo(text("settings_title"), text("settings_applied"), parent=root)
+
+        ttk.Button(buttons, text=text("cancel"), command=dialog.destroy).pack(
+            side="right", padx=(8, 0)
+        )
+        ttk.Button(buttons, text=text("save_settings"), command=save_settings).pack(side="right")
+
+    settings_button.configure(command=open_settings)
 
     def show_event(widget: Any, event: ProductFlowEvent) -> None:
         widget.insert("end", f"[{event.stage.value}] {event.message}\n")
