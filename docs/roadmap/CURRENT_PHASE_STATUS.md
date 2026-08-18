@@ -4,8 +4,16 @@
 **Development stage:** STRUCTURAL_CONSTRUCTION  
 **Structural progress:** 90%  
 **Current phase:** R0.12 — EDL / Renderer / Review / runtime productization  
-**Engineering state:** STAGE_A_PRODUCT_GATE_CLOSURE_ACTIVE  
+**Engineering state:** STAGE_A_PRODUCT_GATE_CLOSURE_PAUSED  
 **Updated:** 2026-08-18
+
+## Pause checkpoint
+
+Construction is explicitly paused by the user for record and handoff.
+
+Active boundary remains `R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001`, but no Codex/product-surface implementation or Product/Human Gate execution is authorized until the user explicitly resumes.
+
+On resume, first reobserve live GitHub `main`, CI and any local/Codex work before acting.
 
 ## Progress meaning
 
@@ -58,29 +66,31 @@ Accepted mechanism evidence includes:
 
 This is Engineering evidence, not real Product Gate/Human Gate evidence.
 
-## Active Work Order
+## Active Work Order — PAUSED
 
-`R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001` is ACTIVE.
+`R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001` remains the active boundary but is PAUSED.
 
 The final Stage-A construction boundary is ordinary-user Product Gate closure, not more backend construction.
 
-### Required first action — usability gap audit
+### Ordinary-user surface audit — COMPLETE
 
-Audit current product entry surfaces against the Stage-A gate before selecting a frontend/toolkit.
+Audit evidence:
 
-Determine which parts already exist for an ordinary Windows user:
+`docs/validation/R0.12_STAGE_A_PRODUCT_SURFACE_AUDIT.md`
 
-- create/open project;
-- Planning goal/reference/commercial input;
-- inspect ScriptPlan/ShootingPlan;
-- local footage/folder selection;
-- editing intent/output destination;
-- workflow start;
-- understandable progress/failure;
-- plan/output discovery;
-- provider/runtime configuration without requiring editorial users to know internal model/runtime arguments.
+Audit result: **IMPLEMENTATION REQUIRED**.
 
-Do not assume a new GUI is necessary until existing launcher/CLI surfaces are inspected.
+Confirmed gaps include:
+
+- ordinary Planning input lacks accepted authoritative-fact/reference inputs;
+- existing `ReferenceStyleGuidance` is not fully plumbed into both Planning owners;
+- current ProductFlow launch requires hand-written JSON;
+- Editing exposes runtime/model/TransNet/tool plumbing to the launcher path;
+- no ordinary Windows launcher/file chooser exists;
+- Planning results are not directly presented as readable exact plans;
+- progress events are not observable live;
+- folder selection convenience is absent;
+- Environment Doctor lacks mandatory Shot-detection runtime readiness coverage.
 
 ### Planning Product Gate target
 
@@ -136,10 +146,10 @@ Human Gate should ask ordinary judgments such as usable/unusable, obvious proble
 - no optional music/spatial asset is fabricated simply to obtain PASS;
 - no structural-progress bump for UI shell completion alone.
 
-## Immediate corridor
+## Immediate corridor after explicit resume
 
-1. complete ordinary-user surface audit;
-2. implement the smallest missing Windows product surface only;
+1. reobserve live GitHub `main`, CI and local/Codex state;
+2. resume the already-frozen ordinary-user product-surface batch only if no conflicting work exists;
 3. pass deterministic repository gates;
 4. run real Planning Product Probe + Human Gate;
 5. run real Editing Product Probe + Human Gate;
