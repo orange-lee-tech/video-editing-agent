@@ -3,14 +3,36 @@
 **ID:** `R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001`  
 **Status:** ACTIVE  
 **Phase:** R0.12 — Stage-A ordinary-user Product Gate closure  
-**Mode:** PRODUCT PROBE → HUMAN GATE  
+**Mode:** PRODUCT PROBE → TEMPORARY UX STABILIZATION → HUMAN GATE  
 **Accepted production-code baseline:** `af5865df14b9f1cceaa9e6c1fe4dadf14cc60058`  
 **Activated:** 2026-08-18  
-**Codex release:** CLOSED — NO ACTIVE CODEX WRITER
+**Codex release:** OPEN — ONE BOUNDED WINDOWS/TKINTER UX WAVE ONLY
 
 ## Objective
 
-Close Stage A only through real ordinary-user evidence for the two frozen core product functions. Do not add more backend construction or product polish merely to increase confidence.
+Close Stage A only through real ordinary-user evidence for the two frozen core product functions.
+
+Planning Product/Human Gate is already **PASS**. Editing Engineering mechanism is **PASS**, while the real Editing Product/Human Gate remains **OPEN**.
+
+On 2026-08-18 the real Editing probe became temporarily blocked by the user's Gemini free-tier quota after multiple legitimate real-product requests. The user explicitly chose to use the quota-reset interval to consolidate already-recorded ordinary-user UX/robustness work instead of repeatedly consuming provider quota.
+
+This does **not** raise structural progress above 90%, does **not** close Editing Product Gate, and does **not** authorize product-core redesign.
+
+## Frozen architecture
+
+The following remain unchanged:
+
+- Planning-only: `Brief → ScriptPlan → ShootingPlan`;
+- Editing-only: `Brief/editorial intent + user local footage → Editing Core`;
+- Combined: exact Planning revisions optionally enrich the same Editing Core;
+- reference-only media remains Resolver-ineligible;
+- final commercial visuals come from user-selected local footage;
+- source-time grounding remains Resolver-owned;
+- canonical EDL remains the sole exact timeline authority;
+- Renderer executes only;
+- Review classifies/routes only;
+- originals remain protected;
+- no silent provider switching or fabricated replacement media.
 
 ## Gate state
 
@@ -22,185 +44,93 @@ Durable evidence:
 
 `docs/validation/R0.12_STAGE_A_PLANNING_PRODUCT_GATE.md`
 
-The real ordinary Windows launcher produced inspectable ScriptPlan and ShootingPlan revisions and the user explicitly judged both acceptable with no blocking issue in the accepted result.
-
-Known follow-up UX/robustness work is preserved in:
-
-`docs/roadmap/PRODUCT_UX_BACKLOG.md`.
-
-Those items do not reopen Planning PASS.
+The ordinary Windows launcher completed a real Planning run and produced persisted ScriptPlan/ShootingPlan revisions. The user judged both acceptable with no blocking issue.
 
 ### Editing Product Gate
 
 **ENGINEERING PASS / PRODUCT PROBE IN PROGRESS / HUMAN GATE OPEN**.
 
-Real Editing-only probes have already crossed local input validation and media understanding far enough to expose two evidence-backed runtime defects: a malformed DeepSeek Director exact-duration proposal and a Gemini 429 retry-delay handling defect. Both now have bounded fail-closed repairs on the accepted baseline.
+Real Windows probes have already crossed input validation and local-media understanding far enough to expose and repair:
 
-This remains the active execution boundary.
+1. Gemini model/API-contract migration defects;
+2. exact `MediaTime` provider-presentation misuse;
+3. missing bounded visual transient retry wiring;
+4. malformed DeepSeek Director exact-duration proposals;
+5. provider-aware Gemini retry-delay handling.
 
-## Frozen architecture
+Accepted production-code baseline:
 
-### Planning-only
+`af5865df14b9f1cceaa9e6c1fe4dadf14cc60058`
 
-```text
-real user goal / commercial facts / optional supported reference
-→ Brief
-→ optional reference-only analysis / ReferenceStyleGuidance
-→ ScriptPlanningWorkflow
-→ ShootingPlanningWorkflow
-→ persisted exact ScriptPlan + ShootingPlan
-→ ordinary-user presentation
-```
+Exact-head CI:
 
-### Editing-only
+`32145822611` — `ci/quality-gate-diagnostic = success`.
 
-```text
-user-selected local footage + editing intent + output MP4
-→ existing Editing ProductFlow
-→ grounded Resolver
-→ canonical EDL
-→ Renderer
-→ Review
-→ final MP4 / explicit correction route
-```
+A subsequent real Editing-only run reached `ingest_understanding` and failed with a genuine Gemini HTTP 429 after the account/project's current free-tier quota was exhausted. The provider condition is explicit and must not be bypassed by silent model/provider switching.
 
-### Combined
+## Temporary execution boundary — ordinary-user UX stabilization
 
-Exact ScriptPlan/ShootingPlan revisions from a successful Planning result in the same launcher session and same project may optionally enrich the same Editing Core. Editing-only remains independently valid.
+While the provider quota prevents a useful same-day Editing re-probe, execute exactly one bounded UX stabilization wave described in:
 
-Canonical EDL remains sole exact timeline authority.
+`docs/operations/STAGE_A_UX_STABILIZATION_WAVE.md`
 
-## Accepted Director robustness repair
+The wave may touch the ordinary launcher, product adapter/controller/presentation seams, safe local profile support, provider-facing retry/status presentation, and directly related tests.
 
-An earlier real Editing-only probe reached `editing_decision` and failed with:
+It must **not** refactor EDL/Resolver/Renderer/Review ownership, change provider authority, or broaden into a new application architecture.
 
-`DeepSeekPlanningResponseError: invalid minimum_duration`.
+### User-approved source-selection simplification
 
-Accepted repair through `c61c7e5abc8b7b388e0e92ad9ae533d094a27707`:
+The Editing launcher shall expose **one** local footage input mechanism:
 
-- supplies a complete valid Director JSON example to DeepSeek;
-- explicitly states exact duration `value` / `scale` and positivity/order constraints;
-- preserves strict local `MediaTime` and EditSlot validation;
-- never coerces invalid provider values into a valid-looking plan;
-- allows exactly one bounded repair proposal after a locally invalid first proposal, carrying the specific local validation error back as repair feedback;
-- still fails closed when the second proposal is invalid;
-- provides precise diagnostics for malformed/non-integer/non-positive exact-time values;
-- has regression coverage for one invalid-then-valid sequence and a two-invalid bounded failure.
+- keep `素材文件 / Media Files`;
+- support multi-select in one chooser;
+- remove the separate `素材文件夹 / Media Folder` field and button from the ordinary UI;
+- do not silently scan unrelated files from a directory;
+- preserve deterministic user-selected local-footage provenance.
 
-## Accepted provider-aware visual retry repair
+Lower-level folder expansion may remain temporarily for compatibility if removing it would create unrelated churn, but it must no longer be an ordinary-user surface.
 
-After synchronizing the Director repair and launching a fresh Windows process, the real Editing-only probe reached local-media `ingest_understanding` and received a genuine Gemini HTTP 429 response reporting:
+## Codex release boundary
 
-`generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash; Please retry in 10.577272831s`.
+This is a justified Codex release because the requested UX wave spans multiple files and requires local Windows/Tkinter behavior, background execution/responsiveness, safe Windows credential persistence, file dialogs, and regression tests.
 
-The provider condition itself is legitimate, but audit found a runtime defect: the existing retry decorator waited only 0.3 seconds and then 0.6 seconds, ignoring the provider's explicit recovery delay and exhausting the three bounded attempts before the indicated window could recover.
+Codex may:
 
-Accepted repair through `af5865df14b9f1cceaa9e6c1fe4dadf14cc60058`:
+- implement the exact UX wave;
+- add/modify focused tests;
+- perform small reversible refactors inside the product adapter/UI layer when required for testability;
+- run formatter/lint/mypy/tests/build locally;
+- commit/push one coherent implementation to `main` only after the local quality gate is green.
 
-- `VisualProviderTransientError` can carry an optional validated `retry_after_seconds` hint;
-- the Gemini transport extracts Google `RetryInfo.retryDelay` and retains a bounded message fallback for `retry in <seconds>s`;
-- the visual retry decorator waits for the greater of its local bounded backoff and the provider-required delay;
-- total attempts remain capped at three;
-- there is no silent provider/model switch, quota bypass or fake semantic output;
-- persistent provider quota exhaustion still fails closed with the real error;
-- regression coverage proves structured RetryInfo propagation, fallback parsing and provider-directed waiting.
+Codex must not:
 
-Exact accepted head `af5865df14b9f1cceaa9e6c1fe4dadf14cc60058` is green in CI run `32145822611` (`ci/quality-gate-diagnostic = success`).
+- redesign product-core architecture;
+- weaken factual review, Resolver grounding, EDL authority, Review policy, or original-media protection;
+- add a brittle Douyin/platform scraper;
+- store API keys in plaintext profile files;
+- silently change provider/model to escape quota;
+- invent fake progress percentages or fake ETA values;
+- implement decorative controls that do nothing;
+- create R0.12A/B/C-style microphases.
 
-## Current execution boundary
+After Codex reports completion, ChatGPT must reobserve exact `origin/main`, diff, tests and CI before accepting the result.
 
-The remaining gate work is the **real Editing Product Probe + Editing Human Gate**.
+## Return to Editing Product Gate
 
-Prefer:
+After the UX wave is accepted and provider quota is available again:
 
-- user-run PowerShell for local Windows synchronization, source hashing and deterministic checks;
-- ChatGPT for GitHub observation, evidence review and governance;
-- Codex only if a concrete nontrivial implementation defect is proven and cannot be repaired safely through a small deterministic ChatGPT/GitHub change.
-
-Do not spend Codex quota on package installation, PATH repair, secret configuration, ordinary launcher operation, documentation maintenance, bounded provider retry/proposal repairs or cosmetic UX backlog items.
-
-## Editing Product Gate rerun
-
-Run through the ordinary `video-editing-agent launch` Editing surface using user-selected real/private local footage.
-
-Required evidence:
-
-1. select real local source media through one unambiguous source-selection method — explicit files **or** a source folder, not both for the gate-closing run;
-2. record non-empty SHA-256 source hashes before the run;
-3. supply real editing intent/Brief fields and an MP4 output destination;
-4. use **Editing-only** for this gate probe; keep Planning enrichment unchecked;
-5. allow the application to honor short provider-directed retry waits instead of manually restarting while a recoverable 429 window is active;
-6. actual ingest / shot detection / understanding / Director / grounded Resolver / canonical EDL / Renderer / Review chain runs;
-7. a real final MP4 is produced only on Review PASS;
-8. source hashes after the run match the before-run hashes;
-9. the user watches the final MP4 and judges usefulness and obvious defects.
-
-A persistent account/provider quota exhaustion after bounded retries is a provider condition and must fail explicitly; it does not authorize silent switching or fabricated output.
-
-Human Gate questions remain ordinary:
-
-- Is the final video usable as an automatic Stage-A result?
-- Are there obvious wrong shots, bad cuts, audio/subtitle problems or missing content?
-- Did the workflow behave understandably from source selection to final MP4?
-
-Editing Product Gate may PASS only after both execution evidence and Human Gate are positive.
-
-## Known product backlog that must not distract from this gate
-
-`docs/roadmap/PRODUCT_UX_BACKLOG.md` contains ordinary-user requests for:
-
-- output scrollbar/TXT export;
-- real-data estimated completion time to the minute, recalculated at least every 30 seconds;
-- UI-aligned localization;
-- profile persistence and protected credential storage;
-- placeholder guidance;
-- bounded reference share-link handling;
-- no-facts safe creative repair;
-- opt-in public-material guidance / similar-example research;
-- startup splash/progress polish.
-
-Provider-directed waits should eventually be surfaced in the same progress/ETA experience so an ordinary user can see that the application is deliberately waiting to retry rather than frozen.
-
-Only repair a backlog item now if it directly blocks the Editing Product Probe.
-
-## Failure classification
-
-If the real Editing probe fails, classify before changing code:
-
-1. **environment/configuration** — repair locally with PowerShell/configuration;
-2. **provider/network/input condition** — retry only with evidence and without weakening policy;
-3. **product-surface usability defect** — small deterministic repair if clear;
-4. **implementation/architecture defect** — only then consider a bounded Codex release;
-5. **Human Gate quality failure** — preserve evidence and repair the actual quality cause rather than gaming the gate.
-
-No failure authorizes silent provider switching, synthetic replacement visuals, fabricated timestamps, Review weakening or Resolver/EDL authority changes.
-
-## Required invariants
-
-- Planning-only remains independently usable;
-- Editing-only remains independently activatable;
-- Combined remains optional enrichment only;
-- reference media stays `REFERENCE_ANALYSIS_ONLY` and Resolver-ineligible;
-- commercial final visuals come from user-selected local footage;
-- source-time grounding remains Resolver-owned;
-- canonical EDL remains sole exact timeline authority;
-- Renderer executes only;
-- Review classifies/routes only;
-- originals remain protected;
-- no ordinary-user internal IDs/timestamps are required;
-- no silent stock/generated visual substitution;
-- no silent provider switching.
+1. synchronize the accepted `main` to Windows;
+2. launch the ordinary product surface;
+3. select real footage through the single multi-select local-file mechanism;
+4. record non-empty source SHA-256 hashes before the gate-closing run;
+5. keep Combined unchecked for the Editing-only proof;
+6. execute actual ingest / shot detection / understanding / Director / grounded Resolver / canonical EDL / Renderer / Review;
+7. produce a real final MP4 only on Review PASS;
+8. verify source hashes remain unchanged;
+9. let the user watch the MP4 and complete the ordinary Editing Human Gate.
 
 ## Structural progress
 
-Remain at **90%** until Editing also PASSes.
+Remain at **90%** until Editing Product/Human Gate also PASSes.
 
-Set 100% only when:
-
-1. Planning Product/Human Gate = PASS;
-2. Editing Product/Human Gate = PASS with a real final MP4;
-3. Planning-only / Editing-only / Combined invariants remain intact;
-4. ordinary Windows usability is demonstrated;
-5. accepted `main` is green;
-6. exact environment/provider/machine limitations are recorded;
-7. `docs/roadmap/STAGE_A_COMPLETION_GATE.md` is fully satisfied.
+Stage A may reach 100% only when both core Product/Human Gates pass and `docs/roadmap/STAGE_A_COMPLETION_GATE.md` is fully satisfied.
