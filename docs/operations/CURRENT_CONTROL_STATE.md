@@ -6,7 +6,7 @@ updated: 2026-08-18
 current_phase: R0.12
 phase_state: STAGE_A_PRODUCT_GATE_EXECUTION_ACTIVE
 active_work_order: R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001
-accepted_code_baseline: c054ea7198334380dbbcd010145abb3043bc630e
+accepted_code_baseline: 3b51fcab3f3fa97d3f8884a63a973079b3d6f9d2
 control_plane_baseline: 79c3be540f335477699223292580f32f6bb3c807
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
@@ -34,7 +34,7 @@ Canonical EDL remains sole exact timeline authority.
 
 Current accepted production-code baseline:
 
-`c054ea7198334380dbbcd010145abb3043bc630e`
+`3b51fcab3f3fa97d3f8884a63a973079b3d6f9d2`
 
 Original Stage-A product-surface implementation closure:
 
@@ -42,7 +42,7 @@ Original Stage-A product-surface implementation closure:
 
 Current exact-head CI:
 
-`32122290513` — `ci/quality-gate-diagnostic = success`.
+`32123141557` — `ci/quality-gate-diagnostic = success`.
 
 The accepted Stage-A ordinary-user surface includes:
 
@@ -58,31 +58,22 @@ The existing provider adapters and ownership boundaries remain unchanged. The Se
 
 ## Real Product Probe defect evidence — Gemini compatibility
 
-A real Windows Planning Product Probe using a user-selected local reference video reached the visual-understanding provider and failed with Gemini HTTP 404.
+A real Windows Planning Product Probe using a user-selected local reference video reached the visual-understanding provider and exposed two sequential Gemini compatibility defects.
 
-Independent provider-level reproduction with the same user-owned credential and the actual local proxy established:
+First, `gemini-2.5-flash` returned provider `NOT_FOUND` for `generateContent` and directed new users to `gemini-3.6-flash`. The accepted repair moved the Stage-A Gemini visual default to `gemini-3.6-flash` and preserved bounded provider error detail.
 
-- Gemini API authentication and model listing were reachable;
-- the credential could list `models/gemini-2.5-flash`;
-- `generateContent` for that model returned a provider `NOT_FOUND` response stating that the model is no longer available to new users and directing migration to `models/gemini-3.6-flash`.
+Second, the rerun reached `gemini-3.6-flash` but returned HTTP 400 because `generationConfig.responseFormat.text.mimeType` was sent as the legacy string `application/json`. The live provider contract and current API reference require the enum value `APPLICATION_JSON` in this REST object. The accepted repair through `3b51fcab3f3fa97d3f8884a63a973079b3d6f9d2` now sends that enum and locks it in regression coverage.
 
-This was classified as a concrete provider-compatibility implementation defect, not a key, proxy, FFmpeg, TransNet, source-media or Human Gate failure.
+The current visual semantics schema fields used by the adapter remain inside Google's documented structured-output subset, including nullable type arrays, `additionalProperties`, `minimum`, and `maximum`.
 
-Accepted repair through `c054ea7198334380dbbcd010145abb3043bc630e`:
-
-- Stage-A Gemini visual default updated to `gemini-3.6-flash`;
-- Gemini structured-output request aligned with the current `responseFormat.text` schema contract;
-- bounded provider error detail is now surfaced instead of discarding the useful provider message;
-- regression coverage pins the Stage-A Gemini default and the current structured-output request shape.
-
-This repair is Engineering PASS only. The same real Planning Product Probe must be rerun before any Product/Human Gate can pass.
+These repairs are Engineering PASS only. The same real Planning Product Probe must be rerun before any Product/Human Gate can pass.
 
 ## Stage-A completion truth
 
 Structural progress remains **90%**.
 
 - Stage-A completion gate: OPEN.
-- Planning: Engineering mechanism PASS; real Product Probe remains in progress after the provider compatibility repair; Human Gate OPEN.
+- Planning: Engineering mechanism PASS; real Product Probe remains in progress after provider compatibility repair; Human Gate OPEN.
 - Editing: Engineering mechanism PASS; Product Probe / Human Gate OPEN.
 
 Engineering tests, CI, launcher smoke, bilingual UI, API Settings or provider repair do not authorize 100%.
