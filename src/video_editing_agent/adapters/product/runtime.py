@@ -71,7 +71,7 @@ def resolve_product_runtime(
             "auto-resolved; run Doctor."
         )
     if env.get("GEMINI_API_KEY", "").strip():
-        visual_provider, visual_model = "gemini", "gemini-2.5-flash"
+        visual_provider, visual_model = "gemini", "gemini-3.6-flash"
     elif env.get("OPENAI_API_KEY", "").strip():
         visual_provider, visual_model = "openai", "gpt-5-mini"
     elif media_required:
