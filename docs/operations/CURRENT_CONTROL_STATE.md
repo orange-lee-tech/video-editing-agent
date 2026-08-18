@@ -6,7 +6,7 @@ updated: 2026-08-18
 current_phase: R0.12
 phase_state: STAGE_A_PRODUCT_GATE_EXECUTION_ACTIVE
 active_work_order: R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001
-accepted_code_baseline: 3b51fcab3f3fa97d3f8884a63a973079b3d6f9d2
+accepted_code_baseline: 49f14cc0a9b4a798491314f58b9d6df9120f350f
 control_plane_baseline: 79c3be540f335477699223292580f32f6bb3c807
 structural_progress_percent: 90
 stage_a_completion_gate: OPEN
@@ -34,7 +34,7 @@ Canonical EDL remains sole exact timeline authority.
 
 Current accepted production-code baseline:
 
-`3b51fcab3f3fa97d3f8884a63a973079b3d6f9d2`
+`49f14cc0a9b4a798491314f58b9d6df9120f350f`
 
 Original Stage-A product-surface implementation closure:
 
@@ -42,7 +42,7 @@ Original Stage-A product-surface implementation closure:
 
 Current exact-head CI:
 
-`32123141557` — `ci/quality-gate-diagnostic = success`.
+`32125492197` — `ci/quality-gate-diagnostic = success`.
 
 The accepted Stage-A ordinary-user surface includes:
 
@@ -56,15 +56,24 @@ The accepted Stage-A ordinary-user surface includes:
 
 The existing provider adapters and ownership boundaries remain unchanged. The Settings adapter only maps user capability configuration onto the provider environment contract.
 
-## Real Product Probe defect evidence — Gemini compatibility
+## Real Product Probe defect evidence — Gemini compatibility and transient transport
 
-A real Windows Planning Product Probe using a user-selected local reference video reached the visual-understanding provider and exposed two sequential Gemini compatibility defects.
+The real Windows Planning Product Probe with a user-selected local reference video has now exposed three sequential provider-path defects or robustness gaps after successfully reaching visual understanding.
 
-First, `gemini-2.5-flash` returned provider `NOT_FOUND` for `generateContent` and directed new users to `gemini-3.6-flash`. The accepted repair moved the Stage-A Gemini visual default to `gemini-3.6-flash` and preserved bounded provider error detail.
+First, `gemini-2.5-flash` returned provider `NOT_FOUND` for `generateContent` and directed new users to `gemini-3.6-flash`. The repair moved the Stage-A Gemini visual default to `gemini-3.6-flash` and preserved bounded provider HTTP error detail.
 
-Second, the rerun reached `gemini-3.6-flash` but returned HTTP 400 because `generationConfig.responseFormat.text.mimeType` was sent as the legacy string `application/json`. The live provider contract and current API reference require the enum value `APPLICATION_JSON` in this REST object. The accepted repair through `3b51fcab3f3fa97d3f8884a63a973079b3d6f9d2` now sends that enum and locks it in regression coverage.
+Second, the rerun reached `gemini-3.6-flash` but returned HTTP 400 because `generationConfig.responseFormat.text.mimeType` was sent as the legacy string `application/json`. The live provider contract requires the enum value `APPLICATION_JSON`; that contract is now locked in regression coverage.
 
-The current visual semantics schema fields used by the adapter remain inside Google's documented structured-output subset, including nullable type arrays, `additionalProperties`, `minimum`, and `maximum`.
+Third, the next real rerun failed with `VisualProviderTransientError: Gemini request failed in transport`. The old transport collapsed `TimeoutError` and `URLError` into the same message, and the real Stage-A composition bypassed the repository's existing `RetryingVisualUnderstandingPort`, so a single transient visual-provider failure could abort the entire Planning run.
+
+Accepted repair through `49f14cc0a9b4a798491314f58b9d6df9120f350f`:
+
+- real Gemini and OpenAI visual-provider composition is wrapped by the existing retry decorator;
+- only explicit `VisualProviderTransientError` is retried, up to the existing three-attempt policy; response/schema failures are not retried and no fake visual semantics or silent provider switching is introduced;
+- Gemini timeout failures now report the configured timeout budget;
+- Gemini `URLError` failures now preserve a bounded safe transport reason;
+- the 60-second per-request timeout remains unchanged until a rerun provides evidence that the budget itself is inadequate;
+- regression coverage verifies retry composition and the new transient transport diagnostics.
 
 These repairs are Engineering PASS only. The same real Planning Product Probe must be rerun before any Product/Human Gate can pass.
 
@@ -73,10 +82,10 @@ These repairs are Engineering PASS only. The same real Planning Product Probe mu
 Structural progress remains **90%**.
 
 - Stage-A completion gate: OPEN.
-- Planning: Engineering mechanism PASS; real Product Probe remains in progress after provider compatibility repair; Human Gate OPEN.
+- Planning: Engineering mechanism PASS; real Product Probe remains in progress after provider-path repair; Human Gate OPEN.
 - Editing: Engineering mechanism PASS; Product Probe / Human Gate OPEN.
 
-Engineering tests, CI, launcher smoke, bilingual UI, API Settings or provider repair do not authorize 100%.
+Engineering tests, CI, launcher smoke, bilingual UI, API Settings or provider repairs do not authorize 100%.
 
 ## Current active boundary — real Product Gates
 
@@ -110,6 +119,7 @@ Do not use Codex for:
 - launcher operation;
 - routine local verification;
 - deterministic provider-version compatibility updates;
+- small deterministic provider composition/diagnostic repairs;
 - documentation/governance edits.
 
 Prefer user-run PowerShell for local operations and ChatGPT/GitHub for observation/governance.
