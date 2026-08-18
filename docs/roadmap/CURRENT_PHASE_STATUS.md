@@ -17,7 +17,7 @@ The hard 100% contract remains:
 
 Current Product Gate state:
 
-- Planning Engineering mechanism: PASS; real Product Probe: IN PROGRESS after provider compatibility repair; Human Gate: OPEN.
+- Planning Engineering mechanism: PASS; real Product Probe: IN PROGRESS after provider-path repair; Human Gate: OPEN.
 - Editing Engineering mechanism: PASS; Product Probe / Human Gate: OPEN.
 - Stage-A completion gate: OPEN.
 
@@ -25,11 +25,11 @@ Therefore structural progress remains **90%**.
 
 ## Current accepted production-code baseline
 
-`3b51fcab3f3fa97d3f8884a63a973079b3d6f9d2`
+`49f14cc0a9b4a798491314f58b9d6df9120f350f`
 
 Exact-head deterministic CI:
 
-`32123141557` — PASS (`ci/quality-gate-diagnostic = success`).
+`32125492197` — PASS (`ci/quality-gate-diagnostic = success`).
 
 ## Stage-A ordinary-user product surface — PASS / ACCEPTED
 
@@ -65,22 +65,24 @@ Current Settings semantics:
 
 These are product-surface capabilities, not Product/Human Gate evidence.
 
-## Real Planning Product Probe — Gemini compatibility repair
+## Real Planning Product Probe — provider-path repair
 
-The real Windows Planning probe has now exposed and driven repair of two provider-contract defects after successfully reaching Gemini visual understanding:
+The real Windows Planning probe has successfully reached visual understanding and exposed three sequential issues:
 
 1. `gemini-2.5-flash` was rejected for `generateContent` for the tested new-user credential and Google directed migration to `gemini-3.6-flash`.
-2. After that migration, the live provider rejected `generationConfig.responseFormat.text.mimeType = "application/json"`; the current Generate Content API contract defines that field as an enum and accepts `APPLICATION_JSON` for JSON output.
+2. After that migration, the live provider rejected `generationConfig.responseFormat.text.mimeType = "application/json"`; the accepted contract uses enum `APPLICATION_JSON`.
+3. The next rerun failed with a transient Gemini transport error. Audit showed the Stage-A visual composition bypassed the repository's existing `RetryingVisualUnderstandingPort`, while Gemini transport collapsed timeout and `URLError` conditions into one opaque diagnostic.
 
-The accepted repair through `3b51fcab3f3fa97d3f8884a63a973079b3d6f9d2`:
+The accepted repair through `49f14cc0a9b4a798491314f58b9d6df9120f350f`:
 
 - selects `gemini-3.6-flash` for the Stage-A Gemini visual path;
-- sends the current `responseFormat.text` structured-output request shape;
-- uses `APPLICATION_JSON` for the text response-format enum;
-- preserves provider error details in bounded diagnostics;
-- locks the Stage-A default and request shape in regression coverage.
-
-The adapter's current visual JSON schema uses fields documented by Google as supported in structured output, including nullable type arrays, `additionalProperties`, `minimum`, and `maximum`.
+- uses the accepted `responseFormat.text` structured-output request shape and `APPLICATION_JSON` enum;
+- preserves bounded provider HTTP error details;
+- wraps real Gemini and OpenAI visual providers with the existing transient-only retry decorator;
+- preserves the existing three-attempt retry policy without fake semantics, provider fallback or retries of response/schema failures;
+- distinguishes Gemini timeout failures from other URL/transport failures and surfaces a bounded transport reason;
+- retains the current 60-second per-attempt timeout until real evidence shows that the timeout budget itself is insufficient;
+- adds regression coverage for retry composition and transient transport diagnostics.
 
 Exact-head CI is green. This closes the identified Engineering defects only; the same real Planning Product Probe must now be rerun from the ordinary launcher.
 
@@ -105,7 +107,7 @@ real user intent / optional supported reference / commercial facts
 → Human Gate
 ```
 
-The immediate action is to rerun the same real Planning probe after synchronizing the accepted Gemini compatibility repair.
+The immediate action is to rerun the same real Planning probe after synchronizing the accepted visual-provider repair.
 
 Planning without reference also remains a legitimate independent path. It requires the current reasoning/direction API but does not require visual-understanding capability.
 
@@ -136,6 +138,7 @@ Do not spend Codex quota on:
 - launcher operation;
 - ordinary deterministic checks;
 - deterministic provider-version compatibility updates;
+- small deterministic provider composition/diagnostic repairs;
 - documentation/governance maintenance.
 
 Codex may be re-released only for a concrete nontrivial implementation defect after ChatGPT classifies the failure.
