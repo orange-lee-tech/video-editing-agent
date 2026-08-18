@@ -15,7 +15,7 @@ from video_editing_agent.application.ports.visual_understanding import (
 
 @dataclass(frozen=True, slots=True)
 class VisualRetryPolicy:
-    """Retry only explicit transient provider failures using linear backoff."""
+    """Retry only explicit transient provider failures using bounded backoff."""
 
     max_attempts: int = 3
     base_delay_seconds: float = 0.3
@@ -52,8 +52,10 @@ class RetryingVisualUnderstandingPort:
         for attempt in range(1, self._policy.max_attempts + 1):
             try:
                 return self._inner.analyze(request)
-            except VisualProviderTransientError:
+            except VisualProviderTransientError as exc:
                 if attempt >= self._policy.max_attempts:
                     raise
-                self._sleeper(float(self._policy.base_delay_seconds) * attempt)
+                policy_delay = float(self._policy.base_delay_seconds) * attempt
+                provider_delay = exc.retry_after_seconds or 0.0
+                self._sleeper(max(policy_delay, provider_delay))
         raise AssertionError("unreachable retry loop")
