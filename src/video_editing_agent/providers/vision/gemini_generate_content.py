@@ -99,6 +99,29 @@ class GeminiVisualConfig:
             raise ValueError("max_output_tokens must be >= 1")
 
 
+def _http_error_detail(exc: urllib.error.HTTPError) -> str | None:
+    try:
+        body = exc.read()
+    except (OSError, ValueError):
+        return None
+    if not body:
+        return None
+    try:
+        decoded: Any = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(decoded, dict):
+        return None
+    error = decoded.get("error")
+    if not isinstance(error, dict):
+        return None
+    message = error.get("message")
+    if not isinstance(message, str):
+        return None
+    normalized = " ".join(message.split())
+    return normalized[:500] or None
+
+
 class UrllibGeminiGenerateContentTransport(GeminiGenerateContentTransport):
     """Minimal stdlib transport for Gemini generateContent."""
 
@@ -139,11 +162,15 @@ class UrllibGeminiGenerateContentTransport(GeminiGenerateContentTransport):
             with urllib.request.urlopen(request, timeout=self._timeout_seconds) as response:
                 response_body = response.read()
         except urllib.error.HTTPError as exc:
+            detail = _http_error_detail(exc)
+            suffix = "" if detail is None else f": {detail}"
             if exc.code in {408, 409, 429} or 500 <= exc.code <= 599:
                 raise VisualProviderTransientError(
-                    f"Gemini request returned retryable HTTP {exc.code}"
+                    f"Gemini request returned retryable HTTP {exc.code}{suffix}"
                 ) from exc
-            raise VisualProviderResponseError(f"Gemini request returned HTTP {exc.code}") from exc
+            raise VisualProviderResponseError(
+                f"Gemini request returned HTTP {exc.code}{suffix}"
+            ) from exc
         except (urllib.error.URLError, TimeoutError) as exc:
             raise VisualProviderTransientError("Gemini request failed in transport") from exc
 
@@ -205,8 +232,12 @@ class GeminiGenerateContentVisualUnderstanding(VisualUnderstandingPort):
             "contents": [{"role": "user", "parts": parts}],
             "generationConfig": {
                 "maxOutputTokens": self._config.max_output_tokens,
-                "responseMimeType": "application/json",
-                "responseJsonSchema": _VISUAL_PROPOSAL_SCHEMA,
+                "responseFormat": {
+                    "text": {
+                        "mimeType": "application/json",
+                        "schema": _VISUAL_PROPOSAL_SCHEMA,
+                    }
+                },
             },
         }
 
