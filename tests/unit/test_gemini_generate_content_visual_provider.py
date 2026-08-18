@@ -130,7 +130,7 @@ def test_adapter_sends_inline_pngs_and_returns_proposal() -> None:
     assert transport.payload is not None
     generation_config = transport.payload["generationConfig"]
     response_format = generation_config["responseFormat"]["text"]
-    assert response_format["mimeType"] == "application/json"
+    assert response_format["mimeType"] == "APPLICATION_JSON"
     assert response_format["schema"]["additionalProperties"] is False
     assert "responseMimeType" not in generation_config
     assert "responseJsonSchema" not in generation_config
