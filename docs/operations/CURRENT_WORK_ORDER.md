@@ -4,7 +4,7 @@
 **Status:** ACTIVE  
 **Phase:** R0.12 — Stage-A ordinary-user Product Gate closure  
 **Mode:** PRODUCT PROBE → HUMAN GATE  
-**Accepted production-code baseline:** `c61c7e5abc8b7b388e0e92ad9ae533d094a27707`  
+**Accepted production-code baseline:** `af5865df14b9f1cceaa9e6c1fe4dadf14cc60058`  
 **Activated:** 2026-08-18  
 **Codex release:** CLOSED — NO ACTIVE CODEX WRITER
 
@@ -34,9 +34,9 @@ Those items do not reopen Planning PASS.
 
 **ENGINEERING PASS / PRODUCT PROBE IN PROGRESS / HUMAN GATE OPEN**.
 
-The first real Editing-only probe reached local ingest/understanding and the Director/EditPlan stage, then exposed an invalid DeepSeek `minimum_duration` proposal. The accepted repair is `c61c7e5abc8b7b388e0e92ad9ae533d094a27707`, exact-head CI run `32139988645` PASS.
+Real Editing-only probes have already crossed local input validation and media understanding far enough to expose two evidence-backed runtime defects: a malformed DeepSeek Director exact-duration proposal and a Gemini 429 retry-delay handling defect. Both now have bounded fail-closed repairs on the accepted baseline.
 
-This is now the active execution boundary.
+This remains the active execution boundary.
 
 ## Frozen architecture
 
@@ -70,23 +70,13 @@ Exact ScriptPlan/ShootingPlan revisions from a successful Planning result in the
 
 Canonical EDL remains sole exact timeline authority.
 
-## Current execution boundary
-
-The remaining gate work is the **real Editing Product Probe + Editing Human Gate**.
-
-Prefer:
-
-- user-run PowerShell for local Windows setup, source hashing and deterministic checks;
-- ChatGPT for GitHub observation, evidence review and governance;
-- Codex only if a concrete nontrivial implementation defect is proven and cannot be repaired safely through a small deterministic ChatGPT/GitHub change.
-
-Do not spend Codex quota on package installation, PATH repair, secret configuration, ordinary launcher operation, documentation maintenance or cosmetic UX backlog items.
-
 ## Accepted Director robustness repair
 
-The real probe failed at `editing_decision` with `DeepSeekPlanningResponseError: invalid minimum_duration`.
+An earlier real Editing-only probe reached `editing_decision` and failed with:
 
-The accepted repair:
+`DeepSeekPlanningResponseError: invalid minimum_duration`.
+
+Accepted repair through `c61c7e5abc8b7b388e0e92ad9ae533d094a27707`:
 
 - supplies a complete valid Director JSON example to DeepSeek;
 - explicitly states exact duration `value` / `scale` and positivity/order constraints;
@@ -97,7 +87,37 @@ The accepted repair:
 - provides precise diagnostics for malformed/non-integer/non-positive exact-time values;
 - has regression coverage for one invalid-then-valid sequence and a two-invalid bounded failure.
 
-The pre-format repair run had 696 tests plus mypy/import/build PASS and only two Ruff line-length findings. Exact accepted head `c61c7e5abc8b7b388e0e92ad9ae533d094a27707` is fully green in run `32139988645`.
+## Accepted provider-aware visual retry repair
+
+After synchronizing the Director repair and launching a fresh Windows process, the real Editing-only probe reached local-media `ingest_understanding` and received a genuine Gemini HTTP 429 response reporting:
+
+`generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash; Please retry in 10.577272831s`.
+
+The provider condition itself is legitimate, but audit found a runtime defect: the existing retry decorator waited only 0.3 seconds and then 0.6 seconds, ignoring the provider's explicit recovery delay and exhausting the three bounded attempts before the indicated window could recover.
+
+Accepted repair through `af5865df14b9f1cceaa9e6c1fe4dadf14cc60058`:
+
+- `VisualProviderTransientError` can carry an optional validated `retry_after_seconds` hint;
+- the Gemini transport extracts Google `RetryInfo.retryDelay` and retains a bounded message fallback for `retry in <seconds>s`;
+- the visual retry decorator waits for the greater of its local bounded backoff and the provider-required delay;
+- total attempts remain capped at three;
+- there is no silent provider/model switch, quota bypass or fake semantic output;
+- persistent provider quota exhaustion still fails closed with the real error;
+- regression coverage proves structured RetryInfo propagation, fallback parsing and provider-directed waiting.
+
+Exact accepted head `af5865df14b9f1cceaa9e6c1fe4dadf14cc60058` is green in CI run `32145822611` (`ci/quality-gate-diagnostic = success`).
+
+## Current execution boundary
+
+The remaining gate work is the **real Editing Product Probe + Editing Human Gate**.
+
+Prefer:
+
+- user-run PowerShell for local Windows synchronization, source hashing and deterministic checks;
+- ChatGPT for GitHub observation, evidence review and governance;
+- Codex only if a concrete nontrivial implementation defect is proven and cannot be repaired safely through a small deterministic ChatGPT/GitHub change.
+
+Do not spend Codex quota on package installation, PATH repair, secret configuration, ordinary launcher operation, documentation maintenance, bounded provider retry/proposal repairs or cosmetic UX backlog items.
 
 ## Editing Product Gate rerun
 
@@ -109,10 +129,13 @@ Required evidence:
 2. record non-empty SHA-256 source hashes before the run;
 3. supply real editing intent/Brief fields and an MP4 output destination;
 4. use **Editing-only** for this gate probe; keep Planning enrichment unchecked;
-5. actual ingest / shot detection / understanding / Director / grounded Resolver / canonical EDL / Renderer / Review chain runs;
-6. a real final MP4 is produced only on Review PASS;
-7. source hashes after the run match the before-run hashes;
-8. the user watches the final MP4 and judges usefulness and obvious defects.
+5. allow the application to honor short provider-directed retry waits instead of manually restarting while a recoverable 429 window is active;
+6. actual ingest / shot detection / understanding / Director / grounded Resolver / canonical EDL / Renderer / Review chain runs;
+7. a real final MP4 is produced only on Review PASS;
+8. source hashes after the run match the before-run hashes;
+9. the user watches the final MP4 and judges usefulness and obvious defects.
+
+A persistent account/provider quota exhaustion after bounded retries is a provider condition and must fail explicitly; it does not authorize silent switching or fabricated output.
 
 Human Gate questions remain ordinary:
 
@@ -136,7 +159,9 @@ Editing Product Gate may PASS only after both execution evidence and Human Gate 
 - opt-in public-material guidance / similar-example research;
 - startup splash/progress polish.
 
-Only repair one now if it directly blocks the Editing Product Probe.
+Provider-directed waits should eventually be surfaced in the same progress/ETA experience so an ordinary user can see that the application is deliberately waiting to retry rather than frozen.
+
+Only repair a backlog item now if it directly blocks the Editing Product Probe.
 
 ## Failure classification
 
