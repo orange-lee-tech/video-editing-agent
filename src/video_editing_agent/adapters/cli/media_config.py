@@ -26,6 +26,7 @@ from video_editing_agent.providers.vision.openai_responses import (
     OpenAIResponsesVisualUnderstanding,
     UrllibOpenAIResponsesTransport,
 )
+from video_editing_agent.providers.vision.retry import RetryingVisualUnderstandingPort
 from video_editing_agent.storage.artifact.local_store import LocalArtifactStore
 from video_editing_agent.storage.asset.repository_media import RepositoryLocalAssetMediaResolver
 
@@ -75,18 +76,20 @@ def visual_understanding_port(
         api_key = os.environ.get("GEMINI_API_KEY", "")
         if not api_key.strip():
             raise ProviderConfigurationError("GEMINI_API_KEY is required for provider=gemini")
-        return GeminiGenerateContentVisualUnderstanding(
+        inner: VisualUnderstandingPort = GeminiGenerateContentVisualUnderstanding(
             artifact_store=artifacts,
             transport=UrllibGeminiGenerateContentTransport(api_key=api_key),
             config=GeminiVisualConfig(model=model),
         )
+        return RetryingVisualUnderstandingPort(inner)
     if provider == "openai":
         api_key = os.environ.get("OPENAI_API_KEY", "")
         if not api_key.strip():
             raise ProviderConfigurationError("OPENAI_API_KEY is required for provider=openai")
-        return OpenAIResponsesVisualUnderstanding(
+        inner = OpenAIResponsesVisualUnderstanding(
             artifact_store=artifacts,
             transport=UrllibOpenAIResponsesTransport(api_key=api_key),
             config=OpenAIResponsesVisualConfig(model=model),
         )
+        return RetryingVisualUnderstandingPort(inner)
     raise ProviderConfigurationError(f"unsupported visual provider: {provider}")
