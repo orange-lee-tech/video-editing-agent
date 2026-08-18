@@ -1,22 +1,30 @@
 # Codex Execution Entry
 
-Purpose: enter the active construction state with the minimum safe model-visible context.
+Purpose: enter the current construction state with the minimum safe model-visible context.
 
-## Active release
+## Release state
 
 **Work Order:** `R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001`  
-**Release:** ACTIVE — SINGLE COMPLEX BATCH  
-**Writer:** Codex until commit/push/STOP
+**Release:** PAUSED — DO NOT START OR CONTINUE  
+**Writer:** NONE while paused
+
+The user explicitly paused construction on 2026-08-18 for record and handoff.
+
+Do not interpret the presence of an active Work Order as permission to execute. Resume only after an explicit user instruction to continue.
+
+On resume, first reobserve current GitHub `main`, CI and local working-tree/Codex state. If local work already exists, inspect and preserve it; do not replay this batch from scratch or overwrite unknown edits.
 
 The ordinary-user surface audit is complete:
 
 `docs/validation/R0.12_STAGE_A_PRODUCT_SURFACE_AUDIT.md`
 
-Do not re-design the project from scratch. The implementation boundary is already frozen in:
+The implementation boundary remains frozen in:
 
 `docs/operations/CURRENT_WORK_ORDER.md`
 
-## Startup
+## Resume startup
+
+After explicit user resume:
 
 ```text
 git status
@@ -34,16 +42,16 @@ Then run foreman. On this Windows host, use process-local bypass if required:
 powershell -ExecutionPolicy Bypass -File scripts/maintain.ps1 foreman
 ```
 
-Read `.private/codex_brief.md` and act on L0. For this active release, also read:
+Read `.private/codex_brief.md` and act on L0. For this batch, also read:
 
 - `docs/operations/CURRENT_WORK_ORDER.md`;
 - `docs/validation/R0.12_STAGE_A_PRODUCT_SURFACE_AUDIT.md`.
 
 Open secondary source/architecture files only when a concrete implementation trigger requires them.
 
-## First local preflight for this batch
+## First local preflight after resume
 
-Before changing the desktop layer, verify the actual target Windows development environment:
+Before changing the desktop layer, verify the actual target Windows development/runtime environment:
 
 ```powershell
 uv run python -c "import tkinter as tk; root=tk.Tk(); root.withdraw(); root.update_idletasks(); root.destroy(); print('TK_OK')"
@@ -86,11 +94,11 @@ Do not:
 - claim Product Gate/Human Gate PASS;
 - bump structural progress above 90%.
 
-## Verification
+## Verification after resume
 
 Run focused tests while iterating, then the full repository Quality Gate.
 
-Required coverage is listed in `CURRENT_WORK_ORDER.md`; do not substitute GUI screenshots for the deterministic application/controller tests.
+Required coverage is listed in `CURRENT_WORK_ORDER.md`; do not substitute GUI screenshots for deterministic application/controller tests.
 
 Perform a bounded local Windows launcher smoke after tests. It may use mocked/injected operations for UI plumbing; final real Product Probe is owned by ChatGPT/user after merge.
 
