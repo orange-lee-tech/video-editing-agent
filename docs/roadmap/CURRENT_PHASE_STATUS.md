@@ -17,7 +17,7 @@ The hard 100% contract remains:
 
 Current Product Gate state:
 
-- Planning Engineering mechanism: PASS; real Product Probe: IN PROGRESS after evidence-backed visual-provider/time-projection repairs; Human Gate: OPEN.
+- Planning Engineering mechanism: PASS; Product Probe: PASS; Human Gate: PASS.
 - Editing Engineering mechanism: PASS; Product Probe / Human Gate: OPEN.
 - Stage-A completion gate: OPEN.
 
@@ -31,63 +31,23 @@ Exact-head deterministic CI:
 
 `32127020333` — PASS (`ci/quality-gate-diagnostic = success`).
 
-## Stage-A ordinary-user product surface — PASS / ACCEPTED
+## Planning Product Gate — PASS
 
-Implementation closure evidence:
+Durable evidence:
 
-`docs/validation/R0.12_STAGE_A_PRODUCT_SURFACE_IMPLEMENTATION_CLOSURE.md`
+`docs/validation/R0.12_STAGE_A_PLANNING_PRODUCT_GATE.md`
 
-The accepted ordinary-user capabilities include:
+A real ordinary-user Windows Planning run completed end-to-end with a user-selected local reference, real planning intent, user-owned configured APIs and no repository editing or hand-authored internal plans.
 
-- stdlib Tkinter `video-editing-agent launch`;
-- Simplified Chinese / English switching;
-- Planning authoritative facts and optional URL/local reference video;
-- `REFERENCE_ANALYSIS_ONLY` reference bridge and exact guidance into both Planning owners;
-- live progress observation;
-- reviewed FFmpeg/ffprobe and TransNet runtime discovery/diagnostics;
-- deterministic file/folder selection;
-- readable exact ScriptPlan/ShootingPlan presentation;
-- Editing final MP4 / correction presentation;
-- Editing-only default path;
-- optional same-session/same-project Combined enrichment with exact Planning revisions and no user-entered internal IDs;
-- fail-closed ordinary-user path validation;
-- an API Settings surface organized around `思考指挥 / Reasoning & Direction` and `视觉理解 / Visual Understanding` rather than raw environment-variable names.
+The launcher produced and presented exact ScriptPlan and ShootingPlan revisions. The user explicitly judged the ScriptPlan acceptable, the ShootingPlan acceptable and identified no blocking defect in the accepted result.
 
-Current Settings semantics:
+Planning-only is therefore proven usable for Stage A.
 
-- software does not include or gift API keys;
-- the current reasoning/direction provider is DeepSeek;
-- the current visual-understanding providers are Gemini and OpenAI;
-- the same key string may be entered in both capability slots;
-- the visual slot explicitly warns that its selected API/model must support image input;
-- APIs are described as understanding/reasoning/planning/editing-decision services, not video-generation services;
-- Stage-A keys are session-local and are not persisted into project state, repository files or logs.
+Known product refinements from the same session are preserved in:
 
-These are product-surface capabilities, not Product/Human Gate evidence.
+`docs/roadmap/PRODUCT_UX_BACKLOG.md`.
 
-## Real Planning Product Probe — visual-provider and rational-time repair
-
-The real Windows Planning probe has progressively advanced through local reference ingest, shot/frame preparation and visual understanding while exposing four sequential implementation/robustness issues:
-
-1. `gemini-2.5-flash` was rejected for `generateContent` for the tested new-user credential and Google directed migration to `gemini-3.6-flash`.
-2. After that migration, the live provider rejected `generationConfig.responseFormat.text.mimeType = "application/json"`; the accepted contract uses enum `APPLICATION_JSON`.
-3. The next rerun failed with a transient Gemini transport error. Audit showed the Stage-A visual composition bypassed the repository's existing `RetryingVisualUnderstandingPort`, while Gemini transport collapsed timeout and `URLError` conditions into one opaque diagnostic.
-4. The following rerun failed with `MediaTime cannot be represented as an exact integer millisecond`. Audit proved this was not an invalid media timestamp: exact rational timestamps such as `1/24 s` are a supported part of sampling/extraction. The defect was provider prompt formatting that unnecessarily requested `source_timestamp_ms`.
-
-The accepted repair through `b6572602c0f7faaa22383dab9fffa361fb946e75`:
-
-- selects `gemini-3.6-flash` for the Stage-A Gemini visual path;
-- uses the accepted `responseFormat.text` structured-output shape and `APPLICATION_JSON` enum;
-- preserves bounded provider HTTP and Gemini transport diagnostics;
-- wraps real Gemini and OpenAI visual providers with the existing transient-only three-attempt retry decorator;
-- retains the current 60-second per-attempt timeout until real evidence shows it is insufficient;
-- projects provider-facing frame timestamp descriptions from exact `MediaTime` to deterministic decimal seconds, rather than requiring exact integer milliseconds;
-- leaves internal exact timing, sampling, artifact identity, source grounding and canonical timeline authority unchanged;
-- covers a `MediaTime(1, 24)` frame in both Gemini and OpenAI adapters while retaining the domain rule that this timestamp cannot be represented as an exact integer millisecond.
-
-The first CI run of the rational-time repair had only Ruff format failures while 694 tests, mypy, lint, import contracts and build passed. The formatter-only follow-up produced exact-head PASS in run `32127020333`.
-
-This closes the identified Engineering defects only; the same real Planning Product Probe must now be rerun from the ordinary launcher.
+These refinements do not reopen Planning PASS.
 
 ## Active Work Order
 
@@ -97,22 +57,7 @@ This closes the identified Engineering defects only; the same real Planning Prod
 
 There is **no active Codex writer**.
 
-The remaining Stage-A work is real ordinary-user evidence, not speculative backend construction.
-
-## Planning Product Gate target
-
-```text
-real user intent / optional supported reference / commercial facts
-→ ordinary Windows launcher
-→ real Planning workflow
-→ persisted exact ScriptPlan + ShootingPlan
-→ readable launcher presentation
-→ Human Gate
-```
-
-The immediate action is to rerun the same real Planning probe after synchronizing the accepted rational-time repair.
-
-Planning without reference also remains a legitimate independent path. It requires the current reasoning/direction API but does not require visual-understanding capability.
+The active closure target is now the **real Editing Product Gate**.
 
 ## Editing Product Gate target
 
@@ -127,7 +72,30 @@ user-selected real local footage
 → Human Gate
 ```
 
-Editing requires the actual media runtime plus both configured product capabilities required by the current provider composition.
+Required evidence remains:
+
+- real local source media or source folder;
+- real editing intent and output MP4 destination;
+- Editing-only must work independently of Planning;
+- actual automatic production chain, not hand-authored EditPlan/ResolutionDecision/EDL;
+- final MP4 only on Review PASS;
+- original user media unchanged;
+- user watches the result and judges usefulness/obvious defects/workflow clarity.
+
+## Current ordinary-user feedback backlog
+
+`docs/roadmap/PRODUCT_UX_BACKLOG.md` records:
+
+- scroll/export improvements for long output;
+- full UI-aligned localization of plans/progress/user-facing diagnostics;
+- safe local profile persistence and OS-protected API-secret persistence;
+- first-run required/optional placeholders;
+- bounded share-text/reference-URL handling without scraper-first platform coupling;
+- safe repair/regeneration when no authoritative facts/reference exist and the model proposes unsupported claims;
+- opt-in public-material guidance and similar-example research while preserving rights/reference boundaries;
+- startup splash/progress polish.
+
+Only a backlog item that blocks the Editing Product Probe should preempt the current gate.
 
 ## Runtime readiness strategy
 
@@ -140,29 +108,20 @@ Do not spend Codex quota on:
 - API-secret configuration;
 - launcher operation;
 - ordinary deterministic checks;
-- deterministic provider-version compatibility updates;
-- small deterministic provider composition/diagnostic/time-projection repairs;
-- documentation/governance maintenance.
+- documentation/governance maintenance;
+- cosmetic backlog work.
 
 Codex may be re-released only for a concrete nontrivial implementation defect after ChatGPT classifies the failure.
 
 ## Human Gate
 
-Human Gate stays ordinary and product-centered.
-
-Planning:
-
-- Is the script usable for the intended video?
-- Is the shooting plan realistically shootable?
-- Is anything obviously wrong or missing?
-
-Editing:
+Editing Human Gate stays ordinary and product-centered:
 
 - Is the final video usable as the Stage-A automatic result?
 - Are there obvious wrong shots/cuts/audio/subtitle/content problems?
-- Was the source-to-output workflow understandable?
+- Was the workflow understandable from source selection to final MP4?
 
-Do not ask the user to invent professional scoring criteria.
+Do not ask the user to invent a professional scoring rubric.
 
 ## Frozen authority rules
 
@@ -174,15 +133,18 @@ Do not ask the user to invent professional scoring criteria.
 - Renderer has no editorial authority;
 - Review has no edit/render mutation authority;
 - reference-only media remains Resolver-ineligible;
-- commercial final visuals come from user-supplied local footage;
+- commercial final visuals come from user-selected local footage;
 - originals remain protected;
-- no silent provider switching or fabricated fallback visual assets.
+- no silent provider switching or fabricated replacement visual assets.
 
 ## Immediate corridor
 
-1. synchronize the accepted baseline and current control plane to the Windows workspace;
-2. relaunch the ordinary product surface and configure user-owned API credentials in Settings;
-3. rerun the same real Planning Product Probe and complete its Human Gate only if a real ScriptPlan/ShootingPlan is produced;
-4. run real Editing Product Probe through the launcher using real local footage and complete its Human Gate;
-5. classify any failure before changing code;
-6. set Stage-A to 100% only if both core gates and `STAGE_A_COMPLETION_GATE.md` genuinely PASS.
+1. synchronize current `main` to the Windows workspace;
+2. launch the ordinary product surface and configure user-owned API credentials;
+3. open the `自动剪辑` tab;
+4. run Editing-only with real local footage, real editing intent and a real MP4 destination;
+5. preserve source hashes / verify originals unchanged;
+6. inspect the actual final MP4 if Review PASSes;
+7. complete Editing Human Gate;
+8. classify and repair any evidence-backed failure;
+9. set Stage-A to 100% only if Editing Product/Human Gate also PASSes and `STAGE_A_COMPLETION_GATE.md` is fully satisfied.
