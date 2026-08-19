@@ -170,13 +170,12 @@ def _blob(data: bytes) -> tuple[_DataBlob, ctypes.Array[ctypes.c_char]]:
 def _dpapi_protect(data: bytes) -> bytes:
     source, source_buffer = _blob(data)
     output = _DataBlob()
-    windll = getattr(ctypes, "windll")
-    crypt32 = windll.crypt32
-    kernel32 = windll.kernel32
+    crypt32 = ctypes.windll.crypt32  # type: ignore[attr-defined]
+    kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
     if not crypt32.CryptProtectData(
         ctypes.byref(source), None, None, None, None, 0, ctypes.byref(output)
     ):
-        raise getattr(ctypes, "WinError")()
+        raise ctypes.WinError()  # type: ignore[attr-defined]
     del source_buffer
     try:
         return ctypes.string_at(output.pbData, output.cbData)
@@ -187,13 +186,12 @@ def _dpapi_protect(data: bytes) -> bytes:
 def _dpapi_unprotect(data: bytes) -> bytes:
     source, source_buffer = _blob(data)
     output = _DataBlob()
-    windll = getattr(ctypes, "windll")
-    crypt32 = windll.crypt32
-    kernel32 = windll.kernel32
+    crypt32 = ctypes.windll.crypt32  # type: ignore[attr-defined]
+    kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
     if not crypt32.CryptUnprotectData(
         ctypes.byref(source), None, None, None, None, 0, ctypes.byref(output)
     ):
-        raise getattr(ctypes, "WinError")()
+        raise ctypes.WinError()  # type: ignore[attr-defined]
     del source_buffer
     try:
         return ctypes.string_at(output.pbData, output.cbData)
