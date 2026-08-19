@@ -81,9 +81,10 @@ def test_controller_rejects_reference_share_text_without_https_url(tmp_path: Pat
 def test_folder_expansion_is_stable_and_does_not_touch_originals(tmp_path: Path) -> None:
     folder = tmp_path / "media"
     folder.mkdir()
-    second, first = folder / "B.MOV", folder / "a.mp4"
+    second, first, third = folder / "B.MOV", folder / "a.mp4", folder / "c.MTS"
     second.write_bytes(b"second")
     first.write_bytes(b"first")
+    third.write_bytes(b"third")
     (folder / "ignore.txt").write_text("ignore", encoding="utf-8")
 
     expanded = expand_media_inputs((second,), folder)
@@ -96,8 +97,20 @@ def test_folder_expansion_is_stable_and_does_not_touch_originals(tmp_path: Path)
         output_profile=OUTPUT_PROFILE_HORIZONTAL_1080P,
     ).to_request()
 
-    assert expanded == request.local_media_paths == (first.resolve(), second.resolve())
-    assert first.read_bytes() == b"first" and second.read_bytes() == b"second"
+    assert (
+        expanded
+        == request.local_media_paths
+        == (
+            first.resolve(),
+            second.resolve(),
+            third.resolve(),
+        )
+    )
+    assert (
+        first.read_bytes() == b"first"
+        and second.read_bytes() == b"second"
+        and third.read_bytes() == b"third"
+    )
 
 
 def test_planning_without_reference_does_not_require_media_runtime() -> None:
@@ -182,6 +195,37 @@ def test_same_project_combined_opt_in_forwards_exact_session_refs(tmp_path: Path
     assert request.shooting_plan_ref == EntityRevisionRef("shooting", 3)
 
 
+def test_editing_form_requires_rights_attestation_for_local_music(tmp_path: Path) -> None:
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"source")
+    music = tmp_path / "music.mp3"
+    music.write_bytes(b"fixture")
+
+    with pytest.raises(ValueError, match="rights attestation"):
+        EditingForm(
+            tmp_path / "project",
+            _brief(),
+            tmp_path / "final.mp4",
+            (source,),
+            output_profile=OUTPUT_PROFILE_HORIZONTAL_1080P,
+            music_file=music,
+        ).to_request()
+
+    request = EditingForm(
+        tmp_path / "project",
+        _brief(),
+        tmp_path / "final.mp4",
+        (source,),
+        output_profile=OUTPUT_PROFILE_HORIZONTAL_1080P,
+        music_file=music,
+        music_rights_attested=True,
+    ).to_request()
+
+    assert request.music is not None
+    assert request.music.local_path == music.resolve()
+    assert request.music.rights_attested is True
+
+
 def test_editing_form_forwards_explicit_output_profile(tmp_path: Path) -> None:
     source = tmp_path / "source.mp4"
     source.write_bytes(b"source")
@@ -260,17 +304,37 @@ def test_different_project_planning_context_is_rejected(tmp_path: Path) -> None:
             EditingForm(
                 Path("project"),
                 _brief(),
-                Path("final.mov"),
+                Path("final.txt"),
                 (Path("source.mp4"),),
                 output_profile=OUTPUT_PROFILE_HORIZONTAL_1080P,
             ),
-            "MP4 destination",
+            "MP4, MOV, MKV, or WebM",
         ),
     ],
 )
-def test_blank_or_non_mp4_paths_fail_before_composition(form, message: str) -> None:  # type: ignore[no-untyped-def]
+def test_blank_or_unsupported_paths_fail_before_composition(form, message: str) -> None:  # type: ignore[no-untyped-def]
     with pytest.raises(ValueError, match=message):
         form.to_request()
+
+
+@pytest.mark.parametrize("suffix", (".mp4", ".mov", ".mkv", ".webm"))
+def test_editing_form_accepts_supported_output_video_formats(
+    tmp_path: Path,
+    suffix: str,
+) -> None:
+    source = tmp_path / "source.mts"
+    source.write_bytes(b"source")
+
+    request = EditingForm(
+        tmp_path / "project",
+        _brief(),
+        tmp_path / f"final{suffix}",
+        (source,),
+        output_profile=OUTPUT_PROFILE_HORIZONTAL_1080P,
+    ).to_request()
+
+    assert request.output_path.suffix.casefold() == suffix
+    assert request.local_media_paths == (source.resolve(),)
 
 
 def test_planning_reference_diagnostics_name_the_correct_context() -> None:

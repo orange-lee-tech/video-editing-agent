@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import hashlib
+import wave
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
@@ -9,6 +12,14 @@ import pytest
 from video_editing_agent.adapters.product.presentation import (
     editing_presentation,
     planning_presentation,
+)
+from video_editing_agent.application.ports.audio_acquisition import (
+    AcquiredAudioMaterial,
+    AudioAcquisitionResult,
+)
+from video_editing_agent.application.ports.audio_material_provider import (
+    AudioMaterialCandidate,
+    MusicDiscoveryQuery,
 )
 from video_editing_agent.application.ports.director import (
     DirectorProposal,
@@ -45,6 +56,7 @@ from video_editing_agent.application.ports.shot_detector import (
     ShotDetectionOptions,
 )
 from video_editing_agent.application.use_cases.product_flow import (
+    EditingMusicInput,
     EditingOutputProfile,
     EditingProductRequest,
     PlanningProductRequest,
@@ -58,6 +70,7 @@ from video_editing_agent.domain.asset.policy import (
     AssetUsageRole,
     is_visual_resolver_eligible,
 )
+from video_editing_agent.domain.asset.rights import LicenseSnapshot, RightsEligibility
 from video_editing_agent.domain.brief.model import AuthoritativeFact
 from video_editing_agent.domain.common.entity import (
     EntityEnvelope,
@@ -79,6 +92,11 @@ from video_editing_agent.domain.shot.analysis import (
     VisualSemantics,
 )
 from video_editing_agent.media.ingest.probe import MediaTechnicalMetadata
+from video_editing_agent.providers.audio.wikimedia import (
+    VerifiedWikimediaAudio,
+    WikimediaVerificationResult,
+)
+from video_editing_agent.render.edl_ffmpeg import compile_ffmpeg_render
 from video_editing_agent.storage.project import product_flow as composition_module
 from video_editing_agent.storage.project.product_flow import (
     EditingProductCapabilities,
@@ -178,6 +196,14 @@ class FakeReferenceAcquirer:
 class FakeMediaProbe:
     def probe(self, path: Path) -> MediaTechnicalMetadata:
         assert path.is_file()
+        if path.suffix.casefold() in {".wav", ".wave", ".mp3", ".flac", ".ogg", ".opus", ".m4a"}:
+            return MediaTechnicalMetadata(
+                "audio",
+                duration=MediaTime(6, 1),
+                codec=("pcm_s16le" if path.suffix.casefold() in {".wav", ".wave"} else "mp3"),
+                audio_channels=1,
+                sample_rate_hz=8_000,
+            )
         return MediaTechnicalMetadata(
             "video",
             duration=MediaTime(4, 1),
@@ -473,3 +499,530 @@ def test_concrete_editing_composition_reaches_durable_edl_render_and_review(
         MediaTime(3, 1),
     )
     assert str(output) in editing_presentation(result)
+
+
+def test_concrete_editing_composition_wires_rights_attested_local_music_into_edl(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(composition_module, "ReviewApplicationRuntime", FakeReviewRuntime)
+    workspace = ProjectWorkspace.open(tmp_path / "editing-music-project")
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"original-user-media")
+    music = tmp_path / "music.wav"
+    with wave.open(str(music), "wb") as stream:
+        stream.setnchannels(1)
+        stream.setsampwidth(2)
+        stream.setframerate(8_000)
+        sample = (1_000).to_bytes(2, "little", signed=True)
+        stream.writeframes(sample * (8_000 * 6))
+    output = tmp_path / "output" / "with-music.mp4"
+    renderer = FakeRenderer()
+    flow = build_editing_product_flow(
+        workspace,
+        EditingProductCapabilities(
+            FakeMediaProbe(),
+            FakeShotDetector(),
+            ShotDetectionOptions(),
+            FakeUnderstanding(workspace),
+            FakeDirector(),
+            renderer,
+            cast(RenderedMediaQc, UnusedRenderedMediaQc()),
+            edit_plan_id_factory=lambda: "epl_product_music",
+            edl_id_factory=lambda: "edl_product_music",
+            clock=lambda: NOW,
+        ),
+    )
+
+    result = flow.run(
+        EditingProductRequest(
+            workspace.root,
+            _brief(),
+            (source,),
+            output,
+            output_profile=EditingOutputProfile("test_320x180_30", 320, 180, 30),
+            music=EditingMusicInput(music, True),
+        )
+    )
+
+    assert result.outcome is ProductFlowOutcome.COMPLETED
+    rendered_edl = renderer.requests[0].edl
+    assert any(track.track_id == "bgm" for track in rendered_edl.effective_tracks)
+    bgm = [segment for segment in rendered_edl.segments if segment.track_id == "bgm"]
+    assert len(bgm) == 1
+    assert bgm[0].timeline_range.duration == MediaTime(3, 1)
+    assert bgm[0].audio_automations
+    music_asset = workspace.assets.load(bgm[0].asset_ref)
+    assert music_asset.usage_role is AssetUsageRole.MUSIC
+    assert music_asset.storage_ref == music.resolve().as_uri()
+    assert any(segment.track_id == "source_audio" for segment in rendered_edl.segments)
+    bound_paths = {item.path for item in renderer.requests[0].asset_media}
+    assert source.resolve() in bound_paths and music.resolve() in bound_paths
+    rights_files = tuple(
+        item for item in (workspace.root / "artifacts" / "sha256").rglob("*") if item.is_file()
+    )
+    assert rights_files
+    assert b"local-music-rights-attestation/v1" in rights_files[0].read_bytes()
+    assert source.read_bytes() == b"original-user-media"
+
+
+class FakeAutomaticPublicMusicProvider:
+    queries: list[MusicDiscoveryQuery] = []
+
+    def __init__(self, *, page_size: int = 20) -> None:
+        assert page_size == 20
+
+    def search_music(self, query: MusicDiscoveryQuery) -> tuple[AudioMaterialCandidate, ...]:
+        self.queries.append(query)
+        return (
+            AudioMaterialCandidate(
+                "wikimedia_commons_via_openverse",
+                "File:Public Music.wav",
+                RightsEligibility.UNKNOWN,
+                title="Public Music",
+                source_page="https://commons.wikimedia.org/wiki/File:Public_Music.wav",
+            ),
+        )
+
+
+class FakeAutomaticPublicMusicVerifier:
+    rights_ref = "art_sha256_" + "a" * 64
+
+    def __init__(self, artifacts, *, clock) -> None:  # type: ignore[no-untyped-def]
+        del artifacts
+        self._clock = clock
+
+    def verify(self, provider_item_id: str) -> WikimediaVerificationResult:
+        assert provider_item_id == "File:Public Music.wav"
+        captured = self._clock()
+        snapshot = LicenseSnapshot(
+            "lic_public_music",
+            "wikimedia_commons",
+            provider_item_id,
+            captured,
+            RightsEligibility.ELIGIBLE,
+            license_identifier="CC0 1.0",
+            terms_ref="https://creativecommons.org/publicdomain/zero/1.0/",
+            commercial_scope="verified_stage_a_commercial_reuse",
+            advertising_scope="verified_stage_a_commercial_reuse",
+            evidence_artifact_refs=(self.rights_ref,),
+        )
+        return WikimediaVerificationResult(
+            VerifiedWikimediaAudio(
+                provider_item_id,
+                "https://commons.wikimedia.org/wiki/File:Public_Music.wav",
+                "https://upload.wikimedia.org/wikipedia/commons/public.wav",
+                "b" * 40,
+                1,
+                "audio/wav",
+                "Public Creator",
+                "CC0 1.0",
+                "https://creativecommons.org/publicdomain/zero/1.0/",
+                None,
+                False,
+                snapshot,
+                self.rights_ref,
+            )
+        )
+
+
+class FakeAutomaticPublicMusicAcquirer:
+    source: Path | None = None
+
+    def __init__(self, root: Path, *, clock) -> None:  # type: ignore[no-untyped-def]
+        del root
+        self._clock = clock
+
+    def acquire(self, request) -> AudioAcquisitionResult:  # type: ignore[no-untyped-def]
+        assert request.provider == "wikimedia_commons"
+        assert request.rights_eligibility is RightsEligibility.ELIGIBLE
+        assert self.source is not None
+        payload = self.source.read_bytes()
+        return AudioAcquisitionResult(
+            AcquiredAudioMaterial(
+                "wikimedia_commons",
+                request.provider_item_id,
+                self.source.resolve(),
+                request.source_page,
+                request.approved_source_url,
+                self._clock(),
+                len(payload),
+                "sha256:" + hashlib.sha256(payload).hexdigest(),
+                "audio/wav",
+                request.license_snapshot_ref,
+                "b" * 40,
+            )
+        )
+
+
+def test_blank_music_field_auto_selects_rights_verified_public_bgm(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(composition_module, "ReviewApplicationRuntime", FakeReviewRuntime)
+    FakeAutomaticPublicMusicProvider.queries = []
+    public_music = tmp_path / "public.wav"
+    with wave.open(str(public_music), "wb") as stream:
+        stream.setnchannels(1)
+        stream.setsampwidth(2)
+        stream.setframerate(8_000)
+        sample = (1_000).to_bytes(2, "little", signed=True)
+        stream.writeframes(sample * (8_000 * 6))
+    FakeAutomaticPublicMusicAcquirer.source = public_music
+    monkeypatch.setattr(
+        composition_module,
+        "OpenverseWikimediaAudioProvider",
+        FakeAutomaticPublicMusicProvider,
+    )
+    monkeypatch.setattr(
+        composition_module,
+        "WikimediaAudioRightsVerifier",
+        FakeAutomaticPublicMusicVerifier,
+    )
+    monkeypatch.setattr(
+        composition_module,
+        "WikimediaAudioAcquirer",
+        FakeAutomaticPublicMusicAcquirer,
+    )
+
+    workspace = ProjectWorkspace.open(tmp_path / "editing-public-music-project")
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"original-user-media")
+    renderer = FakeRenderer()
+    flow = build_editing_product_flow(
+        workspace,
+        EditingProductCapabilities(
+            FakeMediaProbe(),
+            FakeShotDetector(),
+            ShotDetectionOptions(),
+            FakeUnderstanding(workspace),
+            FakeDirector(),
+            renderer,
+            cast(RenderedMediaQc, UnusedRenderedMediaQc()),
+            edit_plan_id_factory=lambda: "epl_public_music",
+            edl_id_factory=lambda: "edl_public_music",
+            clock=lambda: NOW,
+            ffmpeg_executable="ffmpeg",
+            automatic_public_music=True,
+        ),
+    )
+
+    result = flow.run(
+        EditingProductRequest(
+            workspace.root,
+            _brief(),
+            (source,),
+            tmp_path / "output" / "public-music.mp4",
+            output_profile=EditingOutputProfile("test_320x180_30", 320, 180, 30),
+        )
+    )
+
+    assert result.outcome is ProductFlowOutcome.COMPLETED
+    assert FakeAutomaticPublicMusicProvider.queries
+    query = FakeAutomaticPublicMusicProvider.queries[0]
+    assert "value product" in query.query
+    rendered_edl = renderer.requests[0].edl
+    bgm = [segment for segment in rendered_edl.segments if segment.track_id == "bgm"]
+    assert len(bgm) == 1 and bgm[0].audio_automations
+    music_asset = workspace.assets.load(bgm[0].asset_ref)
+    assert music_asset.usage_role is AssetUsageRole.MUSIC
+    assert music_asset.origin == "provider_acquired_audio"
+    assert music_asset.provenance.provider == "wikimedia_commons"
+    assert music_asset.provenance.license_information == "CC0 1.0"
+    assert source.read_bytes() == b"original-user-media"
+
+
+def test_public_music_audio_editorial_mutation_reaches_canonical_edl_and_renderer(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(composition_module, "ReviewApplicationRuntime", FakeReviewRuntime)
+    FakeAutomaticPublicMusicProvider.queries = []
+
+    public_music = tmp_path / "mutation-public.wav"
+    with wave.open(str(public_music), "wb") as stream:
+        stream.setnchannels(1)
+        stream.setsampwidth(2)
+        stream.setframerate(8_000)
+        sample = (1_200).to_bytes(2, "little", signed=True)
+        stream.writeframes(sample * (8_000 * 6))
+    FakeAutomaticPublicMusicAcquirer.source = public_music
+
+    monkeypatch.setattr(
+        composition_module,
+        "OpenverseWikimediaAudioProvider",
+        FakeAutomaticPublicMusicProvider,
+    )
+    monkeypatch.setattr(
+        composition_module,
+        "WikimediaAudioRightsVerifier",
+        FakeAutomaticPublicMusicVerifier,
+    )
+    monkeypatch.setattr(
+        composition_module,
+        "WikimediaAudioAcquirer",
+        FakeAutomaticPublicMusicAcquirer,
+    )
+
+    source = tmp_path / "mutation-source.mp4"
+    source.write_bytes(b"original-user-media")
+
+    def run_once(suffix: str) -> tuple[object, str]:
+        workspace = ProjectWorkspace.open(tmp_path / f"mutation-project-{suffix}")
+        renderer = FakeRenderer()
+        flow = build_editing_product_flow(
+            workspace,
+            EditingProductCapabilities(
+                FakeMediaProbe(),
+                FakeShotDetector(),
+                ShotDetectionOptions(),
+                FakeUnderstanding(workspace),
+                FakeDirector(),
+                renderer,
+                cast(RenderedMediaQc, UnusedRenderedMediaQc()),
+                edit_plan_id_factory=lambda: f"epl_mutation_{suffix}",
+                edl_id_factory=lambda: f"edl_mutation_{suffix}",
+                clock=lambda: NOW,
+                ffmpeg_executable="ffmpeg",
+                automatic_public_music=True,
+            ),
+        )
+        result = flow.run(
+            EditingProductRequest(
+                workspace.root,
+                _brief(),
+                (source,),
+                tmp_path / "output" / f"mutation-{suffix}.mp4",
+                output_profile=EditingOutputProfile("test_320x180_30", 320, 180, 30),
+            )
+        )
+        assert result.outcome is ProductFlowOutcome.COMPLETED
+        assert len(renderer.requests) == 1
+        request = renderer.requests[0]
+        assert any(segment.track_id == "bgm" for segment in request.edl.segments)
+        assert any(media.path == public_music.resolve() for media in request.asset_media)
+        compiled = compile_ffmpeg_render(request)
+        assert compiled.plan is not None and not compiled.diagnostics
+        arguments = compiled.plan.invocation.arguments
+        graph = arguments[arguments.index("-filter_complex") + 1]
+        return request.edl, graph
+
+    baseline_edl, baseline_graph = run_once("baseline")
+    assert "volume=-10dB" in baseline_graph
+
+    original_plan_basic_mix = composition_module.plan_basic_mix
+
+    def mutated_plan_basic_mix(edit_plan_ref, bgm_ref, duration, speech_ranges):  # type: ignore[no-untyped-def]
+        decision = original_plan_basic_mix(edit_plan_ref, bgm_ref, duration, speech_ranges)
+        intents = tuple(
+            replace(intent, gain_db=-16.0) if intent.kind.value == "gain" else intent
+            for intent in decision.automation_intents
+        )
+        return replace(decision, automation_intents=intents)
+
+    monkeypatch.setattr(composition_module, "plan_basic_mix", mutated_plan_basic_mix)
+
+    mutated_edl, mutated_graph = run_once("mutated")
+    assert "volume=-16dB" in mutated_graph
+    assert baseline_graph != mutated_graph
+
+    baseline_bgm = tuple(segment for segment in baseline_edl.segments if segment.track_id == "bgm")
+    mutated_bgm = tuple(segment for segment in mutated_edl.segments if segment.track_id == "bgm")
+    assert len(baseline_bgm) == len(mutated_bgm) == 1
+    assert baseline_bgm[0].audio_automations != mutated_bgm[0].audio_automations
+
+
+class FakeShortPublicMusicProbe(FakeMediaProbe):
+    def probe(self, path: Path) -> MediaTechnicalMetadata:
+        if path.suffix.casefold() == ".wav":
+            return MediaTechnicalMetadata(
+                "audio",
+                duration=MediaTime(1, 1),
+                codec="pcm_s16le",
+                audio_channels=1,
+                sample_rate_hz=8_000,
+            )
+        return super().probe(path)
+
+
+def test_short_public_music_loops_instead_of_aborting(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(composition_module, "ReviewApplicationRuntime", FakeReviewRuntime)
+    FakeAutomaticPublicMusicProvider.queries = []
+
+    public_music = tmp_path / "short-public.wav"
+    with wave.open(str(public_music), "wb") as stream:
+        stream.setnchannels(1)
+        stream.setsampwidth(2)
+        stream.setframerate(8_000)
+        sample = (1_400).to_bytes(2, "little", signed=True)
+        stream.writeframes(sample * 8_000)
+    FakeAutomaticPublicMusicAcquirer.source = public_music
+
+    monkeypatch.setattr(
+        composition_module,
+        "OpenverseWikimediaAudioProvider",
+        FakeAutomaticPublicMusicProvider,
+    )
+    monkeypatch.setattr(
+        composition_module,
+        "WikimediaAudioRightsVerifier",
+        FakeAutomaticPublicMusicVerifier,
+    )
+    monkeypatch.setattr(
+        composition_module,
+        "WikimediaAudioAcquirer",
+        FakeAutomaticPublicMusicAcquirer,
+    )
+
+    workspace = ProjectWorkspace.open(tmp_path / "editing-short-public-music-project")
+    source = tmp_path / "short-source.mp4"
+    source.write_bytes(b"original-user-media")
+    renderer = FakeRenderer()
+    flow = build_editing_product_flow(
+        workspace,
+        EditingProductCapabilities(
+            FakeShortPublicMusicProbe(),
+            FakeShotDetector(),
+            ShotDetectionOptions(),
+            FakeUnderstanding(workspace),
+            FakeDirector(),
+            renderer,
+            cast(RenderedMediaQc, UnusedRenderedMediaQc()),
+            edit_plan_id_factory=lambda: "epl_short_public_music",
+            edl_id_factory=lambda: "edl_short_public_music",
+            clock=lambda: NOW,
+            ffmpeg_executable="ffmpeg",
+            automatic_public_music=True,
+        ),
+    )
+
+    result = flow.run(
+        EditingProductRequest(
+            workspace.root,
+            _brief(),
+            (source,),
+            tmp_path / "output" / "short-public-music.mp4",
+            output_profile=EditingOutputProfile("test_320x180_30", 320, 180, 30),
+        )
+    )
+
+    assert result.outcome is ProductFlowOutcome.COMPLETED
+    request = renderer.requests[0]
+    bgm = [segment for segment in request.edl.segments if segment.track_id == "bgm"]
+    assert len(bgm) == 3
+    assert (
+        sum(
+            (segment.timeline_range.duration.as_fraction() for segment in bgm),
+            start=MediaTime(0, 1).as_fraction(),
+        )
+        == MediaTime(3, 1).as_fraction()
+    )
+    assert all(segment.asset_ref == bgm[0].asset_ref for segment in bgm)
+    assert any(media.path == public_music.resolve() for media in request.asset_media)
+
+
+def test_local_mp3_music_uses_transient_pcm_analysis_and_preserves_original_asset(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(composition_module, "ReviewApplicationRuntime", FakeReviewRuntime)
+    decoded_paths: list[Path] = []
+
+    def fake_decode(command, **kwargs):  # type: ignore[no-untyped-def]
+        assert "-map" in command and "0:a:0" in command
+        assert "pcm_s16le" in command
+        target = Path(command[-1])
+        decoded_paths.append(target)
+        with wave.open(str(target), "wb") as stream:
+            stream.setnchannels(1)
+            stream.setsampwidth(2)
+            stream.setframerate(48_000)
+            sample = (1_200).to_bytes(2, "little", signed=True)
+            stream.writeframes(sample * (48_000 * 6))
+        return composition_module.subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(composition_module.subprocess, "run", fake_decode)
+
+    workspace = ProjectWorkspace.open(tmp_path / "editing-mp3-music-project")
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"original-user-media")
+    music = tmp_path / "music.mp3"
+    music.write_bytes(b"original-user-mp3")
+    renderer = FakeRenderer()
+    flow = build_editing_product_flow(
+        workspace,
+        EditingProductCapabilities(
+            FakeMediaProbe(),
+            FakeShotDetector(),
+            ShotDetectionOptions(),
+            FakeUnderstanding(workspace),
+            FakeDirector(),
+            renderer,
+            cast(RenderedMediaQc, UnusedRenderedMediaQc()),
+            edit_plan_id_factory=lambda: "epl_mp3_music",
+            edl_id_factory=lambda: "edl_mp3_music",
+            clock=lambda: NOW,
+            ffmpeg_executable="ffmpeg",
+        ),
+    )
+
+    result = flow.run(
+        EditingProductRequest(
+            workspace.root,
+            _brief(),
+            (source,),
+            tmp_path / "output" / "with-mp3-music.mp4",
+            output_profile=EditingOutputProfile("test_320x180_30", 320, 180, 30),
+            music=EditingMusicInput(music, True),
+        )
+    )
+
+    assert result.outcome is ProductFlowOutcome.COMPLETED
+    assert len(decoded_paths) == 1
+    assert not decoded_paths[0].exists()
+    request = renderer.requests[0]
+    assert any(media.path == music.resolve() for media in request.asset_media)
+    assert all(media.path != decoded_paths[0] for media in request.asset_media)
+
+
+def test_visual_input_fails_closed_when_probe_reports_audio(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(composition_module, "ReviewApplicationRuntime", FakeReviewRuntime)
+    workspace = ProjectWorkspace.open(tmp_path / "editing-audio-as-video-project")
+    source = tmp_path / "not-video.mp3"
+    source.write_bytes(b"audio")
+
+    flow = build_editing_product_flow(
+        workspace,
+        EditingProductCapabilities(
+            FakeMediaProbe(),
+            FakeShotDetector(),
+            ShotDetectionOptions(),
+            FakeUnderstanding(workspace),
+            FakeDirector(),
+            FakeRenderer(),
+            cast(RenderedMediaQc, UnusedRenderedMediaQc()),
+            edit_plan_id_factory=lambda: "epl_audio_as_video",
+            edl_id_factory=lambda: "edl_audio_as_video",
+            clock=lambda: NOW,
+        ),
+    )
+
+    result = flow.run(
+        EditingProductRequest(
+            workspace.root,
+            _brief(),
+            (source,),
+            tmp_path / "output" / "should-not-render.mp4",
+            output_profile=EditingOutputProfile("test_320x180_30", 320, 180, 30),
+        )
+    )
+
+    assert result.outcome is ProductFlowOutcome.FAILED
+    assert result.diagnostic is not None
+    assert "did not probe as video" in result.diagnostic

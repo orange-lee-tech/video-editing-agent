@@ -113,5 +113,7 @@ def editing_flow(project: Path, config: ProductRuntimeConfig) -> EditingProductF
             deepseek_director_port(model=config.deepseek_model),
             FFmpegEDLRenderer(config.ffmpeg, config.ffprobe),
             FFmpegPcmRenderedMediaQc(config.ffmpeg, config.ffprobe),
+            ffmpeg_executable=config.ffmpeg,
+            automatic_public_music=True,
         ),
     )

@@ -85,14 +85,17 @@ _TEXT = {
         "field_production_notes": "拍摄备注",
         "field_media_files": "素材文件",
         "field_media_folder": "素材文件夹",
-        "field_output_mp4": "输出 MP4",
+        "field_music_file": "背景音乐（可选）",
+        "field_output_mp4": "输出视频",
         "field_output_profile": "成片规格",
         "choose_project": "选择项目目录",
         "choose_local_reference": "选择本地参考视频",
         "start_planning": "开始生成拍摄方案",
         "choose_files": "选择素材文件",
         "choose_folder": "选择素材文件夹",
-        "choose_output": "选择输出 MP4",
+        "choose_music": "选择音乐",
+        "music_rights_attestation": "仅本地音乐：我确认拥有将此音乐用于本成片所需的权利",
+        "choose_output": "选择输出视频",
         "use_planning_result": "使用本次会话的拍摄规划结果",
         "start_editing": "开始自动剪辑",
         "planning_unavailable": "拍摄规划暂不可用",
@@ -102,8 +105,10 @@ _TEXT = {
         "dialog_choose_reference": "选择本地参考视频",
         "dialog_choose_media": "选择本地素材文件",
         "dialog_choose_media_folder": "选择本地素材文件夹",
-        "dialog_choose_output": "选择最终 MP4 输出位置",
-        "filetype_mp4": "MP4 视频",
+        "dialog_choose_music": "选择本地背景音乐",
+        "dialog_choose_output": "选择最终视频输出位置",
+        "filetype_audio": "常见音频文件",
+        "filetype_video": "常见视频文件",
         "filetype_all": "所有文件",
         "switch_language": "English",
         "settings": "设置",
@@ -170,14 +175,19 @@ _TEXT = {
         "field_production_notes": "Production Notes",
         "field_media_files": "Media Files",
         "field_media_folder": "Media Folder",
-        "field_output_mp4": "Output MP4",
+        "field_music_file": "Background Music (Optional)",
+        "field_output_mp4": "Output Video",
         "field_output_profile": "Output Profile",
         "choose_project": "Choose Project",
         "choose_local_reference": "Choose Local Reference",
         "start_planning": "Start Planning",
         "choose_files": "Choose Files",
         "choose_folder": "Choose Folder",
-        "choose_output": "Output MP4",
+        "choose_music": "Choose Music",
+        "music_rights_attestation": (
+            "Local music only: I confirm I have the rights needed to use this music in this output"
+        ),
+        "choose_output": "Output Video",
         "use_planning_result": "Use Planning result from this session",
         "start_editing": "Start Editing",
         "planning_unavailable": "Planning unavailable",
@@ -187,8 +197,10 @@ _TEXT = {
         "dialog_choose_reference": "Choose local reference video",
         "dialog_choose_media": "Choose local media files",
         "dialog_choose_media_folder": "Choose local media folder",
-        "dialog_choose_output": "Choose final MP4 output",
-        "filetype_mp4": "MP4 video",
+        "dialog_choose_music": "Choose local background music",
+        "dialog_choose_output": "Choose final video output",
+        "filetype_audio": "Common audio files",
+        "filetype_video": "Common video files",
         "filetype_all": "All files",
         "switch_language": "简体中文",
         "settings": "Settings",
@@ -260,7 +272,8 @@ _PLACEHOLDERS = {
         "camera_or_phone": "可选：例如手机",
         "production_notes": "可选：室内自然光、无需稳定器",
         "media_files": "选择一个或多个本地视频",
-        "output_mp4": "选择最终 MP4 输出位置",
+        "music_file": "留空则自动从公共素材库选择；或选择本地音频文件",
+        "output_mp4": "选择最终视频输出位置",
     },
     "en": {
         "project": "Choose a project directory",
@@ -275,7 +288,8 @@ _PLACEHOLDERS = {
         "camera_or_phone": "Optional — e.g. phone",
         "production_notes": "Optional — indoor natural light",
         "media_files": "Choose one or more local videos",
-        "output_mp4": "Choose final MP4 destination",
+        "music_file": "Leave blank for public-library auto selection, or choose a local audio file",
+        "output_mp4": "Choose final video destination",
     },
 }
 
@@ -549,11 +563,17 @@ def launch() -> int:
     planning_values.update(planning_reference_values)
 
     editing_values = fields(editing_goal_card, common_goal)
-    editing_media_values = fields(editing_media_card, ("media_files", "output_mp4"))
+    editing_media_values = fields(editing_media_card, ("media_files", "music_file", "output_mp4"))
     editing_values.update(editing_media_values)
+    music_rights_attested = tk.BooleanVar(value=False)
+
+    def reset_music_rights_on_path_change(*_args: object) -> None:
+        music_rights_attested.set(False)
+
+    editing_values["music_file"].trace_add("write", reset_music_rights_on_path_change)
 
     output_profile_label = ttk.Label(editing_media_card, style="Body.TLabel")
-    output_profile_label.grid(row=2, column=0, sticky="w", padx=(0, 12), pady=5)
+    output_profile_label.grid(row=4, column=0, sticky="w", padx=(0, 12), pady=5)
     field_labels.append((output_profile_label, "output_profile"))
     output_profile_choice = tk.StringVar(value=_OUTPUT_PROFILE_OPTIONS[0][0])
     output_profile_combo = ttk.Combobox(
@@ -564,7 +584,7 @@ def launch() -> int:
         width=28,
         style="Product.TCombobox",
     )
-    output_profile_combo.grid(row=2, column=1, sticky="ew", pady=5)
+    output_profile_combo.grid(row=4, column=1, sticky="ew", pady=5)
 
     planning_action_bar = ttk.Frame(planning_tab, style="App.TFrame")
     planning_action_bar.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 8))
@@ -658,6 +678,7 @@ def launch() -> int:
         for prefix, fields_map in (("planning", planning_values), ("editing", editing_values)):
             for name, variable in fields_map.items():
                 set_field(variable, loaded.get(f"{prefix}.{name}", ""))
+        music_rights_attested.set(False)
         saved_output_profile = loaded.get("editing.output_profile")
         if saved_output_profile:
             display = _display_for_output_profile_id(saved_output_profile)
@@ -908,6 +929,7 @@ def launch() -> int:
         start_planning.configure(state=state)
         start_editing.configure(state=state)
         output_profile_combo.configure(state="disabled" if running else "readonly")
+        music_rights_check.configure(state=state)
         settings_button.configure(state=state)
 
     def pump_work() -> None:
@@ -1048,6 +1070,7 @@ def launch() -> int:
                 for item in field_value(editing_values["media_files"]).split(";")
                 if item.strip()
             )
+            music_text = field_value(editing_values["music_file"]).strip()
             form = EditingForm(
                 Path(field_value(editing_values["project"])),
                 brief(editing_values),
@@ -1056,6 +1079,8 @@ def launch() -> int:
                 use_planning_result=use_planning.get(),
                 planning_context=planning_context,
                 output_profile=_output_profile_for_display(output_profile_choice.get()),
+                music_file=Path(music_text) if music_text else None,
+                music_rights_attested=music_rights_attested.get(),
             )
             form.to_request()
             editing_output.delete("1.0", "end")
@@ -1134,6 +1159,47 @@ def launch() -> int:
             set_field(editing_values["media_files"], ";".join(selected))
             selected_file_count.configure(text=text("selected_files").format(count=len(selected)))
 
+    def choose_music_file() -> None:
+        selected = filedialog.askopenfilename(
+            title=text("dialog_choose_music"),
+            filetypes=(
+                (
+                    text("filetype_audio"),
+                    (
+                        "*.mp3",
+                        "*.wav",
+                        "*.wave",
+                        "*.flac",
+                        "*.ogg",
+                        "*.opus",
+                        "*.m4a",
+                        "*.aac",
+                        "*.wma",
+                    ),
+                ),
+                (text("filetype_all"), "*.*"),
+            ),
+        )
+        if selected:
+            set_field(editing_values["music_file"], selected)
+            music_rights_attested.set(False)
+
+    choose_music = ttk.Button(
+        editing_media_card,
+        command=choose_music_file,
+        style="Secondary.TButton",
+    )
+    choose_music.grid(row=1, column=2, padx=(10, 0))
+    translated_widgets.append((choose_music, "choose_music"))
+
+    music_rights_check = ttk.Checkbutton(
+        editing_media_card,
+        variable=music_rights_attested,
+        style="Product.TCheckbutton",
+    )
+    music_rights_check.grid(row=3, column=1, columnspan=2, sticky="w", pady=(6, 2))
+    translated_widgets.append((music_rights_check, "music_rights_attestation"))
+
     choose_output = ttk.Button(
         editing_media_card,
         command=lambda: editing_values["output_mp4"].set(
@@ -1141,14 +1207,14 @@ def launch() -> int:
                 title=text("dialog_choose_output"),
                 defaultextension=".mp4",
                 filetypes=(
-                    (text("filetype_mp4"), "*.mp4"),
+                    (text("filetype_video"), ("*.mp4", "*.mov", "*.mkv", "*.webm")),
                     (text("filetype_all"), "*.*"),
                 ),
             )
         ),
         style="Secondary.TButton",
     )
-    choose_output.grid(row=1, column=2, padx=(10, 0))
+    choose_output.grid(row=2, column=2, padx=(10, 0))
     translated_widgets.append((choose_output, "choose_output"))
 
     use_planning_check = ttk.Checkbutton(
@@ -1157,7 +1223,7 @@ def launch() -> int:
         state="disabled",
         style="Product.TCheckbutton",
     )
-    use_planning_check.grid(row=3, column=1, columnspan=2, sticky="w", pady=(8, 0))
+    use_planning_check.grid(row=5, column=1, columnspan=2, sticky="w", pady=(8, 0))
     translated_widgets.append((use_planning_check, "use_planning_result"))
 
     start_editing = ttk.Button(

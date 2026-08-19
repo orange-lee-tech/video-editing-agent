@@ -6,6 +6,7 @@ from pathlib import Path
 
 from video_editing_agent.adapters.product.ux_support import extract_first_https_url
 from video_editing_agent.application.use_cases.product_flow import (
+    EditingMusicInput,
     EditingOutputProfile,
     EditingProductFlow,
     EditingProductRequest,
@@ -23,7 +24,29 @@ from video_editing_agent.domain.brief.model import AuthoritativeFact
 from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.shooting.model import ProductionConstraints
 
-_MEDIA_EXTENSIONS = frozenset({".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v"})
+_MEDIA_EXTENSIONS = frozenset(
+    {
+        ".mp4",
+        ".mov",
+        ".mkv",
+        ".avi",
+        ".webm",
+        ".m4v",
+        ".mts",
+        ".m2ts",
+        ".ts",
+        ".mpg",
+        ".mpeg",
+        ".wmv",
+        ".flv",
+        ".3gp",
+        ".3g2",
+        ".vob",
+        ".ogv",
+        ".mxf",
+    }
+)
+_OUTPUT_VIDEO_EXTENSIONS = frozenset({".mp4", ".mov", ".mkv", ".webm"})
 
 
 def expand_media_inputs(files: tuple[Path, ...], folder: Path | None = None) -> tuple[Path, ...]:
@@ -120,17 +143,23 @@ class EditingForm:
     use_planning_result: bool = False
     planning_context: PlanningSessionContext | None = None
     output_profile: EditingOutputProfile | None = None
+    music_file: Path | None = None
+    music_rights_attested: bool = False
 
     def to_request(self) -> EditingProductRequest:
         if str(self.project).strip() in {"", "."}:
             raise ValueError("Editing project directory is required")
         if str(self.output_path).strip() in {"", "."}:
             raise ValueError("Editing output path is required")
-        if self.output_path.suffix.casefold() != ".mp4":
-            raise ValueError("Editing output must be an MP4 destination")
+        if self.output_path.suffix.casefold() not in _OUTPUT_VIDEO_EXTENSIONS:
+            raise ValueError("Editing output must be MP4, MOV, MKV, or WebM")
         if self.output_profile is None:
             raise ValueError("Editing output profile is required")
         project = self.project.expanduser().resolve(strict=False)
+        music = None
+        if self.music_file is not None:
+            music_path = self.music_file.expanduser().resolve(strict=True)
+            music = EditingMusicInput(music_path, self.music_rights_attested)
         script_ref = None
         shooting_ref = None
         if self.use_planning_result:
@@ -149,6 +178,7 @@ class EditingForm:
             script_ref,
             shooting_ref,
             output_profile=self.output_profile,
+            music=music,
         )
 
 

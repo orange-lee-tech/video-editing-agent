@@ -20,6 +20,7 @@ from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.domain.edit.model import EditPlan
 from video_editing_agent.domain.edit.resolution import ResolutionDecision, ResolutionDecisionType
 from video_editing_agent.domain.edl.model import EDL
+from video_editing_agent.domain.music.model import BeatMap
 from video_editing_agent.domain.review.model import ReviewDisposition, ReviewVerdict
 from video_editing_agent.domain.script.model import ScriptPlan
 from video_editing_agent.domain.shooting.model import ProductionConstraints, ShootingPlan
@@ -201,6 +202,37 @@ OUTPUT_PROFILE_PRESETS = (
 
 
 @dataclass(frozen=True, slots=True)
+class EditingMusicInput:
+    """Explicit user-selected local BGM plus the ordinary-user rights gate."""
+
+    local_path: Path
+    rights_attested: bool
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.rights_attested, bool):
+            raise TypeError("music rights_attested must be a bool")
+        if not self.rights_attested:
+            raise ValueError("local music requires explicit user rights attestation")
+
+
+@dataclass(frozen=True, slots=True)
+class PreparedEditingMusic:
+    """Rights-grounded music material prepared before timeline assembly."""
+
+    asset_ref: EntityRevisionRef
+    beat_map: BeatMap
+    rights_evidence_refs: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if self.beat_map.audio_asset_ref != self.asset_ref:
+            raise ValueError("prepared music BeatMap must reference the exact music Asset")
+        if not self.rights_evidence_refs or any(
+            not value.strip() for value in self.rights_evidence_refs
+        ):
+            raise ValueError("prepared music requires durable rights evidence")
+
+
+@dataclass(frozen=True, slots=True)
 class EditingProductRequest:
     project_location: Path
     brief: ProductBriefInput
@@ -211,6 +243,7 @@ class EditingProductRequest:
     shooting_plan_ref: EntityRevisionRef | None = None
     created_by: str = "product-flow"
     output_profile: EditingOutputProfile = OUTPUT_PROFILE_HORIZONTAL_1080P
+    music: EditingMusicInput | None = None
 
     def __post_init__(self) -> None:
         if not self.local_media_paths:
@@ -235,6 +268,12 @@ class EditingProductOperations:
     save_edl: Callable[[EDL], None]
     render: Callable[[EDL, Path, EditingOutputProfile], RenderResult]
     review: Callable[[EntityRevisionRef, RenderResult, bool], ReviewVerdict]
+    prepare_music: (
+        Callable[[EditingMusicInput | None, ProductBriefInput], PreparedEditingMusic | None] | None
+    ) = None
+    build_edl_with_music: (
+        Callable[[EditPlan, tuple[ResolutionDecision, ...], bool, PreparedEditingMusic], EDL] | None
+    ) = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -384,6 +423,26 @@ class EditingProductFlow:
                 )
             )
             self._operations.prepare_media(request.local_media_paths)
+            prepared_music: PreparedEditingMusic | None = None
+            music_preparer = self._operations.prepare_music
+            music_builder = self._operations.build_edl_with_music
+            wants_music = request.music is not None or request.requires_audible_output
+            if wants_music and music_preparer is not None and music_builder is not None:
+                emit(
+                    ProductFlowEvent(
+                        ProductFlowStage.INGEST_UNDERSTANDING,
+                        (
+                            "Preparing rights-attested local music"
+                            if request.music is not None
+                            else "Selecting rights-verified public background music"
+                        ),
+                    )
+                )
+                prepared_music = music_preparer(request.music, request.brief)
+                if request.music is not None and prepared_music is None:
+                    raise RuntimeError("explicit local music could not be prepared")
+            elif request.music is not None:
+                raise RuntimeError("local music capability is unavailable")
             emit(
                 ProductFlowEvent(
                     ProductFlowStage.EDITING_DECISION,
@@ -412,11 +471,22 @@ class EditingProductFlow:
                 )
                 raise ValueError(f"unresolved EditPlan slots: {slot_ids}")
             emit(ProductFlowEvent(ProductFlowStage.EDL_ASSEMBLY, "Building canonical EDL"))
-            edl = self._operations.build_edl(
-                edit_plan,
-                decisions,
-                request.requires_audible_output,
-            )
+            if prepared_music is None:
+                edl = self._operations.build_edl(
+                    edit_plan,
+                    decisions,
+                    request.requires_audible_output,
+                )
+            else:
+                build_with_music = self._operations.build_edl_with_music
+                if build_with_music is None:
+                    raise RuntimeError("music EDL capability is unavailable")
+                edl = build_with_music(
+                    edit_plan,
+                    decisions,
+                    request.requires_audible_output,
+                    prepared_music,
+                )
             edl_ref = _ref(edl)
             self._operations.save_edl(edl)
             emit(ProductFlowEvent(ProductFlowStage.RENDERING, "Rendering canonical EDL"))
