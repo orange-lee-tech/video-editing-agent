@@ -171,6 +171,36 @@ class PlanningProductResult:
 
 
 @dataclass(frozen=True, slots=True)
+class EditingOutputProfile:
+    # User-visible target geometry for the ordinary Editing product route.
+    profile_id: str
+    width: int
+    height: int
+    frames_per_second: int
+
+    def __post_init__(self) -> None:
+        if not self.profile_id.strip():
+            raise ValueError("output profile_id must not be empty")
+        for name, value in (
+            ("width", self.width),
+            ("height", self.height),
+            ("frames_per_second", self.frames_per_second),
+        ):
+            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                raise ValueError(f"output profile {name} must be a positive int")
+
+
+OUTPUT_PROFILE_VERTICAL_1080P = EditingOutputProfile("vertical_9_16_1080p30", 1080, 1920, 30)
+OUTPUT_PROFILE_HORIZONTAL_1080P = EditingOutputProfile("horizontal_16_9_1080p30", 1920, 1080, 30)
+OUTPUT_PROFILE_SQUARE_1080P = EditingOutputProfile("square_1_1_1080p30", 1080, 1080, 30)
+OUTPUT_PROFILE_PRESETS = (
+    OUTPUT_PROFILE_VERTICAL_1080P,
+    OUTPUT_PROFILE_HORIZONTAL_1080P,
+    OUTPUT_PROFILE_SQUARE_1080P,
+)
+
+
+@dataclass(frozen=True, slots=True)
 class EditingProductRequest:
     project_location: Path
     brief: ProductBriefInput
@@ -180,6 +210,7 @@ class EditingProductRequest:
     script_plan_ref: EntityRevisionRef | None = None
     shooting_plan_ref: EntityRevisionRef | None = None
     created_by: str = "product-flow"
+    output_profile: EditingOutputProfile = OUTPUT_PROFILE_HORIZONTAL_1080P
 
     def __post_init__(self) -> None:
         if not self.local_media_paths:
@@ -202,7 +233,7 @@ class EditingProductOperations:
     resolve_edit_plan: Callable[[EditPlan], tuple[ResolutionDecision, ...]]
     build_edl: Callable[[EditPlan, tuple[ResolutionDecision, ...], bool], EDL]
     save_edl: Callable[[EDL], None]
-    render: Callable[[EDL, Path], RenderResult]
+    render: Callable[[EDL, Path, EditingOutputProfile], RenderResult]
     review: Callable[[EntityRevisionRef, RenderResult, bool], ReviewVerdict]
 
 
@@ -389,7 +420,9 @@ class EditingProductFlow:
             edl_ref = _ref(edl)
             self._operations.save_edl(edl)
             emit(ProductFlowEvent(ProductFlowStage.RENDERING, "Rendering canonical EDL"))
-            render_result = self._operations.render(edl, request.output_path)
+            render_result = self._operations.render(
+                edl, request.output_path, request.output_profile
+            )
             emit(ProductFlowEvent(ProductFlowStage.REVIEW_QC, "Reviewing delivered output"))
             verdict = self._operations.review(
                 edl_ref,

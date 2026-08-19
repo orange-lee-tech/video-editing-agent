@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import replace
 from decimal import Decimal, InvalidOperation
 from fractions import Fraction
 from pathlib import Path
@@ -14,6 +15,7 @@ from video_editing_agent.adapters.cli.provider_config import (
 )
 from video_editing_agent.application.ports.shot_detector import ShotDetectionOptions
 from video_editing_agent.application.use_cases.product_flow import (
+    EditingOutputProfile,
     EditingProductRequest,
     EditingProductResult,
     PlanningProductRequest,
@@ -447,7 +449,15 @@ def _editing_main(args: argparse.Namespace) -> dict[str, Any]:
         visual_understanding_port,
     )
 
-    request = load_editing_request(args.request)
+    request = replace(
+        load_editing_request(args.request),
+        output_profile=EditingOutputProfile(
+            "cli_explicit",
+            args.output_width,
+            args.output_height,
+            args.output_fps,
+        ),
+    )
     workspace = ProjectWorkspace.open(request.project_location)
     visual = visual_understanding_port(
         args.visual_provider,
@@ -479,9 +489,6 @@ def _editing_main(args: argparse.Namespace) -> dict[str, Any]:
             deepseek_director_port(model=args.deepseek_model),
             FFmpegEDLRenderer(args.ffmpeg, args.ffprobe),
             FFmpegPcmRenderedMediaQc(args.ffmpeg, args.ffprobe),
-            output_width=args.output_width,
-            output_height=args.output_height,
-            output_fps=args.output_fps,
         ),
     )
     return editing_result_json(flow.run(request))

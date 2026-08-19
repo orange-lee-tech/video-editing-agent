@@ -6,6 +6,7 @@ from pathlib import Path
 from video_editing_agent.application.ports.executor import DeterministicToolInvocation
 from video_editing_agent.application.ports.renderer import OutputSpec, RenderArtifact, RenderResult
 from video_editing_agent.application.use_cases.product_flow import (
+    EditingOutputProfile,
     EditingProductFlow,
     EditingProductOperations,
     EditingProductRequest,
@@ -43,6 +44,10 @@ def _envelope(identity: str) -> EntityEnvelope:
 
 def _brief(identity: str = "brf_flow") -> Brief:
     return Brief(_envelope(identity), "Title", "Objective", "Audience", "Platform", "Message")
+
+
+def _output_profile() -> EditingOutputProfile:
+    return EditingOutputProfile("test_640x360_24", 640, 360, 24)
 
 
 def _script(brief_ref: EntityRevisionRef) -> ScriptPlan:
@@ -247,8 +252,9 @@ def test_editing_flow_starts_from_local_paths_and_reaches_reviewed_output(tmp_pa
         calls.append("save_edl")
         saved.append(edl)
 
-    def render(edl: EDL, path: Path) -> RenderResult:
+    def render(edl: EDL, path: Path, profile: EditingOutputProfile) -> RenderResult:
         calls.append("render")
+        assert profile == _output_profile()
         path.write_bytes(b"rendered")
         return _render(edl, path)
 
@@ -267,7 +273,13 @@ def test_editing_flow_starts_from_local_paths_and_reaches_reviewed_output(tmp_pa
         review,
     )
     result = EditingProductFlow(operations).run(
-        EditingProductRequest(tmp_path, _brief_input(), (source,), output)
+        EditingProductRequest(
+            tmp_path,
+            _brief_input(),
+            (source,),
+            output,
+            output_profile=_output_profile(),
+        )
     )
 
     assert calls == [
@@ -303,7 +315,7 @@ def test_unresolved_edit_slot_fails_closed_before_edl_or_render(tmp_path: Path) 
             or _edl(EntityRevisionRef(plan.envelope.id, plan.envelope.revision))
         ),
         lambda edl: downstream.append("save"),
-        lambda edl, path: downstream.append("render") or _render(edl, path),
+        lambda edl, path, profile: downstream.append("render") or _render(edl, path),
         lambda edl_ref, rendered, audible: _review(edl_ref, True),
     )
 
@@ -336,7 +348,7 @@ def test_review_correction_route_is_surfaced_not_silently_repaired(tmp_path: Pat
             EntityRevisionRef(plan.envelope.id, plan.envelope.revision)
         ),
         lambda edl: None,
-        lambda edl, path: _render(edl, path),
+        lambda edl, path, profile: _render(edl, path),
         lambda edl_ref, rendered, audible: _review(edl_ref, False),
     )
 

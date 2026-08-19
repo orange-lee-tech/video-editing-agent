@@ -35,6 +35,7 @@ from video_editing_agent.application.use_cases.product_audio import (
     build_conservative_source_audio_mix,
 )
 from video_editing_agent.application.use_cases.product_flow import (
+    EditingOutputProfile,
     EditingProductFlow,
     EditingProductOperations,
     PlanningProductFlow,
@@ -109,21 +110,9 @@ class EditingProductCapabilities:
     renderer: Renderer
     rendered_media_qc: RenderedMediaQc
     analysis_profile: AnalysisProfile = AnalysisProfile.SEMANTIC
-    output_width: int = 1920
-    output_height: int = 1080
-    output_fps: int = 30
     edit_plan_id_factory: Callable[[], str] = _edit_plan_id
     edl_id_factory: Callable[[], str] = _edl_id
     clock: Callable[[], datetime] = _utc_now
-
-    def __post_init__(self) -> None:
-        for name, value in (
-            ("output_width", self.output_width),
-            ("output_height", self.output_height),
-            ("output_fps", self.output_fps),
-        ):
-            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
-                raise ValueError(f"{name} must be a positive int")
 
 
 def _brief_content(value: ProductBriefInput) -> BriefContent:
@@ -344,7 +333,7 @@ def build_editing_product_flow(
     def save_edl(edl: EDL) -> None:
         workspace.edls.save(edl)
 
-    def render(edl: EDL, output_path: Path) -> RenderResult:
+    def render(edl: EDL, output_path: Path, output_profile: EditingOutputProfile) -> RenderResult:
         asset_refs = sorted(
             {segment.asset_ref for segment in edl.segments},
             key=lambda item: (item.entity_id, item.revision),
@@ -356,9 +345,9 @@ def build_editing_product_flow(
                 media,
                 OutputSpec(
                     output_path,
-                    capabilities.output_width,
-                    capabilities.output_height,
-                    capabilities.output_fps,
+                    output_profile.width,
+                    output_profile.height,
+                    output_profile.frames_per_second,
                 ),
             )
         )

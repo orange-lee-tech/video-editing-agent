@@ -44,7 +44,13 @@ from video_editing_agent.adapters.product.ux_support import (
     serialize_profile,
     write_utf8_export,
 )
-from video_editing_agent.application.use_cases.product_flow import ProductFlowEvent
+from video_editing_agent.application.use_cases.product_flow import (
+    OUTPUT_PROFILE_HORIZONTAL_1080P,
+    OUTPUT_PROFILE_SQUARE_1080P,
+    OUTPUT_PROFILE_VERTICAL_1080P,
+    EditingOutputProfile,
+    ProductFlowEvent,
+)
 from video_editing_agent.domain.shooting.model import ProductionConstraints
 
 _TEXT = {
@@ -66,6 +72,7 @@ _TEXT = {
         "field_media_files": "素材文件",
         "field_media_folder": "素材文件夹",
         "field_output_mp4": "输出 MP4",
+        "field_output_profile": "成片规格",
         "choose_project": "选择项目目录",
         "choose_local_reference": "选择本地参考视频",
         "start_planning": "开始生成拍摄方案",
@@ -141,6 +148,7 @@ _TEXT = {
         "field_media_files": "Media Files",
         "field_media_folder": "Media Folder",
         "field_output_mp4": "Output MP4",
+        "field_output_profile": "Output Profile",
         "choose_project": "Choose Project",
         "choose_local_reference": "Choose Local Reference",
         "start_planning": "Start Planning",
@@ -246,6 +254,27 @@ _PLACEHOLDERS = {
         "output_mp4": "Required — choose the final MP4 destination",
     },
 }
+
+
+_OUTPUT_PROFILE_OPTIONS: tuple[tuple[str, EditingOutputProfile], ...] = (
+    ("9:16 · 1080×1920 · 30 FPS", OUTPUT_PROFILE_VERTICAL_1080P),
+    ("16:9 · 1920×1080 · 30 FPS", OUTPUT_PROFILE_HORIZONTAL_1080P),
+    ("1:1 · 1080×1080 · 30 FPS", OUTPUT_PROFILE_SQUARE_1080P),
+)
+
+
+def _output_profile_for_display(value: str) -> EditingOutputProfile:
+    for display, profile in _OUTPUT_PROFILE_OPTIONS:
+        if display == value:
+            return profile
+    raise ValueError("Select a supported output profile")
+
+
+def _display_for_output_profile_id(profile_id: str) -> str | None:
+    for display, profile in _OUTPUT_PROFILE_OPTIONS:
+        if profile.profile_id == profile_id:
+            return display
+    return None
 
 
 def launch() -> int:
@@ -411,6 +440,19 @@ def launch() -> int:
     )
     editing_values = fields(editing_tab, (*common, "media_files", "output_mp4"))
 
+    output_profile_label = ttk.Label(editing_tab)
+    output_profile_label.grid(row=8, column=0, sticky="w", padx=4, pady=3)
+    field_labels.append((output_profile_label, "output_profile"))
+    output_profile_choice = tk.StringVar(value=_OUTPUT_PROFILE_OPTIONS[0][0])
+    output_profile_combo = ttk.Combobox(
+        editing_tab,
+        textvariable=output_profile_choice,
+        values=tuple(item[0] for item in _OUTPUT_PROFILE_OPTIONS),
+        state="readonly",
+        width=32,
+    )
+    output_profile_combo.grid(row=8, column=1, sticky="w", padx=4, pady=3)
+
     def output_surface(parent: Any, row: int) -> tuple[Any, Any]:
         frame = ttk.Frame(parent)
         frame.grid(row=row, column=0, columnspan=3, sticky="nsew", pady=(4, 0))
@@ -424,7 +466,7 @@ def launch() -> int:
         return output, frame
 
     planning_output, planning_output_frame = output_surface(planning_tab, 13)
-    editing_output, editing_output_frame = output_surface(editing_tab, 11)
+    editing_output, editing_output_frame = output_surface(editing_tab, 12)
     current_form_profile: Path | None = None
 
     def form_profile_values() -> dict[str, str]:
@@ -434,6 +476,9 @@ def launch() -> int:
                 actual = field_value(variable).strip()
                 if actual:
                     values[f"{prefix}.{name}"] = actual
+        values["editing.output_profile"] = _output_profile_for_display(
+            output_profile_choice.get()
+        ).profile_id
         return values
 
     def save_form_profile(*, choose: bool) -> None:
@@ -467,6 +512,11 @@ def launch() -> int:
         for prefix, fields_map in (("planning", planning_values), ("editing", editing_values)):
             for name, variable in fields_map.items():
                 set_field(variable, loaded.get(f"{prefix}.{name}", ""))
+        saved_output_profile = loaded.get("editing.output_profile")
+        if saved_output_profile:
+            display = _display_for_output_profile_id(saved_output_profile)
+            if display is not None:
+                output_profile_choice.set(display)
         current_form_profile = source
         messagebox.showinfo(text("file"), text("profile_loaded"), parent=root)
 
@@ -678,7 +728,7 @@ def launch() -> int:
     planning_eta = ttk.Label(planning_tab, text=text("estimating"))
     planning_eta.grid(row=11, column=0, sticky="w")
     editing_eta = ttk.Label(editing_tab, text=text("estimating"))
-    editing_eta.grid(row=9, column=0, sticky="w")
+    editing_eta.grid(row=10, column=0, sticky="w")
 
     def show_event(widget: Any, event: ProductFlowEvent) -> None:
         widget.insert("end", f"[{localized_stage(event.stage, language.get())}]\n")
@@ -697,6 +747,7 @@ def launch() -> int:
         state = "disabled" if running else "normal"
         start_planning.configure(state=state)
         start_editing.configure(state=state)
+        output_profile_combo.configure(state="disabled" if running else "readonly")
         settings_button.configure(state=state)
 
     def pump_work() -> None:
@@ -844,6 +895,7 @@ def launch() -> int:
                 raw_files,
                 use_planning_result=use_planning.get(),
                 planning_context=planning_context,
+                output_profile=_output_profile_for_display(output_profile_choice.get()),
             )
             form.to_request()
             editing_output.delete("1.0", "end")
@@ -928,11 +980,11 @@ def launch() -> int:
         variable=use_planning,
         state="disabled",
     )
-    use_planning_check.grid(row=8, column=1, sticky="w")
+    use_planning_check.grid(row=9, column=1, sticky="w")
     translated_widgets.append((use_planning_check, "use_planning_result"))
 
     start_editing = ttk.Button(editing_tab, command=run_editing)
-    start_editing.grid(row=10, column=1, sticky="e")
+    start_editing.grid(row=11, column=1, sticky="e")
     translated_widgets.append((start_editing, "start_editing"))
 
     def export_output(widget: Any) -> None:
@@ -950,7 +1002,7 @@ def launch() -> int:
     planning_export.grid(row=12, column=1, sticky="e")
     translated_widgets.append((planning_export, "export"))
     editing_export = ttk.Button(editing_tab, command=lambda: export_output(editing_output))
-    editing_export.grid(row=10, column=0, sticky="w")
+    editing_export.grid(row=11, column=0, sticky="w")
     translated_widgets.append((editing_export, "export"))
 
     update_language()
