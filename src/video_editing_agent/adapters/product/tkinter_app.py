@@ -26,6 +26,12 @@ from video_editing_agent.adapters.product.presentation import (
     planning_presentation,
 )
 from video_editing_agent.adapters.product.runtime import resolve_product_runtime
+from video_editing_agent.adapters.product.ui_components import create_brand_mark
+from video_editing_agent.adapters.product.ui_theme import (
+    DEFAULT_PRODUCT_THEME,
+    DEFAULT_PRODUCT_TYPOGRAPHY,
+    configure_product_theme,
+)
 from video_editing_agent.adapters.product.ux_support import (
     EtaEstimator,
     ProtectedCredentialStore,
@@ -55,9 +61,17 @@ from video_editing_agent.domain.shooting.model import ProductionConstraints
 
 _TEXT = {
     "zh-CN": {
-        "window_title": "视频剪辑智能体 — Stage A",
+        "window_title": "视频剪辑智能体",
+        "app_title": "视频剪辑智能体",
+        "app_subtitle": "AI Director + AI Video Editor",
         "tab_planning": "拍摄规划",
         "tab_editing": "自动剪辑",
+        "planning_goal_title": "内容目标",
+        "planning_reference_title": "参考与拍摄条件",
+        "editing_goal_title": "成片目标",
+        "editing_media_title": "素材与输出",
+        "result_log_title": "结果与运行记录",
+        "result_empty": "尚未生成结果。完成后会在这里显示可读摘要与运行记录。",
         "field_project": "项目目录",
         "field_title": "视频标题",
         "field_objective": "视频目标",
@@ -93,6 +107,7 @@ _TEXT = {
         "filetype_all": "所有文件",
         "switch_language": "English",
         "settings": "设置",
+        "profiles": "配置",
         "settings_title": "API 设置",
         "settings_intro": "本软件不附赠 API 密钥。请使用你自己的 API 服务。",
         "settings_no_video": ("这些 API 仅用于理解、推理、规划和剪辑决策，不用于视频生成。"),
@@ -131,9 +146,17 @@ _TEXT = {
         "splash": "正在启动视频剪辑智能体…",
     },
     "en": {
-        "window_title": "Video Editing Agent — Stage A",
+        "window_title": "Video Editing Agent",
+        "app_title": "Video Editing Agent",
+        "app_subtitle": "AI Director + AI Video Editor",
         "tab_planning": "Planning",
         "tab_editing": "Editing",
+        "planning_goal_title": "Content Goal",
+        "planning_reference_title": "References & Filming",
+        "editing_goal_title": "Edit Goal",
+        "editing_media_title": "Media & Output",
+        "result_log_title": "Result & Run Log",
+        "result_empty": "No result yet. A readable summary and run log will appear here.",
         "field_project": "Project Directory",
         "field_title": "Video Title",
         "field_objective": "Objective",
@@ -169,6 +192,7 @@ _TEXT = {
         "filetype_all": "All files",
         "switch_language": "简体中文",
         "settings": "Settings",
+        "profiles": "Profiles",
         "settings_title": "API Settings",
         "settings_intro": (
             "This application does not include API keys. Use your own API services."
@@ -224,34 +248,34 @@ _TEXT = {
 
 _PLACEHOLDERS = {
     "zh-CN": {
-        "project": "此行必填，示例：选择一个项目目录",
-        "title": "此行必填，示例：通勤小水瓶",
-        "objective": "此行必填，示例：告诉上班族它方便携带",
-        "audience": "此行必填，示例：上班族",
-        "platform": "此行必填，示例：抖音",
-        "core_message": "此行必填，示例：小巧、方便",
-        "authoritative_facts": "此行可空置，示例：容量 350mL（仅填写已确认事实）",
-        "reference_url": "此行可空置，示例：粘贴公开视频直链或含 HTTPS 链接的分享文本",
-        "reference_local": "此行可空置，可选择本地参考视频",
-        "camera_or_phone": "此行可空置，示例：手机",
-        "production_notes": "此行可空置，示例：室内自然光、无需稳定器",
-        "media_files": "此行必填，请选择一个或多个本地视频",
-        "output_mp4": "此行必填，请选择最终 MP4 输出位置",
+        "project": "选择项目目录",
+        "title": "例如：通勤小水瓶",
+        "objective": "例如：说明为什么适合上班通勤",
+        "audience": "例如：上班族",
+        "platform": "例如：抖音",
+        "core_message": "例如：小巧、方便",
+        "authoritative_facts": "可选：容量 350mL（仅填写已确认事实）",
+        "reference_url": "可选：公开视频 HTTPS 链接",
+        "reference_local": "可选：本地参考视频",
+        "camera_or_phone": "可选：例如手机",
+        "production_notes": "可选：室内自然光、无需稳定器",
+        "media_files": "选择一个或多个本地视频",
+        "output_mp4": "选择最终 MP4 输出位置",
     },
     "en": {
-        "project": "Required — choose a project directory",
-        "title": "Required — e.g. Commuter Water Bottle",
-        "objective": "Required — e.g. explain why it is easy to carry",
-        "audience": "Required — e.g. commuters",
-        "platform": "Required — e.g. TikTok",
-        "core_message": "Required — e.g. compact and convenient",
+        "project": "Choose a project directory",
+        "title": "e.g. Commuter Water Bottle",
+        "objective": "e.g. explain why it is easy to carry",
+        "audience": "e.g. commuters",
+        "platform": "e.g. TikTok",
+        "core_message": "e.g. compact and convenient",
         "authoritative_facts": "Optional — confirmed facts only, e.g. 350 mL",
-        "reference_url": "Optional — direct HTTPS video URL or share text containing one",
-        "reference_local": "Optional — choose a local reference video",
+        "reference_url": "Optional — public HTTPS video link",
+        "reference_local": "Optional — local reference video",
         "camera_or_phone": "Optional — e.g. phone",
-        "production_notes": "Optional — e.g. indoor natural light",
-        "media_files": "Required — choose one or more local videos",
-        "output_mp4": "Required — choose the final MP4 destination",
+        "production_notes": "Optional — indoor natural light",
+        "media_files": "Choose one or more local videos",
+        "output_mp4": "Choose final MP4 destination",
     },
 }
 
@@ -283,6 +307,7 @@ def launch() -> int:
 
     root = tk.Tk()
     root.withdraw()
+    configure_product_theme(root)
     splash = tk.Toplevel(root)
     splash.overrideredirect(True)
     splash.resizable(False, False)
@@ -334,7 +359,8 @@ def launch() -> int:
         splash.update()
 
     startup_milestone(1)
-    root.geometry("940x760")
+    root.geometry("1120x760")
+    root.minsize(900, 620)
     language = tk.StringVar(value="zh-CN")
     startup_milestone(2)
     profile_root = default_profile_root()
@@ -360,20 +386,60 @@ def launch() -> int:
             return text("api_complete")
         return text("api_partial").format(count=configured)
 
-    header = ttk.Frame(root)
-    header.pack(fill="x", padx=10, pady=(10, 0))
-    language_button = ttk.Button(header)
-    language_button.pack(side="right")
-    settings_button = ttk.Button(header)
-    settings_button.pack(side="right", padx=(0, 8))
-    api_status = ttk.Label(header)
-    api_status.pack(side="right", padx=(0, 8))
+    header = ttk.Frame(root, style="Header.TFrame", padding=(16, 9))
+    header.pack(fill="x", padx=16, pady=(12, 6))
 
-    notebook = ttk.Notebook(root)
-    notebook.pack(fill="both", expand=True, padx=10, pady=10)
-    planning_tab, editing_tab = ttk.Frame(notebook), ttk.Frame(notebook)
+    brand_mark = create_brand_mark(header, size=38)
+    brand_mark.pack(side="left", padx=(0, 10))
+
+    identity = ttk.Frame(header, style="Header.TFrame")
+    identity.pack(side="left", fill="y")
+    app_title_label = ttk.Label(identity, style="AppTitle.TLabel")
+    app_title_label.pack(anchor="w")
+    app_subtitle_label = ttk.Label(identity, style="Muted.TLabel")
+    app_subtitle_label.pack(anchor="w", pady=(2, 0))
+
+    language_button = ttk.Button(header, style="Ghost.TButton")
+    language_button.pack(side="right")
+    settings_button = ttk.Button(header, style="Ghost.TButton")
+    settings_button.pack(side="right", padx=(0, 4))
+    profile_button = ttk.Button(header, style="Ghost.TButton")
+    profile_button.pack(side="right", padx=(0, 4))
+    api_status = ttk.Label(header, style="StatusPill.TLabel")
+    api_status.pack(side="right", padx=(0, 10))
+
+    workflow_nav = ttk.Frame(root, style="Nav.TFrame")
+    workflow_nav.pack(fill="x", padx=16, pady=(0, 4))
+
+    notebook = ttk.Notebook(root, style="Product.TNotebook")
+    notebook.pack(fill="both", expand=True, padx=16, pady=(0, 12))
+    planning_tab = ttk.Frame(notebook, style="App.TFrame", padding=(0, 8))
+    editing_tab = ttk.Frame(notebook, style="App.TFrame", padding=(0, 8))
+    planning_tab.columnconfigure(0, weight=1)
+    editing_tab.columnconfigure(0, weight=1)
     notebook.add(planning_tab)
     notebook.add(editing_tab)
+
+    def select_workflow(target: str) -> None:
+        is_planning = target == "planning"
+        notebook.select(planning_tab if is_planning else editing_tab)  # type: ignore[no-untyped-call]
+        planning_nav.configure(
+            style="WorkflowActive.TButton" if is_planning else "Workflow.TButton"
+        )
+        editing_nav.configure(style="Workflow.TButton" if is_planning else "WorkflowActive.TButton")
+
+    planning_nav = ttk.Button(
+        workflow_nav,
+        command=lambda: select_workflow("planning"),
+        style="WorkflowActive.TButton",
+    )
+    planning_nav.pack(side="left")
+    editing_nav = ttk.Button(
+        workflow_nav,
+        command=lambda: select_workflow("editing"),
+        style="Workflow.TButton",
+    )
+    editing_nav.pack(side="left", padx=(4, 0))
 
     field_labels: list[tuple[Any, str]] = []
     translated_widgets: list[tuple[Any, str]] = []
@@ -406,12 +472,17 @@ def launch() -> int:
     def fields(parent: Any, names: tuple[str, ...]) -> dict[str, Any]:
         values = {}
         for row, name in enumerate(names):
-            label = ttk.Label(parent)
-            label.grid(row=row, column=0, sticky="w", padx=4, pady=3)
+            label = ttk.Label(parent, style="Body.TLabel")
+            label.grid(row=row, column=0, sticky="w", padx=(0, 12), pady=5)
             field_labels.append((label, name))
             value = tk.StringVar()
-            entry = ttk.Entry(parent, textvariable=value, width=80)
-            entry.grid(row=row, column=1, sticky="ew", padx=4, pady=3)
+            entry = ttk.Entry(
+                parent,
+                textvariable=value,
+                width=72,
+                style="Product.TEntry",
+            )
+            entry.grid(row=row, column=1, sticky="ew", padx=0, pady=5)
             entry_fields[id(value)] = (entry, value, name)
             show_placeholder(entry, value, name)
             entry.bind(
@@ -426,11 +497,48 @@ def launch() -> int:
         parent.columnconfigure(1, weight=1)
         return values
 
-    common = ("project", "title", "objective", "audience", "platform", "core_message")
-    planning_values = fields(
+    planning_goal_card = ttk.LabelFrame(
         planning_tab,
+        style="Card.TLabelframe",
+        padding=12,
+    )
+    planning_goal_card.grid(row=0, column=0, sticky="nsew", padx=(0, 6), pady=(0, 8))
+    planning_goal_card.columnconfigure(1, weight=1)
+
+    planning_reference_card = ttk.LabelFrame(
+        planning_tab,
+        style="Card.TLabelframe",
+        padding=12,
+    )
+    planning_reference_card.grid(row=0, column=1, sticky="nsew", padx=(6, 0), pady=(0, 8))
+    planning_reference_card.columnconfigure(1, weight=1)
+
+    editing_goal_card = ttk.LabelFrame(
+        editing_tab,
+        style="Card.TLabelframe",
+        padding=12,
+    )
+    editing_goal_card.grid(row=0, column=0, sticky="nsew", padx=(0, 6), pady=(0, 8))
+    editing_goal_card.columnconfigure(1, weight=1)
+
+    editing_media_card = ttk.LabelFrame(
+        editing_tab,
+        style="Card.TLabelframe",
+        padding=12,
+    )
+    editing_media_card.grid(row=0, column=1, sticky="nsew", padx=(6, 0), pady=(0, 8))
+    editing_media_card.columnconfigure(1, weight=1)
+
+    planning_tab.columnconfigure(0, weight=1, uniform="planning-columns")
+    planning_tab.columnconfigure(1, weight=1, uniform="planning-columns")
+    editing_tab.columnconfigure(0, weight=1, uniform="editing-columns")
+    editing_tab.columnconfigure(1, weight=1, uniform="editing-columns")
+
+    common_goal = ("project", "title", "objective", "audience", "platform", "core_message")
+    planning_values = fields(planning_goal_card, common_goal)
+    planning_reference_values = fields(
+        planning_reference_card,
         (
-            *common,
             "authoritative_facts",
             "reference_url",
             "reference_local",
@@ -438,35 +546,73 @@ def launch() -> int:
             "production_notes",
         ),
     )
-    editing_values = fields(editing_tab, (*common, "media_files", "output_mp4"))
+    planning_values.update(planning_reference_values)
 
-    output_profile_label = ttk.Label(editing_tab)
-    output_profile_label.grid(row=8, column=0, sticky="w", padx=4, pady=3)
+    editing_values = fields(editing_goal_card, common_goal)
+    editing_media_values = fields(editing_media_card, ("media_files", "output_mp4"))
+    editing_values.update(editing_media_values)
+
+    output_profile_label = ttk.Label(editing_media_card, style="Body.TLabel")
+    output_profile_label.grid(row=2, column=0, sticky="w", padx=(0, 12), pady=5)
     field_labels.append((output_profile_label, "output_profile"))
     output_profile_choice = tk.StringVar(value=_OUTPUT_PROFILE_OPTIONS[0][0])
     output_profile_combo = ttk.Combobox(
-        editing_tab,
+        editing_media_card,
         textvariable=output_profile_choice,
         values=tuple(item[0] for item in _OUTPUT_PROFILE_OPTIONS),
         state="readonly",
-        width=32,
+        width=28,
+        style="Product.TCombobox",
     )
-    output_profile_combo.grid(row=8, column=1, sticky="w", padx=4, pady=3)
+    output_profile_combo.grid(row=2, column=1, sticky="ew", pady=5)
+
+    planning_action_bar = ttk.Frame(planning_tab, style="App.TFrame")
+    planning_action_bar.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 8))
+    planning_action_bar.columnconfigure(1, weight=1)
+
+    editing_action_bar = ttk.Frame(editing_tab, style="App.TFrame")
+    editing_action_bar.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 8))
+    editing_action_bar.columnconfigure(1, weight=1)
+
+    result_frames: list[Any] = []
 
     def output_surface(parent: Any, row: int) -> tuple[Any, Any]:
-        frame = ttk.Frame(parent)
-        frame.grid(row=row, column=0, columnspan=3, sticky="nsew", pady=(4, 0))
+        frame = ttk.LabelFrame(
+            parent,
+            style="Card.TLabelframe",
+            padding=10,
+        )
+        frame.grid(row=row, column=0, columnspan=2, sticky="nsew")
+        parent.rowconfigure(row, weight=1)
         frame.rowconfigure(0, weight=1)
         frame.columnconfigure(0, weight=1)
-        output = tk.Text(frame, height=22, wrap="word")
+        result_frames.append(frame)
+        output = tk.Text(
+            frame,
+            height=10,
+            wrap="word",
+            relief="flat",
+            borderwidth=0,
+            padx=12,
+            pady=10,
+            background=DEFAULT_PRODUCT_THEME.surface,
+            foreground=DEFAULT_PRODUCT_THEME.text_primary,
+            insertbackground=DEFAULT_PRODUCT_THEME.text_primary,
+            font=(
+                DEFAULT_PRODUCT_TYPOGRAPHY.ui_family,
+                DEFAULT_PRODUCT_TYPOGRAPHY.body_size,
+            ),
+        )
         scrollbar = ttk.Scrollbar(frame, orient="vertical", command=output.yview)
         output.configure(yscrollcommand=scrollbar.set)
         output.grid(row=0, column=0, sticky="nsew")
         scrollbar.grid(row=0, column=1, sticky="ns")
         return output, frame
 
-    planning_output, planning_output_frame = output_surface(planning_tab, 13)
-    editing_output, editing_output_frame = output_surface(editing_tab, 12)
+    planning_output, planning_output_frame = output_surface(planning_tab, 2)
+    editing_output, editing_output_frame = output_surface(editing_tab, 2)
+    planning_output.insert("1.0", text("result_empty"))
+    editing_output.insert("1.0", text("result_empty"))
     current_form_profile: Path | None = None
 
     def form_profile_values() -> dict[str, str]:
@@ -531,31 +677,44 @@ def launch() -> int:
                 current_form_profile = None
             messagebox.showinfo(text("file"), text("profile_deleted"), parent=root)
 
-    menubar = tk.Menu(root)
-    file_menu = tk.Menu(menubar, tearoff=False)
-    file_menu.add_command(label=text("save"), command=lambda: save_form_profile(choose=False))
-    file_menu.add_command(label=text("save_as"), command=lambda: save_form_profile(choose=True))
-    file_menu.add_command(label=text("load"), command=load_form_profile)
-    file_menu.add_command(label=text("delete"), command=delete_form_profile)
-    menubar.add_cascade(label=text("file"), menu=file_menu)
-    root.configure(menu=menubar)
+    profile_menu = tk.Menu(root, tearoff=False)
+    profile_menu.add_command(label=text("save"), command=lambda: save_form_profile(choose=False))
+    profile_menu.add_command(label=text("save_as"), command=lambda: save_form_profile(choose=True))
+    profile_menu.add_separator()
+    profile_menu.add_command(label=text("load"), command=load_form_profile)
+    profile_menu.add_command(label=text("delete"), command=delete_form_profile)
+
+    def show_profile_menu() -> None:
+        x = profile_button.winfo_rootx()
+        y = profile_button.winfo_rooty() + profile_button.winfo_height()
+        profile_menu.tk_popup(x, y)
+
     planning_context: PlanningSessionContext | None = None
     use_planning = tk.BooleanVar(value=False)
 
     def update_language() -> None:
         root.title(text("window_title"))
-        notebook.tab(  # type: ignore[no-untyped-call]
-            planning_tab, text=text("tab_planning")
-        )
-        notebook.tab(  # type: ignore[no-untyped-call]
-            editing_tab, text=text("tab_editing")
-        )
+        planning_nav.configure(text=text("tab_planning"))
+        editing_nav.configure(text=text("tab_editing"))
         for label, name in field_labels:
             label.configure(text=text(f"field_{name}"))
         for widget, key in translated_widgets:
             widget.configure(text=text(key))
+        app_title_label.configure(text=text("app_title"))
+        app_subtitle_label.configure(text=text("app_subtitle"))
+        planning_goal_card.configure(text=text("planning_goal_title"))
+        planning_reference_card.configure(text=text("planning_reference_title"))
+        editing_goal_card.configure(text=text("editing_goal_title"))
+        editing_media_card.configure(text=text("editing_media_title"))
+        for frame in result_frames:
+            frame.configure(text=text("result_log_title"))
         language_button.configure(text=text("switch_language"))
         settings_button.configure(text=text("settings"))
+        profile_button.configure(text=text("profiles"))
+        profile_menu.entryconfigure(0, label=text("save"))
+        profile_menu.entryconfigure(1, label=text("save_as"))
+        profile_menu.entryconfigure(3, label=text("load"))
+        profile_menu.entryconfigure(4, label=text("delete"))
         api_status.configure(text=api_status_text())
 
     def toggle_language() -> None:
@@ -719,16 +878,17 @@ def launch() -> int:
         ttk.Button(buttons, text=text("save_settings"), command=save_settings).pack(side="right")
 
     settings_button.configure(command=open_settings)
+    profile_button.configure(command=show_profile_menu)
 
     work_queue: queue.Queue[tuple[str, str, Any]] = queue.Queue()
     active_task: str | None = None
     stage_started = time.monotonic()
     active_stage: ProductFlowEvent | None = None
 
-    planning_eta = ttk.Label(planning_tab, text=text("estimating"))
-    planning_eta.grid(row=11, column=0, sticky="w")
-    editing_eta = ttk.Label(editing_tab, text=text("estimating"))
-    editing_eta.grid(row=10, column=0, sticky="w")
+    planning_eta = ttk.Label(planning_action_bar, text=text("estimating"), style="Status.TLabel")
+    planning_eta.grid(row=0, column=0, sticky="w")
+    editing_eta = ttk.Label(editing_action_bar, text=text("estimating"), style="Status.TLabel")
+    editing_eta.grid(row=0, column=0, sticky="w")
 
     def show_event(widget: Any, event: ProductFlowEvent) -> None:
         widget.insert("end", f"[{localized_stage(event.stage, language.get())}]\n")
@@ -924,37 +1084,49 @@ def launch() -> int:
             messagebox.showerror(text("editing_unavailable"), primary + "\n\n" + detail)
 
     choose_planning_project = ttk.Button(
-        planning_tab, command=lambda: choose_project(planning_values)
+        planning_goal_card,
+        command=lambda: choose_project(planning_values),
+        style="Secondary.TButton",
     )
-    choose_planning_project.grid(row=0, column=2)
+    choose_planning_project.grid(row=0, column=2, padx=(10, 0))
     translated_widgets.append((choose_planning_project, "choose_project"))
 
     choose_reference = ttk.Button(
-        planning_tab,
+        planning_reference_card,
         command=lambda: planning_values["reference_local"].set(
             filedialog.askopenfilename(title=text("dialog_choose_reference"))
         ),
+        style="Secondary.TButton",
     )
-    choose_reference.grid(row=8, column=2)
+    choose_reference.grid(row=2, column=2, padx=(10, 0))
     translated_widgets.append((choose_reference, "choose_local_reference"))
 
-    start_planning = ttk.Button(planning_tab, command=run_planning)
-    start_planning.grid(row=11, column=1, sticky="e")
+    start_planning = ttk.Button(
+        planning_action_bar,
+        command=run_planning,
+        style="Primary.TButton",
+    )
+    start_planning.grid(row=0, column=2, sticky="e")
     translated_widgets.append((start_planning, "start_planning"))
 
-    choose_editing_project = ttk.Button(editing_tab, command=lambda: choose_project(editing_values))
-    choose_editing_project.grid(row=0, column=2)
+    choose_editing_project = ttk.Button(
+        editing_goal_card,
+        command=lambda: choose_project(editing_values),
+        style="Secondary.TButton",
+    )
+    choose_editing_project.grid(row=0, column=2, padx=(10, 0))
     translated_widgets.append((choose_editing_project, "choose_project"))
 
     choose_files = ttk.Button(
-        editing_tab,
+        editing_media_card,
         command=lambda: choose_media_files(),
+        style="Secondary.TButton",
     )
-    choose_files.grid(row=6, column=2)
+    choose_files.grid(row=0, column=2, padx=(10, 0))
     translated_widgets.append((choose_files, "choose_files"))
 
-    selected_file_count = ttk.Label(editing_tab, text="")
-    selected_file_count.grid(row=6, column=0, sticky="e")
+    selected_file_count = ttk.Label(editing_media_card, text="", style="Muted.TLabel")
+    selected_file_count.grid(row=0, column=0, sticky="e", padx=(0, 12))
 
     def choose_media_files() -> None:
         selected = filedialog.askopenfilenames(title=text("dialog_choose_media"))
@@ -963,28 +1135,37 @@ def launch() -> int:
             selected_file_count.configure(text=text("selected_files").format(count=len(selected)))
 
     choose_output = ttk.Button(
-        editing_tab,
+        editing_media_card,
         command=lambda: editing_values["output_mp4"].set(
             filedialog.asksaveasfilename(
                 title=text("dialog_choose_output"),
                 defaultextension=".mp4",
-                filetypes=((text("filetype_mp4"), "*.mp4"), (text("filetype_all"), "*.*")),
+                filetypes=(
+                    (text("filetype_mp4"), "*.mp4"),
+                    (text("filetype_all"), "*.*"),
+                ),
             )
         ),
+        style="Secondary.TButton",
     )
-    choose_output.grid(row=7, column=2)
+    choose_output.grid(row=1, column=2, padx=(10, 0))
     translated_widgets.append((choose_output, "choose_output"))
 
     use_planning_check = ttk.Checkbutton(
-        editing_tab,
+        editing_media_card,
         variable=use_planning,
         state="disabled",
+        style="Product.TCheckbutton",
     )
-    use_planning_check.grid(row=9, column=1, sticky="w")
+    use_planning_check.grid(row=3, column=1, columnspan=2, sticky="w", pady=(8, 0))
     translated_widgets.append((use_planning_check, "use_planning_result"))
 
-    start_editing = ttk.Button(editing_tab, command=run_editing)
-    start_editing.grid(row=11, column=1, sticky="e")
+    start_editing = ttk.Button(
+        editing_action_bar,
+        command=run_editing,
+        style="Primary.TButton",
+    )
+    start_editing.grid(row=0, column=2, sticky="e")
     translated_widgets.append((start_editing, "start_editing"))
 
     def export_output(widget: Any) -> None:
@@ -998,11 +1179,19 @@ def launch() -> int:
             write_utf8_export(Path(selected), widget.get("1.0", "end-1c"))
             messagebox.showinfo(text("export_title"), text("exported"), parent=root)
 
-    planning_export = ttk.Button(planning_tab, command=lambda: export_output(planning_output))
-    planning_export.grid(row=12, column=1, sticky="e")
+    planning_export = ttk.Button(
+        planning_action_bar,
+        command=lambda: export_output(planning_output),
+        style="Secondary.TButton",
+    )
+    planning_export.grid(row=0, column=1, sticky="e", padx=(0, 8))
     translated_widgets.append((planning_export, "export"))
-    editing_export = ttk.Button(editing_tab, command=lambda: export_output(editing_output))
-    editing_export.grid(row=11, column=0, sticky="w")
+    editing_export = ttk.Button(
+        editing_action_bar,
+        command=lambda: export_output(editing_output),
+        style="Secondary.TButton",
+    )
+    editing_export.grid(row=0, column=1, sticky="e", padx=(0, 8))
     translated_widgets.append((editing_export, "export"))
 
     update_language()
