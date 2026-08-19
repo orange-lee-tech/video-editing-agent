@@ -111,6 +111,22 @@ def guarded_brief(briefs: SqliteBriefRepository):
     )
 
 
+def no_facts_brief(briefs: SqliteBriefRepository):
+    return BriefService(
+        briefs,
+        brief_id_factory=lambda: "brf_no_facts",
+        clock=lambda: NOW,
+    ).create(
+        BriefContent(
+            title="A calm desk video",
+            objective="Create an appealing short-form concept.",
+            audience="desk workers",
+            platform="vertical short-form",
+            core_message="Show a calm desk moment.",
+        )
+    )
+
+
 def planner(
     briefs: SqliteBriefRepository,
     scripts: SqliteScriptPlanRepository,
@@ -278,6 +294,80 @@ def test_script_semantic_veto_repairs_once_then_commits(tmp_path: Path) -> None:
     assert "replace it with a synonym" in repair
     assert "retaining the same implication" in repair
     assert planning_port.requests[1].brief.authoritative_facts == brief.authoritative_facts
+
+
+def test_no_facts_brief_repairs_one_unsupported_claim_without_weakening_review(
+    tmp_path: Path,
+) -> None:
+    briefs, scripts = repositories(tmp_path / "project.sqlite3")
+    brief = no_facts_brief(briefs)
+    unsafe = ScriptPlanProposal(
+        (
+            NarrativeSectionProposal(
+                "hook",
+                "hook",
+                "Introduce the desk scene.",
+                spoken_content="This lamp improves concentration.",
+            ),
+        )
+    )
+    safe = ScriptPlanProposal(
+        (
+            NarrativeSectionProposal(
+                "hook",
+                "hook",
+                "Introduce the desk scene.",
+                spoken_content="A quiet moment at the desk.",
+            ),
+        )
+    )
+    violation = ScriptProposalViolation(
+        code="unsupported_claim",
+        section_id="hook",
+        excerpt="improves concentration",
+        reason="No authoritative facts support a performance claim.",
+    )
+    planning_port = CountingPlanningPort([unsafe, safe])
+    review_port = StaticReviewPort(
+        [ScriptProposalReview(False, (violation,)), ScriptProposalReview(True)]
+    )
+
+    script = workflow(briefs, scripts, planning_port, review_port).generate(
+        EntityRevisionRef(brief.envelope.id, brief.envelope.revision)
+    )
+
+    assert script.sections[0].spoken_content == "A quiet moment at the desk."
+    assert len(planning_port.requests) == len(review_port.requests) == 2
+    assert planning_port.requests[1].brief.authoritative_facts == ()
+
+
+def test_no_facts_brief_stops_after_two_rejected_full_proposals(tmp_path: Path) -> None:
+    briefs, scripts = repositories(tmp_path / "project.sqlite3")
+    brief = no_facts_brief(briefs)
+    unsafe = ScriptPlanProposal(
+        (
+            NarrativeSectionProposal(
+                "hook",
+                "hook",
+                "Introduce the scene.",
+                spoken_content="This lamp guarantees better focus.",
+            ),
+        )
+    )
+    violation = ScriptProposalViolation(
+        code="unsupported_claim",
+        section_id="hook",
+        reason="No facts support this claim.",
+    )
+    planning_port = CountingPlanningPort(unsafe)
+    review_port = StaticReviewPort(ScriptProposalReview(False, (violation,)))
+
+    with pytest.raises(ScriptProposalRejectedError):
+        workflow(briefs, scripts, planning_port, review_port).generate(
+            EntityRevisionRef(brief.envelope.id, brief.envelope.revision)
+        )
+
+    assert len(planning_port.requests) == len(review_port.requests) == 2
 
 
 def test_review_result_is_veto_only_and_internally_consistent() -> None:

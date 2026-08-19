@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 import os
+import queue
+import threading
+import time
+from datetime import datetime
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +26,24 @@ from video_editing_agent.adapters.product.presentation import (
     planning_presentation,
 )
 from video_editing_agent.adapters.product.runtime import resolve_product_runtime
+from video_editing_agent.adapters.product.ux_support import (
+    EtaEstimator,
+    ProtectedCredentialStore,
+    default_profile_root,
+    delete_api_profile,
+    format_eta,
+    is_placeholder_value,
+    load_api_profile,
+    load_timing_history,
+    localized_error,
+    localized_stage,
+    parse_profile,
+    profile_filename,
+    save_api_profile,
+    save_timing_history,
+    serialize_profile,
+    write_utf8_export,
+)
 from video_editing_agent.application.use_cases.product_flow import ProductFlowEvent
 from video_editing_agent.domain.shooting.model import ProductionConstraints
 
@@ -84,6 +107,21 @@ _TEXT = {
         "api_none": "API：未配置",
         "api_partial": "API：已配置 {count}/2",
         "api_complete": "API：2/2 已配置",
+        "export": "导出",
+        "file": "文件",
+        "save": "保存",
+        "save_as": "另存为",
+        "load": "读取",
+        "delete": "删除",
+        "profile_saved": "配置已保存。",
+        "profile_loaded": "配置已读取。",
+        "profile_deleted": "配置已删除。",
+        "selected_files": "已选择 {count} 个素材文件",
+        "export_title": "导出当前输出",
+        "exported": "已按 UTF-8 导出当前可见输出。",
+        "estimating": "正在估算…",
+        "running": "任务正在运行",
+        "splash": "正在启动视频剪辑智能体…",
     },
     "en": {
         "window_title": "Video Editing Agent — Stage A",
@@ -158,6 +196,54 @@ _TEXT = {
         "api_none": "API: not configured",
         "api_partial": "API: {count}/2 configured",
         "api_complete": "API: 2/2 configured",
+        "export": "Export",
+        "file": "File",
+        "save": "Save",
+        "save_as": "Save As",
+        "load": "Load",
+        "delete": "Delete",
+        "profile_saved": "Profile saved.",
+        "profile_loaded": "Profile loaded.",
+        "profile_deleted": "Profile deleted.",
+        "selected_files": "{count} media files selected",
+        "export_title": "Export visible output",
+        "exported": "The visible output was exported as UTF-8.",
+        "estimating": "Estimating…",
+        "running": "Task is running",
+        "splash": "Starting Video Editing Agent…",
+    },
+}
+
+_PLACEHOLDERS = {
+    "zh-CN": {
+        "project": "此行必填，示例：选择一个项目目录",
+        "title": "此行必填，示例：通勤小水瓶",
+        "objective": "此行必填，示例：告诉上班族它方便携带",
+        "audience": "此行必填，示例：上班族",
+        "platform": "此行必填，示例：抖音",
+        "core_message": "此行必填，示例：小巧、方便",
+        "authoritative_facts": "此行可空置，示例：容量 350mL（仅填写已确认事实）",
+        "reference_url": "此行可空置，示例：粘贴公开视频直链或含 HTTPS 链接的分享文本",
+        "reference_local": "此行可空置，可选择本地参考视频",
+        "camera_or_phone": "此行可空置，示例：手机",
+        "production_notes": "此行可空置，示例：室内自然光、无需稳定器",
+        "media_files": "此行必填，请选择一个或多个本地视频",
+        "output_mp4": "此行必填，请选择最终 MP4 输出位置",
+    },
+    "en": {
+        "project": "Required — choose a project directory",
+        "title": "Required — e.g. Commuter Water Bottle",
+        "objective": "Required — e.g. explain why it is easy to carry",
+        "audience": "Required — e.g. commuters",
+        "platform": "Required — e.g. TikTok",
+        "core_message": "Required — e.g. compact and convenient",
+        "authoritative_facts": "Optional — confirmed facts only, e.g. 350 mL",
+        "reference_url": "Optional — direct HTTPS video URL or share text containing one",
+        "reference_local": "Optional — choose a local reference video",
+        "camera_or_phone": "Optional — e.g. phone",
+        "production_notes": "Optional — e.g. indoor natural light",
+        "media_files": "Required — choose one or more local videos",
+        "output_mp4": "Required — choose the final MP4 destination",
     },
 }
 
@@ -167,9 +253,70 @@ def launch() -> int:
     from tkinter import filedialog, messagebox, ttk
 
     root = tk.Tk()
+    root.withdraw()
+    splash = tk.Toplevel(root)
+    splash.overrideredirect(True)
+    splash.resizable(False, False)
+    splash.geometry("430x120+420+280")
+    splash_icon = tk.Canvas(
+        splash,
+        width=56,
+        height=56,
+        highlightthickness=0,
+        borderwidth=0,
+    )
+    splash_icon.pack(pady=(14, 4))
+
+    # Small dependency-free pixel mark: video frame + edit cut.
+    pixel = 4
+    blocks = (
+        (2, 2, 10, 3),
+        (2, 3, 3, 10),
+        (9, 3, 10, 10),
+        (2, 9, 10, 10),
+        (4, 4, 5, 8),
+        (5, 5, 6, 7),
+        (6, 6, 7, 6),
+        (11, 4, 12, 5),
+        (10, 5, 11, 6),
+        (11, 6, 12, 7),
+        (10, 7, 11, 8),
+    )
+    for x1, y1, x2, y2 in blocks:
+        splash_icon.create_rectangle(
+            x1 * pixel,
+            y1 * pixel,
+            x2 * pixel,
+            y2 * pixel,
+            fill="#202020",
+            outline="",
+        )
+
+    splash_label = ttk.Label(splash, text=_TEXT["zh-CN"]["splash"])
+    splash_label.pack(padx=24, pady=(0, 10))
+    splash_progress = ttk.Progressbar(splash, maximum=6, mode="determinate", length=360)
+    splash_progress.pack(padx=24)
+    splash.lift()
+    splash.attributes("-topmost", True)
+    splash.update()
+
+    def startup_milestone(value: int) -> None:
+        splash_progress.configure(value=value)
+        splash.update()
+
+    startup_milestone(1)
     root.geometry("940x760")
     language = tk.StringVar(value="zh-CN")
+    startup_milestone(2)
+    profile_root = default_profile_root()
+    credential_store = ProtectedCredentialStore(profile_root)
+    profile_root.mkdir(parents=True, exist_ok=True)
+    timing_path = profile_root / "timing-history.json"
+    timing_history = load_timing_history(timing_path)
+    startup_milestone(3)
     api_settings = settings_from_environment(os.environ)
+    current_api_profile: Path | None = None
+    startup_milestone(4)
 
     def text(key: str) -> str:
         return _TEXT[language.get()][key]
@@ -201,6 +348,31 @@ def launch() -> int:
 
     field_labels: list[tuple[Any, str]] = []
     translated_widgets: list[tuple[Any, str]] = []
+    entry_fields: dict[int, tuple[Any, Any, str]] = {}
+
+    def show_placeholder(entry: Any, value: Any, name: str) -> None:
+        if not value.get().strip():
+            value.set(_PLACEHOLDERS[language.get()][name])
+            entry.configure(foreground="#777777")
+
+    def field_value(value: Any) -> str:
+        raw = value.get()
+        return "" if is_placeholder_value(raw, _PLACEHOLDERS[language.get()]) else raw
+
+    def set_field(value: Any, content: str) -> None:
+        value.set(content)
+        entry, _, name = entry_fields[id(value)]
+        entry.configure(foreground="#000000")
+        if not content:
+            show_placeholder(entry, value, name)
+
+    def clear_placeholder(_event: Any, entry: Any, value: Any) -> None:
+        if is_placeholder_value(value.get(), _PLACEHOLDERS[language.get()]):
+            value.set("")
+            entry.configure(foreground="#000000")
+
+    def restore_placeholder(_event: Any, entry: Any, value: Any, name: str) -> None:
+        show_placeholder(entry, value, name)
 
     def fields(parent: Any, names: tuple[str, ...]) -> dict[str, Any]:
         values = {}
@@ -209,8 +381,17 @@ def launch() -> int:
             label.grid(row=row, column=0, sticky="w", padx=4, pady=3)
             field_labels.append((label, name))
             value = tk.StringVar()
-            ttk.Entry(parent, textvariable=value, width=80).grid(
-                row=row, column=1, sticky="ew", padx=4, pady=3
+            entry = ttk.Entry(parent, textvariable=value, width=80)
+            entry.grid(row=row, column=1, sticky="ew", padx=4, pady=3)
+            entry_fields[id(value)] = (entry, value, name)
+            show_placeholder(entry, value, name)
+            entry.bind(
+                "<FocusIn>",
+                partial(clear_placeholder, entry=entry, value=value),
+            )
+            entry.bind(
+                "<FocusOut>",
+                partial(restore_placeholder, entry=entry, value=value, name=name),
             )
             values[name] = value
         parent.columnconfigure(1, weight=1)
@@ -228,11 +409,86 @@ def launch() -> int:
             "production_notes",
         ),
     )
-    editing_values = fields(editing_tab, (*common, "media_files", "media_folder", "output_mp4"))
-    planning_output = tk.Text(planning_tab, height=22, wrap="word")
-    editing_output = tk.Text(editing_tab, height=22, wrap="word")
-    planning_output.grid(row=12, column=0, columnspan=3, sticky="nsew")
-    editing_output.grid(row=11, column=0, columnspan=3, sticky="nsew")
+    editing_values = fields(editing_tab, (*common, "media_files", "output_mp4"))
+
+    def output_surface(parent: Any, row: int) -> tuple[Any, Any]:
+        frame = ttk.Frame(parent)
+        frame.grid(row=row, column=0, columnspan=3, sticky="nsew", pady=(4, 0))
+        frame.rowconfigure(0, weight=1)
+        frame.columnconfigure(0, weight=1)
+        output = tk.Text(frame, height=22, wrap="word")
+        scrollbar = ttk.Scrollbar(frame, orient="vertical", command=output.yview)
+        output.configure(yscrollcommand=scrollbar.set)
+        output.grid(row=0, column=0, sticky="nsew")
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        return output, frame
+
+    planning_output, planning_output_frame = output_surface(planning_tab, 13)
+    editing_output, editing_output_frame = output_surface(editing_tab, 11)
+    current_form_profile: Path | None = None
+
+    def form_profile_values() -> dict[str, str]:
+        values: dict[str, str] = {}
+        for prefix, fields_map in (("planning", planning_values), ("editing", editing_values)):
+            for name, variable in fields_map.items():
+                actual = field_value(variable).strip()
+                if actual:
+                    values[f"{prefix}.{name}"] = actual
+        return values
+
+    def save_form_profile(*, choose: bool) -> None:
+        nonlocal current_form_profile
+        destination = current_form_profile
+        if choose or destination is None:
+            selected = filedialog.asksaveasfilename(
+                title=text("save_as"),
+                initialdir=profile_root,
+                initialfile=profile_filename("form"),
+                defaultextension=".txt",
+                filetypes=(("Text", "*.txt"),),
+            )
+            if not selected:
+                return
+            destination = Path(selected)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(serialize_profile("form", form_profile_values()), encoding="utf-8")
+        current_form_profile = destination
+        messagebox.showinfo(text("file"), text("profile_saved"), parent=root)
+
+    def load_form_profile() -> None:
+        nonlocal current_form_profile
+        selected = filedialog.askopenfilename(
+            title=text("load"), initialdir=profile_root, filetypes=(("Text", "*.txt"),)
+        )
+        if not selected:
+            return
+        source = Path(selected)
+        loaded = parse_profile(source.read_text(encoding="utf-8"), "form")
+        for prefix, fields_map in (("planning", planning_values), ("editing", editing_values)):
+            for name, variable in fields_map.items():
+                set_field(variable, loaded.get(f"{prefix}.{name}", ""))
+        current_form_profile = source
+        messagebox.showinfo(text("file"), text("profile_loaded"), parent=root)
+
+    def delete_form_profile() -> None:
+        nonlocal current_form_profile
+        selected = filedialog.askopenfilename(
+            title=text("delete"), initialdir=profile_root, filetypes=(("Text", "*.txt"),)
+        )
+        if selected:
+            Path(selected).unlink(missing_ok=True)
+            if current_form_profile == Path(selected):
+                current_form_profile = None
+            messagebox.showinfo(text("file"), text("profile_deleted"), parent=root)
+
+    menubar = tk.Menu(root)
+    file_menu = tk.Menu(menubar, tearoff=False)
+    file_menu.add_command(label=text("save"), command=lambda: save_form_profile(choose=False))
+    file_menu.add_command(label=text("save_as"), command=lambda: save_form_profile(choose=True))
+    file_menu.add_command(label=text("load"), command=load_form_profile)
+    file_menu.add_command(label=text("delete"), command=delete_form_profile)
+    menubar.add_cascade(label=text("file"), menu=file_menu)
+    root.configure(menu=menubar)
     planning_context: PlanningSessionContext | None = None
     use_planning = tk.BooleanVar(value=False)
 
@@ -253,13 +509,18 @@ def launch() -> int:
         api_status.configure(text=api_status_text())
 
     def toggle_language() -> None:
-        language.set("en" if language.get() == "zh-CN" else "zh-CN")
+        old_language = language.get()
+        language.set("en" if old_language == "zh-CN" else "zh-CN")
+        for entry, value, name in entry_fields.values():
+            if value.get() == _PLACEHOLDERS[old_language][name]:
+                value.set("")
+                show_placeholder(entry, value, name)
         update_language()
 
     language_button.configure(command=toggle_language)
 
     def open_settings() -> None:
-        nonlocal api_settings
+        nonlocal api_settings, current_api_profile
         dialog = tk.Toplevel(root)
         dialog.title(text("settings_title"))
         dialog.geometry("660x540")
@@ -335,6 +596,73 @@ def launch() -> int:
             dialog.destroy()
             messagebox.showinfo(text("settings_title"), text("settings_applied"), parent=root)
 
+        def save_api_file(*, choose: bool) -> None:
+            nonlocal current_api_profile
+            destination = current_api_profile
+            if choose or destination is None:
+                selected = filedialog.asksaveasfilename(
+                    title=text("save_as"),
+                    initialdir=profile_root,
+                    initialfile=profile_filename("api"),
+                    defaultextension=".txt",
+                    filetypes=(("Text", "*.txt"),),
+                    parent=dialog,
+                )
+                if not selected:
+                    return
+                destination = Path(selected)
+            save_api_profile(
+                destination,
+                visual_provider=visual_provider.get().casefold(),
+                thinking_key=thinking_key.get(),
+                visual_key=visual_key.get(),
+                credentials=credential_store,
+            )
+            current_api_profile = destination
+            messagebox.showinfo(text("settings_title"), text("profile_saved"), parent=dialog)
+
+        def load_api_file() -> None:
+            nonlocal current_api_profile
+            selected = filedialog.askopenfilename(
+                title=text("load"),
+                initialdir=profile_root,
+                filetypes=(("Text", "*.txt"),),
+                parent=dialog,
+            )
+            if not selected:
+                return
+            provider, thinking_secret, visual_secret = load_api_profile(
+                Path(selected), credential_store
+            )
+            visual_provider.set(provider.capitalize())
+            thinking_key.set(thinking_secret)
+            visual_key.set(visual_secret)
+            current_api_profile = Path(selected)
+            messagebox.showinfo(text("settings_title"), text("profile_loaded"), parent=dialog)
+
+        def delete_api_file() -> None:
+            nonlocal current_api_profile
+            selected = filedialog.askopenfilename(
+                title=text("delete"),
+                initialdir=profile_root,
+                filetypes=(("Text", "*.txt"),),
+                parent=dialog,
+            )
+            if selected:
+                delete_api_profile(Path(selected), credential_store)
+                if current_api_profile == Path(selected):
+                    current_api_profile = None
+                messagebox.showinfo(text("settings_title"), text("profile_deleted"), parent=dialog)
+
+        api_menubar = tk.Menu(dialog)
+        api_file_menu = tk.Menu(api_menubar, tearoff=False)
+        api_file_menu.add_command(label=text("save"), command=lambda: save_api_file(choose=False))
+        api_file_menu.add_command(label=text("save_as"), command=lambda: save_api_file(choose=True))
+        api_file_menu.add_command(label=text("load"), command=load_api_file)
+        api_file_menu.add_command(label=text("delete"), command=delete_api_file)
+        api_menubar.add_cascade(label=text("file"), menu=api_file_menu)
+        dialog.configure(menu=api_menubar)
+
         ttk.Button(buttons, text=text("cancel"), command=dialog.destroy).pack(
             side="right", padx=(8, 0)
         )
@@ -342,94 +670,206 @@ def launch() -> int:
 
     settings_button.configure(command=open_settings)
 
+    work_queue: queue.Queue[tuple[str, str, Any]] = queue.Queue()
+    active_task: str | None = None
+    stage_started = time.monotonic()
+    active_stage: ProductFlowEvent | None = None
+
+    planning_eta = ttk.Label(planning_tab, text=text("estimating"))
+    planning_eta.grid(row=11, column=0, sticky="w")
+    editing_eta = ttk.Label(editing_tab, text=text("estimating"))
+    editing_eta.grid(row=9, column=0, sticky="w")
+
     def show_event(widget: Any, event: ProductFlowEvent) -> None:
-        widget.insert("end", f"[{event.stage.value}] {event.message}\n")
+        widget.insert("end", f"[{localized_stage(event.stage, language.get())}]\n")
         widget.see("end")
-        root.update_idletasks()
+
+    def update_eta(label: Any, event: ProductFlowEvent | None, workload: int) -> None:
+        estimate = None
+        if event is not None:
+            estimate = EtaEstimator(timing_history, datetime.now().astimezone()).estimate(
+                event.stage,
+                workload=workload if event.stage.value == "ingest_understanding" else 1,
+            )
+        label.configure(text=format_eta(estimate, language.get()))
+
+    def set_running(running: bool) -> None:
+        state = "disabled" if running else "normal"
+        start_planning.configure(state=state)
+        start_editing.configure(state=state)
+        settings_button.configure(state=state)
+
+    def pump_work() -> None:
+        nonlocal active_task, active_stage, stage_started, planning_context
+        try:
+            while True:
+                task, kind, payload = work_queue.get_nowait()
+                output = planning_output if task == "planning" else editing_output
+                eta = planning_eta if task == "planning" else editing_eta
+                if kind == "event":
+                    now = time.monotonic()
+                    if active_stage is not None:
+                        elapsed = max(0.001, now - stage_started)
+                        previous = timing_history.get(active_stage.stage.value)
+                        timing_history[active_stage.stage.value] = (
+                            elapsed if previous is None else (previous * 0.7 + elapsed * 0.3)
+                        )
+                    stage_started = now
+                    active_stage = payload
+                    show_event(output, payload)
+                    update_eta(eta, payload, 1)
+                elif kind == "done":
+                    result = payload
+                    if task == "planning":
+                        planning_context = PlanningSessionContext.from_result(result)
+                        use_planning_check.configure(
+                            state="normal" if planning_context is not None else "disabled"
+                        )
+                        if planning_context is None:
+                            use_planning.set(False)
+                        output.insert("end", "\n" + planning_presentation(result, language.get()))
+                    else:
+                        output.insert("end", "\n" + editing_presentation(result, language.get()))
+                    save_timing_history(timing_path, timing_history)
+                    active_task = None
+                    active_stage = None
+                    set_running(False)
+                    eta.configure(text="")
+                elif kind == "error":
+                    primary, detail = localized_error(payload, language.get())
+                    messagebox.showerror(
+                        text("planning_unavailable")
+                        if task == "planning"
+                        else text("editing_unavailable"),
+                        primary + (f"\n\n{detail}" if detail else ""),
+                        parent=root,
+                    )
+                    active_task = None
+                    active_stage = None
+                    set_running(False)
+                    eta.configure(text="")
+        except queue.Empty:
+            pass
+        root.after(100, pump_work)
+
+    def refresh_eta() -> None:
+        if active_task is not None:
+            label = planning_eta if active_task == "planning" else editing_eta
+            update_eta(label, active_stage, 1)
+        root.after(30_000, refresh_eta)
 
     def choose_project(values: dict[str, Any]) -> None:
         selected = filedialog.askdirectory(title=text("dialog_choose_project"), mustexist=False)
         if selected:
-            values["project"].set(selected)
+            set_field(values["project"], selected)
 
     def brief(values: dict[str, Any]) -> BriefForm:
         return BriefForm(
-            values["title"].get(),
-            values["objective"].get(),
-            values["audience"].get(),
-            values["platform"].get(),
-            values["core_message"].get(),
-            tuple(item.strip() for item in values["authoritative_facts"].get().splitlines())
+            field_value(values["title"]),
+            field_value(values["objective"]),
+            field_value(values["audience"]),
+            field_value(values["platform"]),
+            field_value(values["core_message"]),
+            tuple(item.strip() for item in field_value(values["authoritative_facts"]).splitlines())
             if "authoritative_facts" in values
             else (),
         )
 
     def run_planning() -> None:
-        nonlocal planning_context
+        nonlocal active_task, stage_started
+        if active_task is not None:
+            return
         try:
-            reference_url = planning_values["reference_url"].get().strip() or None
-            local_reference_text = planning_values["reference_local"].get().strip()
+            reference_url = field_value(planning_values["reference_url"]).strip() or None
+            local_reference_text = field_value(planning_values["reference_local"]).strip()
             has_reference = reference_url is not None or bool(local_reference_text)
-            resolution = resolve_product_runtime(mode="planning", reference_required=has_reference)
-            if not resolution.is_ready or resolution.config is None:
-                raise RuntimeError(
-                    text("runtime_not_ready") + "\n" + "\n".join(resolution.diagnostics)
-                )
             form = PlanningForm(
-                Path(planning_values["project"].get()),
+                Path(field_value(planning_values["project"])),
                 brief(planning_values),
                 ProductionConstraints(
-                    camera_or_phone=(planning_values["camera_or_phone"].get().strip() or None),
+                    camera_or_phone=(
+                        field_value(planning_values["camera_or_phone"]).strip() or None
+                    ),
                     notes=tuple(
                         item.strip()
-                        for item in planning_values["production_notes"].get().splitlines()
+                        for item in field_value(planning_values["production_notes"]).splitlines()
                         if item.strip()
                     ),
                 ),
                 reference_url=reference_url,
                 local_reference=(Path(local_reference_text) if local_reference_text else None),
             )
-            flow = planning_flow(form.project, resolution.config, reference=has_reference)
+            form.to_request()
             planning_output.delete("1.0", "end")
-            result = flow.run(form.to_request(), lambda event: show_event(planning_output, event))
-            planning_context = PlanningSessionContext.from_result(result)
-            use_planning_check.configure(
-                state="normal" if planning_context is not None else "disabled"
-            )
-            if planning_context is None:
-                use_planning.set(False)
-            planning_output.insert("end", "\n" + planning_presentation(result))
+            active_task = "planning"
+            stage_started = time.monotonic()
+            set_running(True)
+            planning_eta.configure(text=text("estimating"))
+
+            def worker() -> None:
+                try:
+                    resolution = resolve_product_runtime(
+                        mode="planning", reference_required=has_reference
+                    )
+                    if not resolution.is_ready or resolution.config is None:
+                        raise RuntimeError("\n".join(resolution.diagnostics))
+                    flow = planning_flow(form.project, resolution.config, reference=has_reference)
+                    result = flow.run(
+                        form.to_request(),
+                        lambda event: work_queue.put(("planning", "event", event)),
+                    )
+                    work_queue.put(("planning", "done", result))
+                except Exception as exc:
+                    work_queue.put(("planning", "error", exc))
+
+            threading.Thread(target=worker, name="planning-product-flow", daemon=True).start()
         except Exception as exc:
-            messagebox.showerror(text("planning_unavailable"), str(exc))
+            primary, detail = localized_error(exc, language.get())
+            messagebox.showerror(text("planning_unavailable"), primary + "\n\n" + detail)
 
     def run_editing() -> None:
+        nonlocal active_task, stage_started
+        if active_task is not None:
+            return
         try:
-            resolution = resolve_product_runtime(mode="editing")
-            if not resolution.is_ready or resolution.config is None:
-                raise RuntimeError(
-                    text("runtime_not_ready") + "\n" + "\n".join(resolution.diagnostics)
-                )
             raw_files = tuple(
                 Path(item.strip())
-                for item in editing_values["media_files"].get().split(";")
+                for item in field_value(editing_values["media_files"]).split(";")
                 if item.strip()
             )
-            folder_text = editing_values["media_folder"].get().strip()
             form = EditingForm(
-                Path(editing_values["project"].get()),
+                Path(field_value(editing_values["project"])),
                 brief(editing_values),
-                Path(editing_values["output_mp4"].get()),
+                Path(field_value(editing_values["output_mp4"])),
                 raw_files,
-                None if not folder_text else Path(folder_text),
                 use_planning_result=use_planning.get(),
                 planning_context=planning_context,
             )
-            flow = editing_flow(form.project, resolution.config)
+            form.to_request()
             editing_output.delete("1.0", "end")
-            result = flow.run(form.to_request(), lambda event: show_event(editing_output, event))
-            editing_output.insert("end", "\n" + editing_presentation(result))
+            active_task = "editing"
+            stage_started = time.monotonic()
+            set_running(True)
+            editing_eta.configure(text=text("estimating"))
+
+            def worker() -> None:
+                try:
+                    resolution = resolve_product_runtime(mode="editing")
+                    if not resolution.is_ready or resolution.config is None:
+                        raise RuntimeError("\n".join(resolution.diagnostics))
+                    flow = editing_flow(form.project, resolution.config)
+                    result = flow.run(
+                        form.to_request(),
+                        lambda event: work_queue.put(("editing", "event", event)),
+                    )
+                    work_queue.put(("editing", "done", result))
+                except Exception as exc:
+                    work_queue.put(("editing", "error", exc))
+
+            threading.Thread(target=worker, name="editing-product-flow", daemon=True).start()
         except Exception as exc:
-            messagebox.showerror(text("editing_unavailable"), str(exc))
+            primary, detail = localized_error(exc, language.get())
+            messagebox.showerror(text("editing_unavailable"), primary + "\n\n" + detail)
 
     choose_planning_project = ttk.Button(
         planning_tab, command=lambda: choose_project(planning_values)
@@ -456,21 +896,19 @@ def launch() -> int:
 
     choose_files = ttk.Button(
         editing_tab,
-        command=lambda: editing_values["media_files"].set(
-            ";".join(filedialog.askopenfilenames(title=text("dialog_choose_media")))
-        ),
+        command=lambda: choose_media_files(),
     )
     choose_files.grid(row=6, column=2)
     translated_widgets.append((choose_files, "choose_files"))
 
-    choose_folder = ttk.Button(
-        editing_tab,
-        command=lambda: editing_values["media_folder"].set(
-            filedialog.askdirectory(title=text("dialog_choose_media_folder"))
-        ),
-    )
-    choose_folder.grid(row=7, column=2)
-    translated_widgets.append((choose_folder, "choose_folder"))
+    selected_file_count = ttk.Label(editing_tab, text="")
+    selected_file_count.grid(row=6, column=0, sticky="e")
+
+    def choose_media_files() -> None:
+        selected = filedialog.askopenfilenames(title=text("dialog_choose_media"))
+        if selected:
+            set_field(editing_values["media_files"], ";".join(selected))
+            selected_file_count.configure(text=text("selected_files").format(count=len(selected)))
 
     choose_output = ttk.Button(
         editing_tab,
@@ -482,7 +920,7 @@ def launch() -> int:
             )
         ),
     )
-    choose_output.grid(row=8, column=2)
+    choose_output.grid(row=7, column=2)
     translated_widgets.append((choose_output, "choose_output"))
 
     use_planning_check = ttk.Checkbutton(
@@ -490,14 +928,39 @@ def launch() -> int:
         variable=use_planning,
         state="disabled",
     )
-    use_planning_check.grid(row=9, column=1, sticky="w")
+    use_planning_check.grid(row=8, column=1, sticky="w")
     translated_widgets.append((use_planning_check, "use_planning_result"))
 
     start_editing = ttk.Button(editing_tab, command=run_editing)
     start_editing.grid(row=10, column=1, sticky="e")
     translated_widgets.append((start_editing, "start_editing"))
 
+    def export_output(widget: Any) -> None:
+        selected = filedialog.asksaveasfilename(
+            title=text("export_title"),
+            initialdir=Path.home() / "Desktop",
+            defaultextension=".txt",
+            filetypes=(("Text", "*.txt"),),
+        )
+        if selected:
+            write_utf8_export(Path(selected), widget.get("1.0", "end-1c"))
+            messagebox.showinfo(text("export_title"), text("exported"), parent=root)
+
+    planning_export = ttk.Button(planning_tab, command=lambda: export_output(planning_output))
+    planning_export.grid(row=12, column=1, sticky="e")
+    translated_widgets.append((planning_export, "export"))
+    editing_export = ttk.Button(editing_tab, command=lambda: export_output(editing_output))
+    editing_export.grid(row=10, column=0, sticky="w")
+    translated_widgets.append((editing_export, "export"))
+
     update_language()
+    startup_milestone(5)
+    root.update_idletasks()
+    startup_milestone(6)
+    splash.destroy()
+    root.deiconify()
+    pump_work()
+    refresh_eta()
     if os.environ.get("VIDEO_EDITING_AGENT_LAUNCHER_SMOKE") == "1":
         root.update_idletasks()
         root.destroy()

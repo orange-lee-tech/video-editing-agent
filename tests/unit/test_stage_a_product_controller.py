@@ -56,6 +56,26 @@ def test_controller_builds_planning_request_without_json_or_internal_refs(tmp_pa
     assert all(not hasattr(item, "asset_ref") for item in request.reference_inputs)
 
 
+def test_controller_extracts_first_https_url_from_share_text(tmp_path: Path) -> None:
+    request = PlanningForm(
+        tmp_path / "project",
+        _brief(),
+        reference_url=(
+            "复制分享 https://cdn.example.test/first.mp4，另一个 "
+            "https://cdn.example.test/second.mp4"
+        ),
+    ).to_request()
+
+    assert request.reference_inputs[0].url == "https://cdn.example.test/first.mp4"
+
+
+def test_controller_rejects_reference_share_text_without_https_url(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="HTTPS URL"):
+        PlanningForm(
+            tmp_path / "project", _brief(), reference_url="只有分享文案，没有链接"
+        ).to_request()
+
+
 def test_folder_expansion_is_stable_and_does_not_touch_originals(tmp_path: Path) -> None:
     folder = tmp_path / "media"
     folder.mkdir()

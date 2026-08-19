@@ -4,6 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+from video_editing_agent.adapters.product.ux_support import extract_first_https_url
 from video_editing_agent.application.use_cases.product_flow import (
     EditingProductFlow,
     EditingProductRequest,
@@ -79,12 +80,15 @@ class PlanningForm:
             raise ValueError("Planning project directory is required")
         references: list[PlanningReferenceInput] = []
         if self.reference_url is not None and self.reference_url.strip():
+            reference_url = extract_first_https_url(self.reference_url)
+            if reference_url is None:
+                raise ValueError("Reference input must contain an HTTPS URL")
             references.append(
                 PlanningReferenceInput(
                     "reference_url_001",
                     PlanningReferenceKind.DIRECT_HTTPS_VIDEO,
                     "User supplied direct video reference",
-                    url=self.reference_url.strip(),
+                    url=reference_url,
                 )
             )
         if self.local_reference is not None:
