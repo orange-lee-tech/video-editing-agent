@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from video_editing_agent.adapters.product.ui_theme import DEFAULT_PRODUCT_THEME
 
@@ -82,9 +83,7 @@ def create_empty_state(parent: Any, *, title: str, description: str) -> Any:
 
     frame = ttk.Frame(parent, style="Subtle.TFrame", padding=20)
     frame.columnconfigure(0, weight=1)
-    ttk.Label(frame, text=title, style="Section.TLabel").grid(
-        row=0, column=0, sticky="w"
-    )
+    ttk.Label(frame, text=title, style="Section.TLabel").grid(row=0, column=0, sticky="w")
     ttk.Label(
         frame,
         text=description,

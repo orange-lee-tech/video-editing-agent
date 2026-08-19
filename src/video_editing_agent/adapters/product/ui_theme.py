@@ -6,14 +6,14 @@ from typing import Any
 
 @dataclass(frozen=True, slots=True)
 class ProductThemeTokens:
-    app_background: str = "#F3F6FB"
+    app_background: str = "#F7F8FA"
     surface: str = "#FFFFFF"
-    surface_subtle: str = "#EEF2F7"
-    border: str = "#D9E1EC"
-    text_primary: str = "#172033"
-    text_secondary: str = "#667085"
-    accent: str = "#2F6FED"
-    accent_active: str = "#2459C3"
+    surface_subtle: str = "#F1F3F6"
+    border: str = "#E1E4E8"
+    text_primary: str = "#17191F"
+    text_secondary: str = "#6B7280"
+    accent: str = "#4F46E5"
+    accent_active: str = "#4338CA"
     success: str = "#138A5B"
     warning: str = "#B26A00"
     danger: str = "#C63D3D"
@@ -33,7 +33,7 @@ class ProductTypography:
     ui_family: str = "Segoe UI"
     cjk_family: str = "Microsoft YaHei UI"
     mono_family: str = "Cascadia Mono"
-    title_size: int = 18
+    title_size: int = 17
     section_size: int = 12
     body_size: int = 10
     meta_size: int = 9
@@ -60,6 +60,7 @@ def configure_product_theme(root: Any) -> None:
     style.configure("Header.TFrame", background=tokens.surface)
     style.configure("Card.TFrame", background=tokens.surface)
     style.configure("Subtle.TFrame", background=tokens.surface_subtle)
+    style.configure("Nav.TFrame", background=tokens.app_background)
 
     style.configure(
         "AppTitle.TLabel",
@@ -91,6 +92,13 @@ def configure_product_theme(root: Any) -> None:
         foreground=tokens.text_secondary,
         font=(type_scale.ui_family, type_scale.meta_size),
     )
+    style.configure(
+        "StatusPill.TLabel",
+        background=tokens.surface_subtle,
+        foreground=tokens.text_secondary,
+        padding=(10, 5),
+        font=(type_scale.ui_family, type_scale.meta_size, "bold"),
+    )
 
     style.configure(
         "Primary.TButton",
@@ -107,17 +115,53 @@ def configure_product_theme(root: Any) -> None:
     )
     style.configure(
         "Secondary.TButton",
-        background=tokens.surface,
+        background=tokens.surface_subtle,
         foreground=tokens.text_primary,
-        bordercolor=tokens.border,
-        lightcolor=tokens.border,
-        darkcolor=tokens.border,
-        padding=(12, 7),
+        borderwidth=0,
+        padding=(11, 7),
         font=(type_scale.ui_family, type_scale.body_size),
     )
     style.map(
         "Secondary.TButton",
+        background=[("active", tokens.border), ("pressed", tokens.border)],
+    )
+    style.configure(
+        "Ghost.TButton",
+        background=tokens.surface,
+        foreground=tokens.text_secondary,
+        borderwidth=0,
+        padding=(9, 6),
+        font=(type_scale.ui_family, type_scale.body_size),
+    )
+    style.map(
+        "Ghost.TButton",
+        foreground=[("active", tokens.text_primary)],
         background=[("active", tokens.surface_subtle)],
+    )
+    style.configure(
+        "Workflow.TButton",
+        background=tokens.app_background,
+        foreground=tokens.text_secondary,
+        borderwidth=0,
+        padding=(14, 8),
+        font=(type_scale.ui_family, type_scale.body_size, "bold"),
+    )
+    style.configure(
+        "WorkflowActive.TButton",
+        background=tokens.surface,
+        foreground=tokens.accent,
+        borderwidth=0,
+        padding=(14, 8),
+        font=(type_scale.ui_family, type_scale.body_size, "bold"),
+    )
+    style.map(
+        "Workflow.TButton",
+        background=[("active", tokens.surface_subtle)],
+        foreground=[("active", tokens.text_primary)],
+    )
+    style.map(
+        "WorkflowActive.TButton",
+        background=[("active", tokens.surface)],
     )
     style.configure(
         "Danger.TButton",
@@ -131,11 +175,8 @@ def configure_product_theme(root: Any) -> None:
     style.configure(
         "Card.TLabelframe",
         background=tokens.surface,
-        bordercolor=tokens.border,
-        lightcolor=tokens.border,
-        darkcolor=tokens.border,
-        borderwidth=1,
-        relief="solid",
+        borderwidth=0,
+        relief="flat",
         padding=tokens.space_lg,
     )
     style.configure(
@@ -151,6 +192,7 @@ def configure_product_theme(root: Any) -> None:
         borderwidth=0,
         tabmargins=(0, 0, 0, 0),
     )
+    style.layout("Product.TNotebook.Tab", [])
     style.configure(
         "Product.TNotebook.Tab",
         padding=(16, 9),
@@ -179,6 +221,12 @@ def configure_product_theme(root: Any) -> None:
         foreground=tokens.text_primary,
         bordercolor=tokens.border,
         padding=6,
+    )
+    style.configure(
+        "Product.TCheckbutton",
+        background=tokens.surface,
+        foreground=tokens.text_primary,
+        font=(type_scale.ui_family, type_scale.body_size),
     )
 
     style.configure(
