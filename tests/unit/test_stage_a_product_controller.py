@@ -17,6 +17,8 @@ from video_editing_agent.adapters.product.controller import (
 )
 from video_editing_agent.adapters.product.runtime import resolve_product_runtime
 from video_editing_agent.application.use_cases.product_flow import (
+    OUTPUT_PROFILE_HORIZONTAL_1080P,
+    EditingOutputProfile,
     PlanningProductResult,
     PlanningReferenceKind,
     ProductFlowOutcome,
@@ -86,7 +88,12 @@ def test_folder_expansion_is_stable_and_does_not_touch_originals(tmp_path: Path)
 
     expanded = expand_media_inputs((second,), folder)
     request = EditingForm(
-        tmp_path / "project", _brief(), tmp_path / "final.mp4", (second,), folder
+        tmp_path / "project",
+        _brief(),
+        tmp_path / "final.mp4",
+        (second,),
+        folder,
+        output_profile=OUTPUT_PROFILE_HORIZONTAL_1080P,
     ).to_request()
 
     assert expanded == request.local_media_paths == (first.resolve(), second.resolve())
@@ -168,16 +175,39 @@ def test_same_project_combined_opt_in_forwards_exact_session_refs(tmp_path: Path
         (source,),
         use_planning_result=True,
         planning_context=context,
+        output_profile=OUTPUT_PROFILE_HORIZONTAL_1080P,
     ).to_request()
 
     assert request.script_plan_ref == EntityRevisionRef("script", 2)
     assert request.shooting_plan_ref == EntityRevisionRef("shooting", 3)
 
 
+def test_editing_form_forwards_explicit_output_profile(tmp_path: Path) -> None:
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"source")
+    profile = EditingOutputProfile("vertical_test", 1080, 1920, 30)
+
+    request = EditingForm(
+        tmp_path / "project",
+        _brief(),
+        tmp_path / "final.mp4",
+        (source,),
+        output_profile=profile,
+    ).to_request()
+
+    assert request.output_profile == profile
+
+
 def test_editing_only_has_no_planning_refs_or_internal_id_inputs(tmp_path: Path) -> None:
     source = tmp_path / "source.mp4"
     source.write_bytes(b"source")
-    form = EditingForm(tmp_path / "project", _brief(), tmp_path / "final.mp4", (source,))
+    form = EditingForm(
+        tmp_path / "project",
+        _brief(),
+        tmp_path / "final.mp4",
+        (source,),
+        output_profile=OUTPUT_PROFILE_HORIZONTAL_1080P,
+    )
 
     request = form.to_request()
 
@@ -195,6 +225,7 @@ def test_different_project_planning_context_is_rejected(tmp_path: Path) -> None:
         (source,),
         use_planning_result=True,
         planning_context=_planning_context(tmp_path / "planning-project"),
+        output_profile=OUTPUT_PROFILE_HORIZONTAL_1080P,
     )
 
     with pytest.raises(ValueError, match="different project"):
@@ -206,15 +237,33 @@ def test_different_project_planning_context_is_rejected(tmp_path: Path) -> None:
     [
         (PlanningForm(Path(""), _brief()), "Planning project directory"),
         (
-            EditingForm(Path(""), _brief(), Path("final.mp4"), (Path("source.mp4"),)),
+            EditingForm(
+                Path(""),
+                _brief(),
+                Path("final.mp4"),
+                (Path("source.mp4"),),
+                output_profile=OUTPUT_PROFILE_HORIZONTAL_1080P,
+            ),
             "Editing project directory",
         ),
         (
-            EditingForm(Path("project"), _brief(), Path(""), (Path("source.mp4"),)),
+            EditingForm(
+                Path("project"),
+                _brief(),
+                Path(""),
+                (Path("source.mp4"),),
+                output_profile=OUTPUT_PROFILE_HORIZONTAL_1080P,
+            ),
             "output path",
         ),
         (
-            EditingForm(Path("project"), _brief(), Path("final.mov"), (Path("source.mp4"),)),
+            EditingForm(
+                Path("project"),
+                _brief(),
+                Path("final.mov"),
+                (Path("source.mp4"),),
+                output_profile=OUTPUT_PROFILE_HORIZONTAL_1080P,
+            ),
             "MP4 destination",
         ),
     ],

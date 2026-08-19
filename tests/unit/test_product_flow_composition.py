@@ -45,6 +45,7 @@ from video_editing_agent.application.ports.shot_detector import (
     ShotDetectionOptions,
 )
 from video_editing_agent.application.use_cases.product_flow import (
+    EditingOutputProfile,
     EditingProductRequest,
     PlanningProductRequest,
     PlanningReferenceInput,
@@ -438,9 +439,6 @@ def test_concrete_editing_composition_reaches_durable_edl_render_and_review(
             FakeDirector(),
             renderer,
             cast(RenderedMediaQc, UnusedRenderedMediaQc()),
-            output_width=320,
-            output_height=180,
-            output_fps=30,
             edit_plan_id_factory=lambda: "epl_product_composition",
             edl_id_factory=lambda: "edl_product_composition",
             clock=lambda: NOW,
@@ -453,6 +451,7 @@ def test_concrete_editing_composition_reaches_durable_edl_render_and_review(
             _brief(),
             (source,),
             output,
+            output_profile=EditingOutputProfile("test_320x180_30", 320, 180, 30),
         )
     )
 
@@ -465,6 +464,9 @@ def test_concrete_editing_composition_reaches_durable_edl_render_and_review(
     assert workspace.edls.count() == 1
     persisted_edl = workspace.edls.load(EntityRevisionRef("edl_product_composition", 1))
     assert persisted_edl == renderer.requests[0].edl
+    assert renderer.requests[0].output_spec.width == 320
+    assert renderer.requests[0].output_spec.height == 180
+    assert renderer.requests[0].output_spec.frames_per_second == 30
     assert renderer.requests[0].asset_media[0].path == source.resolve()
     assert renderer.requests[0].edl.segments[0].source_range == MediaTimeRange(
         MediaTime(0, 1),

@@ -6,6 +6,7 @@ from pathlib import Path
 
 from video_editing_agent.adapters.product.ux_support import extract_first_https_url
 from video_editing_agent.application.use_cases.product_flow import (
+    EditingOutputProfile,
     EditingProductFlow,
     EditingProductRequest,
     EditingProductResult,
@@ -118,6 +119,7 @@ class EditingForm:
     requires_audible_output: bool = True
     use_planning_result: bool = False
     planning_context: PlanningSessionContext | None = None
+    output_profile: EditingOutputProfile | None = None
 
     def to_request(self) -> EditingProductRequest:
         if str(self.project).strip() in {"", "."}:
@@ -126,6 +128,8 @@ class EditingForm:
             raise ValueError("Editing output path is required")
         if self.output_path.suffix.casefold() != ".mp4":
             raise ValueError("Editing output must be an MP4 destination")
+        if self.output_profile is None:
+            raise ValueError("Editing output profile is required")
         project = self.project.expanduser().resolve(strict=False)
         script_ref = None
         shooting_ref = None
@@ -144,6 +148,7 @@ class EditingForm:
             self.requires_audible_output,
             script_ref,
             shooting_ref,
+            output_profile=self.output_profile,
         )
 
 
