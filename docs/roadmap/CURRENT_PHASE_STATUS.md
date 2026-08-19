@@ -18,6 +18,7 @@ Hard 100% contract:
 Current gate state:
 
 - Planning Engineering/Product/Human Gate: PASS.
+- Stage-A UX stabilization: ACCEPTED.
 - Editing subsystem mechanisms: substantially built/validated.
 - Editing ordinary ProductFlow integration gap: OPEN.
 - Review-before-final-output publication gap: OPEN.
@@ -30,13 +31,13 @@ Therefore structural progress remains **90%**.
 
 ## Accepted production-code baseline
 
-`af5865df14b9f1cceaa9e6c1fe4dadf14cc60058`
+`c6bd96116e3ab00f76aeb87ee63ad1037ba84980`
 
 Exact-head CI:
 
-`32145822611` — PASS (`ci/quality-gate-diagnostic = success`).
+`32205777259` — PASS (`ci/quality-gate-diagnostic = success`).
 
-This remains the accepted remote production-code baseline until the preserved local UX candidate is committed, pushed, reviewed and green in CI.
+The accepted UX stack introduced responsive Tk execution, bilingual ordinary-user presentation, single multi-select media input, scroll/export, placeholders, local profiles, Windows-protected API credential persistence, bounded share-text HTTPS extraction, ETA/status and visible Splash. Windows local gate passed 713 tests plus launcher/manual UI smoke; Linux CI then exposed and closed a Windows-only ctypes typing portability defect.
 
 ## Planning Product Gate — PASS
 
@@ -44,19 +45,13 @@ Durable evidence:
 
 `docs/validation/R0.12_STAGE_A_PLANNING_PRODUCT_GATE.md`
 
-A real ordinary-user Windows Planning run completed end-to-end, produced persisted ScriptPlan/ShootingPlan revisions, and the user judged both acceptable with no blocking issue.
-
-Planning-only is proven usable for Stage A. Follow-up refinements do not reopen this PASS.
+Planning-only is proven usable for Stage A.
 
 ## Editing Product Gate — three gate-path corrections before further attempt
 
-Real Editing-only Windows probes have crossed input validation, local-media understanding and Director boundaries, exposing and repairing several concrete runtime defects. The most recent same-day cloud failure was an explicit Gemini HTTP 429/provider quota condition; it did not authorize silent provider/model switching.
-
-A 2026-08-19 static ProductFlow audit then found three more fundamental gate-path issues.
-
 ### 1. Required editing-expression families are not all wired into ordinary ProductFlow
 
-Frozen Stage-A contract:
+Frozen Stage-A contract requires:
 
 ```text
 understanding / Director / grounded Resolver
@@ -66,24 +61,13 @@ understanding / Director / grounded Resolver
 → final MP4
 ```
 
-Current ordinary `build_editing_product_flow()` reaches grounded ResolutionDecision and builds canonical EDL with a conservative source-audio mix, but does not yet compose the already-developed R0.10 Music/Audio and R0.11 Spatial families into that route and has not product-integrated the required Subtitle/Graphics/minimal-transition floor.
+Current ordinary ProductFlow still does not compose the already-developed R0.10 Music/Audio and R0.11 Spatial families plus the required Subtitle/Graphics/minimal-transition floor into the gate-closing path.
 
-Therefore a plain-cut/source-audio MP4 is useful mechanical evidence but **cannot close Stage A**.
+A plain-cut/source-audio MP4 cannot close Stage A.
 
 ### 2. Current flow renders to the user final path before Review
 
-Current `EditingProductFlow.run()` order is effectively:
-
-```text
-canonical EDL
-→ render(request.output_path)
-→ Review
-→ if non-PASS: result.final_output_path = None
-```
-
-The result object hides the path on correction, but the MP4 may already exist at the destination the user chose. That destination itself is a product-level “final output” signal and may also overwrite a previous non-source output because the FFmpeg backend uses overwrite semantics.
-
-Required product meaning:
+Required lifecycle:
 
 ```text
 canonical EDL
@@ -93,128 +77,51 @@ canonical EDL
 → non-PASS: no user-final publication
 ```
 
-Review still only classifies/routes; publication is a product/artifact lifecycle step, not Review editorial authority.
+Review remains classification/routing-only; publication is product/artifact lifecycle.
 
-### 3. Output canvas/fps is currently a hidden fixed 1920×1080@30 default
+### 3. Output canvas/fps is still a hidden fixed `1920×1080@30`
 
-`EditingProductCapabilities` currently defaults all ordinary renders to `1920 × 1080 @ 30 fps`. The user supplies platform and output path, but there is no typed/user-visible Output Profile deciding aspect/resolution/fps.
+Before R0.11 Spatial integration, the ordinary product route needs an explicit typed/user-visible Output Profile supplying target width/height/fps to Spatial/EDL/Renderer. Platform may suggest a default, but cannot invisibly own final geometry.
 
-This becomes a gate prerequisite when R0.11 Spatial/Auto-Reframe is integrated: a reframe decision must know its actual target canvas. A valid auto-reframe computed against a silently fixed 16:9 target may be the wrong product output for a short-form/vertical intent.
-
-Required direction:
-
-```text
-user-visible typed Output Profile
-→ target width / height / fps
-→ SpatialComposer target canvas
-→ canonical EDL / Render provenance
-```
-
-Platform may suggest a default profile, but must not invisibly own or hardcode the final canvas. User-visible selected profile is the product authority.
-
-Durable incidents in `docs/logs/INCIDENT_LEDGER.md`:
-
-- `R0.12 Stage-A ordinary Editing integration gap — OPEN`;
-- `R0.12 Review-before-final-output publication defect — OPEN`;
-- `R0.12 fixed output-profile / aspect-ratio gap — OPEN`.
-
-## Preserved local UX stabilization candidate
-
-The bounded Windows/Tkinter UX wave has been implemented locally but is still uncommitted/unpushed because Codex execution quota ended before completion reporting.
-
-Observed before final Splash micro-edits:
-
-- Ruff: PASS;
-- mypy: PASS;
-- pytest: `713 passed`;
-- import contracts: PASS;
-- build/diff/repo doctor: PASS;
-- launcher/Tk smoke: PASS;
-- manual UI smoke for placeholder, multi-select media input, export, localization, profiles, responsiveness and protected API-secret persistence: PASS.
-
-The final Splash repaint + dependency-free pixel mark were then repaired manually; the user confirmed the startup icon is visible.
-
-Because those last edits happened after the 713-test run, a fresh complete Quality Gate is mandatory before commit/push.
-
-Codex is **closed for this wave because execution quota is exhausted**. Do not recreate the candidate or pull over its uncommitted working tree.
+Durable incidents are recorded in `docs/logs/INCIDENT_LEDGER.md`.
 
 ## Current execution mode
 
-`LOCAL UX CANDIDATE FINALIZATION → EDITING INTEGRATION/PUBLICATION/OUTPUT-PROFILE REPAIR → PRODUCT/HUMAN GATE`
+`EDITING INTEGRATION/PUBLICATION/OUTPUT-PROFILE REPAIR → PRODUCT/HUMAN GATE`
 
 Active Work Order:
 
 `R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001`
 
-Control documents:
+### Step 1 — bounded Editing gate-path repair
 
-- `docs/operations/CURRENT_CONTROL_STATE.md`
-- `docs/operations/CURRENT_WORK_ORDER.md`
-- `docs/operations/STAGE_A_UX_STABILIZATION_WAVE.md`
-- `docs/roadmap/STAGE_A_COMPLETION_GATE.md`
-- `docs/product/STAGE_A_PRODUCT_IO_CONTRACT.md`
+- typed/user-visible Output Profile;
+- R0.10 Music/Audio Editorial integration;
+- R0.11 Spatial/Auto Reframe integration against selected target canvas;
+- structured Subtitle integration;
+- bounded title/CTA/price-card Graphics and minimal-transition semantics required by Stage A;
+- controlled render candidate → Review → PASS-only final publication;
+- mutation/integration tests proving Output Profile / decision → EDL → render → Review → publication alignment;
+- full Quality Gate.
 
-## Return corridor
+### Step 2 — real Editing Product/Human Gate
 
-### Step 1 — accept the existing local UX candidate
-
-1. rerun full local quality/launcher checks after Splash edits;
-2. commit locally before integrating remote docs;
-3. fetch/rebase the local code commit onto latest `origin/main`;
-4. rerun required checks;
-5. push;
-6. ChatGPT reobserves exact diff/CI and either accepts or rejects the new code baseline.
-
-### Step 2 — bounded Editing gate-path repair
-
-Correct target-output authority first, then compose already-approved decision owners and final-output publication:
-
-- typed/user-visible Output Profile for aspect/resolution/fps;
-- R0.10 Music/Audio Editorial;
-- R0.11 Spatial/Auto Reframe against the selected target canvas;
-- structured Subtitle path;
-- bounded title/CTA/price-card graphics and minimal-transition semantics required by Stage A;
-- controlled render candidate → Review → PASS-only final publication.
-
-The repair must prove decision → canonical EDL → rendered execution alignment and keep:
-
-- output profile as explicit product input/configuration, not provider authority;
-- Resolver as source-time owner;
-- EDLBuilder as assembler, not editor;
-- EDL as exact timeline authority;
-- Renderer execution-only;
-- Review classification/routing-only;
-- publication as product/artifact lifecycle, not editorial mutation.
-
-### Step 3 — real Editing Product/Human Gate
-
-Only after Step 2 is accepted:
+Only after Step 1 is accepted:
 
 1. ordinary multi-select local footage; Combined unchecked for Editing-only proof;
 2. select/confirm intended Output Profile;
 3. record source SHA-256 hashes;
-4. run the real automatic chain including Stage-A expression floor;
-5. render to controlled candidate;
+4. execute the real automatic chain including Stage-A expression floor;
+5. render controlled candidate;
 6. Review PASS;
 7. publish/promote to requested final MP4;
 8. verify sources unchanged;
 9. user watches final MP4 and completes Human Gate;
 10. Stage A reaches 100 only if every completion invariant passes.
 
-## Parallel productization backlog — important but not mixed into the gate repair
+## Parallel productization backlog
 
-Durable preparation exists for:
-
-- UI/design system: `docs/product/DESKTOP_UI_DESIGN_SYSTEM_V0.1.md`;
-- Provider-neutral product binding: `docs/architecture/PROVIDER_NEUTRAL_PRODUCT_BINDING_PLAN.md`;
-- Windows packaging: `docs/operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md`;
-- Windows runtime inventory: `docs/operations/WINDOWS_RUNTIME_DEPENDENCY_INVENTORY.md`;
-- product health: `docs/roadmap/PRODUCT_RED_BLACK_BOARD.md`;
-- history: `docs/logs/PROJECT_CHRONICLE.md`;
-- risk audit: `docs/logs/COMMERCIAL_DESKTOP_RISK_AUDIT_2026-08-19.md`;
-- open-source UI/product research: `docs/research/DESKTOP_PRODUCT_UI_REFERENCE_REVIEW_2026-08-19.md`.
-
-These proceed as separate bounded waves after the gate-critical route is truthful. Do not combine Provider refactoring, UI decoration, packaging and Editing integration into one giant change.
+Durable preparation exists for UI design, Provider-neutral product binding, Windows packaging/runtime inventory, project chronicle, product red/black board and commercial risk audit. These remain separate bounded waves; do not mix them into the gate-critical Editing repair.
 
 ## Frozen authority rules
 
@@ -222,17 +129,14 @@ These proceed as separate bounded waves after the gate-critical route is truthfu
 - Editing remains independently activatable;
 - Combined remains optional enrichment;
 - output canvas/fps is explicit product input/configuration and visible to the user;
-- canonical EDL remains sole exact timeline authority;
 - Resolver owns source-time grounding;
+- canonical EDL remains sole exact timeline authority;
 - Renderer has no editorial authority;
 - Review has no edit/render mutation authority;
 - render candidate is not user-final output before Review PASS;
-- reference-only media remains Resolver-ineligible;
 - final commercial visuals come from user-selected local footage;
 - originals remain protected;
 - no silent provider switching;
-- no fabricated replacement visuals;
 - no plaintext API-secret profiles;
 - no Product/Human PASS inferred from tests alone;
-- no Editing PASS from a route that omits the Stage-A editing-expression floor;
 - no final-output publication before Review PASS.
