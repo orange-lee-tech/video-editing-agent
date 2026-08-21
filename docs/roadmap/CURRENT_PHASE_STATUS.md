@@ -2,14 +2,14 @@
 
 **Roadmap V2:** ACTIVE  
 **Development stage:** STRUCTURAL_CONSTRUCTION  
-**Structural progress:** 90%  
-**Current phase:** R0.12 — EDL / Renderer / Review / runtime productization  
-**Engineering state:** STAGE_A_EDITING_INTEGRATION_GAP_OPEN  
-**Updated:** 2026-08-19
+**Structural progress:** 95%  
+**Current phase:** R0.12 — Stage-A final closure / compatibility / packaging  
+**Engineering state:** STAGE_A_FINAL_CLOSURE_REFERENCE_COMPATIBILITY_AND_PACKAGING  
+**Updated:** 2026-08-21
 
 ## Progress truth
 
-Structural percentage measures real end-to-end ordinary-user usability, not module/test/UI count.
+Structural percentage measures real ordinary-user end-to-end usability, not module/test/UI count.
 
 Hard 100% contract:
 
@@ -17,126 +17,95 @@ Hard 100% contract:
 
 Current gate state:
 
-- Planning Engineering/Product/Human Gate: PASS.
-- Stage-A UX stabilization: ACCEPTED.
-- Editing subsystem mechanisms: substantially built/validated.
-- Editing ordinary ProductFlow integration gap: OPEN.
-- Review-before-final-output publication gap: OPEN.
-- explicit Output Profile / target-canvas gap: OPEN.
-- Editing Product Probe: NOT GATE-READY until all three gate-path issues are repaired.
-- Editing Human Gate: OPEN.
+- Planning Product/Human Gate: PASS.
+- Editing no-speech ordinary Human baseline: PASS with real final MP4.
+- source audio preservation + rights-safe BGM: HUMAN PASS on the accepted real run.
+- no-speech subtitle behavior: PASS (`SKIPPED` / no fabricated captions).
+- speech-bearing original-voice + basic trusted subtitles: engineering seam present; approved/pinned runtime/model + real Human evidence still OPEN.
+- ordinary Bilibili reference-page compatibility: OPEN bounded adapter gap.
+- Windows distributable proof without Python/uv/repository execution: OPEN.
 - Stage-A completion gate: OPEN.
 
-Therefore structural progress remains **90%**.
+Therefore structural progress is **95%**, not 100%.
 
 ## Accepted production-code baseline
 
-`c6bd96116e3ab00f76aeb87ee63ad1037ba84980`
+`6ba297bf28f36aa7e56da9babb5f27d941965913`
 
-Exact-head CI:
+This is the main merge of PR #11 after exact-head CI passed for implementation head `836b5401a428f57e89efbc65e9cf1534450cff05`.
 
-`32205777259` — PASS (`ci/quality-gate-diagnostic = success`).
+Durable Editing evidence:
 
-The accepted UX stack introduced responsive Tk execution, bilingual ordinary-user presentation, single multi-select media input, scroll/export, placeholders, local profiles, Windows-protected API credential persistence, bounded share-text HTTPS extraction, ETA/status and visible Splash. Windows local gate passed 713 tests plus launcher/manual UI smoke; Linux CI then exposed and closed a Windows-only ctypes typing portability defect.
+`docs/validation/R0.12_EDITING_AUDIO_SUBTITLE_CLOSURE_2026-08-21.md`
 
-## Planning Product Gate — PASS
+## What is now proven
 
-Durable evidence:
-
-`docs/validation/R0.12_STAGE_A_PLANNING_PRODUCT_GATE.md`
-
-Planning-only is proven usable for Stage A.
-
-## Editing Product Gate — three gate-path corrections before further attempt
-
-### 1. Required editing-expression families are not all wired into ordinary ProductFlow
-
-Frozen Stage-A contract requires:
+The ordinary Editing path has real evidence for:
 
 ```text
-understanding / Director / grounded Resolver
-→ music/rhythm + spatial/audio + subtitle/graphics/minimal transitions
+real user footage
+→ media understanding
+→ rights-safe public BGM
+→ EditPlan / grounded Resolver
 → canonical EDL
+→ SOURCE_AUDIO preservation
+→ capability-aware no-speech subtitle handling
 → Renderer / Review
 → final MP4
 ```
 
-Current ordinary ProductFlow still does not compose the already-developed R0.10 Music/Audio and R0.11 Spatial families plus the required Subtitle/Graphics/minimal-transition floor into the gate-closing path.
+The Product Owner confirmed the final no-speech MP4 was normal, source audio was present, and BGM was present/natural.
 
-A plain-cut/source-audio MP4 cannot close Stage A.
+The accepted implementation also retains typed provider-neutral seams for future speech synthesis and audio separation without pretending those deferred backends are already available.
 
-### 2. Current flow renders to the user final path before Review
+## Remaining 1.0 closure terrain
 
-Required lifecycle:
+### A. Planning reference compatibility
+
+A real ordinary Bilibili page URL was rejected because static bounded webpage discovery did not expose a direct HTTPS video source.
+
+This is an adapter compatibility gap, not authorization for unbounded site crawling.
+
+Target direction:
 
 ```text
-canonical EDL
-→ controlled render candidate
-→ Review
-→ PASS: publish/promote to requested final destination
-→ non-PASS: no user-final publication
+ReferenceAcquisitionPort
+├─ direct HTTPS media adapter
+├─ bounded generic webpage media adapter
+└─ bounded provider-specific adapter(s), beginning with a Bilibili proof
 ```
 
-Review remains classification/routing-only; publication is product/artifact lifecycle.
+Planning Domain must remain independent of provider/site mechanics.
 
-### 3. Output canvas/fps is still a hidden fixed `1920×1080@30`
+### B. Basic speech/subtitle retained capability
 
-Before R0.11 Spatial integration, the ordinary product route needs an explicit typed/user-visible Output Profile supplying target width/height/fps to Spatial/EDL/Renderer. Platform may suggest a default, but cannot invisibly own final geometry.
+Production synthetic voice/TTS is deferred, but original human speech + basic trusted subtitles remains a retained 1.0 capability.
 
-Durable incidents are recorded in `docs/logs/INCIDENT_LEDGER.md`.
+The speech runtime/model must become a deliberate, pinned, diagnosable runtime capability and pass a real simple spoken-video Human Gate before final closure. Advanced source separation/noise handling is not required for 1.0.
 
-## Current execution mode
+### C. Compatible Windows packaging
 
-`EDITING INTEGRATION/PUBLICATION/OUTPUT-PROFILE REPAIR → PRODUCT/HUMAN GATE`
+Packaging must progress from Python wheel/sdist to a real Windows distributable engineering proof:
 
-Active Work Order:
+- ordinary target does not need Python, uv or repository checkout;
+- thin bootstrap/resource/runtime location outside Domain authority;
+- user-writable data outside install directory;
+- providers/models/renderers remain replaceable;
+- current 1.0 runtime dependencies are closed deliberately rather than accidentally copied from a developer machine;
+- fresh/clean Windows smoke proves launch and retained core path diagnostics.
 
-`R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001`
+### D. Final closure
 
-### Step 1 — bounded Editing gate-path repair
+After A-C:
 
-- typed/user-visible Output Profile;
-- R0.10 Music/Audio Editorial integration;
-- R0.11 Spatial/Auto Reframe integration against selected target canvas;
-- structured Subtitle integration;
-- bounded title/CTA/price-card Graphics and minimal-transition semantics required by Stage A;
-- controlled render candidate → Review → PASS-only final publication;
-- mutation/integration tests proving Output Profile / decision → EDL → render → Review → publication alignment;
-- full Quality Gate.
+- run retained ordinary Product/Human evidence;
+- verify required full quality gates;
+- verify exact-head CI;
+- synchronize live control documents;
+- set Stage-A 100% only if every machine/human completion invariant actually passes.
 
-### Step 2 — real Editing Product/Human Gate
+## Active Work Order
 
-Only after Step 1 is accepted:
+`R0.12-STAGE-A-FINAL-CLOSURE-002`
 
-1. ordinary multi-select local footage; Combined unchecked for Editing-only proof;
-2. select/confirm intended Output Profile;
-3. record source SHA-256 hashes;
-4. execute the real automatic chain including Stage-A expression floor;
-5. render controlled candidate;
-6. Review PASS;
-7. publish/promote to requested final MP4;
-8. verify sources unchanged;
-9. user watches final MP4 and completes Human Gate;
-10. Stage A reaches 100 only if every completion invariant passes.
-
-## Parallel productization backlog
-
-Durable preparation exists for UI design, Provider-neutral product binding, Windows packaging/runtime inventory, project chronicle, product red/black board and commercial risk audit. These remain separate bounded waves; do not mix them into the gate-critical Editing repair.
-
-## Frozen authority rules
-
-- Planning remains independently usable;
-- Editing remains independently activatable;
-- Combined remains optional enrichment;
-- output canvas/fps is explicit product input/configuration and visible to the user;
-- Resolver owns source-time grounding;
-- canonical EDL remains sole exact timeline authority;
-- Renderer has no editorial authority;
-- Review has no edit/render mutation authority;
-- render candidate is not user-final output before Review PASS;
-- final commercial visuals come from user-selected local footage;
-- originals remain protected;
-- no silent provider switching;
-- no plaintext API-secret profiles;
-- no Product/Human PASS inferred from tests alone;
-- no final-output publication before Review PASS.
+The next implementation wave must stay bounded to the current closure terrain and obey root `AGENTS.md` plus `docs/operations/DOCUMENT_CONTROL_POLICY.md`.
