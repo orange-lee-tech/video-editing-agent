@@ -11,7 +11,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = ROOT / "docs" / "DOCUMENT_REGISTRY.json"
 DATE_RE = re.compile(r"\b(20\d{2}-\d{2}-\d{2})\b")
-DATE_KEYS = ("last updated", "updated", "effective date", "date")
+DATE_KEYS = ("last updated", "updated", "effective date", "date", "日期", "更新日期")
 
 CORE_PATHS = {
     "AGENTS.md",
