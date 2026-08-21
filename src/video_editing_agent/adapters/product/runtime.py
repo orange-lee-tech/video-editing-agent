@@ -12,6 +12,25 @@ from video_editing_agent.media.shot_detection.transnet_runtime import (
     TRANSNETV2_WEIGHTS_FILENAME,
 )
 
+_APPROVED_WINDOWS_FFMPEG_BIN = Path(".tools/ffmpeg-8.1/ffmpeg-8.1-full_build/bin")
+
+
+def locate_media_executable(
+    name: str,
+    *,
+    path_locator: Callable[[str], str | None] = shutil.which,
+    repository_root: Path | None = None,
+) -> str | None:
+    """Resolve PATH first, then the approved repository-local Windows runtime."""
+    resolved = path_locator(name)
+    if resolved is not None:
+        return resolved
+    if name not in {"ffmpeg", "ffprobe"}:
+        return None
+    root = Path(__file__).resolve().parents[4] if repository_root is None else repository_root
+    candidate = root / _APPROVED_WINDOWS_FFMPEG_BIN / f"{name}.exe"
+    return str(candidate) if candidate.is_file() else None
+
 
 @dataclass(frozen=True, slots=True)
 class ProductRuntimeConfig:
@@ -40,7 +59,7 @@ def resolve_product_runtime(
     mode: str = "editing",
     reference_required: bool = False,
     environment: Mapping[str, str] | None = None,
-    executable_locator: Callable[[str], str | None] = shutil.which,
+    executable_locator: Callable[[str], str | None] | None = None,
     module_finder: Callable[[str], ModuleSpec | None] = importlib.util.find_spec,
 ) -> ProductRuntimeResolution:
     env = os.environ if environment is None else environment
@@ -50,7 +69,8 @@ def resolve_product_runtime(
     media_required = mode == "editing" or reference_required
     visual_provider: str | None = None
     visual_model: str | None = None
-    ffmpeg, ffprobe = executable_locator("ffmpeg"), executable_locator("ffprobe")
+    locator = locate_media_executable if executable_locator is None else executable_locator
+    ffmpeg, ffprobe = locator("ffmpeg"), locator("ffprobe")
     if media_required and (ffmpeg is None or ffprobe is None):
         purpose = "Editing" if mode == "editing" else "Planning reference-video analysis"
         diagnostics.append(

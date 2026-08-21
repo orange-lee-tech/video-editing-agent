@@ -182,8 +182,16 @@ class CapturingShootingPlanning(FakeShootingPlanning):
 
 
 class FakeReferenceAcquirer:
-    def __init__(self, path: Path) -> None:
+    def __init__(
+        self,
+        path: Path,
+        *,
+        provider: str = "direct_https",
+        provider_item_id: str | None = None,
+    ) -> None:
         self._path = path
+        self._provider = provider
+        self._provider_item_id = provider_item_id
 
     def acquire(self, request) -> ReferenceAcquisitionResult:  # type: ignore[no-untyped-def]
         return ReferenceAcquisitionResult(
@@ -191,8 +199,8 @@ class FakeReferenceAcquirer:
                 self._path.resolve(),
                 request.url,
                 request.url,
-                "direct_https",
-                None,
+                self._provider,
+                self._provider_item_id,
                 NOW,
                 "sha256:" + "a" * 64,
                 self._path.stat().st_size,
@@ -451,6 +459,61 @@ def test_product_reference_bridge_keeps_references_only_and_forwards_guidance(
     assert script.guidance and script.guidance == shooting.guidance
     assert script.guidance[0].reference_asset_ref == persisted.references[0].asset_ref
     assert reference_file.read_bytes() == b"reference-original"
+
+
+def test_bilibili_acquired_contract_enters_existing_planning_reference_chain(
+    tmp_path: Path,
+) -> None:
+    workspace = ProjectWorkspace.open(tmp_path / "bilibili-reference-project")
+    acquired_media = tmp_path / "bilibili-reference.m4s"
+    acquired_media.write_bytes(b"public-reference-video")
+    script, shooting = CapturingScriptPlanning(), CapturingShootingPlanning()
+    flow = build_planning_product_flow(
+        workspace,
+        PlanningProductCapabilities(
+            script,
+            AcceptScriptReview(),
+            shooting,
+            AcceptShootingReview(),
+            PlanningReferenceCapabilities(
+                FakeMediaProbe(),
+                FakeShotDetector(),
+                ShotDetectionOptions(),
+                FakeUnderstanding(workspace),
+                FakeReferenceAcquirer(
+                    acquired_media,
+                    provider="bilibili_public_page",
+                    provider_item_id="BV1Mq4y187xR",
+                ),
+            ),
+        ),
+    )
+
+    result = flow.run(
+        PlanningProductRequest(
+            workspace.root,
+            _brief(),
+            ProductionConstraints(),
+            reference_inputs=(
+                PlanningReferenceInput(
+                    "reference_bilibili",
+                    PlanningReferenceKind.DIRECT_HTTPS_VIDEO,
+                    "Public Bilibili reference",
+                    url=("https://www.bilibili.com/video/BV1Mq4y187xR?share_source=copy_web"),
+                ),
+            ),
+        )
+    )
+
+    assert result.outcome is ProductFlowOutcome.COMPLETED
+    assert result.brief_ref is not None
+    reference = workspace.briefs.load(result.brief_ref).references[0]
+    assert reference.asset_ref is not None
+    asset = workspace.assets.load(reference.asset_ref)
+    assert asset.provenance.provider == "bilibili_public_page"
+    assert asset.provenance.provider_asset_id == "BV1Mq4y187xR"
+    assert asset.usage_role is AssetUsageRole.REFERENCE_ANALYSIS_ONLY
+    assert script.guidance and shooting.guidance
 
 
 def test_concrete_editing_composition_reaches_durable_edl_render_and_review(

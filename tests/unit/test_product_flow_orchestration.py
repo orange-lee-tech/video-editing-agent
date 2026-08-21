@@ -214,6 +214,9 @@ def test_planning_failure_stops_at_owner_boundary_with_failed_progress(tmp_path:
     assert calls == ["brief", "script"]
     assert result.outcome is ProductFlowOutcome.FAILED
     assert result.events[-1].stage is ProductFlowStage.FAILED
+    assert result.events[-1].message == (
+        "Planning flow failed during planning_generation: RuntimeError: proposal rejected"
+    )
     assert result.diagnostic == "RuntimeError: proposal rejected"
 
 

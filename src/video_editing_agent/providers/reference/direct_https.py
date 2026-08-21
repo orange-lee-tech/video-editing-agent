@@ -38,6 +38,7 @@ class DirectHttpsAcquisitionPolicy:
     max_redirects: int = 5
     max_html_bytes: int = 1024 * 1024
     max_html_hops: int = 1
+    max_metadata_hops: int = 2
 
     def __post_init__(self) -> None:
         if isinstance(self.max_bytes, bool) or not isinstance(self.max_bytes, int):
@@ -59,6 +60,7 @@ class DirectHttpsAcquisitionPolicy:
         for name, value in (
             ("max_html_bytes", self.max_html_bytes),
             ("max_html_hops", self.max_html_hops),
+            ("max_metadata_hops", self.max_metadata_hops),
         ):
             if isinstance(value, bool) or not isinstance(value, int):
                 raise TypeError(f"{name} must be an int")
@@ -88,6 +90,38 @@ Resolver = Callable[[str, int], tuple[str, ...]]
 ConnectionFactory = Callable[[str, str, int, float], _ConnectionLike]
 Clock = Callable[[], datetime]
 Monotonic = Callable[[], float]
+
+
+@dataclass(frozen=True, slots=True)
+class DiscoveredReferenceMedia:
+    url: str
+    provider: str = "direct_https"
+    provider_item_id: str | None = None
+    request_headers: tuple[tuple[str, str], ...] = ()
+    metadata: bool = False
+
+    def __post_init__(self) -> None:
+        if not self.url.strip() or not self.provider.strip():
+            raise ValueError("discovered reference URL and provider must not be empty")
+        allowed = {"referer"}
+        if any(
+            name.casefold() not in allowed or not value.strip()
+            for name, value in self.request_headers
+        ):
+            raise ValueError("discovered reference request headers are not allowed")
+        if not isinstance(self.metadata, bool):
+            raise TypeError("discovered reference metadata flag must be a bool")
+
+
+class HtmlReferenceMediaResolver(Protocol):
+    def resolve(self, page_url: str, html: bytes) -> tuple[DiscoveredReferenceMedia, ...]: ...
+
+
+class HtmlReferenceResolutionError(RuntimeError):
+    def __init__(self, code: ReferenceAcquisitionDiagnosticCode, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
 
 
 class _AcquisitionFailure(Exception):
@@ -224,6 +258,7 @@ class DirectHttpsReferenceAcquirer:
         connection_factory: ConnectionFactory = _default_connection_factory,
         clock: Clock = _default_clock,
         monotonic: Monotonic = time.monotonic,
+        html_media_resolvers: tuple[HtmlReferenceMediaResolver, ...] = (),
     ) -> None:
         self._root = root.expanduser().resolve()
         self._partial_root = self._root / ".partial"
@@ -233,6 +268,7 @@ class DirectHttpsReferenceAcquirer:
         self._connection_factory = connection_factory
         self._clock = clock
         self._monotonic = monotonic
+        self._html_media_resolvers = html_media_resolvers
         self._partial_root.mkdir(parents=True, exist_ok=True)
         self._committed_root.mkdir(parents=True, exist_ok=True)
 
@@ -269,6 +305,11 @@ class DirectHttpsReferenceAcquirer:
         deadline = self._monotonic() + self._policy.total_timeout_seconds
         redirects = 0
         html_hops = 0
+        metadata_hops = 0
+        provider = "direct_https"
+        provider_item_id: str | None = None
+        discovered_headers: dict[str, str] = {}
+        expects_metadata = False
 
         while True:
             if self._monotonic() > deadline:
@@ -289,15 +330,21 @@ class DirectHttpsReferenceAcquirer:
             )
             response: _ResponseLike | None = None
             try:
+                headers = {
+                    "Accept": (
+                        "application/json"
+                        if expects_metadata
+                        else "video/*,text/html;q=0.8,application/octet-stream;q=0.7"
+                    ),
+                    "Accept-Encoding": "identity",
+                    "Connection": "close",
+                    "User-Agent": "video-editing-agent/reference-acquisition-r0.12",
+                }
+                headers.update(discovered_headers)
                 connection.request(
                     "GET",
                     _request_target(current_url),
-                    headers={
-                        "Accept": "video/*,text/html;q=0.8,application/octet-stream;q=0.7",
-                        "Accept-Encoding": "identity",
-                        "Connection": "close",
-                        "User-Agent": "video-editing-agent/reference-acquisition-r0.12",
-                    },
+                    headers=headers,
                 )
                 response = connection.getresponse()
                 if response.status in _REDIRECT_STATUSES:
@@ -335,23 +382,41 @@ class DirectHttpsReferenceAcquirer:
                     )
 
                 content_type = _content_type_base(response.getheader("Content-Type"))
-                if content_type == "text/html":
+                if content_type == "text/html" or (
+                    expects_metadata and content_type == "application/json"
+                ):
                     if redirects >= self._policy.max_redirects:
                         raise _AcquisitionFailure(
                             ReferenceAcquisitionDiagnosticCode.REDIRECT_REJECTED,
                             "reference acquisition exceeded the redirect/media-discovery limit",
                         )
-                    if html_hops >= self._policy.max_html_hops:
+                    if content_type == "text/html" and html_hops >= self._policy.max_html_hops:
                         raise _AcquisitionFailure(
                             ReferenceAcquisitionDiagnosticCode.UNSUPPORTED_RESOURCE,
                             "reference webpage exceeded the bounded HTML media-discovery limit",
                         )
-                    current_url = self._video_url_from_html(
+                    if (
+                        content_type == "application/json"
+                        and metadata_hops >= self._policy.max_metadata_hops
+                    ):
+                        raise _AcquisitionFailure(
+                            ReferenceAcquisitionDiagnosticCode.UNSUPPORTED_RESOURCE,
+                            "reference provider exceeded the bounded metadata-discovery limit",
+                        )
+                    discovered = self._video_url_from_html(
                         response,
                         page_url=current_url,
                         deadline=deadline,
                     )
-                    html_hops += 1
+                    current_url = discovered.url
+                    provider = discovered.provider
+                    provider_item_id = discovered.provider_item_id
+                    discovered_headers = dict(discovered.request_headers)
+                    expects_metadata = discovered.metadata
+                    if content_type == "text/html":
+                        html_hops += 1
+                    else:
+                        metadata_hops += 1
                     redirects += 1
                     continue
                 if (
@@ -375,6 +440,8 @@ class DirectHttpsReferenceAcquirer:
                     final_url=current_url,
                     content_type=content_type,
                     deadline=deadline,
+                    provider=provider,
+                    provider_item_id=provider_item_id,
                 )
             except TimeoutError as error:
                 raise _AcquisitionFailure(
@@ -393,7 +460,7 @@ class DirectHttpsReferenceAcquirer:
         *,
         page_url: str,
         deadline: float,
-    ) -> str:
+    ) -> DiscoveredReferenceMedia:
         declared_length = self._declared_length(response)
         if declared_length is not None and declared_length > self._policy.max_html_bytes:
             raise _AcquisitionFailure(
@@ -431,7 +498,18 @@ class DirectHttpsReferenceAcquirer:
                 self._validate_url_shape(candidate, redirect=True)
             except _AcquisitionFailure:
                 continue
-            return candidate
+            return DiscoveredReferenceMedia(candidate)
+        for resolver in self._html_media_resolvers:
+            try:
+                candidates = resolver.resolve(page_url, bytes(payload))
+            except HtmlReferenceResolutionError as error:
+                raise _AcquisitionFailure(error.code, error.message) from error
+            for discovered in candidates:
+                try:
+                    self._validate_url_shape(discovered.url, redirect=True)
+                except _AcquisitionFailure:
+                    continue
+                return discovered
         raise _AcquisitionFailure(
             ReferenceAcquisitionDiagnosticCode.UNSUPPORTED_RESOURCE,
             "reference webpage did not declare a bounded HTTPS video source",
@@ -528,6 +606,8 @@ class DirectHttpsReferenceAcquirer:
         final_url: str,
         content_type: str | None,
         deadline: float,
+        provider: str,
+        provider_item_id: str | None,
     ) -> AcquiredReferenceMedia:
         temporary_path: Path | None = None
         try:
@@ -592,8 +672,8 @@ class DirectHttpsReferenceAcquirer:
                 local_path=destination.resolve(),
                 original_url=original_url,
                 final_url=final_url,
-                provider="direct_https",
-                provider_item_id=None,
+                provider=provider,
+                provider_item_id=provider_item_id,
                 retrieved_at=self._clock(),
                 content_hash=f"sha256:{digest_hex}",
                 byte_size=byte_size,

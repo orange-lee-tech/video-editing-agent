@@ -327,6 +327,7 @@ def build_planning_product_flow(
                         origin_type="reference_https",
                         source_page=acquired.acquired.original_url,
                         provider=acquired.acquired.provider,
+                        provider_asset_id=acquired.acquired.provider_item_id,
                         retrieved_at=acquired.acquired.retrieved_at,
                     )
                 else:

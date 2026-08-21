@@ -575,7 +575,6 @@ def launch() -> int:
         planning_reference_card,
         (
             "authoritative_facts",
-            "reference_url",
             "reference_local",
             "camera_or_phone",
             "production_notes",
@@ -1049,7 +1048,9 @@ def launch() -> int:
         if active_task is not None:
             return
         try:
-            reference_url = field_value(planning_values["reference_url"]).strip() or None
+            # Remote reference observation is deferred until a video-native/provider-neutral
+            # capability is available. Keep the ordinary product surface fail-closed meanwhile.
+            reference_url = None
             local_reference_text = field_value(planning_values["reference_local"]).strip()
             has_reference = reference_url is not None or bool(local_reference_text)
             form = PlanningForm(
