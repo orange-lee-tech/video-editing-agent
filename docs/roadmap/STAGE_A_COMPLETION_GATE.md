@@ -2,6 +2,7 @@
 
 **Status:** ACTIVE GATE  
 **Stage:** A — Structural Construction  
+**Last updated:** 2026-08-21  
 **Purpose:** Prevent false 100% completion claims and bind structural closure to real product usability.
 
 ## Rule
