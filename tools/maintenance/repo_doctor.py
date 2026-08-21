@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 from pathlib import Path
@@ -8,18 +9,23 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 REQUIRED_FILES = (
+    "AGENTS.md",
     "README.md",
     "docs/README.md",
+    "docs/DOCUMENT_REGISTRY.json",
     "docs/archive/README.md",
     "docs/product/PRODUCT_CONSTITUTION_V1.0.md",
     "docs/architecture/ARCHITECTURE_CONTRACT_V0.2.md",
     "docs/roadmap/ROADMAP_V2.md",
     "docs/roadmap/CURRENT_PHASE_STATUS.md",
     "docs/roadmap/STAGE_A_COMPLETION_GATE.md",
+    "docs/operations/DOCUMENT_CONTROL_POLICY.md",
     "docs/operations/CHATGPT_GITHUB_CODEX_COLLABORATION.md",
     "docs/operations/CODEX_EXECUTION_ENTRY.md",
     "docs/operations/CURRENT_CONTROL_STATE.md",
     "docs/operations/CURRENT_WORK_ORDER.md",
+    "tools/maintenance/document_registry.py",
+    ".github/workflows/document-registry.yml",
 )
 
 REQUIRED_READMES = (
@@ -282,6 +288,63 @@ def _check_live_state(errors: list[str]) -> None:
         errors.append("docs/README.md does not route new handoffs to the collaboration contract")
 
 
+def _check_document_governance(errors: list[str]) -> None:
+    try:
+        registry = json.loads(_read("docs/DOCUMENT_REGISTRY.json"))
+    except (OSError, json.JSONDecodeError) as exc:
+        errors.append(f"DOCUMENT_REGISTRY.json is not readable JSON: {exc}")
+        return
+
+    if registry.get("schema") != "video-editing-agent-document-registry/v1":
+        errors.append("DOCUMENT_REGISTRY.json schema mismatch")
+
+    canonical_entries = registry.get("canonical_entries")
+    if not isinstance(canonical_entries, list):
+        errors.append("DOCUMENT_REGISTRY.json canonical_entries must be a list")
+        canonical_entries = []
+    for entry in canonical_entries:
+        if not isinstance(entry, dict):
+            errors.append("DOCUMENT_REGISTRY.json has a non-object canonical entry")
+            continue
+        path = entry.get("path")
+        if not isinstance(path, str) or not path:
+            errors.append("DOCUMENT_REGISTRY.json canonical entry missing path")
+        elif not (ROOT / path).exists():
+            errors.append(f"DOCUMENT_REGISTRY.json points to missing path: {path}")
+
+    excluded = registry.get("default_excluded")
+    if not isinstance(excluded, list) or "docs/archive/**" not in excluded:
+        errors.append("DOCUMENT_REGISTRY.json must default-exclude docs/archive/**")
+
+    directory_map = registry.get("directory_map")
+    archive_excluded = False
+    if isinstance(directory_map, list):
+        archive_excluded = any(
+            isinstance(entry, dict)
+            and entry.get("path") == "docs/archive/**"
+            and entry.get("attention") == "EXCLUDED_DEFAULT"
+            for entry in directory_map
+        )
+    if not archive_excluded:
+        errors.append("DOCUMENT_REGISTRY.json must classify docs/archive/** as EXCLUDED_DEFAULT")
+
+    agents = _read("AGENTS.md")
+    for token in (
+        "docs/DOCUMENT_REGISTRY.json",
+        "docs/archive/**",
+        "EXCLUDED_DEFAULT",
+        "Compatible development",
+        "Bounded self-repair",
+    ):
+        if token not in agents:
+            errors.append(f"AGENTS.md missing required governance token: {token}")
+
+    docs_readme = _read("docs/README.md")
+    for token in ("DOCUMENT_REGISTRY.json", "DOCUMENT_CONTROL_POLICY.md", "archive/"):
+        if token not in docs_readme:
+            errors.append(f"docs/README.md missing document-governance route: {token}")
+
+
 def _check_tracked_noise(errors: list[str]) -> None:
     for tracked in _git_lines("ls-files"):
         normalized = tracked.replace("\\", "/")
@@ -299,6 +362,7 @@ def main() -> int:
     _check_required_paths(errors)
     _check_retired_locations(errors)
     _check_live_state(errors)
+    _check_document_governance(errors)
     _check_tracked_noise(errors)
 
     if errors:
@@ -309,7 +373,8 @@ def main() -> int:
 
     print("Repository doctor PASSED.")
     print("- navigation/required README paths present")
-    print("- retired documents isolated under docs/archive")
+    print("- document registry and attention policy present")
+    print("- docs/archive remains default-excluded retired provenance")
     print("- phase/work-order/control-state pointers agree")
     print("- structural progress is synchronized across live state")
     print("- Stage-A 100% product-gate invariant preserved")

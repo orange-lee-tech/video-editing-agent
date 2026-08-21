@@ -1,36 +1,46 @@
 # Documentation Map
 
+**Last updated:** 2026-08-21
+
 This directory is the repository's documentation control plane. Do not infer current authority from file age or filename alone.
 
-## Read first
+## Start here
+
+For ChatGPT/Codex/repository-aware agents, read root `../AGENTS.md` first. Then use `DOCUMENT_REGISTRY.json` to choose the smallest relevant documentation surface.
 
 For a new engineering conversation or audit:
 
-1. `product/PRODUCT_CONSTITUTION_V1.0.md` — highest product authority;
-2. `architecture/ARCHITECTURE_CONTRACT_V0.2.md` — active architecture baseline;
-3. relevant `capabilities/CAP-*.md` and `adr/ADR-*.md`;
-4. `operations/CURRENT_CONTROL_STATE.md` — machine-readable live control state, accepted baseline, active Work Order pointer and Stage-A product gates;
-5. `roadmap/CURRENT_PHASE_STATUS.md` — human-readable live phase state;
-6. `operations/CURRENT_WORK_ORDER.md` — exact live implementation/evidence boundary;
-7. `roadmap/STAGE_A_COMPLETION_GATE.md` when evaluating progress or any claim of structural 100%;
-8. `operations/CHATGPT_GITHUB_CODEX_COLLABORATION.md` / `CODEX_EXECUTION_ENTRY.md` only when a ChatGPT/Codex handoff or Codex execution is actually relevant;
-9. implementation/tests after the above boundary is understood.
+1. `DOCUMENT_REGISTRY.json` — compact relative-path map, attention classes and excluded-default surfaces;
+2. `product/PRODUCT_CONSTITUTION_V1.0.md` — highest product authority;
+3. `architecture/ARCHITECTURE_CONTRACT_V0.2.md` — active architecture baseline;
+4. relevant `capabilities/CAP-*.md` and `adr/ADR-*.md` only when the current task touches them;
+5. `operations/CURRENT_CONTROL_STATE.md` — machine-readable live control state;
+6. `roadmap/CURRENT_PHASE_STATUS.md` — human-readable live phase state;
+7. `operations/CURRENT_WORK_ORDER.md` — exact live implementation/evidence boundary;
+8. `roadmap/STAGE_A_COMPLETION_GATE.md` when evaluating progress or structural 100%;
+9. implementation/tests only after the active boundary is understood.
 
-A0 acceptance is recorded in `roadmap/A0_PLANNING_BASELINE_ACCEPTANCE.md`.
+`operations/CHATGPT_GITHUB_CODEX_COLLABORATION.md` and `operations/CODEX_EXECUTION_ENTRY.md` are read only when a ChatGPT/Codex handoff is actually relevant.
+
+## Default attention exclusion
+
+`archive/` is retired provenance and **must not be read during ordinary current work**. Open it only for explicit historical/provenance, backward-compatibility or legal investigation after current authority has been checked.
+
+The same attention-saving principle applies to local/runtime surfaces such as `.private/`, `.tools/`, `.uv-cache*`, `.venv/`, `build/` and `dist/`; see root `AGENTS.md`.
 
 ## Directory roles
 
-- `product/` — constitutional product policy plus subordinate product-design guidance. Constitutional revision still requires explicit user approval.
-- `architecture/` — active Architecture Contract v0.2 plus clearly marked non-normative implementation/migration plans.
-- `capabilities/` — active capability specifications CAP-01…CAP-10.
-- `adr/` — **current ADR home**.
-- `roadmap/` — Roadmap V2, Stage-A completion gate, live phase state, product red-black dashboard and planning acceptance records.
-- `operations/` — dynamic ChatGPT/GitHub/Codex/PowerShell execution control, live Work Order state and operational release/packaging readiness. Operational, not product authority.
-- `validation/` — durable phase/probe closure evidence.
-- `logs/` — non-authoritative incident, probe, collaboration, project chronicle, audit and repository-maintenance lessons worth retaining.
-- `research/` — Survey/research evidence explaining why choices were made; not normative by itself.
+- `product/` — constitutional product policy plus subordinate product-design guidance.
+- `architecture/` — active Architecture Contract plus non-normative implementation/migration plans.
+- `capabilities/` — active capability specifications.
+- `adr/` — current architecture decisions.
+- `roadmap/` — Roadmap, Stage-A completion gate and live phase state.
+- `operations/` — dynamic ChatGPT/GitHub/Codex/PowerShell execution control and operational release/packaging readiness.
+- `validation/` — durable Product/Engineering/Human Gate closure evidence.
+- `logs/` — non-authoritative incidents, probes, collaboration records, chronicles and maintenance lessons.
+- `research/` — survey/research evidence explaining why choices were made; not normative by itself.
 - `upstream/` — active dependency/reference ledger and reuse/license policy.
-- `archive/` — retired documents preserved only for provenance; never an active entry point.
+- `archive/` — retired documents preserved only for provenance; `EXCLUDED_DEFAULT`.
 
 ## Live state vs history
 
@@ -40,7 +50,7 @@ Use this canonical live trio for **now**:
 - `roadmap/CURRENT_PHASE_STATUS.md`
 - `operations/CURRENT_WORK_ORDER.md`
 
-The three files must stay synchronized. `tools/maintenance/repo_doctor.py` plus the `repository-governance` workflow enforce the machine-checkable invariants.
+The three files must stay synchronized. `tools/maintenance/repo_doctor.py` plus repository governance enforce machine-checkable invariants.
 
 Use these for **why / what was proven**:
 
@@ -50,27 +60,33 @@ Use these for **why / what was proven**:
 
 Use `archive/` only when historical provenance is genuinely needed.
 
+## Document lifecycle and dates
+
+`operations/DOCUMENT_CONTROL_POLICY.md` defines:
+
+- explicit update-date rules;
+- attention/lifecycle classes;
+- placement and archive rules;
+- registry generation and audit behavior.
+
+The compact registry is tracked at `DOCUMENT_REGISTRY.json`. GitHub generates an exhaustive tracked-document manifest through `tools/maintenance/document_registry.py` / `.github/workflows/document-registry.yml` so humans and agents do not need to recursively traverse the repository for routine navigation.
+
 ## Product evolution references
 
-These documents are durable helpers, but they do **not** become a second authority stack:
+Durable helpers do not become a second authority stack:
 
-- `logs/PROJECT_CHRONICLE.md` — Simplified-Chinese engineering chronicle: why the project changed, what real probes proved, and which failures changed design;
-- `roadmap/PRODUCT_RED_BLACK_BOARD.md` — live red/black dashboard: proven strengths vs unresolved product/engineering/commercial risks;
-- `product/DESKTOP_UI_DESIGN_SYSTEM_V0.1.md` — current Windows desktop shell/design guidance; subordinate to Constitution and architecture;
-- `architecture/PROVIDER_NEUTRAL_PRODUCT_BINDING_PLAN.md` — non-normative migration plan from vendor-bound product configuration to capability-role bindings;
-- `operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md` — packaging/release-readiness plan; does not claim an installer is already release-ready;
-- `logs/COMMERCIAL_DESKTOP_RISK_AUDIT_2026-08-19.md` — static evidence-backed commercial desktop risk audit snapshot.
+- `logs/PROJECT_CHRONICLE.md` — engineering chronicle;
+- `roadmap/PRODUCT_RED_BLACK_BOARD.md` — live red/black dashboard;
+- `product/DESKTOP_UI_DESIGN_SYSTEM_V0.1.md` — Windows desktop design guidance;
+- `architecture/PROVIDER_NEUTRAL_PRODUCT_BINDING_PLAN.md` — provider-neutral binding migration plan;
+- `operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md` — packaging/release-readiness plan;
+- `operations/WINDOWS_RUNTIME_DEPENDENCY_INVENTORY.md` — runtime/component packaging inventory.
 
 ## Stage-A 100% gate
 
 `roadmap/STAGE_A_COMPLETION_GATE.md` is the stable structural completion contract.
 
-Structural progress may reach 100 only after both real product outcomes are proven:
-
-- Planning: ordinary user intent/reference/commercial input → persisted inspectable ScriptPlan + usable ShootingPlan.
-- Editing: ordinary user-selected local footage → actual automatic pipeline → real final MP4.
-
-A green backend, synthetic probe, CLI-only path, hand-authored internal artifact or polished GUI cannot substitute for those outcomes.
+Structural progress may reach 100 only after both real product outcomes are proven and the ordinary Windows/deployment floor is satisfied. A green backend, synthetic probe, CLI-only path, hand-authored internal artifact or polished GUI cannot substitute for those outcomes.
 
 ## Governance rule
 

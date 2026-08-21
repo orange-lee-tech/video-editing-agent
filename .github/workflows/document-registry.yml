@@ -1,0 +1,56 @@
+name: document-registry
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "AGENTS.md"
+      - "README.md"
+      - "LICENSE_STATUS.md"
+      - "docs/**"
+      - ".github/**"
+      - "scripts/README.md"
+      - "src/README.md"
+      - "tests/README.md"
+      - "tools/**/README.md"
+      - "tools/maintenance/document_registry.py"
+  pull_request:
+    paths:
+      - "AGENTS.md"
+      - "README.md"
+      - "LICENSE_STATUS.md"
+      - "docs/**"
+      - ".github/**"
+      - "scripts/README.md"
+      - "src/README.md"
+      - "tests/README.md"
+      - "tools/**/README.md"
+      - "tools/maintenance/document_registry.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate compact registry and build exhaustive manifest
+        run: >-
+          python tools/maintenance/document_registry.py
+          --check
+          --output document-registry-full.json
+      - name: Publish exhaustive document map
+        uses: actions/upload-artifact@v4
+        with:
+          name: document-registry-full
+          path: document-registry-full.json
+          if-no-files-found: error
+          retention-days: 30
