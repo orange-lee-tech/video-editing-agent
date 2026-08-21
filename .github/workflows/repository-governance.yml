@@ -3,21 +3,25 @@ name: repository-governance
 on:
   push:
     paths:
+      - "AGENTS.md"
       - "README.md"
       - "LICENSE_STATUS.md"
       - "docs/**"
       - "tools/maintenance/**"
       - "scripts/maintain.ps1"
       - ".github/README.md"
+      - ".github/workflows/document-registry.yml"
       - ".github/workflows/repository-governance.yml"
   pull_request:
     paths:
+      - "AGENTS.md"
       - "README.md"
       - "LICENSE_STATUS.md"
       - "docs/**"
       - "tools/maintenance/**"
       - "scripts/maintain.ps1"
       - ".github/README.md"
+      - ".github/workflows/document-registry.yml"
       - ".github/workflows/repository-governance.yml"
   workflow_dispatch:
 
