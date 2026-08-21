@@ -22,8 +22,10 @@ from video_editing_agent.application.use_cases.product_flow import (
     PlanningProductResult,
     PlanningReferenceKind,
     ProductFlowOutcome,
+    VoiceMode,
 )
 from video_editing_agent.domain.common.entity import EntityRevisionRef
+from video_editing_agent.domain.edl.subtitle import SubtitleStyleProfile
 
 
 def _brief() -> BriefForm:
@@ -123,6 +125,33 @@ def test_planning_without_reference_does_not_require_media_runtime() -> None:
 
     assert result.is_ready
     assert result.config is not None and result.config.transnet_weights is None
+    assert result.config.speech_recognition_available is False
+
+
+def test_speech_runtime_is_an_explicit_non_blocking_editing_capability(tmp_path: Path) -> None:
+    package = tmp_path / "transnetv2_pytorch"
+    package.mkdir()
+    module = package / "__init__.py"
+    module.write_text("", encoding="utf-8")
+    (package / "transnetv2-pytorch-weights.pth").write_bytes(b"weights")
+
+    def find_module(name: str) -> ModuleSpec | None:
+        if name in {"transnetv2_pytorch", "faster_whisper"}:
+            return ModuleSpec(name, loader=None, origin=str(module))
+        return None
+
+    result = resolve_product_runtime(
+        mode="editing",
+        environment={
+            "DEEPSEEK_API_KEY": "configured",
+            "GEMINI_API_KEY": "configured",
+        },
+        executable_locator=lambda name: name,
+        module_finder=find_module,
+    )
+
+    assert result.is_ready and result.config is not None
+    assert result.config.speech_recognition_available is True
 
 
 def test_missing_editing_runtime_is_an_understandable_diagnostic() -> None:
@@ -257,6 +286,33 @@ def test_editing_only_has_no_planning_refs_or_internal_id_inputs(tmp_path: Path)
 
     assert request.script_plan_ref is None and request.shooting_plan_ref is None
     assert not hasattr(form, "script_plan_ref") and not hasattr(form, "shooting_plan_ref")
+
+
+def test_editing_form_defaults_to_original_voice_and_maps_typed_user_choices(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"source")
+    base = EditingForm(
+        tmp_path / "project",
+        _brief(),
+        tmp_path / "final.mp4",
+        (source,),
+        output_profile=OUTPUT_PROFILE_HORIZONTAL_1080P,
+    )
+
+    assert base.to_request().voice_mode is VoiceMode.ORIGINAL
+    selected = EditingForm(
+        tmp_path / "project",
+        _brief(),
+        tmp_path / "final.mp4",
+        (source,),
+        output_profile=OUTPUT_PROFILE_HORIZONTAL_1080P,
+        voice_mode=VoiceMode.SYNTHETIC,
+        subtitle_style=SubtitleStyleProfile.CLEAN,
+    ).to_request()
+    assert selected.voice_mode is VoiceMode.SYNTHETIC
+    assert selected.subtitle_style is SubtitleStyleProfile.CLEAN
 
 
 def test_different_project_planning_context_is_rejected(tmp_path: Path) -> None:

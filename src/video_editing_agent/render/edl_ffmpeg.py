@@ -139,15 +139,19 @@ def build_ass_subtitles(edl: EDL, width: int, height: int) -> str:
         "OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, "
         "ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, "
         "MarginR, MarginV, Encoding\n"
-        f"Style: Default,Arial,{font_size},&H00FFFFFF,&H0000FFFF,&H00000000,"
-        f"&H64000000,0,0,0,0,100,100,0,0,1,2,1,2,{margin},{margin},{margin},1\n\n"
+        f"Style: Clean,Arial,{font_size},&H00FFFFFF,&H0000FFFF,&H00000000,"
+        f"&H00000000,0,0,0,0,100,100,0,0,1,0,0,2,{margin},{margin},{margin},1\n"
+        f"Style: Outlined,Arial,{font_size},&H00FFFFFF,&H0000FFFF,&H00000000,"
+        f"&H64000000,0,0,0,0,100,100,0,0,1,2,1,2,{margin},{margin},{margin},1\n"
+        f"Style: Backed,Arial,{font_size},&H00FFFFFF,&H0000FFFF,&H00000000,"
+        f"&H78000000,0,0,0,0,100,100,0,0,3,1,0,2,{margin},{margin},{margin},1\n\n"
         "[Events]\n"
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
     )
     events = "".join(
         "Dialogue: 0,"
         f"{_ass_time(cue.timeline_range.start)},{_ass_time(cue.timeline_range.end)},"
-        f"Default,,0,0,0,,{_ass_cue_text(cue)}\n"
+        f"{cue.style_profile.value.title()},,0,0,0,,{_ass_cue_text(cue)}\n"
         for cue in cues
     )
     return header + events

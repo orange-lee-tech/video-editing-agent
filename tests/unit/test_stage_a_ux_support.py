@@ -6,12 +6,17 @@ from pathlib import Path
 
 import pytest
 
+from video_editing_agent.adapters.product.tkinter_app import (
+    _TEXT,
+    validate_launcher_localizations,
+)
 from video_editing_agent.adapters.product.ux_support import (
     EtaEstimator,
     ProtectedCredentialStore,
     default_profile_root,
     extract_first_https_url,
     format_eta,
+    format_product_event,
     load_api_profile,
     localized_error,
     localized_stage,
@@ -20,7 +25,11 @@ from video_editing_agent.adapters.product.ux_support import (
     serialize_profile,
     write_utf8_export,
 )
-from video_editing_agent.application.use_cases.product_flow import ProductFlowStage
+from video_editing_agent.application.use_cases.product_flow import (
+    ProductFlowEvent,
+    ProductFlowEventLevel,
+    ProductFlowStage,
+)
 
 
 @pytest.mark.parametrize(
@@ -111,3 +120,23 @@ def test_stable_stage_and_quota_error_present_localized_primary_text() -> None:
     assert "配额限制" in primary
     assert "Gemini HTTP 429" in detail
     assert "API key" not in primary
+
+
+def test_run_log_format_includes_stage_message_and_warning() -> None:
+    event = ProductFlowEvent(
+        ProductFlowStage.MUSIC_PREPARATION,
+        "Trying the next bounded fallback",
+        ProductFlowEventLevel.WARNING,
+    )
+
+    rendered = format_product_event(event, "en")
+
+    assert rendered == ("[Music Preparation WARNING] Trying the next bounded fallback")
+
+
+def test_launcher_smoke_catalog_is_complete_and_uses_real_unicode_chinese() -> None:
+    validate_launcher_localizations()
+
+    assert set(_TEXT["zh-CN"]) == set(_TEXT["en"])
+    assert _TEXT["zh-CN"]["field_subtitle_style"] == "字幕样式"
+    assert "\\u" not in "".join(_TEXT["zh-CN"].values())

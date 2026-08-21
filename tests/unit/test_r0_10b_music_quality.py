@@ -123,6 +123,34 @@ def test_loop_and_duck_ramps_are_bounded() -> None:
     assert "[chosen]," not in plan.filter_complex
 
 
+def test_loop_tail_exactly_covers_non_multiple_target_duration() -> None:
+    generated = generate_music_windows(_beatmap(), MediaTime(3, 1), ("att",))
+    selected = replace(
+        generated[0],
+        source_range=MediaTimeRange(
+            generated[0].source_range.start,
+            MediaTime(5, 4),
+        ),
+    )
+
+    decision = select_music((selected,), target_duration=MediaTime(3, 1))
+
+    assert decision is not None
+    assert tuple(segment.order for segment in decision.source_segments) == (0, 1, 2)
+    assert tuple(
+        segment.source_range.duration.as_fraction() for segment in decision.source_segments
+    ) == (
+        MediaTime(5, 4).as_fraction(),
+        MediaTime(5, 4).as_fraction(),
+        MediaTime(1, 2).as_fraction(),
+    )
+    assert (
+        sum(segment.source_range.duration.as_fraction() for segment in decision.source_segments)
+        == MediaTime(3, 1).as_fraction()
+    )
+    assert decision.warnings == ()
+
+
 def test_decision_mutation_changes_compiled_plan() -> None:
     windows = generate_music_windows(_beatmap(), MediaTime(3, 1), ("att",))
     selection = select_music(windows)

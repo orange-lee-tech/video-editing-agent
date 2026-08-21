@@ -11,6 +11,7 @@ from video_editing_agent.application.ports.audio_acquisition import AudioAcquisi
 from video_editing_agent.application.ports.audio_material_provider import MusicDiscoveryQuery
 from video_editing_agent.domain.asset.model import AssetProvenance
 from video_editing_agent.domain.asset.policy import AssetOrigin, AssetUsageRole
+from video_editing_agent.domain.asset.rights import RightsEligibility
 from video_editing_agent.media.ingest.ffprobe import FfprobeMediaProbe
 from video_editing_agent.media.ingest.service import AssetIngestService
 from video_editing_agent.media.ingest.source import LocalMediaSource
@@ -177,6 +178,10 @@ def main() -> int:
                         "rights_evidence_refs": list(verified.snapshot.evidence_artifact_refs),
                     }
                 )
+                if verified.snapshot.eligibility is not RightsEligibility.ELIGIBLE:
+                    attempt["automatic_selection"] = "skipped_non_eligible"
+                    continue
+                attempt["automatic_selection"] = "eligible"
                 selected = verified
                 break
 
@@ -184,7 +189,9 @@ def main() -> int:
                 break
 
         if selected is None:
-            evidence["failure"] = "no Openverse/Wikimedia candidate cleared the Stage-A rights gate"
+            evidence["failure"] = (
+                "no Openverse/Wikimedia candidate cleared the automatic ELIGIBLE rights gate"
+            )
             _emit(evidence)
             return 1
 

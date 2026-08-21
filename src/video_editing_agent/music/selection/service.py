@@ -135,11 +135,17 @@ def select_music(
             segments = tuple(
                 MusicSourceSegment(index, selected.source_range) for index in range(repeats)
             )
-            if (
-                sum(segment.source_range.duration.as_fraction() for segment in segments)
-                < target_duration.as_fraction()
-            ):
-                warnings = ("loop plan does not fully cover target duration",)
+            covered = sum(segment.source_range.duration.as_fraction() for segment in segments)
+            remainder = target_duration.as_fraction() - covered
+            if remainder > 0:
+                tail_range = MediaTimeRange(
+                    selected.source_range.start,
+                    MediaTime(remainder.numerator, remainder.denominator),
+                )
+                segments = (
+                    *segments,
+                    MusicSourceSegment(len(segments), tail_range),
+                )
     digest = hashlib.sha256(
         f"{selected.candidate_id}:{segments}:r0.10b-select-v1".encode()
     ).hexdigest()

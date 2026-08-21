@@ -18,12 +18,14 @@ from video_editing_agent.application.use_cases.product_flow import (
     PlanningProductFlow,
 )
 from video_editing_agent.media.ingest.ffprobe import FfprobeMediaProbe
+from video_editing_agent.media.speech.service import ProviderNeutralSpeechRecognitionService
 from video_editing_agent.media.understanding.frame_extraction import FfmpegPngFrameExtractor
 from video_editing_agent.media.understanding.service import (
     ProviderNeutralVisualUnderstandingService,
 )
 from video_editing_agent.providers.reference.direct_https import DirectHttpsReferenceAcquirer
 from video_editing_agent.providers.review.ffmpeg_pcm import FFmpegPcmRenderedMediaQc
+from video_editing_agent.providers.speech.faster_whisper import FasterWhisperSpeechRecognitionPort
 from video_editing_agent.render.edl_ffmpeg import FFmpegEDLRenderer
 from video_editing_agent.storage.asset.repository_media import RepositoryLocalAssetMediaResolver
 from video_editing_agent.storage.project.product_flow import (
@@ -103,6 +105,15 @@ def editing_flow(project: Path, config: ProductRuntimeConfig) -> EditingProductF
     workspace = ProjectWorkspace.open(project)
     detector, understanding = _media_capabilities(workspace, config)
     assert config.ffmpeg is not None and config.ffprobe is not None
+    speech_recognition = None
+    if config.speech_recognition_available:
+        speech = ProviderNeutralSpeechRecognitionService(
+            shot_repository=workspace.shots,
+            asset_media_resolver=RepositoryLocalAssetMediaResolver(workspace.assets),
+            transcript_repository=workspace.transcripts,
+            speech_port=FasterWhisperSpeechRecognitionPort(),
+        )
+        speech_recognition = speech.recognize
     return build_editing_product_flow(
         workspace,
         EditingProductCapabilities(
@@ -115,5 +126,6 @@ def editing_flow(project: Path, config: ProductRuntimeConfig) -> EditingProductF
             FFmpegPcmRenderedMediaQc(config.ffmpeg, config.ffprobe),
             ffmpeg_executable=config.ffmpeg,
             automatic_public_music=True,
+            speech_recognition=speech_recognition,
         ),
     )

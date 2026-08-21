@@ -5,6 +5,7 @@ import json
 import subprocess
 import tempfile
 import uuid
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -14,7 +15,12 @@ from video_editing_agent.application.edl_builder import DeterministicEDLBuilder,
 from video_editing_agent.application.ports.artifact_store import ArtifactPayload
 from video_editing_agent.application.ports.audio_acquisition import AudioAcquisitionRequest
 from video_editing_agent.application.ports.audio_editorial import AudioMixDecision
-from video_editing_agent.application.ports.audio_material_provider import MusicDiscoveryQuery
+from video_editing_agent.application.ports.audio_material_provider import (
+    AudioMaterialCandidate,
+    AudioMaterialProvider,
+    MusicDiscoveryQuery,
+)
+from video_editing_agent.application.ports.audio_separation import AudioSeparationPort
 from video_editing_agent.application.ports.director import DirectorPort
 from video_editing_agent.application.ports.music_selection import MusicIntent
 from video_editing_agent.application.ports.preproduction_planning import (
@@ -38,7 +44,12 @@ from video_editing_agent.application.ports.renderer import (
     RenderResult,
 )
 from video_editing_agent.application.ports.shot_detector import ShotDetectionOptions, ShotDetector
+from video_editing_agent.application.ports.speech_recognition import (
+    SpeechRecognitionCapabilityUnavailable,
+)
+from video_editing_agent.application.ports.speech_synthesis import SpeechSynthesisPort
 from video_editing_agent.application.ports.understanding import UnderstandingService
+from video_editing_agent.application.subtitle_builder import compile_subtitle_cues
 from video_editing_agent.application.use_cases.editing_director import GenerateEditPlanRequest
 from video_editing_agent.application.use_cases.product_audio import (
     build_conservative_source_audio_mix,
@@ -55,6 +66,8 @@ from video_editing_agent.application.use_cases.product_flow import (
     PreparedEditingMusic,
     PreparedPlanningReferences,
     ProductBriefInput,
+    ProductFlowEventLevel,
+    VoiceMode,
 )
 from video_editing_agent.application.use_cases.review_runtime import (
     ReviewApplicationRuntime,
@@ -69,6 +82,12 @@ from video_editing_agent.domain.common.media_time import MediaTime, MediaTimeRan
 from video_editing_agent.domain.edit.model import EditPlan
 from video_editing_agent.domain.edit.resolution import ResolutionDecision, ResolutionDecisionType
 from video_editing_agent.domain.edl.model import EDL
+from video_editing_agent.domain.edl.subtitle import (
+    StructuredSubtitleCue,
+    SubtitleLayoutRegion,
+    SubtitleStyleProfile,
+)
+from video_editing_agent.domain.evidence.speech import SpeechTranscript
 from video_editing_agent.domain.music.model import BeatMap
 from video_editing_agent.domain.review.model import ReviewVerdict
 from video_editing_agent.domain.shot.analysis import AnalysisProfile
@@ -76,6 +95,7 @@ from video_editing_agent.editing.resolver.product_resolution import GroundedEdit
 from video_editing_agent.media.ingest.probe import MediaProbe
 from video_editing_agent.media.ingest.service import AssetIngestService
 from video_editing_agent.media.ingest.source import LocalMediaSource
+from video_editing_agent.media.speech.voice_activity import SPEECH_ACTIVITY_KIND
 from video_editing_agent.music.audio_editorial import plan_basic_mix
 from video_editing_agent.music.beat_analysis.service import WaveEnergyBeatAnalysisService
 from video_editing_agent.music.selection.service import (
@@ -130,6 +150,79 @@ def _output_spec(path: Path, profile: EditingOutputProfile) -> OutputSpec:
     )
 
 
+def _public_music_queries(brief: ProductBriefInput) -> tuple[str, ...]:
+    parts = (
+        *brief.style_emotion,
+        brief.product_topic or "",
+        brief.objective,
+        brief.core_message,
+        "background music",
+    )
+    primary = " ".join(part.strip() for part in parts if part.strip())[:240]
+    return tuple(
+        dict.fromkeys(
+            (
+                primary or "background music",
+                "instrumental background music",
+                "piano instrumental",
+            )
+        )
+    )
+
+
+def _discover_public_music_candidates(
+    provider: AudioMaterialProvider,
+    brief: ProductBriefInput,
+    report: Callable[[ProductFlowEventLevel, str], None] | None = None,
+) -> tuple[AudioMaterialCandidate, ...]:
+    discovered: list[AudioMaterialCandidate] = []
+    seen: set[str] = set()
+    for index, query in enumerate(_public_music_queries(brief), start=1):
+        candidates = provider.search_music(MusicDiscoveryQuery(query))
+        if report is not None:
+            report(
+                ProductFlowEventLevel.INFO if candidates else ProductFlowEventLevel.WARNING,
+                f"Public music query {index} returned {len(candidates)} candidate(s)",
+            )
+            if not candidates and index < 3:
+                report(
+                    ProductFlowEventLevel.WARNING,
+                    "Public music query produced no candidates; trying the next bounded fallback",
+                )
+        for candidate in candidates:
+            if candidate.provider_item_id in seen:
+                continue
+            seen.add(candidate.provider_item_id)
+            discovered.append(candidate)
+    if report is not None:
+        report(
+            ProductFlowEventLevel.INFO,
+            f"Public music discovery produced {len(discovered)} unique candidate(s)",
+        )
+    return tuple(discovered)
+
+
+def _bounded_failure_summary(failures: list[str], *, detail_limit: int = 12) -> str:
+    if not failures:
+        return ""
+    categories = Counter(failure.partition(": ")[2] or failure for failure in failures)
+    category_summary = ", ".join(
+        f"{reason} ({count})" for reason, count in categories.most_common(6)
+    )
+    if len(failures) <= detail_limit:
+        details = failures
+    else:
+        half = detail_limit // 2
+        details = [
+            *failures[:half],
+            f"... {len(failures) - detail_limit} intermediate diagnostic(s) omitted ...",
+            *failures[-half:],
+        ]
+    return f"attempted={len(failures)}; categories={category_summary}; details=" + "; ".join(
+        details
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class PlanningProductCapabilities:
     script_planning: ScriptPlanningPort
@@ -164,6 +257,9 @@ class EditingProductCapabilities:
     clock: Callable[[], datetime] = _utc_now
     ffmpeg_executable: str | Path | None = None
     automatic_public_music: bool = False
+    speech_recognition: Callable[[EntityRevisionRef], SpeechTranscript] | None = None
+    speech_synthesis: SpeechSynthesisPort | None = None
+    audio_separation: AudioSeparationPort | None = None
 
 
 def _brief_content(value: ProductBriefInput) -> BriefContent:
@@ -338,8 +434,12 @@ def build_editing_product_flow(
             MediaTimeRange(MediaTime(0, 1), duration),
         )
 
-    def _prepared_local_music(value: EditingMusicInput) -> PreparedEditingMusic:
+    def _prepared_local_music(
+        value: EditingMusicInput,
+        report: Callable[[ProductFlowEventLevel, str], None],
+    ) -> PreparedEditingMusic:
         path = value.local_path.expanduser().resolve(strict=True)
+        report(ProductFlowEventLevel.INFO, "Validating local music rights attestation")
         origin = AssetOrigin.IMPORTED_LOCAL.value
         asset = ingest.ingest(
             LocalMediaSource(
@@ -368,6 +468,7 @@ def build_editing_product_flow(
         )
         if local_rights_eligibility(asset_ref, attestation) is not RightsEligibility.ELIGIBLE:
             raise ValueError("local music rights gate did not produce an eligible candidate")
+        report(ProductFlowEventLevel.INFO, "Local music passed the rights gate")
         analysis_failures: list[str] = []
         beat_map = _analysis_beat_map_for_music(
             path,
@@ -385,6 +486,10 @@ def build_editing_product_flow(
                 "selected local music could not be decoded for BeatMap analysis"
                 + (f": {detail}" if detail else "")
             )
+        report(
+            ProductFlowEventLevel.INFO,
+            f"BeatMap analysis completed with {len(beat_map.beats)} beat point(s)",
+        )
         evidence_payload = json.dumps(
             {
                 "schema": "local-music-rights-attestation/v1",
@@ -409,17 +514,6 @@ def build_editing_product_flow(
             )
         )
         return PreparedEditingMusic(asset_ref, beat_map, (evidence.artifact_id,))
-
-    def _public_music_query(brief: ProductBriefInput) -> str:
-        parts = (
-            *brief.style_emotion,
-            brief.product_topic or "",
-            brief.objective,
-            brief.core_message,
-            "background music",
-        )
-        query = " ".join(part.strip() for part in parts if part.strip())
-        return query[:240] or "background music"
 
     def _analysis_beat_map_for_music(
         source: Path,
@@ -482,9 +576,12 @@ def build_editing_product_flow(
         finally:
             analysis_path.unlink(missing_ok=True)
 
-    def _prepared_public_music(brief: ProductBriefInput) -> PreparedEditingMusic:
+    def _prepared_public_music(
+        brief: ProductBriefInput,
+        report: Callable[[ProductFlowEventLevel, str], None],
+    ) -> PreparedEditingMusic:
         discovery = OpenverseWikimediaAudioProvider(page_size=20)
-        candidates = discovery.search_music(MusicDiscoveryQuery(_public_music_query(brief)))
+        candidates = _discover_public_music_candidates(discovery, brief, report)
         if not candidates:
             raise ValueError("public music discovery returned no candidates")
         verifier = WikimediaAudioRightsVerifier(
@@ -496,13 +593,19 @@ def build_editing_product_flow(
             clock=capabilities.clock,
         )
         failures: list[str] = []
-        for candidate in candidates[:10]:
+        for index, candidate in enumerate(candidates, start=1):
+            report(
+                ProductFlowEventLevel.INFO,
+                f"Rights gate checking public music candidate {index}/{len(candidates)}",
+            )
             if candidate.is_generated_audio is True:
                 failures.append(f"{candidate.provider_item_id}: generated audio excluded")
+                report(ProductFlowEventLevel.WARNING, "Generated audio candidate was excluded")
                 continue
             verification = verifier.verify(candidate.provider_item_id)
             if not verification.is_verified or verification.verified is None:
                 failures.append(f"{candidate.provider_item_id}: rights verification failed")
+                report(ProductFlowEventLevel.WARNING, "Candidate failed rights verification")
                 continue
             verified = verification.verified
             if verified.snapshot.eligibility is not RightsEligibility.ELIGIBLE:
@@ -510,7 +613,13 @@ def build_editing_product_flow(
                     f"{candidate.provider_item_id}: automatic mode requires attribution-free "
                     "ELIGIBLE rights"
                 )
+                report(
+                    ProductFlowEventLevel.WARNING,
+                    "Candidate did not pass the attribution-free automatic rights gate",
+                )
                 continue
+            report(ProductFlowEventLevel.INFO, "Candidate passed the public music rights gate")
+            report(ProductFlowEventLevel.INFO, "Acquiring rights-approved public music")
             acquisition = acquirer.acquire(
                 AudioAcquisitionRequest(
                     provider="wikimedia_commons",
@@ -526,8 +635,10 @@ def build_editing_product_flow(
             )
             if not acquisition.is_acquired or acquisition.acquired is None:
                 failures.append(f"{candidate.provider_item_id}: acquisition failed")
+                report(ProductFlowEventLevel.WARNING, "Public music acquisition failed")
                 continue
             acquired = acquisition.acquired
+            report(ProductFlowEventLevel.INFO, "Public music acquisition completed")
             origin = AssetOrigin.PROVIDER_ACQUIRED_AUDIO.value
             asset = ingest.ingest(
                 LocalMediaSource(
@@ -569,7 +680,12 @@ def build_editing_product_flow(
                 failures=failures,
             )
             if beat_map is None:
+                report(ProductFlowEventLevel.WARNING, "Acquired music BeatMap analysis failed")
                 continue
+            report(
+                ProductFlowEventLevel.INFO,
+                f"BeatMap analysis completed with {len(beat_map.beats)} beat point(s)",
+            )
             rights_refs = tuple(
                 dict.fromkeys(
                     (
@@ -579,7 +695,7 @@ def build_editing_product_flow(
                 )
             )
             return PreparedEditingMusic(asset_ref, beat_map, rights_refs)
-        detail = "; ".join(failures[:4])
+        detail = _bounded_failure_summary(failures)
         raise ValueError(
             "no automatically eligible public background music could be prepared"
             + (f": {detail}" if detail else "")
@@ -588,12 +704,13 @@ def build_editing_product_flow(
     def prepare_music(
         value: EditingMusicInput | None,
         brief: ProductBriefInput,
+        report: Callable[[ProductFlowEventLevel, str], None],
     ) -> PreparedEditingMusic | None:
         if value is not None:
-            return _prepared_local_music(value)
+            return _prepared_local_music(value, report)
         if not capabilities.automatic_public_music:
             return None
-        return _prepared_public_music(brief)
+        return _prepared_public_music(brief, report)
 
     def generate_edit_plan(
         brief_ref: EntityRevisionRef,
@@ -719,6 +836,166 @@ def build_editing_product_flow(
     def save_edl(edl: EDL) -> None:
         workspace.edls.save(edl)
 
+    def validate_audio(
+        edl: EDL,
+        decisions: tuple[ResolutionDecision, ...],
+    ) -> EDL:
+        source_by_selection = {
+            segment.segment_id.removeprefix("source-audio:"): segment
+            for segment in edl.segments
+            if segment.segment_id.startswith("source-audio:")
+        }
+        video_by_selection = {
+            segment.segment_id.removeprefix("video:"): segment
+            for segment in edl.segments
+            if segment.segment_id.startswith("video:")
+        }
+        for selection_id, video in video_by_selection.items():
+            source_audio = source_by_selection.get(selection_id)
+            if source_audio is None:
+                raise RuntimeError(
+                    f"ORIGINAL voice requires canonical SOURCE_AUDIO for selection {selection_id}"
+                )
+            if (
+                source_audio.asset_ref != video.asset_ref
+                or source_audio.source_range != video.source_range
+                or source_audio.timeline_range != video.timeline_range
+            ):
+                raise RuntimeError(
+                    f"SOURCE_AUDIO mapping disagrees with grounded video selection {selection_id}"
+                )
+        return edl
+
+    def finalize_voice(
+        edl: EDL,
+        decisions: tuple[ResolutionDecision, ...],
+        voice_mode: VoiceMode,
+    ) -> EDL:
+        if voice_mode is VoiceMode.ORIGINAL:
+            return edl
+        if capabilities.speech_synthesis is None:
+            raise RuntimeError(
+                "Synthetic voice requested but no approved SpeechSynthesisPort capability "
+                "is configured"
+            )
+        raise RuntimeError(
+            "Synthetic voice provider is available, but canonical derived voiceover lane "
+            "assembly is not approved in this Stage-A boundary"
+        )
+
+    def compile_product_subtitles(
+        edl: EDL,
+        decisions: tuple[ResolutionDecision, ...],
+        subtitle_style: SubtitleStyleProfile,
+        report: Callable[[ProductFlowEventLevel, str], None],
+    ) -> EDL:
+        video_by_selection = {
+            segment.segment_id.removeprefix("video:"): segment
+            for segment in edl.segments
+            if segment.segment_id.startswith("video:")
+        }
+        cues: list[StructuredSubtitleCue] = []
+        for decision in decisions:
+            if decision.decision_type is not ResolutionDecisionType.RESOLVED:
+                continue
+            for selection in decision.selections:
+                video = video_by_selection.get(selection.selection_id)
+                if video is None:
+                    raise RuntimeError("canonical video segment is missing for subtitle mapping")
+                transcript = workspace.transcripts.latest(selection.shot_ref)
+                speech_evidence = tuple(
+                    item
+                    for item in workspace.temporal.list_evidence(selection.shot_ref)
+                    if item.kind == SPEECH_ACTIVITY_KIND
+                    and item.source_range is not None
+                    and item.source_range.start.as_fraction()
+                    < selection.selected_source_range.end.as_fraction()
+                    and selection.selected_source_range.start.as_fraction()
+                    < item.source_range.end.as_fraction()
+                )
+                if transcript is None and capabilities.speech_recognition is not None:
+                    try:
+                        transcript = capabilities.speech_recognition(selection.shot_ref)
+                    except SpeechRecognitionCapabilityUnavailable as error:
+                        if speech_evidence:
+                            raise RuntimeError(
+                                "grounded speech requires subtitles, but the approved Stage-A "
+                                f"ASR capability is unavailable: {error}"
+                            ) from error
+                        report(
+                            ProductFlowEventLevel.WARNING,
+                            "Subtitle stage SKIPPED: ASR capability is unavailable and no "
+                            "grounded speech evidence requires transcription; no subtitle cues "
+                            "were fabricated",
+                        )
+                        continue
+                if transcript is None:
+                    if speech_evidence:
+                        raise RuntimeError(
+                            "grounded speech requires subtitles, but no approved Stage-A ASR "
+                            "capability is configured"
+                        )
+                    report(
+                        ProductFlowEventLevel.INFO,
+                        "Subtitle stage SKIPPED: no trusted speech transcript or grounded speech "
+                        "requirement; no subtitle cues were fabricated",
+                    )
+                    continue
+                if transcript.shot_ref != selection.shot_ref:
+                    raise RuntimeError("speech evidence belongs to a different exact Shot")
+                if not transcript.segments:
+                    report(
+                        ProductFlowEventLevel.INFO,
+                        "Subtitle stage NO_SPEECH: trusted speech analysis returned no timed "
+                        "speech segments",
+                    )
+                    continue
+                transcript_ref = (
+                    f"speech_transcript:{transcript.shot_ref.entity_id}@"
+                    f"{transcript.shot_ref.revision}:r{transcript.revision}"
+                )
+                evidence_refs = tuple(dict.fromkeys((*transcript.artifact_refs, transcript_ref)))
+                selected = selection.selected_source_range
+                for index, speech in enumerate(transcript.segments):
+                    if (
+                        speech.source_range.start.as_fraction() < selected.start.as_fraction()
+                        or speech.source_range.end.as_fraction() > selected.end.as_fraction()
+                    ):
+                        continue
+                    offset = speech.source_range.start.as_fraction() - selected.start.as_fraction()
+                    timeline_start_fraction = video.timeline_range.start.as_fraction() + offset
+                    timeline_start = MediaTime(
+                        timeline_start_fraction.numerator,
+                        timeline_start_fraction.denominator,
+                    )
+                    identity = hashlib.sha256(
+                        (
+                            f"{selection.selection_id}:{transcript_ref}:{index}:"
+                            f"{speech.source_range.start.as_fraction()}:"
+                            f"{speech.source_range.end.as_fraction()}:{speech.text}"
+                        ).encode()
+                    ).hexdigest()[:24]
+                    cues.append(
+                        StructuredSubtitleCue(
+                            f"subtitle_{identity}",
+                            MediaTimeRange(
+                                timeline_start,
+                                speech.source_range.duration,
+                            ),
+                            speech.text,
+                            transcript.language or "und",
+                            layout=SubtitleLayoutRegion.LOWER_SAFE,
+                            style_profile=subtitle_style,
+                            evidence_refs=evidence_refs,
+                        )
+                    )
+        if not cues:
+            return edl
+        return compile_subtitle_cues(
+            edl,
+            tuple(sorted(cues, key=lambda cue: (cue.timeline_range.start, cue.cue_id))),
+        )
+
     def render(edl: EDL, output_path: Path, output_profile: EditingOutputProfile) -> RenderResult:
         asset_refs = sorted(
             {segment.asset_ref for segment in edl.segments},
@@ -752,5 +1029,8 @@ def build_editing_product_flow(
             review,
             prepare_music,
             build_edl_with_music,
+            validate_audio,
+            finalize_voice,
+            compile_product_subtitles,
         )
     )

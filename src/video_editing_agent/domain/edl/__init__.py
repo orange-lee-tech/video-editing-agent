@@ -15,6 +15,7 @@ from video_editing_agent.domain.edl.subtitle import (
     SubtitleEmphasisSpan,
     SubtitleEmphasisStyle,
     SubtitleLayoutRegion,
+    SubtitleStyleProfile,
 )
 from video_editing_agent.domain.edl.validation import (
     EDLDiagnostic,
@@ -44,6 +45,7 @@ __all__ = [
     "SubtitleEmphasisSpan",
     "SubtitleEmphasisStyle",
     "SubtitleLayoutRegion",
+    "SubtitleStyleProfile",
     "decode_edl",
     "encode_edl",
     "validate_edl",

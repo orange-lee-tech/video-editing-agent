@@ -19,9 +19,11 @@ from video_editing_agent.application.use_cases.product_flow import (
     ProductBriefInput,
     ProductFlowEvent,
     ProductFlowOutcome,
+    VoiceMode,
 )
 from video_editing_agent.domain.brief.model import AuthoritativeFact
 from video_editing_agent.domain.common.entity import EntityRevisionRef
+from video_editing_agent.domain.edl.subtitle import SubtitleStyleProfile
 from video_editing_agent.domain.shooting.model import ProductionConstraints
 
 _MEDIA_EXTENSIONS = frozenset(
@@ -145,6 +147,8 @@ class EditingForm:
     output_profile: EditingOutputProfile | None = None
     music_file: Path | None = None
     music_rights_attested: bool = False
+    voice_mode: VoiceMode = VoiceMode.ORIGINAL
+    subtitle_style: SubtitleStyleProfile = SubtitleStyleProfile.OUTLINED
 
     def to_request(self) -> EditingProductRequest:
         if str(self.project).strip() in {"", "."}:
@@ -179,6 +183,8 @@ class EditingForm:
             shooting_ref,
             output_profile=self.output_profile,
             music=music,
+            voice_mode=self.voice_mode,
+            subtitle_style=self.subtitle_style,
         )
 
 

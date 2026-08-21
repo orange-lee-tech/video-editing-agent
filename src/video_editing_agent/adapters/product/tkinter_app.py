@@ -38,11 +38,11 @@ from video_editing_agent.adapters.product.ux_support import (
     default_profile_root,
     delete_api_profile,
     format_eta,
+    format_product_event,
     is_placeholder_value,
     load_api_profile,
     load_timing_history,
     localized_error,
-    localized_stage,
     parse_profile,
     profile_filename,
     save_api_profile,
@@ -56,7 +56,9 @@ from video_editing_agent.application.use_cases.product_flow import (
     OUTPUT_PROFILE_VERTICAL_1080P,
     EditingOutputProfile,
     ProductFlowEvent,
+    VoiceMode,
 )
+from video_editing_agent.domain.edl.subtitle import SubtitleStyleProfile
 from video_editing_agent.domain.shooting.model import ProductionConstraints
 
 _TEXT = {
@@ -88,6 +90,7 @@ _TEXT = {
         "field_music_file": "背景音乐（可选）",
         "field_output_mp4": "输出视频",
         "field_output_profile": "成片规格",
+        "field_subtitle_style": "字幕样式",
         "choose_project": "选择项目目录",
         "choose_local_reference": "选择本地参考视频",
         "start_planning": "开始生成拍摄方案",
@@ -178,6 +181,7 @@ _TEXT = {
         "field_music_file": "Background Music (Optional)",
         "field_output_mp4": "Output Video",
         "field_output_profile": "Output Profile",
+        "field_subtitle_style": "Subtitle Style",
         "choose_project": "Choose Project",
         "choose_local_reference": "Choose Local Reference",
         "start_planning": "Start Planning",
@@ -258,6 +262,22 @@ _TEXT = {
     },
 }
 
+
+def validate_launcher_localizations() -> None:
+    """Fail before constructing widgets when a launcher translation is incomplete."""
+
+    expected = set(_TEXT["en"])
+    for language, catalog in _TEXT.items():
+        missing = expected - set(catalog)
+        extra = set(catalog) - expected
+        empty = tuple(key for key, value in catalog.items() if not value.strip())
+        if missing or extra or empty:
+            raise RuntimeError(
+                f"launcher localization {language} is inconsistent: "
+                f"missing={sorted(missing)}, extra={sorted(extra)}, empty={sorted(empty)}"
+            )
+
+
 _PLACEHOLDERS = {
     "zh-CN": {
         "project": "选择项目目录",
@@ -316,6 +336,7 @@ def _display_for_output_profile_id(profile_id: str) -> str | None:
 
 
 def launch() -> int:
+    validate_launcher_localizations()
     import tkinter as tk
     from tkinter import filedialog, messagebox, ttk
 
@@ -585,6 +606,20 @@ def launch() -> int:
         style="Product.TCombobox",
     )
     output_profile_combo.grid(row=4, column=1, sticky="ew", pady=5)
+
+    subtitle_style_label = ttk.Label(editing_media_card, style="Body.TLabel")
+    subtitle_style_label.grid(row=6, column=0, sticky="w", padx=(0, 12), pady=5)
+    field_labels.append((subtitle_style_label, "subtitle_style"))
+    subtitle_style_choice = tk.StringVar(value=SubtitleStyleProfile.OUTLINED.value)
+    subtitle_style_combo = ttk.Combobox(
+        editing_media_card,
+        textvariable=subtitle_style_choice,
+        values=tuple(style.value for style in SubtitleStyleProfile),
+        state="readonly",
+        width=28,
+        style="Product.TCombobox",
+    )
+    subtitle_style_combo.grid(row=6, column=1, sticky="ew", pady=5)
 
     planning_action_bar = ttk.Frame(planning_tab, style="App.TFrame")
     planning_action_bar.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 8))
@@ -912,7 +947,7 @@ def launch() -> int:
     editing_eta.grid(row=0, column=0, sticky="w")
 
     def show_event(widget: Any, event: ProductFlowEvent) -> None:
-        widget.insert("end", f"[{localized_stage(event.stage, language.get())}]\n")
+        widget.insert("end", format_product_event(event, language.get()) + "\n")
         widget.see("end")
 
     def update_eta(label: Any, event: ProductFlowEvent | None, workload: int) -> None:
@@ -929,6 +964,7 @@ def launch() -> int:
         start_planning.configure(state=state)
         start_editing.configure(state=state)
         output_profile_combo.configure(state="disabled" if running else "readonly")
+        subtitle_style_combo.configure(state="disabled" if running else "readonly")
         music_rights_check.configure(state=state)
         settings_button.configure(state=state)
 
@@ -1081,6 +1117,8 @@ def launch() -> int:
                 output_profile=_output_profile_for_display(output_profile_choice.get()),
                 music_file=Path(music_text) if music_text else None,
                 music_rights_attested=music_rights_attested.get(),
+                voice_mode=VoiceMode.ORIGINAL,
+                subtitle_style=SubtitleStyleProfile(subtitle_style_choice.get()),
             )
             form.to_request()
             editing_output.delete("1.0", "end")

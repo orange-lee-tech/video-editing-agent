@@ -253,6 +253,53 @@ def test_html_page_is_not_treated_as_direct_reference_media(tmp_path: Path) -> N
     assert result.diagnostics[0].code is ReferenceAcquisitionDiagnosticCode.UNSUPPORTED_RESOURCE
 
 
+def test_html_page_declared_video_is_resolved_through_bounded_https_policy(
+    tmp_path: Path,
+) -> None:
+    page = b'<html><video controls><source src="/media/reference.mp4"></video></html>'
+    video = b"reference-video"
+    queue = ConnectionQueue(
+        FakeResponse(
+            headers={"Content-Type": "text/html", "Content-Length": str(len(page))},
+            chunks=(page, b""),
+        ),
+        FakeResponse(
+            headers={"Content-Type": "video/mp4", "Content-Length": str(len(video))},
+            chunks=(video, b""),
+        ),
+    )
+
+    result = DirectHttpsReferenceAcquirer(
+        tmp_path / "reference_media",
+        resolver=public_resolver,
+        connection_factory=queue,
+        clock=lambda: NOW,
+    ).acquire(ReferenceAcquisitionRequest("https://social.example/watch/123"))
+
+    assert result.is_acquired and result.acquired is not None
+    assert result.acquired.original_url == "https://social.example/watch/123"
+    assert result.acquired.final_url == "https://social.example/media/reference.mp4"
+    assert result.acquired.local_path.read_bytes() == video
+    assert len(queue.calls) == 2
+
+
+def test_html_discovery_remains_bounded_and_does_not_follow_arbitrary_links(
+    tmp_path: Path,
+) -> None:
+    page = b'<html><a href="https://other.example/video.mp4">watch</a></html>'
+    result = DirectHttpsReferenceAcquirer(
+        tmp_path / "reference_media",
+        policy=DirectHttpsAcquisitionPolicy(max_html_bytes=len(page)),
+        resolver=public_resolver,
+        connection_factory=ConnectionQueue(
+            FakeResponse(headers={"Content-Type": "text/html"}, chunks=(page, b""))
+        ),
+    ).acquire(ReferenceAcquisitionRequest("https://social.example/watch/123"))
+
+    assert not result.is_acquired
+    assert result.diagnostics[0].code is ReferenceAcquisitionDiagnosticCode.UNSUPPORTED_RESOURCE
+
+
 def test_acquired_reference_ingests_with_remote_origin_and_analysis_only_role(
     tmp_path: Path,
 ) -> None:

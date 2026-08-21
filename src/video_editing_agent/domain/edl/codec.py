@@ -25,6 +25,7 @@ from video_editing_agent.domain.edl.subtitle import (
     SubtitleEmphasisSpan,
     SubtitleEmphasisStyle,
     SubtitleLayoutRegion,
+    SubtitleStyleProfile,
 )
 from video_editing_agent.domain.edl.validation import validate_edl
 
@@ -136,6 +137,8 @@ def encode_edl(edl: EDL) -> bytes:
                     "language": item.language,
                     "speaker_ref": item.speaker_ref,
                     "layout": item.layout.value,
+                    "style_profile": item.style_profile.value,
+                    "evidence_refs": list(item.evidence_refs),
                     "emphasis": [
                         {"start": span.start, "end": span.end, "style": span.style.value}
                         for span in item.emphasis
@@ -351,6 +354,19 @@ def decode_edl(content: bytes) -> EDL:
                 else _string(speaker_value, "subtitle_cue.speaker_ref"),
                 emphasis,
                 SubtitleLayoutRegion(_string(item.get("layout"), "subtitle_cue.layout")),
+                SubtitleStyleProfile(
+                    "outlined"
+                    if item.get("style_profile") is None
+                    else _string(item.get("style_profile"), "subtitle_cue.style_profile")
+                ),
+                tuple(
+                    _string(ref, "subtitle_cue.evidence_ref")
+                    for ref in (
+                        []
+                        if item.get("evidence_refs") is None
+                        else _list(item.get("evidence_refs"), "subtitle_cue.evidence_refs")
+                    )
+                ),
             )
         )
     edl = EDL(

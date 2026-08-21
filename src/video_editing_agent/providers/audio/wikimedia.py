@@ -282,7 +282,14 @@ class WikimediaAudioRightsVerifier:
                 WikimediaRightsDiagnosticCode.SOURCE_METADATA_INVALID,
                 "Wikimedia response omitted a valid file size",
             )
-        if not mime_type.casefold().startswith("audio/"):
+        normalized_mime = mime_type.casefold()
+        media_type = imageinfo.get("mediatype")
+        application_ogg_audio = (
+            normalized_mime == "application/ogg"
+            and isinstance(media_type, str)
+            and media_type.casefold() == "audio"
+        )
+        if not normalized_mime.startswith("audio/") and not application_ogg_audio:
             return self._failure(
                 WikimediaRightsDiagnosticCode.UNSUPPORTED_MEDIA_TYPE,
                 f"Wikimedia source is not audio media ({mime_type})",

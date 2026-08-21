@@ -44,6 +44,9 @@ from video_editing_agent.storage.repositories.preproduction_repositories import 
     SqliteScriptPlanRepository,
     SqliteShootingPlanRepository,
 )
+from video_editing_agent.storage.repositories.speech_transcript_repository import (
+    SqliteSpeechTranscriptRepository,
+)
 from video_editing_agent.storage.repositories.sqlite_database import SqliteProjectDatabase
 from video_editing_agent.storage.repositories.sqlite_repositories import (
     SqliteAssetRepository,
@@ -73,6 +76,7 @@ class ProjectWorkspace:
     edit_plans: SqliteEditPlanRepository
     edls: SqliteEDLRepository
     temporal: SqliteTemporalEvidenceRepository
+    transcripts: SqliteSpeechTranscriptRepository
     shot_index: LexicalShotIndex
     coverage: CoverageService
     brief_service: BriefService
@@ -96,6 +100,7 @@ class ProjectWorkspace:
         edit_plans = SqliteEditPlanRepository(database)
         edls = SqliteEDLRepository(database)
         temporal = SqliteTemporalEvidenceRepository(database)
+        transcripts = SqliteSpeechTranscriptRepository(database)
         shot_index = LexicalShotIndex()
         shot_by_ref = {
             EntityRevisionRef(shot.envelope.id, shot.envelope.revision): shot
@@ -120,6 +125,7 @@ class ProjectWorkspace:
             edit_plans=edit_plans,
             edls=edls,
             temporal=temporal,
+            transcripts=transcripts,
             shot_index=shot_index,
             coverage=CoverageService(
                 shot_index=shot_index, shot_repository=shots, asset_repository=assets

@@ -14,8 +14,10 @@ from video_editing_agent.application.use_cases.product_flow import (
     PlanningProductOperations,
     PlanningProductRequest,
     ProductBriefInput,
+    ProductFlowEventLevel,
     ProductFlowOutcome,
     ProductFlowStage,
+    VoiceMode,
 )
 from video_editing_agent.domain.brief.model import Brief
 from video_editing_agent.domain.common.entity import EntityEnvelope, EntityRevisionRef, EntityStatus
@@ -298,6 +300,115 @@ def test_editing_flow_starts_from_local_paths_and_reaches_reviewed_output(tmp_pa
     assert saved and saved[0].edit_plan_ref == EntityRevisionRef("epl_flow", 1)
     assert source.read_bytes() == b"original"
     assert tuple(item.stage for item in result.events)[-1] is ProductFlowStage.COMPLETED
+
+
+def test_music_preparation_has_distinct_stage_messages_and_warning_severity(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"original")
+
+    def prepare_music(value, brief, report):  # type: ignore[no-untyped-def]
+        assert value is None
+        report(ProductFlowEventLevel.INFO, "Public music query 1 returned 0 candidate(s)")
+        report(ProductFlowEventLevel.WARNING, "Trying the next bounded fallback")
+        return None
+
+    operations = EditingProductOperations(
+        lambda value, created_by: _brief(),
+        lambda paths: (EntityRevisionRef("ast_flow", 1),),
+        lambda brief_ref, script_ref, shooting_ref, created_by: _edit_plan(brief_ref),
+        lambda plan: (_decision(EntityRevisionRef(plan.envelope.id, plan.envelope.revision)),),
+        lambda plan, decisions, audible: _edl(
+            EntityRevisionRef(plan.envelope.id, plan.envelope.revision)
+        ),
+        lambda edl: None,
+        lambda edl, path, profile: _render(edl, path),
+        lambda edl_ref, rendered, audible: _review(edl_ref, True),
+        prepare_music,
+        lambda plan, decisions, audible, music: _edl(
+            EntityRevisionRef(plan.envelope.id, plan.envelope.revision)
+        ),
+    )
+
+    result = EditingProductFlow(operations).run(
+        EditingProductRequest(tmp_path, _brief_input(), (source,), tmp_path / "final.mp4")
+    )
+
+    music_events = tuple(
+        event for event in result.events if event.stage is ProductFlowStage.MUSIC_PREPARATION
+    )
+    assert [event.message for event in music_events] == [
+        "Selecting rights-verified public background music",
+        "Public music query 1 returned 0 candidate(s)",
+        "Trying the next bounded fallback",
+    ]
+    assert music_events[-1].level is ProductFlowEventLevel.WARNING
+
+
+def test_editing_failure_identifies_stage_reason_and_redacts_secret(tmp_path: Path) -> None:
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"original")
+    operations = EditingProductOperations(
+        lambda value, created_by: _brief(),
+        lambda paths: (_ for _ in ()).throw(RuntimeError("api_key=do-not-log")),
+        lambda brief_ref, script_ref, shooting_ref, created_by: _edit_plan(brief_ref),
+        lambda plan: (),
+        lambda plan, decisions, audible: _edl(
+            EntityRevisionRef(plan.envelope.id, plan.envelope.revision)
+        ),
+        lambda edl: None,
+        lambda edl, path, profile: _render(edl, path),
+        lambda edl_ref, rendered, audible: _review(edl_ref, True),
+    )
+
+    result = EditingProductFlow(operations).run(
+        EditingProductRequest(tmp_path, _brief_input(), (source,), tmp_path / "final.mp4")
+    )
+
+    assert result.outcome is ProductFlowOutcome.FAILED
+    assert result.diagnostic is not None
+    assert "stage=ingest_understanding" in result.diagnostic
+    assert "[REDACTED]" in result.diagnostic
+    assert "do-not-log" not in result.diagnostic
+    assert result.events[-1].level is ProductFlowEventLevel.ERROR
+    assert "Failed during ingest_understanding" in result.events[-1].message
+    assert "do-not-log" not in result.events[-1].message
+
+
+def test_synthetic_voice_without_approved_capability_fails_closed_at_voice_stage(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"original")
+    operations = EditingProductOperations(
+        lambda value, created_by: _brief(),
+        lambda paths: (EntityRevisionRef("ast_flow", 1),),
+        lambda brief_ref, script_ref, shooting_ref, created_by: _edit_plan(brief_ref),
+        lambda plan: (_decision(EntityRevisionRef(plan.envelope.id, plan.envelope.revision)),),
+        lambda plan, decisions, audible: _edl(
+            EntityRevisionRef(plan.envelope.id, plan.envelope.revision)
+        ),
+        lambda edl: None,
+        lambda edl, path, profile: _render(edl, path),
+        lambda edl_ref, rendered, audible: _review(edl_ref, True),
+    )
+
+    result = EditingProductFlow(operations).run(
+        EditingProductRequest(
+            tmp_path,
+            _brief_input(),
+            (source,),
+            tmp_path / "final.mp4",
+            voice_mode=VoiceMode.SYNTHETIC,
+        )
+    )
+
+    assert result.outcome is ProductFlowOutcome.FAILED
+    assert result.diagnostic is not None
+    assert "stage=voice_preparation" in result.diagnostic
+    assert "SpeechSynthesisPort" in result.diagnostic
+    assert source.read_bytes() == b"original"
 
 
 def test_unresolved_edit_slot_fails_closed_before_edl_or_render(tmp_path: Path) -> None:
