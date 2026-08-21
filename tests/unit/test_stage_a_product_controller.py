@@ -15,7 +15,10 @@ from video_editing_agent.adapters.product.controller import (
     PlanningSessionContext,
     expand_media_inputs,
 )
-from video_editing_agent.adapters.product.runtime import resolve_product_runtime
+from video_editing_agent.adapters.product.runtime import (
+    locate_media_executable,
+    resolve_product_runtime,
+)
 from video_editing_agent.application.use_cases.product_flow import (
     OUTPUT_PROFILE_HORIZONTAL_1080P,
     EditingOutputProfile,
@@ -166,6 +169,22 @@ def test_missing_editing_runtime_is_an_understandable_diagnostic() -> None:
     assert any("FFmpeg/ffprobe" in item for item in result.diagnostics)
     assert any("TransNetV2" in item for item in result.diagnostics)
     assert all("weights_path" not in item for item in result.diagnostics)
+
+
+def test_media_runtime_locator_reuses_approved_repository_runtime(tmp_path: Path) -> None:
+    executable = (
+        tmp_path / ".tools" / "ffmpeg-8.1" / "ffmpeg-8.1-full_build" / "bin" / "ffprobe.exe"
+    )
+    executable.parent.mkdir(parents=True)
+    executable.write_bytes(b"approved-runtime")
+
+    resolved = locate_media_executable(
+        "ffprobe",
+        path_locator=lambda _name: None,
+        repository_root=tmp_path,
+    )
+
+    assert resolved == str(executable)
 
 
 def test_reference_runtime_auto_resolves_package_weights(tmp_path: Path) -> None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
@@ -21,6 +22,7 @@ from video_editing_agent.domain.asset.policy import (
 from video_editing_agent.media.ingest.probe import MediaTechnicalMetadata
 from video_editing_agent.media.ingest.service import AssetIngestService
 from video_editing_agent.media.ingest.source import LocalMediaSource
+from video_editing_agent.providers.reference.bilibili import BilibiliHtmlReferenceResolver
 from video_editing_agent.providers.reference.direct_https import (
     DirectHttpsAcquisitionPolicy,
     DirectHttpsReferenceAcquirer,
@@ -72,10 +74,59 @@ class ConnectionQueue:
     def __init__(self, *responses: FakeResponse) -> None:
         self.responses = list(responses)
         self.calls: list[tuple[str, str, int, float]] = []
+        self.connections: list[FakeConnection] = []
 
     def __call__(self, hostname: str, pinned_ip: str, port: int, timeout: float) -> FakeConnection:
         self.calls.append((hostname, pinned_ip, port, timeout))
-        return FakeConnection(self.responses.pop(0))
+        connection = FakeConnection(self.responses.pop(0))
+        self.connections.append(connection)
+        return connection
+
+
+def bilibili_html(
+    media_url: str,
+    *,
+    code: int = 0,
+    is_preview: int = 0,
+    codec: str = "avc1.64001F",
+) -> bytes:
+    payload = {
+        "code": code,
+        "data": {
+            "is_preview": is_preview,
+            "dash": {
+                "video": [
+                    {
+                        "baseUrl": media_url,
+                        "mimeType": "video/mp4",
+                        "codecs": codec,
+                        "bandwidth": 500_000,
+                    }
+                ]
+            },
+        },
+    }
+    return f"<script>window.__playinfo__={json.dumps(payload)}</script>".encode()
+
+
+def bilibili_playurl_json(media_url: str, *, code: int = 0) -> bytes:
+    return json.dumps(
+        {
+            "code": code,
+            "data": {
+                "dash": {
+                    "video": [
+                        {
+                            "baseUrl": media_url,
+                            "mimeType": "video/mp4",
+                            "codecs": "avc1.64001F",
+                            "bandwidth": 500_000,
+                        }
+                    ]
+                }
+            },
+        }
+    ).encode()
 
 
 class StaticVideoProbe:
@@ -90,6 +141,21 @@ class StaticVideoProbe:
             codec="h264",
             audio_channels=2,
             sample_rate_hz=48_000,
+        )
+
+
+class StaticVideoOnlyProbe:
+    def probe(self, path: Path) -> MediaTechnicalMetadata:
+        assert path.is_file()
+        return MediaTechnicalMetadata(
+            media_kind="video",
+            duration_ms=1_000,
+            width=852,
+            height=480,
+            fps=30.0,
+            codec="h264",
+            audio_channels=None,
+            sample_rate_hz=None,
         )
 
 
@@ -298,6 +364,209 @@ def test_html_discovery_remains_bounded_and_does_not_follow_arbitrary_links(
 
     assert not result.is_acquired
     assert result.diagnostics[0].code is ReferenceAcquisitionDiagnosticCode.UNSUPPORTED_RESOURCE
+
+
+def test_bilibili_public_page_resolves_media_through_existing_safe_transport(
+    tmp_path: Path,
+) -> None:
+    page_url = "https://www.bilibili.com/video/BV1Mq4y187xR?share_source=copy_web"
+    media_url = "https://public-cdn.example/video/reference.m4s?expires=bounded"
+    page = bilibili_html(media_url)
+    media = b"public-bilibili-video"
+    queue = ConnectionQueue(
+        FakeResponse(headers={"Content-Type": "text/html"}, chunks=(page, b"")),
+        FakeResponse(headers={"Content-Type": "video/mp4"}, chunks=(media, b"")),
+    )
+    result = DirectHttpsReferenceAcquirer(
+        tmp_path / "reference_media",
+        resolver=public_resolver,
+        connection_factory=queue,
+        html_media_resolvers=(BilibiliHtmlReferenceResolver(),),
+        clock=lambda: NOW,
+    ).acquire(ReferenceAcquisitionRequest(page_url))
+
+    assert result.is_acquired and result.acquired is not None
+    assert result.acquired.original_url == page_url
+    assert result.acquired.final_url == media_url
+    assert result.acquired.provider == "bilibili_public_page"
+    assert result.acquired.provider_item_id == "BV1Mq4y187xR"
+    assert result.acquired.local_path.read_bytes() == media
+    assert queue.connections[1].requests[0][2]["Referer"] == (
+        "https://www.bilibili.com/video/BV1Mq4y187xR"
+    )
+
+
+def test_bilibili_reduced_page_uses_bounded_anonymous_metadata_chain(tmp_path: Path) -> None:
+    page_url = "https://www.bilibili.com/video/BV1Mq4y187xR?share_source=copy_web"
+    media_url = "https://public-cdn.example/video/reference.m4s"
+    page_list = json.dumps({"code": 0, "data": [{"cid": 17}]}).encode()
+    media = b"public-bilibili-video"
+    queue = ConnectionQueue(
+        FakeResponse(headers={"Content-Type": "text/html"}, chunks=(b"<html></html>", b"")),
+        FakeResponse(headers={"Content-Type": "application/json"}, chunks=(page_list, b"")),
+        FakeResponse(
+            headers={"Content-Type": "application/json"},
+            chunks=(bilibili_playurl_json(media_url), b""),
+        ),
+        FakeResponse(headers={"Content-Type": "video/mp4"}, chunks=(media, b"")),
+    )
+
+    result = DirectHttpsReferenceAcquirer(
+        tmp_path / "reference_media",
+        resolver=public_resolver,
+        connection_factory=queue,
+        html_media_resolvers=(BilibiliHtmlReferenceResolver(),),
+        clock=lambda: NOW,
+    ).acquire(ReferenceAcquisitionRequest(page_url))
+
+    assert result.is_acquired and result.acquired is not None
+    assert result.acquired.final_url == media_url
+    assert result.acquired.provider_item_id == "BV1Mq4y187xR"
+    assert [call[0] for call in queue.calls] == [
+        "www.bilibili.com",
+        "api.bilibili.com",
+        "api.bilibili.com",
+        "public-cdn.example",
+    ]
+    assert all(
+        connection.requests[0][2].get("Referer") == "https://www.bilibili.com/video/BV1Mq4y187xR"
+        for connection in queue.connections[1:]
+    )
+
+
+def test_bilibili_acquired_video_only_media_is_valid_for_reference_ingest(tmp_path: Path) -> None:
+    media_url = "https://public-cdn.example/video/reference.m4s"
+    queue = ConnectionQueue(
+        FakeResponse(
+            headers={"Content-Type": "text/html"},
+            chunks=(bilibili_html(media_url), b""),
+        ),
+        FakeResponse(headers={"Content-Type": "video/mp4"}, chunks=(b"video-only", b"")),
+    )
+    acquired = (
+        DirectHttpsReferenceAcquirer(
+            tmp_path / "reference_media",
+            resolver=public_resolver,
+            connection_factory=queue,
+            html_media_resolvers=(BilibiliHtmlReferenceResolver(),),
+            clock=lambda: NOW,
+        )
+        .acquire(ReferenceAcquisitionRequest("https://www.bilibili.com/video/BV1Mq4y187xR"))
+        .acquired
+    )
+    assert acquired is not None
+
+    asset = AssetIngestService(StaticVideoOnlyProbe()).ingest(
+        LocalMediaSource(
+            acquired.local_path,
+            "reference_https",
+            AssetProvenance(
+                origin_type="reference_https",
+                source_page=acquired.original_url,
+                provider=acquired.provider,
+                provider_asset_id=acquired.provider_item_id,
+                retrieved_at=acquired.retrieved_at,
+            ),
+            AssetUsageRole.REFERENCE_ANALYSIS_ONLY,
+        ),
+        created_by="test",
+    )
+
+    assert asset.media_kind == "video"
+    assert asset.audio_channels is None
+    assert asset.usage_role is AssetUsageRole.REFERENCE_ANALYSIS_ONLY
+
+
+def test_unexpected_json_is_not_treated_as_provider_metadata(tmp_path: Path) -> None:
+    result = DirectHttpsReferenceAcquirer(
+        tmp_path / "reference_media",
+        resolver=public_resolver,
+        connection_factory=ConnectionQueue(
+            FakeResponse(headers={"Content-Type": "application/json"}, chunks=(b"{}", b""))
+        ),
+        html_media_resolvers=(BilibiliHtmlReferenceResolver(),),
+    ).acquire(
+        ReferenceAcquisitionRequest("https://api.bilibili.com/x/player/pagelist?bvid=BV1Mq4y187xR")
+    )
+
+    assert not result.is_acquired
+    assert result.diagnostics[0].code is ReferenceAcquisitionDiagnosticCode.UNSUPPORTED_RESOURCE
+
+
+def test_bilibili_metadata_target_is_revalidated_before_request(tmp_path: Path) -> None:
+    queue = ConnectionQueue(
+        FakeResponse(headers={"Content-Type": "text/html"}, chunks=(b"<html></html>", b""))
+    )
+
+    def resolver(hostname: str, _port: int) -> tuple[str, ...]:
+        return (PUBLIC_IP,) if hostname == "www.bilibili.com" else ("127.0.0.1",)
+
+    result = DirectHttpsReferenceAcquirer(
+        tmp_path / "reference_media",
+        resolver=resolver,
+        connection_factory=queue,
+        html_media_resolvers=(BilibiliHtmlReferenceResolver(),),
+    ).acquire(ReferenceAcquisitionRequest("https://www.bilibili.com/video/BV1Mq4y187xR"))
+
+    assert not result.is_acquired
+    assert result.diagnostics[0].code is ReferenceAcquisitionDiagnosticCode.REDIRECT_REJECTED
+    assert len(queue.connections) == 1
+
+
+def test_bilibili_discovered_private_target_is_revalidated_and_rejected(
+    tmp_path: Path,
+) -> None:
+    page = bilibili_html("https://private.example/video.m4s")
+    queue = ConnectionQueue(FakeResponse(headers={"Content-Type": "text/html"}, chunks=(page, b"")))
+
+    def resolver(hostname: str, _port: int) -> tuple[str, ...]:
+        return (PUBLIC_IP,) if hostname == "www.bilibili.com" else ("127.0.0.1",)
+
+    result = DirectHttpsReferenceAcquirer(
+        tmp_path / "reference_media",
+        resolver=resolver,
+        connection_factory=queue,
+        html_media_resolvers=(BilibiliHtmlReferenceResolver(),),
+    ).acquire(ReferenceAcquisitionRequest("https://www.bilibili.com/video/BV1Mq4y187xR"))
+
+    assert not result.is_acquired
+    assert result.diagnostics[0].code is ReferenceAcquisitionDiagnosticCode.REDIRECT_REJECTED
+    assert len(queue.connections) == 1
+
+
+@pytest.mark.parametrize(
+    ("page", "expected"),
+    (
+        (
+            bilibili_html("https://public.example/video.m4s", code=-10403),
+            ReferenceAcquisitionDiagnosticCode.PROTECTED_CONTENT,
+        ),
+        (
+            bilibili_html("https://public.example/video.m4s", is_preview=1),
+            ReferenceAcquisitionDiagnosticCode.PROTECTED_CONTENT,
+        ),
+        (
+            bilibili_html("https://public.example/video.m4s", codec="hev1.1.6.L120"),
+            ReferenceAcquisitionDiagnosticCode.UNSUPPORTED_RESOURCE,
+        ),
+    ),
+)
+def test_bilibili_protected_and_unsupported_states_fail_closed(
+    tmp_path: Path,
+    page: bytes,
+    expected: ReferenceAcquisitionDiagnosticCode,
+) -> None:
+    result = DirectHttpsReferenceAcquirer(
+        tmp_path / "reference_media",
+        resolver=public_resolver,
+        connection_factory=ConnectionQueue(
+            FakeResponse(headers={"Content-Type": "text/html"}, chunks=(page, b""))
+        ),
+        html_media_resolvers=(BilibiliHtmlReferenceResolver(),),
+    ).acquire(ReferenceAcquisitionRequest("https://www.bilibili.com/video/BV1Mq4y187xR"))
+
+    assert not result.is_acquired
+    assert result.diagnostics[0].code is expected
 
 
 def test_acquired_reference_ingests_with_remote_origin_and_analysis_only_role(

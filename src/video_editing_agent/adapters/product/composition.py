@@ -23,6 +23,7 @@ from video_editing_agent.media.understanding.frame_extraction import FfmpegPngFr
 from video_editing_agent.media.understanding.service import (
     ProviderNeutralVisualUnderstandingService,
 )
+from video_editing_agent.providers.reference.bilibili import BilibiliHtmlReferenceResolver
 from video_editing_agent.providers.reference.direct_https import DirectHttpsReferenceAcquirer
 from video_editing_agent.providers.review.ffmpeg_pcm import FFmpegPcmRenderedMediaQc
 from video_editing_agent.providers.speech.faster_whisper import FasterWhisperSpeechRecognitionPort
@@ -87,7 +88,10 @@ def planning_flow(
             detector,
             ShotDetectionOptions(),
             understanding,
-            DirectHttpsReferenceAcquirer(workspace.root / "reference-media"),
+            DirectHttpsReferenceAcquirer(
+                workspace.root / "reference-media",
+                html_media_resolvers=(BilibiliHtmlReferenceResolver(),),
+            ),
         )
     return build_planning_product_flow(
         workspace,

@@ -428,7 +428,13 @@ class PlanningProductFlow:
             )
             shooting_ref = _ref(shooting)
         except Exception as exc:
-            emit(ProductFlowEvent(ProductFlowStage.FAILED, "Planning flow failed"))
+            diagnostic = _diagnostic(exc)
+            emit(
+                ProductFlowEvent(
+                    ProductFlowStage.FAILED,
+                    f"Planning flow failed during {events[-1].stage.value}: {diagnostic}",
+                )
+            )
             return PlanningProductResult(
                 ProductFlowOutcome.FAILED,
                 request.project_location,
@@ -436,7 +442,7 @@ class PlanningProductFlow:
                 script_ref,
                 shooting_ref,
                 tuple(events),
-                _diagnostic(exc),
+                diagnostic,
             )
         emit(ProductFlowEvent(ProductFlowStage.COMPLETED, "Planning flow completed"))
         return PlanningProductResult(
