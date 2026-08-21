@@ -1,98 +1,85 @@
 # Codex Execution Entry
 
-**Last updated:** 2026-08-21  
+**Last updated:** 2026-08-22  
 **Purpose:** expose whether Codex currently has an authorized local construction release.
 
 ## Release state
 
 **Work Order:** `R0.12-STAGE-A-FINAL-CLOSURE-002`  
-**Release:** OPEN — BOUNDED PLANNING REFERENCE COMPATIBILITY WAVE ONLY  
+**Release:** CLOSED — previous reference-compatibility wave accepted; next local wave not yet released  
 **Foreman:** ChatGPT  
 **Authority:** `docs/operations/CURRENT_WORK_ORDER.md`
 
-This release exists only to prove one compatible provider-specific reference acquisition path for an ordinary public Bilibili video page. It is not authorization for a generic crawler/downloader project.
+Codex must not infer authorization from old chat history, archived wave specifications, or stale branch state.
 
-## Mandatory attention order
+## Mandatory attention order when released
 
 1. root `AGENTS.md`;
 2. `docs/DOCUMENT_REGISTRY.json`;
 3. `docs/operations/CURRENT_CONTROL_STATE.md`;
 4. `docs/roadmap/CURRENT_PHASE_STATUS.md`;
 5. `docs/operations/CURRENT_WORK_ORDER.md`;
-6. only task-relevant source/tests;
-7. Product/Architecture/CAP/ADR only if a concrete implementation question requires them.
+6. the one explicitly released wave specification;
+7. only task-relevant source/tests;
+8. Product/Architecture/CAP/ADR only when a concrete implementation question requires them.
 
-`docs/archive/**`, `.private/**`, `.tools/**`, `.uv-cache*/**`, `.venv/**`, `build/**` and `dist/**` remain default-excluded from discovery.
+`docs/archive/**`, `.private/**`, `.tools/**`, `.uv-cache*/**`, `.venv/**`, `build/**` and `dist/**` remain default-excluded from ordinary discovery.
 
-## Released target
+## Previous release result
 
-Observed real input:
+The bounded Planning reference-compatibility wave is accepted in main merge:
 
-`https://www.bilibili.com/video/BV1Mq4y187xR?share_source=copy_web`
+`756a30562dd512fba9868eeee43cf6422f60f642` (PR #13)
 
-Current generic `DirectHttpsReferenceAcquirer` correctly preserves bounded HTTPS/SSRF/IP/redirect/MIME/size/timeout rules, but the page does not expose a supported static HTML video declaration.
+Product decision after the engineering exploration:
 
-Existing seam:
+- ordinary remote reference URL is hidden for Stage A / 1.0;
+- local reference video remains supported;
+- bounded Bilibili acquisition is retained only as a fallback engineering seam;
+- provider-neutral `ReferenceObservation`, remote/video-native observation and provider upload-media observation are deferred to 2.0.
 
-`PlanningReferenceCapabilities.acquisition: ReferenceAcquisitionPort`
+Durable evidence:
 
-The implementation must keep Planning Domain unaware of Bilibili/site mechanics.
+`docs/validation/R0.12_REFERENCE_COMPATIBILITY_CLOSURE_2026-08-22.md`
 
-## Required result
+Do not resume Bilibili/Douyin/Xiaohongshu URL work without a new explicit product decision.
 
-Provide the smallest compatible acquisition design that lets a supported ordinary public Bilibili video page produce the same `AcquiredReferenceMedia` contract consumed by existing Planning.
+## Prepared next wave
 
-Prefer provider-specific composition behind the existing `ReferenceAcquisitionPort` rather than adding Bilibili branches to Planning flow.
+The next intended bounded local wave is:
 
-Preserve:
+`docs/operations/STAGE_A_WORKSPACE_UX_CONSOLIDATION.md`
 
-- reference media remains analysis-only and never Resolver-eligible final footage;
-- original URL/provenance and content hash remain recorded;
-- public HTTPS, SSRF/DNS/IP/redirect/size/timeout protections remain bounded;
-- no ambient credentials, login circumvention or paid/protected-content bypass;
-- unsupported/private/login/DRM/provider-change cases fail closed with useful diagnostics;
-- generic webpage acquisition remains bounded; no arbitrary `<a>` traversal, whole-site crawling or browser automation.
+It consolidates:
 
-A provider-specific page may use only the minimum public metadata/playback information needed to obtain an analyzable public reference stream. Any extra request target must be independently revalidated as public HTTPS.
+- one shared Project Workspace context;
+- project-local writable work/cache/autosave/undo-redo/log/output ownership;
+- project-local default output destination;
+- unified configuration actions on the main window;
+- form-level Clear / Undo / Redo;
+- vertical collapsible form sections;
+- retirement of the temporary pixel-camera mark when the approved feather asset can be recovered;
+- continued hiding of remote reference URL.
 
-## Bounded self-repair
+This wave is prepared but **not yet released**. ChatGPT/user must explicitly open it after reobserving the accepted repository/local state.
 
-Within this release, self-check and repair defects that directly prevent the supported Bilibili page → trusted reference media → existing Planning path or break required quality gates.
+## Permanent execution rules
 
-Do not repair unrelated backlog or redesign the acquisition framework. If the first provider proof reveals one small reusable routing/composition seam, add only that seam rather than a speculative plugin framework.
+When explicitly released, Codex must:
 
-## Verification required
+- preserve the current working tree; no blind reset/stash/checkout/clean;
+- observe before changing;
+- use bounded self-repair for blockers inside the released scope;
+- prefer compatible/additive change and stable ports/contracts;
+- keep provider/model/runtime/renderer choices replaceable;
+- keep packaging/bootstrap/resource location outside Domain authority;
+- keep project-specific writable state outside the install directory;
+- distinguish capability absence, approved degradation, skipped work and real failure;
+- avoid speculative generic frameworks and unrelated repository-wide refactors;
+- run focused checks during iteration and the required full gate before handoff;
+- treat its own PASS report as evidence, not final acceptance;
+- stop at the released boundary.
 
-At minimum:
+## Current status
 
-- focused acquisition/provider tests;
-- existing direct-HTTPS security regression tests;
-- a bounded real/public Bilibili engineering probe when network access permits;
-- Planning integration test proving acquired reference reaches the existing reference-analysis path;
-- Ruff format/check;
-- mypy `src`;
-- full pytest;
-- import-linter;
-- build;
-- repo doctor;
-- `git diff --check`.
-
-Do not run paid model/provider requests merely to prove acquisition. Human Product Gate will be performed separately after engineering acceptance.
-
-## Forbidden
-
-Do not:
-
-- read `docs/archive/**` for this task;
-- introduce yt-dlp or another broad downloader dependency unless a new explicit review authorizes it;
-- add login cookies/session scraping;
-- bypass region/membership/DRM/protected-content restrictions;
-- turn Planning into a Bilibili-aware module;
-- implement Douyin/Xiaohongshu support in this wave;
-- start Windows packaging work;
-- claim Stage-A 100%;
-- commit/push unless explicitly requested after local verification.
-
-## Stop condition
-
-Report changed files, acquisition/routing design, exact security invariants retained, focused/live/full verification, unsupported Bilibili cases, and the one ordinary Human Gate action needed next. Then stop.
+No new local Codex construction should begin until the Project Workspace + UX wave is explicitly released from the latest accepted main baseline.
