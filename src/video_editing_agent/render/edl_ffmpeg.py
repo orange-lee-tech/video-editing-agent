@@ -49,6 +49,14 @@ class FFmpegCompilationResult:
     diagnostics: tuple[RenderDiagnostic, ...]
 
 
+_SUPPORTED_OUTPUTS: dict[tuple[str, str, str], str] = {
+    ("mp4", "libx264", "aac"): ".mp4",
+    ("mov", "libx264", "aac"): ".mov",
+    ("matroska", "libx264", "aac"): ".mkv",
+    ("webm", "libvpx-vp9", "libopus"): ".webm",
+}
+
+
 def _seconds(value: MediaTime) -> str:
     return value.to_decimal_seconds_string(fractional_digits=9)
 
@@ -131,15 +139,19 @@ def build_ass_subtitles(edl: EDL, width: int, height: int) -> str:
         "OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, "
         "ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, "
         "MarginR, MarginV, Encoding\n"
-        f"Style: Default,Arial,{font_size},&H00FFFFFF,&H0000FFFF,&H00000000,"
-        f"&H64000000,0,0,0,0,100,100,0,0,1,2,1,2,{margin},{margin},{margin},1\n\n"
+        f"Style: Clean,Arial,{font_size},&H00FFFFFF,&H0000FFFF,&H00000000,"
+        f"&H00000000,0,0,0,0,100,100,0,0,1,0,0,2,{margin},{margin},{margin},1\n"
+        f"Style: Outlined,Arial,{font_size},&H00FFFFFF,&H0000FFFF,&H00000000,"
+        f"&H64000000,0,0,0,0,100,100,0,0,1,2,1,2,{margin},{margin},{margin},1\n"
+        f"Style: Backed,Arial,{font_size},&H00FFFFFF,&H0000FFFF,&H00000000,"
+        f"&H78000000,0,0,0,0,100,100,0,0,3,1,0,2,{margin},{margin},{margin},1\n\n"
         "[Events]\n"
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
     )
     events = "".join(
         "Dialogue: 0,"
         f"{_ass_time(cue.timeline_range.start)},{_ass_time(cue.timeline_range.end)},"
-        f"Default,,0,0,0,,{_ass_cue_text(cue)}\n"
+        f"{cue.style_profile.value.title()},,0,0,0,,{_ass_cue_text(cue)}\n"
         for cue in cues
     )
     return header + events
@@ -312,15 +324,11 @@ def compile_ffmpeg_render(
             + ",".join(item.code.value for item in validation.diagnostics),
         )
     spec = request.output_spec
-    if (
-        spec.container != "mp4"
-        or spec.video_codec != "libx264"
-        or spec.audio_codec != "aac"
-        or spec.path.suffix.casefold() != ".mp4"
-    ):
+    expected_suffix = _SUPPORTED_OUTPUTS.get((spec.container, spec.video_codec, spec.audio_codec))
+    if expected_suffix is None or spec.path.suffix.casefold() != expected_suffix:
         return _diagnostic(
             RenderDiagnosticCode.UNSUPPORTED_OUTPUT,
-            "Stage-A supports only explicit libx264/AAC MP4 output",
+            "output container, codec, and filename extension must match a supported product format",
         )
     supported = {
         EDLTrackFamily.VIDEO,
@@ -499,7 +507,9 @@ def compile_ffmpeg_render(
     )
     if audio_outputs:
         arguments.extend(("-c:a", spec.audio_codec))
-    arguments.extend(("-movflags", "+faststart", str(spec.path)))
+    if spec.container in {"mp4", "mov"}:
+        arguments.extend(("-movflags", "+faststart"))
+    arguments.append(str(spec.path))
     invocation = DeterministicToolInvocation(
         f"render:{request.edl.envelope.id}@{request.edl.envelope.revision}",
         ffmpeg_executable,

@@ -567,23 +567,93 @@ class DeterministicEDLBuilder:
                         for keyframe in translated.keyframes
                     )
                 ]
-                if len(containing) != 1:
+                if len(containing) == 1:
+                    index = containing[0]
+                    current = bgm_segments[index]
+                    bgm_segments[index] = EDLSegment(
+                        current.segment_id,
+                        current.asset_ref,
+                        source_range=current.source_range,
+                        timeline_range=current.timeline_range,
+                        track_id=current.track_id,
+                        audio_mix_decision_ref=current.audio_mix_decision_ref,
+                        audio_automations=(*current.audio_automations, translated),
+                    )
+                    continue
+
+                constant_track_intent = (
+                    intent.kind in {AudioAutomationKind.GAIN, AudioAutomationKind.DUCK}
+                    and len(translated.keyframes) == 2
+                    and translated.keyframes[0].gain_millibels
+                    == translated.keyframes[1].gain_millibels
+                    and not any(keyframe.muted for keyframe in translated.keyframes)
+                )
+                if not constant_track_intent:
                     add(
                         EDLBuildDiagnosticCode.AUDIO_MAPPING_UNSUPPORTED,
                         "audio intent must fit wholly inside one selected music segment",
                     )
                     continue
-                index = containing[0]
-                current = bgm_segments[index]
-                bgm_segments[index] = EDLSegment(
-                    current.segment_id,
-                    current.asset_ref,
-                    source_range=current.source_range,
-                    timeline_range=current.timeline_range,
-                    track_id=current.track_id,
-                    audio_mix_decision_ref=current.audio_mix_decision_ref,
-                    audio_automations=(*current.audio_automations, translated),
-                )
+
+                intent_start = translated.keyframes[0].timeline_time
+                intent_end = translated.keyframes[-1].timeline_time
+                if (
+                    not bgm_segments
+                    or intent_start.as_fraction()
+                    < bgm_segments[0].timeline_range.start.as_fraction()
+                    or intent_end.as_fraction() > bgm_segments[-1].timeline_range.end.as_fraction()
+                    or intent_end.as_fraction() <= intent_start.as_fraction()
+                ):
+                    add(
+                        EDLBuildDiagnosticCode.AUDIO_MAPPING_UNSUPPORTED,
+                        "track-wide constant audio intent escapes selected BGM coverage",
+                    )
+                    continue
+
+                split_count = 0
+                gain_millibels = translated.keyframes[0].gain_millibels
+                for index, current in enumerate(bgm_segments):
+                    clipped_start_fraction = max(
+                        intent_start.as_fraction(),
+                        current.timeline_range.start.as_fraction(),
+                    )
+                    clipped_end_fraction = min(
+                        intent_end.as_fraction(),
+                        current.timeline_range.end.as_fraction(),
+                    )
+                    if clipped_end_fraction <= clipped_start_fraction:
+                        continue
+                    clipped_start = MediaTime(
+                        clipped_start_fraction.numerator,
+                        clipped_start_fraction.denominator,
+                    )
+                    clipped_end = MediaTime(
+                        clipped_end_fraction.numerator,
+                        clipped_end_fraction.denominator,
+                    )
+                    split = EDLAudioAutomation(
+                        translated.kind,
+                        translated.interpolation,
+                        (
+                            EDLAudioKeyframe(clipped_start, gain_millibels),
+                            EDLAudioKeyframe(clipped_end, gain_millibels),
+                        ),
+                    )
+                    bgm_segments[index] = EDLSegment(
+                        current.segment_id,
+                        current.asset_ref,
+                        source_range=current.source_range,
+                        timeline_range=current.timeline_range,
+                        track_id=current.track_id,
+                        audio_mix_decision_ref=current.audio_mix_decision_ref,
+                        audio_automations=(*current.audio_automations, split),
+                    )
+                    split_count += 1
+                if split_count == 0:
+                    add(
+                        EDLBuildDiagnosticCode.AUDIO_MAPPING_UNSUPPORTED,
+                        "track-wide constant audio intent does not overlap selected BGM coverage",
+                    )
             segments.extend(bgm_segments)
 
         if diagnostics:

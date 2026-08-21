@@ -30,6 +30,7 @@ from video_editing_agent.domain.edl import (
     SubtitleEmphasisSpan,
     SubtitleEmphasisStyle,
     SubtitleLayoutRegion,
+    SubtitleStyleProfile,
     decode_edl,
     encode_edl,
     validate_edl,
@@ -114,6 +115,16 @@ def test_subtitle_codec_round_trip_is_canonical_and_exact() -> None:
         "scale": 4,
         "value": 1,
     }
+
+
+def test_typed_subtitle_style_is_canonical_and_drives_ass_execution() -> None:
+    cue = replace(_cues()[0], style_profile=SubtitleStyleProfile.BACKED)
+    edl = compile_subtitle_cues(_edl(), (cue,))
+
+    assert decode_edl(encode_edl(edl)).subtitle_cues[0].style_profile is SubtitleStyleProfile.BACKED
+    ass = build_ass_subtitles(edl, 1280, 720)
+    assert "Style: Backed," in ass
+    assert ",Backed,," in ass
 
 
 def test_codec_reads_prior_v2_edl_without_subtitle_payload() -> None:

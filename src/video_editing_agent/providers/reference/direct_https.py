@@ -12,6 +12,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Protocol, cast
 from urllib.parse import SplitResult, urljoin, urlsplit
@@ -35,6 +36,8 @@ class DirectHttpsAcquisitionPolicy:
     socket_timeout_seconds: float = 30.0
     total_timeout_seconds: float = 180.0
     max_redirects: int = 5
+    max_html_bytes: int = 1024 * 1024
+    max_html_hops: int = 1
 
     def __post_init__(self) -> None:
         if isinstance(self.max_bytes, bool) or not isinstance(self.max_bytes, int):
@@ -53,6 +56,14 @@ class DirectHttpsAcquisitionPolicy:
             raise TypeError("max_redirects must be an int")
         if self.max_redirects < 0:
             raise ValueError("max_redirects must be >= 0")
+        for name, value in (
+            ("max_html_bytes", self.max_html_bytes),
+            ("max_html_hops", self.max_html_hops),
+        ):
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise TypeError(f"{name} must be an int")
+            if value < 0:
+                raise ValueError(f"{name} must be >= 0")
 
 
 class _ResponseLike(Protocol):
@@ -179,6 +190,28 @@ def _file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+class _BoundedVideoSourceParser(HTMLParser):
+    """Collect only explicit HTML video media declarations in document order."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.sources: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        values = {name.casefold(): value for name, value in attrs if value is not None}
+        normalized = tag.casefold()
+        if normalized in {"video", "source"}:
+            source = values.get("src")
+            if source and source.strip():
+                self.sources.append(source.strip())
+        elif normalized == "meta":
+            property_name = (values.get("property") or values.get("name") or "").casefold()
+            if property_name in {"og:video", "og:video:url", "twitter:player:stream"}:
+                source = values.get("content")
+                if source and source.strip():
+                    self.sources.append(source.strip())
+
+
 class DirectHttpsReferenceAcquirer:
     """Bounded public-HTTPS acquisition with pinned-IP policy and no ambient credentials."""
 
@@ -235,6 +268,7 @@ class DirectHttpsReferenceAcquirer:
         current_url = original_url
         deadline = self._monotonic() + self._policy.total_timeout_seconds
         redirects = 0
+        html_hops = 0
 
         while True:
             if self._monotonic() > deadline:
@@ -259,7 +293,7 @@ class DirectHttpsReferenceAcquirer:
                     "GET",
                     _request_target(current_url),
                     headers={
-                        "Accept": "video/*,application/octet-stream;q=0.8,*/*;q=0.1",
+                        "Accept": "video/*,text/html;q=0.8,application/octet-stream;q=0.7",
                         "Accept-Encoding": "identity",
                         "Connection": "close",
                         "User-Agent": "video-editing-agent/reference-acquisition-r0.12",
@@ -301,6 +335,25 @@ class DirectHttpsReferenceAcquirer:
                     )
 
                 content_type = _content_type_base(response.getheader("Content-Type"))
+                if content_type == "text/html":
+                    if redirects >= self._policy.max_redirects:
+                        raise _AcquisitionFailure(
+                            ReferenceAcquisitionDiagnosticCode.REDIRECT_REJECTED,
+                            "reference acquisition exceeded the redirect/media-discovery limit",
+                        )
+                    if html_hops >= self._policy.max_html_hops:
+                        raise _AcquisitionFailure(
+                            ReferenceAcquisitionDiagnosticCode.UNSUPPORTED_RESOURCE,
+                            "reference webpage exceeded the bounded HTML media-discovery limit",
+                        )
+                    current_url = self._video_url_from_html(
+                        response,
+                        page_url=current_url,
+                        deadline=deadline,
+                    )
+                    html_hops += 1
+                    redirects += 1
+                    continue
                 if (
                     content_type is not None
                     and not content_type.startswith("video/")
@@ -333,6 +386,56 @@ class DirectHttpsReferenceAcquirer:
                 if response is not None:
                     response.close()
                 connection.close()
+
+    def _video_url_from_html(
+        self,
+        response: _ResponseLike,
+        *,
+        page_url: str,
+        deadline: float,
+    ) -> str:
+        declared_length = self._declared_length(response)
+        if declared_length is not None and declared_length > self._policy.max_html_bytes:
+            raise _AcquisitionFailure(
+                ReferenceAcquisitionDiagnosticCode.SIZE_LIMIT_EXCEEDED,
+                "reference webpage exceeds the bounded HTML discovery limit",
+            )
+        payload = bytearray()
+        while True:
+            if self._monotonic() > deadline:
+                raise _AcquisitionFailure(
+                    ReferenceAcquisitionDiagnosticCode.TIME_LIMIT_EXCEEDED,
+                    "reference webpage discovery exceeded the configured total time limit",
+                    retryable=True,
+                )
+            chunk = response.read(_CHUNK_SIZE)
+            if not chunk:
+                break
+            payload.extend(chunk)
+            if len(payload) > self._policy.max_html_bytes:
+                raise _AcquisitionFailure(
+                    ReferenceAcquisitionDiagnosticCode.SIZE_LIMIT_EXCEEDED,
+                    "reference webpage exceeds the bounded HTML discovery limit",
+                )
+        parser = _BoundedVideoSourceParser()
+        try:
+            parser.feed(bytes(payload).decode("utf-8", errors="replace"))
+        except Exception as error:
+            raise _AcquisitionFailure(
+                ReferenceAcquisitionDiagnosticCode.UNSUPPORTED_RESOURCE,
+                f"reference webpage media declarations could not be parsed: {error}",
+            ) from error
+        for source in parser.sources:
+            candidate = urljoin(page_url, source)
+            try:
+                self._validate_url_shape(candidate, redirect=True)
+            except _AcquisitionFailure:
+                continue
+            return candidate
+        raise _AcquisitionFailure(
+            ReferenceAcquisitionDiagnosticCode.UNSUPPORTED_RESOURCE,
+            "reference webpage did not declare a bounded HTTPS video source",
+        )
 
     def _validated_target(self, url: str, *, redirect: bool) -> tuple[str, int, str]:
         parts = self._validate_url_shape(url, redirect=redirect)

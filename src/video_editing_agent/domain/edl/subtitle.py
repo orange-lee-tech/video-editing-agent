@@ -16,6 +16,12 @@ class SubtitleLayoutRegion(StrEnum):
     UPPER_SAFE = "upper_safe"
 
 
+class SubtitleStyleProfile(StrEnum):
+    CLEAN = "clean"
+    OUTLINED = "outlined"
+    BACKED = "backed"
+
+
 @dataclass(frozen=True, slots=True)
 class SubtitleEmphasisSpan:
     start: int
@@ -34,6 +40,8 @@ class StructuredSubtitleCue:
     speaker_ref: str | None = None
     emphasis: tuple[SubtitleEmphasisSpan, ...] = ()
     layout: SubtitleLayoutRegion = SubtitleLayoutRegion.LOWER_SAFE
+    style_profile: SubtitleStyleProfile = SubtitleStyleProfile.OUTLINED
+    evidence_refs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,3 +56,5 @@ class EDLSubtitleCue:
     speaker_ref: str | None = None
     emphasis: tuple[SubtitleEmphasisSpan, ...] = ()
     layout: SubtitleLayoutRegion = SubtitleLayoutRegion.LOWER_SAFE
+    style_profile: SubtitleStyleProfile = SubtitleStyleProfile.OUTLINED
+    evidence_refs: tuple[str, ...] = ()

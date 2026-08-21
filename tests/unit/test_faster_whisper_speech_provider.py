@@ -43,7 +43,7 @@ def _request() -> SpeechRecognitionRequest:
     )
 
 
-def test_default_config_is_pinned_cpu_local_only_prototype() -> None:
+def test_default_config_is_pinned_cpu_local_only_stage_a_capability() -> None:
     config = FasterWhisperConfig()
 
     assert config.runtime_version == FASTER_WHISPER_RUNTIME_VERSION == "1.2.1"

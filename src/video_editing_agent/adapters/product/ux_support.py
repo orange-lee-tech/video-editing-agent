@@ -11,7 +11,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from video_editing_agent.application.use_cases.product_flow import ProductFlowStage
+from video_editing_agent.application.use_cases.product_flow import (
+    ProductFlowEvent,
+    ProductFlowStage,
+)
 
 _HTTPS_URL = re.compile(r"https://[^\s<>\"'，。；：！？【】《》]+", re.IGNORECASE)
 _TRAILING_PROSE = ").,;:!?]}，。；：！？】》"
@@ -204,10 +207,14 @@ _STAGE_LABELS = {
         ProductFlowStage.PROJECT_READY: "项目已就绪",
         ProductFlowStage.INPUT_VALIDATION: "正在验证输入",
         ProductFlowStage.INGEST_UNDERSTANDING: "正在分析媒体",
+        ProductFlowStage.MUSIC_PREPARATION: "正在准备音乐",
         ProductFlowStage.PLANNING_GENERATION: "正在生成并复审方案",
         ProductFlowStage.EDITING_DECISION: "正在生成剪辑决策",
         ProductFlowStage.RESOLVING: "正在匹配真实素材",
         ProductFlowStage.EDL_ASSEMBLY: "正在组装剪辑时间线",
+        ProductFlowStage.AUDIO_ASSEMBLY: "正在组装原声与音频",
+        ProductFlowStage.VOICE_PREPARATION: "正在准备人声",
+        ProductFlowStage.SUBTITLE_COMPILATION: "正在生成可信字幕",
         ProductFlowStage.RENDERING: "正在渲染视频",
         ProductFlowStage.REVIEW_QC: "正在检查成片",
         ProductFlowStage.COMPLETED: "已完成",
@@ -220,6 +227,11 @@ _STAGE_LABELS = {
 
 def localized_stage(stage: ProductFlowStage, language: str) -> str:
     return _STAGE_LABELS.get(language, _STAGE_LABELS["en"])[stage]
+
+
+def format_product_event(event: ProductFlowEvent, language: str) -> str:
+    severity = "" if event.level.value == "info" else f" {event.level.value.upper()}"
+    return f"[{localized_stage(event.stage, language)}{severity}] {event.message}"
 
 
 def localized_error(error: BaseException, language: str) -> tuple[str, str]:

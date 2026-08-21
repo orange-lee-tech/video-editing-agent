@@ -282,3 +282,64 @@ def test_unsupported_or_incomplete_execution_fails_closed(
 
     assert result.plan is None
     assert result.diagnostics[0].code is code
+
+
+@pytest.mark.parametrize(
+    ("suffix", "container", "video_codec", "audio_codec", "expects_faststart"),
+    (
+        (".mp4", "mp4", "libx264", "aac", True),
+        (".mov", "mov", "libx264", "aac", True),
+        (".mkv", "matroska", "libx264", "aac", False),
+        (".webm", "webm", "libvpx-vp9", "libopus", False),
+    ),
+)
+def test_supported_output_container_codec_pairs_compile(
+    tmp_path: Path,
+    suffix: str,
+    container: str,
+    video_codec: str,
+    audio_codec: str,
+    expects_faststart: bool,
+) -> None:
+    request = _request(tmp_path)
+    request = replace(
+        request,
+        output_spec=OutputSpec(
+            tmp_path / f"output{suffix}",
+            180,
+            320,
+            30,
+            container,
+            video_codec,
+            audio_codec,
+        ),
+    )
+
+    result = compile_ffmpeg_render(request)
+
+    assert result.plan is not None and not result.diagnostics
+    arguments = result.plan.invocation.arguments
+    assert arguments[-1].endswith(suffix)
+    assert ("-movflags" in arguments) is expects_faststart
+    assert arguments[arguments.index("-c:v") + 1] == video_codec
+
+
+def test_output_container_codec_extension_mismatch_fails_closed(tmp_path: Path) -> None:
+    request = _request(tmp_path)
+    request = replace(
+        request,
+        output_spec=OutputSpec(
+            tmp_path / "output.webm",
+            180,
+            320,
+            30,
+            "mp4",
+            "libx264",
+            "aac",
+        ),
+    )
+
+    result = compile_ffmpeg_render(request)
+
+    assert result.plan is None
+    assert result.diagnostics[0].code is RenderDiagnosticCode.UNSUPPORTED_OUTPUT

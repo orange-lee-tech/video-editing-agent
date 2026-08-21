@@ -8,6 +8,10 @@ from video_editing_agent.domain.common.entity import EntityRevisionRef
 from video_editing_agent.domain.common.media_time import MediaTimeRange
 
 
+class SpeechRecognitionCapabilityUnavailable(RuntimeError):
+    """The approved ASR runtime/model is unavailable for a grounded speech request."""
+
+
 @dataclass(frozen=True, slots=True)
 class SpeechWordProposal:
     """Provider proposal whose range is relative to the requested Shot start."""

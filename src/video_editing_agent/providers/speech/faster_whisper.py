@@ -9,6 +9,7 @@ from math import isfinite
 from typing import Any
 
 from video_editing_agent.application.ports.speech_recognition import (
+    SpeechRecognitionCapabilityUnavailable,
     SpeechRecognitionPort,
     SpeechRecognitionProposal,
     SpeechRecognitionRequest,
@@ -22,8 +23,8 @@ DEFAULT_MODEL_ID = "Systran/faster-whisper-base"
 DEFAULT_MODEL_REVISION = "ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66"
 
 
-class FasterWhisperUnavailableError(RuntimeError):
-    """The optional pinned faster-whisper runtime/model is not locally available."""
+class FasterWhisperUnavailableError(SpeechRecognitionCapabilityUnavailable):
+    """The approved pinned Stage-A ASR runtime/model is unavailable."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,7 +70,8 @@ def _default_model_factory(config: FasterWhisperConfig) -> Any:
         module = importlib.import_module("faster_whisper")
     except (importlib.metadata.PackageNotFoundError, ModuleNotFoundError) as exc:
         raise FasterWhisperUnavailableError(
-            "faster-whisper is an optional R0.8B prototype runtime and is not installed"
+            "approved Stage-A speech recognition requires faster-whisper==1.2.1, but the "
+            "speech-runtime capability is not installed"
         ) from exc
 
     if installed_version != config.runtime_version:
@@ -155,9 +157,9 @@ def _segment_proposal(segment: Any, source_start: MediaTime) -> SpeechSegmentPro
 
 
 class FasterWhisperSpeechRecognitionPort(SpeechRecognitionPort):
-    """Pinned optional faster-whisper adapter.
+    """Pinned Stage-A speech-recognition capability adapter.
 
-    Source-time authority remains with the local owner.
+    Installation/model availability is explicit and source-time authority remains local.
     """
 
     def __init__(

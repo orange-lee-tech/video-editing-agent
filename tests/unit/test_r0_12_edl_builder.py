@@ -224,6 +224,62 @@ def test_builder_translates_approved_music_mix_without_rescoring() -> None:
     assert bgm.audio_automations[0].keyframes[0].gain_millibels == -1000
 
 
+def test_builder_splits_track_wide_constant_gain_across_looped_bgm_segments() -> None:
+    music = MusicSelectionDecision(
+        "looped-music-choice",
+        EntityRevisionRef("music", 3),
+        (
+            MusicSourceSegment(0, MediaTimeRange(MediaTime(10, 1), MediaTime(1, 1))),
+            MusicSourceSegment(1, MediaTimeRange(MediaTime(10, 1), MediaTime(1, 1))),
+            MusicSourceSegment(2, MediaTimeRange(MediaTime(10, 1), MediaTime(1, 1))),
+        ),
+        ("rights",),
+        0.8,
+        0.7,
+    )
+    mix = AudioMixDecision(
+        "looped-mix",
+        EntityRevisionRef("edit-plan", 1),
+        SourceAudioPolicy.MUTE,
+        (
+            AudioAutomationIntent(
+                AudioAutomationKind.GAIN,
+                music.selected_asset_ref,
+                (),
+                -10.0,
+                start=MediaTime(0, 1),
+                end=MediaTime(3, 1),
+                target_role=AudioTrackRole.BGM,
+            ),
+        ),
+    )
+
+    result = DeterministicEDLBuilder().build(_request(music_selection=music, audio_mix=mix))
+
+    assert result.is_built and result.edl is not None
+    bgm = tuple(item for item in result.edl.segments if item.track_id == "bgm")
+    assert len(bgm) == 3
+    assert tuple(item.timeline_range for item in bgm) == (
+        MediaTimeRange(MediaTime(0, 1), MediaTime(1, 1)),
+        MediaTimeRange(MediaTime(1, 1), MediaTime(1, 1)),
+        MediaTimeRange(MediaTime(2, 1), MediaTime(1, 1)),
+    )
+    assert all(len(item.audio_automations) == 1 for item in bgm)
+    assert tuple(
+        tuple(keyframe.timeline_time for keyframe in item.audio_automations[0].keyframes)
+        for item in bgm
+    ) == (
+        (MediaTime(0, 1), MediaTime(1, 1)),
+        (MediaTime(1, 1), MediaTime(2, 1)),
+        (MediaTime(2, 1), MediaTime(3, 1)),
+    )
+    assert all(
+        tuple(keyframe.gain_millibels for keyframe in item.audio_automations[0].keyframes)
+        == (-1000, -1000)
+        for item in bgm
+    )
+
+
 def test_source_audio_policy_changes_assembled_tracks_without_mutating_assets() -> None:
     plan_ref = EntityRevisionRef("edit-plan", 1)
     mute_mix = AudioMixDecision("mute", plan_ref, SourceAudioPolicy.MUTE)

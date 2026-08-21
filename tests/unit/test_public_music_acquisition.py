@@ -19,6 +19,7 @@ from video_editing_agent.domain.asset.rights import RightsEligibility
 from video_editing_agent.media.ingest.probe import MediaTechnicalMetadata
 from video_editing_agent.media.ingest.service import AssetIngestService
 from video_editing_agent.media.ingest.source import LocalMediaSource
+from video_editing_agent.providers.audio import wikimedia_acquisition as acquisition_module
 from video_editing_agent.providers.audio.openverse import OpenverseWikimediaAudioProvider
 from video_editing_agent.providers.audio.wikimedia import (
     WikimediaAudioRightsVerifier,
@@ -99,6 +100,95 @@ def public_resolver(hostname: str, port: int) -> tuple[str, ...]:
     assert hostname == "upload.wikimedia.org"
     assert port == 443
     return (PUBLIC_IP,)
+
+
+def test_default_wikimedia_transport_uses_system_http_connect_proxy(monkeypatch) -> None:
+    observed: dict[str, object] = {}
+
+    class FakeHttpsConnection:
+        def __init__(
+            self,
+            host: str,
+            *,
+            port: int,
+            timeout: float,
+            context: object,
+        ) -> None:
+            observed["proxy_host"] = host
+            observed["proxy_port"] = port
+            observed["timeout"] = timeout
+            observed["context"] = context
+
+        def set_tunnel(self, host: str, port: int) -> None:
+            observed["tunnel_host"] = host
+            observed["tunnel_port"] = port
+
+    monkeypatch.setattr(acquisition_module, "proxy_bypass", lambda _hostname: False)
+    monkeypatch.setattr(
+        acquisition_module,
+        "getproxies",
+        lambda: {"https": "http://127.0.0.1:7890"},
+    )
+    monkeypatch.setattr(acquisition_module.http.client, "HTTPSConnection", FakeHttpsConnection)
+
+    connection = acquisition_module._default_wikimedia_connection_factory(
+        "upload.wikimedia.org",
+        PUBLIC_IP,
+        443,
+        12.0,
+    )
+
+    assert connection is not None
+    assert observed["proxy_host"] == "127.0.0.1"
+    assert observed["proxy_port"] == 7890
+    assert observed["timeout"] == 12.0
+    assert observed["tunnel_host"] == "upload.wikimedia.org"
+    assert observed["tunnel_port"] == 443
+
+
+def test_default_wikimedia_transport_preserves_pinned_direct_without_proxy(monkeypatch) -> None:
+    direct = FakeConnection(FakeResponse())
+    observed: list[tuple[str, str, int, float]] = []
+
+    def direct_factory(
+        hostname: str,
+        pinned_ip: str,
+        port: int,
+        timeout: float,
+    ) -> FakeConnection:
+        observed.append((hostname, pinned_ip, port, timeout))
+        return direct
+
+    monkeypatch.setattr(acquisition_module, "proxy_bypass", lambda _hostname: False)
+    monkeypatch.setattr(acquisition_module, "getproxies", lambda: {})
+    monkeypatch.setattr(acquisition_module, "_default_connection_factory", direct_factory)
+
+    connection = acquisition_module._default_wikimedia_connection_factory(
+        "upload.wikimedia.org",
+        PUBLIC_IP,
+        443,
+        9.0,
+    )
+
+    assert connection is direct
+    assert observed == [("upload.wikimedia.org", PUBLIC_IP, 443, 9.0)]
+
+
+def test_default_wikimedia_transport_rejects_proxy_credentials(monkeypatch) -> None:
+    monkeypatch.setattr(acquisition_module, "proxy_bypass", lambda _hostname: False)
+    monkeypatch.setattr(
+        acquisition_module,
+        "getproxies",
+        lambda: {"https": "http://user:secret@127.0.0.1:7890"},
+    )
+
+    with pytest.raises(OSError, match="authenticated system HTTPS proxies are not supported"):
+        acquisition_module._default_wikimedia_connection_factory(
+            "upload.wikimedia.org",
+            PUBLIC_IP,
+            443,
+            12.0,
+        )
 
 
 def ext(value: str) -> dict[str, str]:
@@ -235,6 +325,60 @@ def test_wikimedia_cc0_is_automatically_eligible(tmp_path: Path) -> None:
 
     assert result.is_verified and result.verified is not None
     assert result.verified.snapshot.eligibility is RightsEligibility.ELIGIBLE
+
+
+def test_wikimedia_cc0_application_ogg_is_eligible_when_commons_marks_audio(
+    tmp_path: Path,
+) -> None:
+    result = WikimediaAudioRightsVerifier(
+        LocalArtifactStore(tmp_path / "artifacts"),
+        json_fetcher=lambda _url: commons_payload(
+            license_short="CC0 1.0",
+            license_url="https://creativecommons.org/publicdomain/zero/1.0/",
+            mime_type="application/ogg",
+        ),
+        clock=lambda: NOW,
+    ).verify("File:Example.ogg")
+
+    assert result.is_verified and result.verified is not None
+    assert result.verified.mime_type == "application/ogg"
+    assert result.verified.snapshot.eligibility is RightsEligibility.ELIGIBLE
+
+
+def test_wikimedia_application_ogg_fails_closed_without_audio_media_classification(
+    tmp_path: Path,
+) -> None:
+    payload = commons_payload(
+        license_short="CC0 1.0",
+        license_url="https://creativecommons.org/publicdomain/zero/1.0/",
+        mime_type="application/ogg",
+    )
+    imageinfo = payload["query"]["pages"][0]["imageinfo"][0]  # type: ignore[index]
+    imageinfo["mediatype"] = "VIDEO"  # type: ignore[index]
+
+    result = WikimediaAudioRightsVerifier(
+        LocalArtifactStore(tmp_path / "artifacts"),
+        json_fetcher=lambda _url: payload,
+        clock=lambda: NOW,
+    ).verify("File:Example.ogg")
+
+    assert not result.is_verified
+    assert result.diagnostics[0].code is WikimediaRightsDiagnosticCode.UNSUPPORTED_MEDIA_TYPE
+
+
+def test_wikimedia_non_audio_application_type_still_fails_closed(tmp_path: Path) -> None:
+    result = WikimediaAudioRightsVerifier(
+        LocalArtifactStore(tmp_path / "artifacts"),
+        json_fetcher=lambda _url: commons_payload(
+            license_short="CC0 1.0",
+            license_url="https://creativecommons.org/publicdomain/zero/1.0/",
+            mime_type="application/pdf",
+        ),
+        clock=lambda: NOW,
+    ).verify("File:Example.ogg")
+
+    assert not result.is_verified
+    assert result.diagnostics[0].code is WikimediaRightsDiagnosticCode.UNSUPPORTED_MEDIA_TYPE
 
 
 @pytest.mark.parametrize(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from enum import StrEnum
@@ -20,6 +21,8 @@ from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.domain.edit.model import EditPlan
 from video_editing_agent.domain.edit.resolution import ResolutionDecision, ResolutionDecisionType
 from video_editing_agent.domain.edl.model import EDL
+from video_editing_agent.domain.edl.subtitle import SubtitleStyleProfile
+from video_editing_agent.domain.music.model import BeatMap
 from video_editing_agent.domain.review.model import ReviewDisposition, ReviewVerdict
 from video_editing_agent.domain.script.model import ScriptPlan
 from video_editing_agent.domain.shooting.model import ProductionConstraints, ShootingPlan
@@ -29,10 +32,14 @@ class ProductFlowStage(StrEnum):
     PROJECT_READY = "project_ready"
     INPUT_VALIDATION = "input_validation"
     INGEST_UNDERSTANDING = "ingest_understanding"
+    MUSIC_PREPARATION = "music_preparation"
     PLANNING_GENERATION = "planning_generation"
     EDITING_DECISION = "editing_decision"
     RESOLVING = "resolving"
     EDL_ASSEMBLY = "edl_assembly"
+    AUDIO_ASSEMBLY = "audio_assembly"
+    VOICE_PREPARATION = "voice_preparation"
+    SUBTITLE_COMPILATION = "subtitle_compilation"
     RENDERING = "rendering"
     REVIEW_QC = "review_qc"
     COMPLETED = "completed"
@@ -40,10 +47,21 @@ class ProductFlowStage(StrEnum):
     FAILED = "failed"
 
 
+class ProductFlowEventLevel(StrEnum):
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+
+
 class ProductFlowOutcome(StrEnum):
     COMPLETED = "completed"
     CORRECTION_REQUIRED = "correction_required"
     FAILED = "failed"
+
+
+class VoiceMode(StrEnum):
+    ORIGINAL = "original"
+    SYNTHETIC = "synthetic"
 
 
 class PlanningReferenceKind(StrEnum):
@@ -79,6 +97,7 @@ class PreparedPlanningReferences:
 class ProductFlowEvent:
     stage: ProductFlowStage
     message: str
+    level: ProductFlowEventLevel = ProductFlowEventLevel.INFO
 
     def __post_init__(self) -> None:
         if not self.message.strip():
@@ -201,6 +220,37 @@ OUTPUT_PROFILE_PRESETS = (
 
 
 @dataclass(frozen=True, slots=True)
+class EditingMusicInput:
+    """Explicit user-selected local BGM plus the ordinary-user rights gate."""
+
+    local_path: Path
+    rights_attested: bool
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.rights_attested, bool):
+            raise TypeError("music rights_attested must be a bool")
+        if not self.rights_attested:
+            raise ValueError("local music requires explicit user rights attestation")
+
+
+@dataclass(frozen=True, slots=True)
+class PreparedEditingMusic:
+    """Rights-grounded music material prepared before timeline assembly."""
+
+    asset_ref: EntityRevisionRef
+    beat_map: BeatMap
+    rights_evidence_refs: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if self.beat_map.audio_asset_ref != self.asset_ref:
+            raise ValueError("prepared music BeatMap must reference the exact music Asset")
+        if not self.rights_evidence_refs or any(
+            not value.strip() for value in self.rights_evidence_refs
+        ):
+            raise ValueError("prepared music requires durable rights evidence")
+
+
+@dataclass(frozen=True, slots=True)
 class EditingProductRequest:
     project_location: Path
     brief: ProductBriefInput
@@ -211,6 +261,9 @@ class EditingProductRequest:
     shooting_plan_ref: EntityRevisionRef | None = None
     created_by: str = "product-flow"
     output_profile: EditingOutputProfile = OUTPUT_PROFILE_HORIZONTAL_1080P
+    music: EditingMusicInput | None = None
+    voice_mode: VoiceMode = VoiceMode.ORIGINAL
+    subtitle_style: SubtitleStyleProfile = SubtitleStyleProfile.OUTLINED
 
     def __post_init__(self) -> None:
         if not self.local_media_paths:
@@ -221,6 +274,10 @@ class EditingProductRequest:
             raise TypeError("requires_audible_output must be a bool")
         if self.shooting_plan_ref is not None and self.script_plan_ref is None:
             raise ValueError("shooting_plan_ref requires script_plan_ref")
+        if not isinstance(self.voice_mode, VoiceMode):
+            raise TypeError("voice_mode must be a VoiceMode")
+        if not isinstance(self.subtitle_style, SubtitleStyleProfile):
+            raise TypeError("subtitle_style must be a SubtitleStyleProfile")
 
 
 @dataclass(frozen=True, slots=True)
@@ -235,6 +292,40 @@ class EditingProductOperations:
     save_edl: Callable[[EDL], None]
     render: Callable[[EDL, Path, EditingOutputProfile], RenderResult]
     review: Callable[[EntityRevisionRef, RenderResult, bool], ReviewVerdict]
+    prepare_music: (
+        Callable[
+            [
+                EditingMusicInput | None,
+                ProductBriefInput,
+                Callable[[ProductFlowEventLevel, str], None],
+            ],
+            PreparedEditingMusic | None,
+        ]
+        | None
+    ) = None
+    build_edl_with_music: (
+        Callable[[EditPlan, tuple[ResolutionDecision, ...], bool, PreparedEditingMusic], EDL] | None
+    ) = None
+    validate_audio: Callable[[EDL, tuple[ResolutionDecision, ...]], EDL] | None = None
+    finalize_voice: (
+        Callable[
+            [EDL, tuple[ResolutionDecision, ...], VoiceMode],
+            EDL,
+        ]
+        | None
+    ) = None
+    compile_subtitles: (
+        Callable[
+            [
+                EDL,
+                tuple[ResolutionDecision, ...],
+                SubtitleStyleProfile,
+                Callable[[ProductFlowEventLevel, str], None],
+            ],
+            EDL,
+        ]
+        | None
+    ) = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -256,7 +347,12 @@ def _ref(entity: Brief | ScriptPlan | ShootingPlan | EditPlan | EDL) -> EntityRe
 
 def _diagnostic(exc: Exception) -> str:
     message = str(exc).strip()
-    return type(exc).__name__ if not message else f"{type(exc).__name__}: {message}"
+    safe = re.sub(
+        r"(?i)(api[_ -]?key|secret|authorization)(\s*[:=]\s*)(\S+)",
+        r"\1\2[REDACTED]",
+        message,
+    )
+    return type(exc).__name__ if not safe else f"{type(exc).__name__}: {safe}"
 
 
 class PlanningProductFlow:
@@ -374,6 +470,7 @@ class EditingProductFlow:
         brief_ref: EntityRevisionRef | None = None
         edit_plan_ref: EntityRevisionRef | None = None
         edl_ref: EntityRevisionRef | None = None
+        current_stage = ProductFlowStage.INPUT_VALIDATION
         try:
             brief = self._operations.create_brief(request.brief, request.created_by)
             brief_ref = _ref(brief)
@@ -383,13 +480,42 @@ class EditingProductFlow:
                     "Ingesting and understanding local media",
                 )
             )
+            current_stage = ProductFlowStage.INGEST_UNDERSTANDING
             self._operations.prepare_media(request.local_media_paths)
+            prepared_music: PreparedEditingMusic | None = None
+            music_preparer = self._operations.prepare_music
+            music_builder = self._operations.build_edl_with_music
+            wants_music = request.music is not None or request.requires_audible_output
+            if wants_music and music_preparer is not None and music_builder is not None:
+                emit(
+                    ProductFlowEvent(
+                        ProductFlowStage.MUSIC_PREPARATION,
+                        (
+                            "Preparing rights-attested local music"
+                            if request.music is not None
+                            else "Selecting rights-verified public background music"
+                        ),
+                    )
+                )
+                current_stage = ProductFlowStage.MUSIC_PREPARATION
+                prepared_music = music_preparer(
+                    request.music,
+                    request.brief,
+                    lambda level, message: emit(
+                        ProductFlowEvent(ProductFlowStage.MUSIC_PREPARATION, message, level)
+                    ),
+                )
+                if request.music is not None and prepared_music is None:
+                    raise RuntimeError("explicit local music could not be prepared")
+            elif request.music is not None:
+                raise RuntimeError("local music capability is unavailable")
             emit(
                 ProductFlowEvent(
                     ProductFlowStage.EDITING_DECISION,
                     "Generating and persisting EditPlan",
                 )
             )
+            current_stage = ProductFlowStage.EDITING_DECISION
             edit_plan = self._operations.generate_edit_plan(
                 brief_ref,
                 request.script_plan_ref,
@@ -400,6 +526,7 @@ class EditingProductFlow:
             emit(
                 ProductFlowEvent(ProductFlowStage.RESOLVING, "Resolving grounded source selections")
             )
+            current_stage = ProductFlowStage.RESOLVING
             decisions = self._operations.resolve_edit_plan(edit_plan)
             unresolved = tuple(
                 decision
@@ -412,25 +539,92 @@ class EditingProductFlow:
                 )
                 raise ValueError(f"unresolved EditPlan slots: {slot_ids}")
             emit(ProductFlowEvent(ProductFlowStage.EDL_ASSEMBLY, "Building canonical EDL"))
-            edl = self._operations.build_edl(
-                edit_plan,
-                decisions,
-                request.requires_audible_output,
+            current_stage = ProductFlowStage.EDL_ASSEMBLY
+            if prepared_music is None:
+                edl = self._operations.build_edl(
+                    edit_plan,
+                    decisions,
+                    request.requires_audible_output,
+                )
+            else:
+                build_with_music = self._operations.build_edl_with_music
+                if build_with_music is None:
+                    raise RuntimeError("music EDL capability is unavailable")
+                edl = build_with_music(
+                    edit_plan,
+                    decisions,
+                    request.requires_audible_output,
+                    prepared_music,
+                )
+            emit(
+                ProductFlowEvent(
+                    ProductFlowStage.AUDIO_ASSEMBLY,
+                    "Validating canonical source-audio and background-music lanes",
+                )
             )
+            current_stage = ProductFlowStage.AUDIO_ASSEMBLY
+            if self._operations.validate_audio is not None:
+                edl = self._operations.validate_audio(edl, decisions)
+            emit(
+                ProductFlowEvent(
+                    ProductFlowStage.VOICE_PREPARATION,
+                    (
+                        "Preserving grounded original source voice"
+                        if request.voice_mode is VoiceMode.ORIGINAL
+                        else "Preparing requested synthetic voice"
+                    ),
+                )
+            )
+            current_stage = ProductFlowStage.VOICE_PREPARATION
+            if (
+                request.voice_mode is VoiceMode.SYNTHETIC
+                and self._operations.finalize_voice is None
+            ):
+                raise RuntimeError(
+                    "Synthetic voice requested but no approved SpeechSynthesisPort capability "
+                    "is configured"
+                )
+            if self._operations.finalize_voice is not None:
+                edl = self._operations.finalize_voice(edl, decisions, request.voice_mode)
+            emit(
+                ProductFlowEvent(
+                    ProductFlowStage.SUBTITLE_COMPILATION,
+                    "Compiling trusted speech evidence into canonical subtitle timing",
+                )
+            )
+            current_stage = ProductFlowStage.SUBTITLE_COMPILATION
+            if self._operations.compile_subtitles is not None:
+                edl = self._operations.compile_subtitles(
+                    edl,
+                    decisions,
+                    request.subtitle_style,
+                    lambda level, message: emit(
+                        ProductFlowEvent(ProductFlowStage.SUBTITLE_COMPILATION, message, level)
+                    ),
+                )
             edl_ref = _ref(edl)
             self._operations.save_edl(edl)
             emit(ProductFlowEvent(ProductFlowStage.RENDERING, "Rendering canonical EDL"))
+            current_stage = ProductFlowStage.RENDERING
             render_result = self._operations.render(
                 edl, request.output_path, request.output_profile
             )
             emit(ProductFlowEvent(ProductFlowStage.REVIEW_QC, "Reviewing delivered output"))
+            current_stage = ProductFlowStage.REVIEW_QC
             verdict = self._operations.review(
                 edl_ref,
                 render_result,
                 request.requires_audible_output,
             )
         except Exception as exc:
-            emit(ProductFlowEvent(ProductFlowStage.FAILED, "Editing flow failed"))
+            diagnostic = _diagnostic(exc)
+            emit(
+                ProductFlowEvent(
+                    ProductFlowStage.FAILED,
+                    f"Failed during {current_stage.value}: {diagnostic}",
+                    ProductFlowEventLevel.ERROR,
+                )
+            )
             return EditingProductResult(
                 ProductFlowOutcome.FAILED,
                 request.project_location,
@@ -440,7 +634,7 @@ class EditingProductFlow:
                 None,
                 None,
                 tuple(events),
-                _diagnostic(exc),
+                f"stage={current_stage.value}; {diagnostic}",
             )
 
         if verdict.disposition is not ReviewDisposition.PASS:

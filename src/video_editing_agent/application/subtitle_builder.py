@@ -30,6 +30,8 @@ def compile_subtitle_cues(
             cue.speaker_ref,
             cue.emphasis,
             cue.layout,
+            cue.style_profile,
+            cue.evidence_refs,
         )
         for cue in cues
     )

@@ -9,7 +9,9 @@ import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 from urllib.parse import SplitResult, urljoin, urlsplit
+from urllib.request import getproxies, proxy_bypass
 
 from video_editing_agent.application.ports.audio_acquisition import (
     AcquiredAudioMaterial,
@@ -23,6 +25,7 @@ from video_editing_agent.providers.reference.direct_https import (
     ConnectionFactory,
     DirectHttpsAcquisitionPolicy,
     Resolver,
+    _ConnectionLike,
     _default_connection_factory,
     _default_resolver,
     _file_sha256,
@@ -71,6 +74,55 @@ def _content_type_base(value: str | None) -> str | None:
     return normalized or None
 
 
+def _system_http_proxy(hostname: str) -> SplitResult | None:
+    if proxy_bypass(hostname):
+        return None
+    proxies = getproxies()
+    raw_proxy = proxies.get("https") or proxies.get("http")
+    if raw_proxy is None or not raw_proxy.strip():
+        return None
+    candidate = raw_proxy.strip()
+    if "://" not in candidate:
+        candidate = f"http://{candidate}"
+    try:
+        parts = urlsplit(candidate)
+        proxy_port = parts.port
+    except ValueError as error:
+        raise OSError(f"system HTTPS proxy is invalid: {error}") from error
+    if parts.scheme.casefold() != "http":
+        raise OSError("Wikimedia audio acquisition currently supports HTTP CONNECT proxies only")
+    if parts.hostname is None or not parts.hostname.strip():
+        raise OSError("system HTTPS proxy requires a hostname")
+    if parts.username is not None or parts.password is not None:
+        raise OSError(
+            "authenticated system HTTPS proxies are not supported for Wikimedia audio acquisition"
+        )
+    if proxy_port is not None and proxy_port <= 0:
+        raise OSError("system HTTPS proxy contains an invalid port")
+    return parts
+
+
+def _default_wikimedia_connection_factory(
+    hostname: str,
+    pinned_ip: str,
+    port: int,
+    timeout: float,
+) -> _ConnectionLike:
+    proxy = _system_http_proxy(hostname)
+    if proxy is None:
+        return _default_connection_factory(hostname, pinned_ip, port, timeout)
+    assert proxy.hostname is not None
+    proxy_port = proxy.port or 80
+    connection = http.client.HTTPSConnection(
+        proxy.hostname,
+        port=proxy_port,
+        timeout=timeout,
+        context=ssl.create_default_context(),
+    )
+    connection.set_tunnel(hostname, port)
+    return cast(_ConnectionLike, connection)
+
+
 def _canonical_audio_mime(value: str) -> str:
     normalized = value.strip().casefold()
     return _CANONICAL_AUDIO_MIME.get(normalized, normalized)
@@ -85,7 +137,7 @@ class WikimediaAudioAcquirer:
         *,
         policy: DirectHttpsAcquisitionPolicy | None = None,
         resolver: Resolver = _default_resolver,
-        connection_factory: ConnectionFactory = _default_connection_factory,
+        connection_factory: ConnectionFactory = _default_wikimedia_connection_factory,
         clock: Clock = _default_clock,
         monotonic: Monotonic = time.monotonic,
     ) -> None:

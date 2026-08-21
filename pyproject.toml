@@ -10,6 +10,9 @@ requires-python = ">=3.12"
 dependencies = []
 
 [project.optional-dependencies]
+speech-runtime = [
+    "faster-whisper==1.2.1",
+]
 mediapipe-recovery = [
     "mediapipe==0.10.31",
     "opencv-python-headless==4.13.0.92",

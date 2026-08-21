@@ -22,6 +22,7 @@ class ProductRuntimeConfig:
     visual_model: str | None = None
     deepseek_model: str = "deepseek-v4-flash"
     device: str = "cpu"
+    speech_recognition_available: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,8 +83,20 @@ def resolve_product_runtime(
         )
     if not env.get("DEEPSEEK_API_KEY", "").strip():
         diagnostics.append("Planning/Director requires DEEPSEEK_API_KEY to be configured.")
+    try:
+        speech_recognition_available = module_finder("faster_whisper") is not None
+    except (ImportError, ModuleNotFoundError, ValueError):
+        speech_recognition_available = False
     if diagnostics:
         return ProductRuntimeResolution(None, tuple(diagnostics))
     return ProductRuntimeResolution(
-        ProductRuntimeConfig(ffmpeg, ffprobe, weights, visual_provider, visual_model), ()
+        ProductRuntimeConfig(
+            ffmpeg,
+            ffprobe,
+            weights,
+            visual_provider,
+            visual_model,
+            speech_recognition_available=speech_recognition_available,
+        ),
+        (),
     )
