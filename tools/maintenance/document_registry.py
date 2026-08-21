@@ -157,7 +157,9 @@ def _validate_registry(registry: dict[str, Any], tracked: set[str]) -> list[str]
         if path not in tracked:
             errors.append(f"canonical registry path is not tracked: {path}")
         if path.endswith(".md") and _declared_date(path) is None:
-            errors.append(f"canonical active Markdown lacks a declared update/effective date: {path}")
+            errors.append(
+                f"canonical active Markdown lacks a declared update/effective date: {path}"
+            )
 
     excluded = registry.get("default_excluded")
     if not isinstance(excluded, list) or "docs/archive/**" not in excluded:
@@ -216,9 +218,17 @@ def build_manifest() -> tuple[dict[str, Any], list[str]]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build and validate the repository document registry manifest.")
-    parser.add_argument("--output", type=Path, help="Write the exhaustive JSON manifest to this path.")
-    parser.add_argument("--check", action="store_true", help="Validate registry invariants and exit non-zero on failure.")
+    parser = argparse.ArgumentParser(
+        description="Build and validate the repository document registry manifest."
+    )
+    parser.add_argument(
+        "--output", type=Path, help="Write the exhaustive JSON manifest to this path."
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Validate registry invariants and exit non-zero on failure.",
+    )
     args = parser.parse_args()
 
     manifest, errors = build_manifest()
