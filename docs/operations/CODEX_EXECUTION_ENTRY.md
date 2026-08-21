@@ -6,53 +6,93 @@
 ## Release state
 
 **Work Order:** `R0.12-STAGE-A-FINAL-CLOSURE-002`  
-**Release:** CLOSED — no Codex construction is currently authorized  
+**Release:** OPEN — BOUNDED PLANNING REFERENCE COMPATIBILITY WAVE ONLY  
 **Foreman:** ChatGPT  
 **Authority:** `docs/operations/CURRENT_WORK_ORDER.md`
 
-Codex must not infer authorization from old chat history, archived wave specifications, or stale branch state.
+This release exists only to prove one compatible provider-specific reference acquisition path for an ordinary public Bilibili video page. It is not authorization for a generic crawler/downloader project.
 
-## Mandatory attention order when released
+## Mandatory attention order
 
 1. root `AGENTS.md`;
 2. `docs/DOCUMENT_REGISTRY.json`;
 3. `docs/operations/CURRENT_CONTROL_STATE.md`;
 4. `docs/roadmap/CURRENT_PHASE_STATUS.md`;
 5. `docs/operations/CURRENT_WORK_ORDER.md`;
-6. only task-relevant Product/Architecture/CAP/ADR material;
-7. only then the bounded implementation/test surface.
+6. only task-relevant source/tests;
+7. Product/Architecture/CAP/ADR only if a concrete implementation question requires them.
 
-`docs/archive/**` is `EXCLUDED_DEFAULT` and must not be opened unless the released task explicitly requires historical/provenance, backward-compatibility or legal evidence.
+`docs/archive/**`, `.private/**`, `.tools/**`, `.uv-cache*/**`, `.venv/**`, `build/**` and `dist/**` remain default-excluded from discovery.
 
-Local/runtime noise such as `.private/**`, `.tools/**`, `.uv-cache*/**`, `.venv/**`, `build/**` and `dist/**` is also excluded from ordinary discovery unless a concrete blocker requires it.
+## Released target
 
-## Current closure terrain
+Observed real input:
 
-The active Work Order preserves four bounded waves:
+`https://www.bilibili.com/video/BV1Mq4y187xR?share_source=copy_web`
 
-1. repository attention/document governance — ChatGPT/GitHub owned;
-2. bounded Planning reference compatibility proof;
-3. compatible Windows packaging foundation;
-4. final retained Product/Human Gate and Stage-A closure.
+Current generic `DirectHttpsReferenceAcquirer` correctly preserves bounded HTTPS/SSRF/IP/redirect/MIME/size/timeout rules, but the page does not expose a supported static HTML video declaration.
 
-A future Codex release should normally cover one coherent local wave, not all remaining terrain at once.
+Existing seam:
 
-## Permanent execution rules
+`PlanningReferenceCapabilities.acquisition: ReferenceAcquisitionPort`
 
-When explicitly released, Codex must:
+The implementation must keep Planning Domain unaware of Bilibili/site mechanics.
 
-- preserve the current working tree; no blind reset/stash/checkout/clean;
-- observe before changing;
-- use bounded self-repair for blockers inside the released scope;
-- prefer compatible/additive change and stable ports/contracts;
-- keep provider/model/runtime/renderer choices replaceable;
-- keep packaging/bootstrap/resource location outside Domain authority;
-- distinguish capability absence, approved degradation, skipped work and real failure;
-- avoid speculative generic frameworks and unrelated repository-wide refactors;
-- run focused checks during iteration and the required full gate before handoff;
-- treat its own PASS report as evidence, not final acceptance;
-- stop at the released boundary.
+## Required result
 
-## Current status
+Provide the smallest compatible acquisition design that lets a supported ordinary public Bilibili video page produce the same `AcquiredReferenceMedia` contract consumed by existing Planning.
 
-No prompt should be sent to Codex until ChatGPT reobserves the accepted repository state and explicitly opens a bounded release under `R0.12-STAGE-A-FINAL-CLOSURE-002`.
+Prefer provider-specific composition behind the existing `ReferenceAcquisitionPort` rather than adding Bilibili branches to Planning flow.
+
+Preserve:
+
+- reference media remains analysis-only and never Resolver-eligible final footage;
+- original URL/provenance and content hash remain recorded;
+- public HTTPS, SSRF/DNS/IP/redirect/size/timeout protections remain bounded;
+- no ambient credentials, login circumvention or paid/protected-content bypass;
+- unsupported/private/login/DRM/provider-change cases fail closed with useful diagnostics;
+- generic webpage acquisition remains bounded; no arbitrary `<a>` traversal, whole-site crawling or browser automation.
+
+A provider-specific page may use only the minimum public metadata/playback information needed to obtain an analyzable public reference stream. Any extra request target must be independently revalidated as public HTTPS.
+
+## Bounded self-repair
+
+Within this release, self-check and repair defects that directly prevent the supported Bilibili page → trusted reference media → existing Planning path or break required quality gates.
+
+Do not repair unrelated backlog or redesign the acquisition framework. If the first provider proof reveals one small reusable routing/composition seam, add only that seam rather than a speculative plugin framework.
+
+## Verification required
+
+At minimum:
+
+- focused acquisition/provider tests;
+- existing direct-HTTPS security regression tests;
+- a bounded real/public Bilibili engineering probe when network access permits;
+- Planning integration test proving acquired reference reaches the existing reference-analysis path;
+- Ruff format/check;
+- mypy `src`;
+- full pytest;
+- import-linter;
+- build;
+- repo doctor;
+- `git diff --check`.
+
+Do not run paid model/provider requests merely to prove acquisition. Human Product Gate will be performed separately after engineering acceptance.
+
+## Forbidden
+
+Do not:
+
+- read `docs/archive/**` for this task;
+- introduce yt-dlp or another broad downloader dependency unless a new explicit review authorizes it;
+- add login cookies/session scraping;
+- bypass region/membership/DRM/protected-content restrictions;
+- turn Planning into a Bilibili-aware module;
+- implement Douyin/Xiaohongshu support in this wave;
+- start Windows packaging work;
+- claim Stage-A 100%;
+- commit/push unless explicitly requested after local verification.
+
+## Stop condition
+
+Report changed files, acquisition/routing design, exact security invariants retained, focused/live/full verification, unsupported Bilibili cases, and the one ordinary Human Gate action needed next. Then stop.
