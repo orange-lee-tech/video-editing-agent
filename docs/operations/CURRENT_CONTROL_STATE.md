@@ -2,11 +2,11 @@
 
 ---
 schema: video-editing-agent-control-state/v1
-updated: 2026-08-21
+updated: 2026-08-22
 current_phase: R0.12
-phase_state: STAGE_A_FINAL_CLOSURE_REFERENCE_COMPATIBILITY_AND_PACKAGING
+phase_state: STAGE_A_FINAL_CLOSURE_WORKSPACE_UX_AND_PACKAGING
 active_work_order: R0.12-STAGE-A-FINAL-CLOSURE-002
-accepted_code_baseline: 6ba297bf28f36aa7e56da9babb5f27d941965913
+accepted_code_baseline: 756a30562dd512fba9868eeee43cf6422f60f642
 control_plane_baseline: e758c3dfb2cab08b901001c5c59379583d249a06
 structural_progress_percent: 95
 stage_a_completion_gate: OPEN
@@ -22,20 +22,24 @@ writer: chatgpt
 
 ## Routing truth
 
-Accepted implementation baseline is main merge `6ba297bf28f36aa7e56da9babb5f27d941965913` (PR #11).
+Accepted production-code baseline is `756a30562dd512fba9868eeee43cf6422f60f642` (PR #13).
 
-Accepted control-plane/document-governance baseline is `e758c3dfb2cab08b901001c5c59379583d249a06` (PR #12).
+Accepted repository-attention/document-governance baseline is `e758c3dfb2cab08b901001c5c59379583d249a06` (PR #12).
 
-Durable Editing evidence:
+Durable evidence:
 
-`docs/validation/R0.12_EDITING_AUDIO_SUBTITLE_CLOSURE_2026-08-21.md`
+- `docs/validation/R0.12_EDITING_AUDIO_SUBTITLE_CLOSURE_2026-08-21.md`
+- `docs/validation/R0.12_REFERENCE_COMPATIBILITY_CLOSURE_2026-08-22.md`
 
-Current truth:
+## Current truth
 
-- Planning Product/Human Gate remains PASS, but ordinary Bilibili reference-page compatibility is a bounded input-adapter gap that must not grow into a generic crawler project.
+- Planning Product/Human Gate remains PASS for the supported 1.0 surface.
+- Remote reference URL is **not** an ordinary 1.0 feature. The Tkinter URL field is hidden; local reference video remains supported.
+- Bounded Bilibili acquisition remains an engineering fallback seam only. Provider-neutral remote/video-native `ReferenceObservation` is deferred to 2.0.
 - Ordinary no-speech Editing Human evidence is PASS: real user footage reached final MP4 with source audio and natural rights-safe BGM; captions were correctly not fabricated.
-- Basic speech-bearing subtitle execution remains a 1.0 capability boundary and still needs approved/pinned speech runtime/model plus real Human evidence.
-- Production synthetic voice/TTS, advanced speech/ambience separation, richer subtitle/effects systems and feature-rich NLE behavior are deferred beyond 1.0.
+- Basic speech-bearing original voice + trusted subtitle execution remains a retained 1.0 gate and still needs approved/pinned speech runtime/model plus real Human evidence.
+- Production synthetic voice/TTS, advanced speech/ambience separation, rich subtitle/effects systems, remote-video observation, and feature-rich NLE behavior are deferred beyond 1.0.
+- Before Packaging, the desktop must consolidate Project Workspace ownership and ordinary UX so packaging does not freeze developer-oriented path/state behavior.
 - A real Windows distributable proof is still required before structural 100%: ordinary target environment must not require Python, uv, or repository execution.
 - Packaging/bootstrap/resource location must remain replaceable and outside Domain authority.
 
@@ -45,9 +49,14 @@ Current truth:
 
 Order:
 
-1. repository attention/document governance clean-up;
-2. bounded Planning reference compatibility proof;
-3. compatible Windows packaging foundation and fresh-machine proof;
-4. final retained 1.0 Product/Human evidence and closure synchronization.
+1. repository attention/document governance — ACCEPTED;
+2. bounded reference compatibility decision — ACCEPTED, remote URL deferred to 2.0 and hidden in 1.0;
+3. Project Workspace + UX consolidation — NEXT;
+4. compatible Windows packaging foundation and clean-machine-ish proof;
+5. final retained 1.0 Product/Human evidence and closure synchronization.
 
-Do not report Stage-A 100% until `docs/roadmap/STAGE_A_COMPLETION_GATE.md` and the machine guard are genuinely satisfied.
+Next UX/workspace specification:
+
+`docs/operations/STAGE_A_WORKSPACE_UX_CONSOLIDATION.md`
+
+Do not report Stage-A 100% until `docs/roadmap/STAGE_A_COMPLETION_GATE.md` and the machine/human gates are genuinely satisfied.

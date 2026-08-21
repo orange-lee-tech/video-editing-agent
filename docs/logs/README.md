@@ -1,5 +1,6 @@
 # Engineering Logs
 
+**Last updated:** 2026-08-22  
 **Status:** non-authoritative engineering memory
 
 This directory stores durable debugging/probe/collaboration knowledge that is expensive to rediscover. It is not an authority pack and it is not the active project-state surface.
@@ -14,20 +15,26 @@ When facts conflict:
 
 Active state belongs in:
 
+- `docs/operations/CURRENT_CONTROL_STATE.md`
 - `docs/roadmap/CURRENT_PHASE_STATUS.md`
 - `docs/operations/CURRENT_WORK_ORDER.md`
 
-Do not create phase-specific working-cache files when those two dynamic files can carry the current state.
+Do not create phase-specific working-cache files when those live control files can carry the current state.
 
 ## Files
 
-- `PROJECT_CHRONICLE.md` — 简体中文项目编年史；把 GitHub 提交、validation、真实 Product/Human Gate 与关键失败重新串成可读时间线。
+- `PROJECT_CHRONICLE.md` — 简体中文、按自然日索引的项目编年史；把 GitHub 提交、validation、真实 Product/Human Gate 与关键失败重新串成可读时间线。
 - `INCIDENT_LEDGER.md` — durable symptom → mechanism → invariant → fix/evidence history.
 - `PROBE_LEDGER.md` — material Engineering/Product Probe history and information gained.
 - `COLLABORATION_LESSONS.md` — durable lessons about ChatGPT/User/GitHub/Codex orchestration.
 - `REPOSITORY_GOVERNANCE_LESSONS.md` — durable repository hygiene, archive and navigation lessons.
-- `STAGE_A_PRODUCT_IO_IMPACT_AUDIT_2026-08-16.md` — Stage-A product input/output impact audit snapshot.
-- `COMMERCIAL_DESKTOP_RISK_AUDIT_2026-08-19.md` — static evidence-backed audit of Provider, Windows desktop, packaging, filesystem, runtime and commercial-release risks.
+- dated audit files — static evidence snapshots for a specific risk/impact question; they do not become live authority.
+
+## Chronicle rule
+
+The chronicle uses **one natural day as the minimum history unit**. A day may summarize multiple commits/PRs/waves, but different dates should not be collapsed into one ambiguous entry.
+
+The chronicle records why the project changed direction and what was actually proven. It should not duplicate every commit message or every CI run.
 
 ## What deserves a log entry
 
