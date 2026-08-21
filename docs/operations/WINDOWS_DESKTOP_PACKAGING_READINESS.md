@@ -1,7 +1,7 @@
 # Windows Desktop Packaging Readiness
 
 **状态：** PREPARATION ACTIVE — package not yet release-approved  
-**更新：** 2026-08-22  
+**更新日期：** 2026-08-22  
 **目标：** 从“开发机上 `uv run ...` 能启动”演进到“普通 Windows 用户无需安装 Python/uv/仓库即可启动、诊断和运行”。  
 **当前 Work Order：** `R0.12-STAGE-A-FINAL-CLOSURE-002` / Wave D（在 Project Workspace + UX consolidation 之后）
 
