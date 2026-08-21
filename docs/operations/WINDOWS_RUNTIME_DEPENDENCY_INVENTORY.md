@@ -1,7 +1,7 @@
 # Windows Runtime Dependency Inventory
 
 **状态：** ACTIVE PACKAGING INPUT  
-**更新：** 2026-08-22  
+**更新日期：** 2026-08-22  
 **目的：** 把“开发机上曾经装过什么”变成可审计的 runtime/component 清单，为 Windows `onedir`、release manifest、license review 和 clean-machine-ish smoke 提供输入。  
 **权威边界：** 本文件不批准重分发任何二进制/模型；分发许可仍以 Upstream Ledger、ADR、LICENSE_STATUS 和正式 release review 为准。
 
