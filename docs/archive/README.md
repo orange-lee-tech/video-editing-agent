@@ -34,6 +34,7 @@ Current authority/navigation starts at `../README.md` and `../DOCUMENT_REGISTRY.
 
 - `architecture/` — retired Architecture Contract v0.1 series.
 - `decisions/` — retired pre-A0 ADR location/material.
+- `operations/` — retired temporary execution-wave specifications superseded by the live Work Order.
 - `upstream/` — retired Upstream V1 bootstrap policy/component snapshots.
 - `roadmap/` — retired construction audits superseded as active navigation.
 
