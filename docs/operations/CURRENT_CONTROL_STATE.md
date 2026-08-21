@@ -7,7 +7,7 @@ current_phase: R0.12
 phase_state: STAGE_A_FINAL_CLOSURE_REFERENCE_COMPATIBILITY_AND_PACKAGING
 active_work_order: R0.12-STAGE-A-FINAL-CLOSURE-002
 accepted_code_baseline: 6ba297bf28f36aa7e56da9babb5f27d941965913
-control_plane_baseline: PENDING_CURRENT_GOVERNANCE_MERGE
+control_plane_baseline: e758c3dfb2cab08b901001c5c59379583d249a06
 structural_progress_percent: 95
 stage_a_completion_gate: OPEN
 core_1_planning_product_gate: PASS
@@ -23,6 +23,8 @@ writer: chatgpt
 ## Routing truth
 
 Accepted implementation baseline is main merge `6ba297bf28f36aa7e56da9babb5f27d941965913` (PR #11).
+
+Accepted control-plane/document-governance baseline is `e758c3dfb2cab08b901001c5c59379583d249a06` (PR #12).
 
 Durable Editing evidence:
 
