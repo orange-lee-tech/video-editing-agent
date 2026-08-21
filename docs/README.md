@@ -1,6 +1,6 @@
 # Documentation Map
 
-**Last updated:** 2026-08-21
+**Last updated:** 2026-08-22
 
 This directory is the repository's documentation control plane. Do not infer current authority from file age or filename alone.
 
@@ -17,8 +17,9 @@ For a new engineering conversation or audit:
 5. `operations/CURRENT_CONTROL_STATE.md` — machine-readable live control state;
 6. `roadmap/CURRENT_PHASE_STATUS.md` — human-readable live phase state;
 7. `operations/CURRENT_WORK_ORDER.md` — exact live implementation/evidence boundary;
-8. `roadmap/STAGE_A_COMPLETION_GATE.md` when evaluating progress or structural 100%;
-9. implementation/tests only after the active boundary is understood.
+8. the one explicitly active wave specification when the Work Order points to it;
+9. `roadmap/STAGE_A_COMPLETION_GATE.md` when evaluating progress or structural 100%;
+10. implementation/tests only after the active boundary is understood.
 
 `operations/CHATGPT_GITHUB_CODEX_COLLABORATION.md` and `operations/CODEX_EXECUTION_ENTRY.md` are read only when a ChatGPT/Codex handoff is actually relevant.
 
@@ -75,12 +76,21 @@ The compact registry is tracked at `DOCUMENT_REGISTRY.json`. GitHub generates an
 
 Durable helpers do not become a second authority stack:
 
-- `logs/PROJECT_CHRONICLE.md` — engineering chronicle;
+- `logs/PROJECT_CHRONICLE.md` — daily-indexed engineering chronicle;
 - `roadmap/PRODUCT_RED_BLACK_BOARD.md` — live red/black dashboard;
 - `product/DESKTOP_UI_DESIGN_SYSTEM_V0.1.md` — Windows desktop design guidance;
 - `architecture/PROVIDER_NEUTRAL_PRODUCT_BINDING_PLAN.md` — provider-neutral binding migration plan;
+- `operations/STAGE_A_WORKSPACE_UX_CONSOLIDATION.md` — prepared next Project Workspace + desktop UX wave;
 - `operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md` — packaging/release-readiness plan;
 - `operations/WINDOWS_RUNTIME_DEPENDENCY_INVENTORY.md` — runtime/component packaging inventory.
+
+## Current Stage-A sequencing
+
+Current Work Order sequencing is:
+
+`Workspace/UX consolidation → Windows packaging → final retained Product/Human Gate`
+
+Remote reference URL product support is deferred to 2.0. The ordinary Stage-A GUI keeps the unfinished URL field hidden and retains local reference video.
 
 ## Stage-A 100% gate
 
