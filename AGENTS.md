@@ -20,6 +20,8 @@ Read in this order when relevant:
 
 ## 2. Default excluded surfaces
 
+Registry attention class: `EXCLUDED_DEFAULT`.
+
 Do **not** read or recursively inspect these unless a concrete current task requires them:
 
 - `docs/archive/**` — retired provenance only; never current authority.
