@@ -16,6 +16,10 @@ from video_editing_agent.media.shot_detection.v02_exact import (
     ExactResolvedVideoAsset,
     ExactTransNetV2SceneBoundaryBackend,
 )
+from video_editing_agent.providers.usage import (
+    MeteredGeminiGenerateContentTransport,
+    MeteredOpenAIResponsesTransport,
+)
 from video_editing_agent.providers.vision.gemini_generate_content import (
     GeminiGenerateContentVisualUnderstanding,
     GeminiVisualConfig,
@@ -76,9 +80,12 @@ def visual_understanding_port(
         api_key = os.environ.get("GEMINI_API_KEY", "")
         if not api_key.strip():
             raise ProviderConfigurationError("GEMINI_API_KEY is required for provider=gemini")
+        transport = MeteredGeminiGenerateContentTransport(
+            UrllibGeminiGenerateContentTransport(api_key=api_key)
+        )
         inner: VisualUnderstandingPort = GeminiGenerateContentVisualUnderstanding(
             artifact_store=artifacts,
-            transport=UrllibGeminiGenerateContentTransport(api_key=api_key),
+            transport=transport,
             config=GeminiVisualConfig(model=model),
         )
         return RetryingVisualUnderstandingPort(inner)
@@ -86,9 +93,10 @@ def visual_understanding_port(
         api_key = os.environ.get("OPENAI_API_KEY", "")
         if not api_key.strip():
             raise ProviderConfigurationError("OPENAI_API_KEY is required for provider=openai")
+        transport = MeteredOpenAIResponsesTransport(UrllibOpenAIResponsesTransport(api_key=api_key))
         inner = OpenAIResponsesVisualUnderstanding(
             artifact_store=artifacts,
-            transport=UrllibOpenAIResponsesTransport(api_key=api_key),
+            transport=transport,
             config=OpenAIResponsesVisualConfig(model=model),
         )
         return RetryingVisualUnderstandingPort(inner)
