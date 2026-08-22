@@ -17,6 +17,9 @@ BRIEF_PATH = FOREMAN.BRIEF_PATH
 build_foreman_brief = FOREMAN.build_foreman_brief
 write_foreman_brief = FOREMAN.write_foreman_brief
 
+TEST_BRANCH = "work/test-wave"
+TEST_WAVE = "docs/operations/TEST_WAVE.md"
+
 
 def _git(root: Path, *args: str) -> str:
     return subprocess.run(
@@ -24,17 +27,24 @@ def _git(root: Path, *args: str) -> str:
     ).stdout.strip()
 
 
-def _control(*, phase: str = "R0.12", work_order: str = "CONTROL-PLANE-002") -> str:
+def _control(
+    *,
+    phase: str = "R0.12",
+    work_order: str = "CONTROL-PLANE-002",
+    branch: str = TEST_BRANCH,
+) -> str:
     return f"""# Current Control State
 
 ---
 schema: video-editing-agent-control-state/v1
-updated: 2026-08-14
+updated: 2026-08-22
 current_phase: {phase}
-phase_state: ACTIVATION_CONTROL_PLANE_HARDENING
+phase_state: TEST_ACTIVE
 active_work_order: {work_order}
+active_construction_branch: {branch}
 accepted_code_baseline: {"0" * 40}
-writer: codex
+codex_release: OPEN_TEST_ONLY
+writer: chatgpt
 ---
 """
 
@@ -48,42 +58,38 @@ def _work(*, phase: str = "R0.12", identity: str = "CONTROL-PLANE-002") -> str:
 
 ## Objective
 
-Generate a concise deterministic brief.
-
-## Read
-
-1. `docs/operations/CURRENT_CONTROL_STATE.md`
-2. `docs/operations/CODEX_EXECUTION_ENTRY.md`
-3. `docs/task-specific.md`
-
-## Allowed scope
-
-- `tools/maintenance/foreman.py`
-- focused tests
-
-Do not touch product implementation.
-
-## Authority boundary
-
-It may not:
-
-- invent product decisions;
-- auto-commit/push.
-
-## Stop gate
-
-- brief generated;
-- tests green.
+Generate a concise deterministic brief. Keep the worker inside the released wave.
 """
 
 
-def _repo(tmp_path: Path, *, control: str | None = None, work: str | None = None) -> Path:
+def _execution(
+    *,
+    work_order: str = "CONTROL-PLANE-002",
+    branch: str = TEST_BRANCH,
+    wave: str = TEST_WAVE,
+) -> str:
+    return f"""# Codex Execution Entry
+
+**Work Order:** `{work_order}`
+**Release:** OPEN — TEST WAVE ONLY
+**Construction branch:** `{branch}`
+**Wave specification:** `{wave}`
+"""
+
+
+def _repo(
+    tmp_path: Path,
+    *,
+    control: str | None = None,
+    work: str | None = None,
+    execution: str | None = None,
+) -> Path:
     paths = {
         "docs/operations/CURRENT_CONTROL_STATE.md": control or _control(),
         "docs/operations/CURRENT_WORK_ORDER.md": work or _work(),
-        "docs/operations/CODEX_EXECUTION_ENTRY.md": "entry marker that may be referenced only\n",
+        "docs/operations/CODEX_EXECUTION_ENTRY.md": execution or _execution(),
         "docs/operations/CODEX_TOOLBOX.md": "TOOLBOX_TARGET_CONTENT_MUST_NOT_BE_PRELOADED\n",
-        "docs/task-specific.md": "DURABLE_DOCUMENT_BODY_MUST_NOT_BE_COPIED\n" * 100,
+        TEST_WAVE: "DURABLE_WAVE_BODY_MUST_NOT_BE_COPIED\n" * 100,
         ".gitignore": "/.private/\n",
     }
     for relative, content in paths.items():
@@ -91,6 +97,7 @@ def _repo(tmp_path: Path, *, control: str | None = None, work: str | None = None
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(content, encoding="utf-8")
     _git(tmp_path, "init")
+    _git(tmp_path, "checkout", "-b", TEST_BRANCH)
     _git(tmp_path, "config", "user.email", "test@example.invalid")
     _git(tmp_path, "config", "user.name", "Test")
     _git(tmp_path, "add", ".")
@@ -98,22 +105,22 @@ def _repo(tmp_path: Path, *, control: str | None = None, work: str | None = None
     return tmp_path
 
 
-def test_valid_control_state_generates_concise_deterministic_brief(tmp_path: Path) -> None:
+def test_valid_release_generates_concise_deterministic_brief(tmp_path: Path) -> None:
     root = _repo(tmp_path)
     first, first_errors = build_foreman_brief(root)
     second, second_errors = build_foreman_brief(root)
 
     assert first_errors == second_errors == ()
     assert first == second
-    assert "Active work order: `CONTROL-PLANE-002`" in first
-    assert "Working tree: `clean`" in first
-    assert "## Allowed scope" not in first
-    assert "## Required read set" not in first
-    assert "brief generated" not in first
-    assert "docs/task-specific.md" not in first
-    assert "DURABLE_DOCUMENT_BODY_MUST_NOT_BE_COPIED" not in first
+    assert "- Work: `CONTROL-PLANE-002`" in first
+    assert "- Release: `OPEN — TEST WAVE ONLY`" in first
+    assert f"- Wave: `{TEST_WAVE}`" in first
+    assert f"- Expected branch: `{TEST_BRANCH}`" in first
+    assert f"- Local: `{TEST_BRANCH}`" in first
+    assert "tree=`clean`" in first
+    assert "DURABLE_WAVE_BODY_MUST_NOT_BE_COPIED" not in first
     assert "TOOLBOX_TARGET_CONTENT_MUST_NOT_BE_PRELOADED" not in first
-    assert len(first.splitlines()) < 70
+    assert len(first.splitlines()) < 50
 
 
 def test_selected_trigger_exposes_only_its_route_without_target_content(tmp_path: Path) -> None:
@@ -125,7 +132,6 @@ def test_selected_trigger_exposes_only_its_route_without_target_content(tmp_path
     assert "#testquality-failure" not in brief
     assert "#gitrepository-state-issue" not in brief
     assert "TOOLBOX_TARGET_CONTENT_MUST_NOT_BE_PRELOADED" not in brief
-    assert "rerun foreman with trigger `quality`" not in brief
 
 
 @pytest.mark.parametrize(
@@ -133,7 +139,7 @@ def test_selected_trigger_exposes_only_its_route_without_target_content(tmp_path
     (
         ("# no metadata\n", "no opening metadata delimiter"),
         (
-            _control().replace("phase_state: ACTIVATION_CONTROL_PLANE_HARDENING\n", ""),
+            _control().replace("phase_state: TEST_ACTIVE\n", ""),
             "phase_state",
         ),
     ),
@@ -151,6 +157,7 @@ def test_phase_and_work_order_mismatch_fail_closed(tmp_path: Path) -> None:
     )
     assert any("phase mismatch" in error for error in errors)
     assert any("active work-order mismatch" in error for error in errors)
+    assert any("Codex release work-order mismatch" in error for error in errors)
 
 
 def test_dirty_tree_is_prominent_and_generated_brief_remains_ignored(tmp_path: Path) -> None:
@@ -159,24 +166,33 @@ def test_dirty_tree_is_prominent_and_generated_brief_remains_ignored(tmp_path: P
     output, errors = write_foreman_brief(root)
 
     assert errors == ()
-    assert "Working tree: `DIRTY`" in output.read_text(encoding="utf-8")
+    assert "tree=`DIRTY`" in output.read_text(encoding="utf-8")
     assert output == root / BRIEF_PATH
     assert _git(root, "check-ignore", BRIEF_PATH) == BRIEF_PATH
     assert BRIEF_PATH not in _git(root, "status", "--porcelain")
 
 
-def test_missing_referenced_read_file_fails_closed(tmp_path: Path) -> None:
+def test_missing_released_wave_fails_closed(tmp_path: Path) -> None:
     root = _repo(tmp_path)
-    (root / "docs/task-specific.md").unlink()
-    _, errors = build_foreman_brief(root)
-    assert errors == ("work-order read reference is missing: docs/task-specific.md",)
-
-
-def test_existing_referenced_read_directory_is_accepted(tmp_path: Path) -> None:
-    work = _work().replace("docs/task-specific.md", "src/example_package/")
-    root = _repo(tmp_path, work=work)
-    (root / "src/example_package").mkdir(parents=True)
+    (root / TEST_WAVE).unlink()
 
     _, errors = build_foreman_brief(root)
 
-    assert errors == ()
+    assert errors == (f"released wave specification is missing: {TEST_WAVE}",)
+
+
+def test_local_branch_mismatch_fails_closed(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    _git(root, "checkout", "-b", "work/wrong-wave")
+
+    _, errors = build_foreman_brief(root)
+
+    assert any("local branch mismatch" in error for error in errors)
+
+
+def test_execution_work_order_mismatch_fails_closed(tmp_path: Path) -> None:
+    root = _repo(tmp_path, execution=_execution(work_order="OTHER"))
+
+    _, errors = build_foreman_brief(root)
+
+    assert any("Codex release work-order mismatch" in error for error in errors)
