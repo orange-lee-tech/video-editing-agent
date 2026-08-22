@@ -2,7 +2,7 @@
 
 Small, non-authoritative tools for repetitive repository construction/maintenance work.
 
-They are intentionally boring. They inspect state, generate local handoff context or wrap existing verification. They do **not** decide product policy, architecture or Human Gates.
+They inspect state, generate compact routing context, or wrap existing verification. They do **not** decide product policy, architecture or Human Gates.
 
 ## Repository doctor
 
@@ -30,7 +30,7 @@ Use locally after governance/archive/navigation changes and before a handoff whe
 
 ## Handoff snapshot
 
-Print a snapshot:
+Print a compact orientation pointer:
 
 ```powershell
 uv run python tools/maintenance/handoff_snapshot.py
@@ -42,7 +42,7 @@ Write one to an ignored local file:
 uv run python tools/maintenance/handoff_snapshot.py --output .private/handoff.md
 ```
 
-The snapshot is orientation only. The receiving ChatGPT must still reobserve GitHub/main and CI.
+The snapshot deliberately does **not** embed full live Markdown documents. It records local Git facts plus a few control-state fields and routes the receiving conversation back to canonical authority. The receiver must still reobserve GitHub/main and CI.
 
 ## Foreman brief
 
@@ -50,8 +50,17 @@ The snapshot is orientation only. The receiving ChatGPT must still reobserve Git
 powershell -File scripts/maintain.ps1 foreman
 ```
 
-Validates control pointers and local Git facts, then writes L0-only `.private/codex_brief.md`.
-Secondary routes are exposed one at a time, for example:
+Foreman writes a short L0-only `.private/codex_brief.md`. It validates:
+
+- local Git branch/state;
+- control-state ↔ Work Order alignment;
+- open Codex release metadata from `CODEX_EXECUTION_ENTRY.md`;
+- expected construction branch;
+- released wave specification existence.
+
+The brief contains only the current Work Order, release, wave path, objective, local Git facts and blockers. Codex should open the released wave spec and task-relevant source/tests instead of receiving a copied history bundle.
+
+Secondary routes are exposed only when triggered, for example:
 
 ```powershell
 powershell -File scripts/maintain.ps1 foreman -Trigger quality
