@@ -87,7 +87,8 @@ def _build_snapshot() -> str:
         "## Rule",
         "",
         "Do not treat this snapshot as live authority and do not preload archive/history. "
-        "Use the canonical files above, then open only the active wave and task-relevant code/tests.",
+        "Use the canonical files above, then open only the active wave and "
+        "task-relevant code/tests.",
         "",
     ]
     return "\n".join(parts)
