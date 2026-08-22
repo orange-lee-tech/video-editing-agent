@@ -74,7 +74,9 @@ def extract_token_usage(
             input_tokens = _nonnegative_int(usage.get("prompt_tokens"))
             output_tokens = _nonnegative_int(usage.get("completion_tokens"))
             total_tokens = _nonnegative_int(usage.get("total_tokens"))
-            reasoning_tokens = _nested_int(usage.get("completion_tokens_details"), "reasoning_tokens")
+            reasoning_tokens = _nested_int(
+                usage.get("completion_tokens_details"), "reasoning_tokens"
+            )
             cached_input_tokens = _nonnegative_int(usage.get("prompt_cache_hit_tokens")) or 0
     elif provider == "gemini":
         usage = response.get("usageMetadata")
@@ -170,3 +172,52 @@ def report_token_usage(
             _CONSOLE_METER.record(usage)
     except (TypeError, ValueError):
         return
+
+
+def _response_model(response: dict[str, Any], fallback: object) -> str:
+    value = response.get("model")
+    if isinstance(value, str) and value.strip():
+        return value
+    if isinstance(fallback, str) and fallback.strip():
+        return fallback
+    return "unknown"
+
+
+class MeteredDeepSeekChatTransport:
+    def __init__(self, inner: Any) -> None:
+        self._inner = inner
+
+    def create_chat_completion(self, payload: dict[str, Any]) -> dict[str, Any]:
+        response = self._inner.create_chat_completion(payload)
+        report_token_usage(
+            "deepseek",
+            _response_model(response, payload.get("model")),
+            response,
+            request_payload=payload,
+        )
+        return response
+
+
+class MeteredGeminiGenerateContentTransport:
+    def __init__(self, inner: Any) -> None:
+        self._inner = inner
+
+    def generate_content(self, model: str, payload: dict[str, Any]) -> dict[str, Any]:
+        response = self._inner.generate_content(model, payload)
+        report_token_usage("gemini", model, response, request_payload=payload)
+        return response
+
+
+class MeteredOpenAIResponsesTransport:
+    def __init__(self, inner: Any) -> None:
+        self._inner = inner
+
+    def create_response(self, payload: dict[str, Any]) -> dict[str, Any]:
+        response = self._inner.create_response(payload)
+        report_token_usage(
+            "openai",
+            _response_model(response, payload.get("model")),
+            response,
+            request_payload=payload,
+        )
+        return response
