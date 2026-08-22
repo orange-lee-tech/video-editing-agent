@@ -38,6 +38,7 @@ from video_editing_agent.planning.script.workflow import ScriptPlanningWorkflow
 from video_editing_agent.planning.shooting.service import ShootingPlanner
 from video_editing_agent.planning.shooting.workflow import ShootingPlanningWorkflow
 from video_editing_agent.storage.artifact.local_store import LocalArtifactStore
+from video_editing_agent.storage.project.layout import WorkspaceWritableLayout
 from video_editing_agent.storage.repositories.edl_repository import SqliteEDLRepository
 from video_editing_agent.storage.repositories.preproduction_repositories import (
     SqliteBriefRepository,
@@ -67,6 +68,7 @@ class ProjectWorkspace:
     database: SqliteProjectDatabase
     artifacts: LocalArtifactStore
     provider_audio: Path
+    writable: WorkspaceWritableLayout
     briefs: SqliteBriefRepository
     scripts: SqliteScriptPlanRepository
     shooting_plans: SqliteShootingPlanRepository
@@ -89,6 +91,7 @@ class ProjectWorkspace:
         resolved.mkdir(parents=True, exist_ok=True)
         provider_audio = resolved / "provider_audio"
         provider_audio.mkdir(parents=True, exist_ok=True)
+        writable = WorkspaceWritableLayout.ensure(resolved)
         database = SqliteProjectDatabase(resolved / "project.sqlite3")
         database.initialize()
         briefs = SqliteBriefRepository(database)
@@ -116,6 +119,7 @@ class ProjectWorkspace:
             database=database,
             artifacts=LocalArtifactStore(resolved / "artifacts"),
             provider_audio=provider_audio,
+            writable=writable,
             briefs=briefs,
             scripts=scripts,
             shooting_plans=shooting,
@@ -144,6 +148,14 @@ class ProjectWorkspace:
             "schema_version": self.database.schema_version(),
             "artifacts": str(self.root / "artifacts"),
             "provider_audio": str(self.provider_audio),
+            "writable": {
+                "cache": str(self.writable.cache),
+                "work": str(self.writable.work),
+                "logs": str(self.writable.logs),
+                "drafts": str(self.writable.drafts),
+                "history": str(self.writable.history),
+                "outputs": str(self.writable.outputs),
+            },
             "counts": {
                 "assets": len(self.assets.list_all()),
                 "shots": len(self.shots.list_all()),
