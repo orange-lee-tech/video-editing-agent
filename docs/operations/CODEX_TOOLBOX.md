@@ -18,6 +18,52 @@ build, `git diff --check` and launcher smoke. A dirty working tree is valid duri
 verification; use `-RequireClean` only at a boundary that explicitly requires cleanliness.
 `-SkipLauncherSmoke` is a diagnostic/headless escape hatch, not GUI acceptance evidence.
 
+## Collaboration responsibility boundary
+
+The repository uses four cooperating layers. Preserve this division to avoid wasting AI execution
+capacity on the wrong task.
+
+### ChatGPT: engineering control tower
+
+Responsible for:
+
+- product intent, architecture interpretation and scope decisions;
+- current-state observation and work-order routing;
+- selecting what should be done by ChatGPT, GitHub, PowerShell or Codex;
+- low-risk deterministic repository maintenance;
+- reviewing Codex evidence rather than accepting reports blindly;
+- defining bounded implementation instructions.
+
+Do not delegate pure architecture understanding, product-direction decisions or simple repository
+maintenance to Codex merely because Codex can read code.
+
+### Codex: local engineering executor
+
+Use Codex for work that benefits from local execution loops:
+
+- multi-file implementation;
+- GUI changes;
+- substantial refactors;
+- debugging requiring runtime feedback;
+- build/test/repair cycles.
+
+Do not use Codex as the default project historian, architecture decision maker, or low-value
+repository explorer. Read current control documents first and provide only bounded execution work.
+
+### PowerShell: local evidence layer
+
+Use PowerShell for:
+
+- Windows workspace state;
+- local runtime verification;
+- build/test evidence;
+- environment-specific checks.
+
+### GitHub: long-term project memory
+
+Use GitHub documents, commits, CI and status files as the durable source of project context. Avoid
+repeatedly transferring large historical context through chat when it can be stored and routed here.
+
 ## Architecture/contract ambiguity
 
 Stop guessing. Open only the CAP/ADR/contract section named by the active work order or the symbol's
