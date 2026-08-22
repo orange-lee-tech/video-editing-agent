@@ -4,6 +4,16 @@ Small, non-authoritative tools for repetitive repository construction/maintenanc
 
 They inspect state, generate compact routing context, or wrap existing verification. They do **not** decide product policy, architecture or Human Gates.
 
+## Default local preflight
+
+Before a bounded Codex construction batch, use one command:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/maintain.ps1 preflight
+```
+
+It runs repository doctor and Foreman, then writes the ignored `.private/codex_brief.md`. The brief is intentionally L0-only: current Work Order/release/wave path plus local Git facts and blockers. Codex should receive that compact pointer instead of a copied history bundle.
+
 ## Repository doctor
 
 ```powershell
@@ -24,7 +34,7 @@ Checks machine-verifiable governance invariants, including:
 
 The doctor prevents stale pointers and false completion claims. It does not decide whether a Product Probe deserves PASS; semantic/product acceptance remains a ChatGPT + Human Gate responsibility.
 
-The same doctor runs automatically in `.github/workflows/repository-governance.yml` when relevant documentation/maintenance files change.
+The same doctor runs automatically in `.github/workflows/repository-governance.yml` when relevant documentation/maintenance/control-script files change.
 
 Use locally after governance/archive/navigation changes and before a handoff when repository structure changed materially.
 
@@ -71,13 +81,14 @@ Routes point into `docs/operations/CODEX_TOOLBOX.md` without copying target cont
 ## Unified PowerShell wrapper
 
 ```powershell
+powershell -File scripts/maintain.ps1 preflight
 powershell -File scripts/maintain.ps1 doctor
 powershell -File scripts/maintain.ps1 foreman
 powershell -File scripts/maintain.ps1 handoff -Output .private/handoff.md
 powershell -File scripts/maintain.ps1 verify
 ```
 
-`verify` delegates to the existing `scripts/verify.ps1`; there is no duplicate Quality Gate implementation.
+`verify` delegates to the single canonical `scripts/verify.ps1`; there is no duplicate Quality Gate implementation. It includes repository doctor and launcher smoke. A dirty tree is valid while checking an uncommitted construction batch; use `-RequireClean` only when cleanliness itself is required.
 
 ## Design rule
 
