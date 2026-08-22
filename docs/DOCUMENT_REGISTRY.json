@@ -74,13 +74,13 @@
     },
     {
       "path": "docs/operations/STAGE_A_WORKSPACE_UX_CONSOLIDATION.md",
-      "role": "prepared next bounded desktop workspace and UX wave",
-      "attention": "ON_DEMAND",
+      "role": "active released Project Workspace and desktop UX construction wave",
+      "attention": "CORE",
       "lifecycle": "ACTIVE"
     },
     {
       "path": "docs/operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md",
-      "role": "Windows packaging readiness and release boundary",
+      "role": "prepared next Windows packaging readiness and release boundary",
       "attention": "ON_DEMAND",
       "lifecycle": "ACTIVE"
     },

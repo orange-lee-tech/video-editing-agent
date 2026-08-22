@@ -1,365 +1,145 @@
 # Product UX Backlog
 
-**Updated:** 2026-08-19  
-**Purpose:** preserve ordinary-user product feedback without reopening already-passed gates or confusing polish with Stage-A completion.
+**Updated:** 2026-08-22  
+**Purpose:** preserve ordinary-user UX work without overriding the live Work Order.  
+**Current authority:** `docs/operations/CURRENT_WORK_ORDER.md` and `docs/operations/STAGE_A_WORKSPACE_UX_CONSOLIDATION.md`.
 
 Priority:
 
-- **P0** — robustness/correctness on a valid ordinary-user path;
-- **P1** — high-value usability/persistence;
-- **P2** — expansion/polish that should not fake unsupported capability.
+- **P0** — required for the current Stage-A / 1.0 closure;
+- **P1** — high-value usability after the current closure wave is stable;
+- **P2 / 2.0** — future capability expansion that must not be faked in 1.0.
 
-The implementation specification for the preserved local stabilization candidate is:
+## Current truth
 
-`docs/operations/STAGE_A_UX_STABILIZATION_WAVE.md`
+- structural progress is **95%**; Stage-A completion remains OPEN;
+- Planning Product/Human Gate is PASS on the supported 1.0 surface;
+- ordinary no-speech Editing Human Gate is PASS with real footage, source audio, rights-safe BGM and no fabricated subtitles;
+- ordinary remote reference URL is hidden in 1.0; local reference video remains supported;
+- bounded Bilibili acquisition is only an engineering fallback seam;
+- provider-neutral remote/video observation is deferred to 2.0;
+- next sequence is Project Workspace + UX consolidation → Windows packaging → final retained Human Gate.
 
-The broader desktop-shell design baseline is:
+Do not use this backlog to reopen an accepted gate or override the live control trio.
 
-`docs/product/DESKTOP_UI_DESIGN_SYSTEM_V0.1.md`
+---
 
-The current gate-critical Editing integration correction is owned by:
+# P0 — Project Workspace + UX consolidation
 
-`docs/operations/CURRENT_WORK_ORDER.md`
+Specification:
 
-Do not mix commercial UI polish into that integration repair.
+`docs/operations/STAGE_A_WORKSPACE_UX_CONSOLIDATION.md`
 
-## P0 — Planning no-facts safe creative repair
+Required ordinary-user outcomes:
 
-If authoritative facts, reference URL and local reference video are all empty, Planning must still create from the other brief fields.
+1. One shared top-level `项目工作区 / Project Workspace` context for Planning and Editing.
+2. Project-specific writable state belongs under that workspace: existing `project.sqlite3`, artifacts, project cache/work/session scratch, bounded form draft/undo-redo state, project logs and default outputs. Do not duplicate canonical Domain state into ad-hoc snapshots.
+3. Editing derives a visible project-local default output, while retaining explicit Save As and safe overwrite/collision handling.
+4. Main-window configuration actions are consolidated into Import / Export / Save / Delete. Form configuration and API/provider configuration can be selected independently or together. Never export plaintext API keys; retain Windows protected-secret semantics.
+5. Main-window Clear / Undo / Redo acts on coherent active-form state, not only the focused text widget. UI history is separate from immutable/revisioned Domain history and must be bounded.
+6. Planning and Editing internal groups become vertical collapsible sections suitable for ordinary laptop windows.
+7. The generated Canvas pixel-camera mark must not be frozen as the permanent brand. Prefer the real previously approved feather asset if it can be recovered; otherwise leave icon replacement as a Human Gate rather than inventing an approximation.
+8. Project switching/opening must not silently discard unsaved drafts and must not default writable project state into the packaged install directory.
+9. Remote reference URL stays hidden throughout this wave.
 
-Observed failure: a real proposal invented unsupported claims such as natural-origin/purity implications and the factual reviewer correctly rejected them, but the entire flow terminated.
+---
 
-Required behavior:
+# P1 — retained usability backlog
 
-- empty facts/reference is valid;
-- title/objective/audience/platform/core message remain creative intent, not factual authority;
-- first unsupported proposal is reviewed/rejected normally;
-- feed the rejection reasons to one bounded full-proposal repair attempt;
-- never weaken the factual reviewer or silently coerce a claim into a fact;
-- second invalid proposal fails closed with a localized explanation.
+## Media selection summary
 
-**Current status:** implemented/tested in the preserved local UX candidate; not yet accepted into remote production baseline.
+After selecting multiple source files, show a compact local summary such as selected count and optional total size, with inspect/reselect actions. Exact selected paths remain authoritative; do not scan unrelated files or call the cloud just to build the summary.
 
-## P1 — Responsive long-running launcher
+## Result actions
 
-Planning/Editing work must not freeze the Tkinter UI.
+Once a result exists:
 
-- long-running work executes off the Tk main thread;
-- Tk mutations return through `root.after(...)` or an equivalent safe queue;
-- duplicate Start actions are disabled while active;
-- the window remains repaintable/movable during API, FFmpeg and render work;
-- controls recover after completion/failure.
-
-**Current status:** local candidate/manual smoke PASS; pending final post-Splash gate + commit/CI.
-
-## P1 — Output viewing and export
-
-- visible vertical scrollbar for Planning and Editing output;
-- `导出 / Export` action;
-- export exact visible output as UTF-8 `.txt`;
-- default directory Desktop, user may choose another location;
-- never export secrets or hidden internal diagnostics.
-
-**Current status:** local candidate/manual smoke PASS; pending commit/CI.
-
-## P1 — Honest runtime ETA/progress
-
-During Planning/Editing:
-
-- show predicted completion clock time to the minute, e.g. `预计 20:58 完成（约 7 分钟）`;
-- recalculate at least every 30 seconds;
-- recalculate on meaningful stage/workload changes;
-- show `正在估算… / Estimating…` until enough evidence exists;
-- derive ETA from observed stage timing and known media/workload characteristics;
-- allow ETA to move earlier/later;
-- never use a fake percentage or arbitrary cosmetic countdown;
-- provider-directed waits should visibly look like intentional waiting rather than a frozen app when safely observable.
-
-**Current status:** local candidate; real provider-wait behavior still needs later product observation.
-
-## P1 — UI-aligned localization
-
-Selected UI language controls stable ordinary-user presentation:
-
-- stage labels and progress messages;
-- ScriptPlan/ShootingPlan presentation labels;
-- Editing result presentation;
-- stable validation/runtime/provider error summaries;
-- dialogs/profile/export messages.
-
-Simplified Chinese UI should not primarily display raw English class names such as `VisualProviderTransientError` or `ScriptProposalRejectedError`.
-
-Provider raw detail may appear as bounded secondary diagnostics when useful. Do not machine-translate persisted canonical artifacts in ways that change meaning.
-
-**Current status:** local candidate/manual smoke PASS; pending commit/CI.
-
-## P1 — Local profiles and protected API credentials
-
-Default profile root under Documents, suggested:
-
-`%USERPROFILE%\Documents\Video Editing Agent\Profiles`
-
-Main Planning/form surface and Settings surface provide `文件 / File` with:
-
-- 保存 / Save
-- 另存为 / Save As
-- 读取 / Load
-- 删除 / Delete
-
-Suggested defaults:
-
-- `编导-YYYY-M-D.txt`
-- `API-YYYY-M-D.txt`
-
-Users may rename profiles.
-
-Ordinary form/profile metadata may be UTF-8 human-readable text. API secrets must **not** be plaintext in Documents, project files, logs or repo content. On Windows use a user-scoped protected mechanism such as DPAPI/Credential Manager and store only an opaque credential reference in the profile. Non-Windows fallback remains session-only rather than plaintext persistence.
-
-**Current status:** local candidate/manual dummy-secret round-trip PASS; plaintext scan PASS; pending commit/CI.
-
-## P1 — Placeholder guidance instead of fake values
-
-On first launch/no loaded profile:
-
-- true placeholder guidance, visually distinct from real content;
-- placeholder disappears on focus/input and may return when empty on blur;
-- placeholder is never submitted;
-- concise domain examples.
-
-The local stabilization candidate currently includes explicit `此行必填 / 此行可空置` inside placeholders because that was the first-run safety requirement.
-
-**Follow-up polish:** move required/optional status to labels/help text where practical and shorten the placeholder itself. The current screenshots show that repeating the full phrase on every row adds visual noise. This follow-up must preserve the same validation semantics.
-
-## P1 — Editing source selection simplification
-
-User decision on 2026-08-18: `素材文件` and `素材文件夹` overlap.
-
-Ordinary Editing UI should expose **one** mechanism:
-
-- keep `素材文件 / Media Files`;
-- chooser supports multi-select;
-- remove `素材文件夹 / Media Folder` from the ordinary UI;
-- preserve exact user-selected paths and provenance;
-- do not silently scan unrelated files from a directory;
-- present selected-file count/readability when many files are selected.
-
-Lower-level folder-expansion compatibility code may remain temporarily if deleting it causes unrelated churn, but it should not stay user-facing.
-
-**Current status:** local candidate/manual smoke PASS.
-
-## P1 — Reference share-text compatibility, bounded not scraper-first
-
-The Reference URL field may contain surrounding share prose plus an HTTPS URL, e.g. a Douyin-style copied share message.
-
-Desired behavior:
-
-1. deterministically extract the first HTTPS URL;
-2. use existing bounded redirect/direct-HTTPS acquisition;
-3. direct supported public media remains reference-analysis-only and may be analyzed;
-4. if the final target is HTML/platform page, explain in the selected UI language that the user should download/select the reference locally;
-5. do not make Stage A depend on platform reverse engineering/scrapers.
-
-**Current status:** parser/regression implemented in local candidate; no platform scraper added.
-
-## P1 — Provider quota/wait UX
-
-Real Gemini Editing probes exposed free-tier HTTP 429 conditions.
-
-Desired ordinary-user behavior:
-
-- primary message localized, e.g. visual service currently reached a request/quota limit and the task stopped;
-- when safely available, secondary diagnostics may show provider/model/retry delay/quota identifier;
-- provider-directed wait must not look like an app freeze;
-- never expose keys;
-- never silently switch provider/model to bypass quota.
-
-## P1 — Commercial information hierarchy
-
-Current screenshots are functional but too flat for a commercial desktop product.
-
-Required follow-up:
-
-- clear Header / workflow / input / status / result hierarchy;
-- use semantic sections instead of ten visually equal full-width rows;
-- one obvious Primary CTA per workflow;
-- Secondary actions visually quieter;
-- result surface separated from run/technical log;
-- empty result surface shows a helpful empty-state rather than a large unexplained blank area;
-- stable design tokens for typography, spacing, borders and status semantics.
-
-Do this with stock `tkinter.ttk` first; framework migration is not required to solve the present problem.
-
-## P1 — Media selection summary component
-
-After selecting multiple source files, do not force the user to read a long semicolon/path string.
-
-Show a compact local-only summary such as:
-
-```text
-已选择 7 个视频
-总大小 1.8 GB
-[查看文件] [重新选择]
-```
-
-Requirements:
-
-- exact selected paths remain authoritative inside controller state;
-- no unrelated directory scan;
-- no cloud/API call merely to show the summary;
-- file list remains inspectable.
-
-## P1 — Output overwrite confirmation
-
-Renderer correctly protects canonical source media from output collision, but the FFmpeg backend currently executes with overwrite enabled for an existing non-source output path.
-
-Ordinary product behavior before rendering an already-existing target:
-
-- `另存为` / suggest new name;
-- explicit `覆盖`;
-- `取消`.
-
-Do not move this policy into Renderer editorial authority; it belongs in the product/controller boundary before execution.
-
-## P1 — Capability-oriented API settings
-
-The current remote product shell still treats `DeepSeek` as the only reasoning/Director provider and Vision as Gemini/OpenAI.
-
-The future Settings surface must present product roles first:
-
-- `思考与编导 / Reasoning & Direction`;
-- `视觉理解 / Vision Understanding`.
-
-Provider/profile/protocol/model/endpoint/credential are configuration of those roles.
-
-Implementation plan:
-
-`docs/architecture/PROVIDER_NEUTRAL_PRODUCT_BINDING_PLAN.md`
-
-No silent provider fallback.
-
-## P1 — Diagnostics / Doctor surface
-
-Expose Environment Doctor through an ordinary-user action after the underlying capability-aware provider refactor is ready.
-
-Default Doctor should be a **static/local readiness check** and should not silently spend API quota.
-
-Useful summary:
-
-- local media tools ready/not ready;
-- shot-detection runtime ready/not ready;
-- reasoning capability configured/not configured;
-- vision capability configured/not configured;
-- output/project path readiness.
-
-Technical details may be expandable.
-
-## P1 — Project/path safety preflight
-
-Before creating/writing a project or starting a long run, ordinary UX should eventually detect/translate common desktop conditions:
-
-- unwritable location;
-- low disk space;
-- unavailable drive/network path;
-- suspicious output collision;
-- same project already open elsewhere when proven by a concurrency probe.
-
-Do not add warnings unsupported by real checks.
-
-## P2 — Open result/output location and copy result
-
-Low-risk efficiency actions once the corresponding result exists:
-
-- Planning: `复制结果`, `导出 TXT`;
-- Editing: `打开输出目录`, `复制成片路径`, `查看技术详情`.
+- Planning: Copy result / Export TXT;
+- Editing: Open output directory / Copy output path / View technical details.
 
 Do not show output actions before a result exists.
 
-## P2 — Recent projects
+## Recent projects
 
-A bounded recent-project list can reduce repetitive folder selection.
+A bounded recent-project list may store only workspace path, non-sensitive display metadata and last-opened time. Do not duplicate canonical project entities or secrets.
 
-Persist only:
+## Capability-oriented Settings / Doctor
 
-- project path;
-- non-sensitive display metadata;
-- last-opened time.
+Present product roles before vendor names: Reasoning & Direction and Visual Understanding. Provider/model/endpoint/credential configure those roles; no silent provider fallback.
 
-Do not persist API secrets or duplicate canonical project entities into a global recent-list database.
+Environment Doctor should remain a static/local readiness surface by default and must not silently spend API quota.
 
-## P2 — Safe Cancel / Resume
+## Provider quota / wait UX
 
-A Cancel button is useful only after the application/provider/FFmpeg lifecycle has an owner-safe cancellation contract.
+Provider-directed retry/wait states should look intentional rather than frozen. Primary messages are localized, technical detail is bounded, and secrets stay redacted.
 
-Before exposing it, define and test:
+## High-DPI / keyboard / laptop Human Smoke
 
-- worker cancellation token;
-- provider request timeout/cancel semantics;
-- FFmpeg child-process termination;
-- canonical artifact state after cancellation;
-- retry/resume from accepted revisions.
+Retain 100/125/150% scaling, 1366×768-class screen, Chinese/English, Tab order, keyboard activation and non-color-only status checks.
 
-No decorative Cancel button.
+## Safe Cancel / Resume
 
-## P2 — High DPI / keyboard / window-size Human Smoke
+Do not expose a decorative Cancel button until worker/provider/FFmpeg cancellation and accepted-artifact state have a tested owner-safe contract.
 
-The next shell-polish Human Gate should include at least:
+---
 
-- Windows 100% / 125% / 150% scaling;
-- 1366×768-class screen;
-- normal/maximized window;
-- Chinese/English;
-- Tab order and keyboard activation;
-- important status not conveyed by color alone.
+# P2 / 2.0 — explicit expansion backlog
 
-## P2 — Opt-in `公共素材` guidance
+## Provider-neutral remote reference observation
 
-Default unchecked. When implemented with real backing capability, it means the user permits Planning to recommend public/stock material that could substitute for planned shots.
+Future ordinary remote-reference support should live behind a provider-neutral capability such as `ReferenceObservationPort`.
 
-Rights boundary remains:
+Preferred capability order:
 
-- recommendation/research may occur during Planning;
-- public material does not automatically enter commercial final output;
-- user must actually select/import an asset as local media and satisfy the product's source/rights contract before Resolver eligibility;
-- no silent stock/generated replacement visuals.
+1. provider can directly observe a supported remote/video URL → native observation;
+2. provider accepts uploaded media → bounded acquisition/upload;
+3. provider is image-only → controlled frame-observation fallback;
+4. no truthful supported capability → fail closed.
 
-Do **not** ship a decorative checkbox with no real adapter behind it.
+Planning consumes structured reference observations/style evidence; it must not learn Bilibili/Douyin/Xiaohongshu mechanics.
 
-## P2 — Opt-in `类似方案` research
+Only after this capability exists should ordinary product work consider Bilibili, Douyin, Xiaohongshu or other site adapters. Do not build a generic crawler/downloader, login/cookie/DRM bypass, or pretend a URL text box is a finished feature.
 
-Default unchecked once a real replaceable research/search adapter exists.
+## Public-material / similar-plan research
 
-When implemented, user permits reference/research enrichment from publicly accessible similar examples, including public video resources, webpages and text.
+When backed by a real replaceable research/material adapter, Planning may recommend public material or learn from similar examples. Research remains analysis-only until the user explicitly imports/selects eligible material and satisfies source/rights contracts. No silent stock/generated replacement visuals.
 
-- research evidence remains analysis-only;
-- cannot become Resolver-eligible final visual media by itself;
-- provenance should be inspectable where practical;
-- actual shooting device/notes/brief constraints must shape the resulting plan;
-- do not fake this capability by adding prompt text without a real research adapter.
+## Production synthetic voice / advanced audio
 
-## P2 — Startup splash and real startup progress
+Production TTS, advanced speech/ambience separation, advanced stem mixing and richer speaker-aware subtitle systems remain beyond 1.0. Preserve existing seams; do not expose unfinished controls.
 
-Immediately on launch show a small centered non-resizable splash with a restrained product/pixel mark.
+## Rich editing / NLE UX
 
-- progress corresponds to real startup milestones such as language/theme init, profile storage discovery, safe credential references, lightweight runtime readiness, main-window construction and ready;
-- no arbitrary timer/fake percentage;
-- main UI remains non-interactive until ready while the process stays responsive;
-- no need to deliberately delay a fast startup merely to make the splash visible longer.
+Timeline/NLE editing, advanced effects/transitions and rich subtitle animation remain future work. They must not displace the ordinary one-click path.
 
-**Current status:** after manual repaint/pixel-mark repair the user confirmed the startup icon is visible; final full local gate still pending.
+---
 
-## Current execution rule
+# Accepted baseline — do not reopen casually
 
-Planning Product/Human Gate remains PASS.
+Already implemented/accepted unless a regression is observed:
 
-Editing Product/Human Gate remains OPEN and structural progress remains 90%.
+- responsive long-running Tkinter execution;
+- output scrollbar and UTF-8 visible-output export;
+- Chinese/English stable presentation;
+- evidence-based ETA surface;
+- local form/API profiles with Windows protected credentials and no plaintext-key persistence;
+- true placeholder guidance;
+- ordinary Editing multi-file selection with redundant folder UI removed;
+- localized quota/provider failure presentation;
+- modernized Stage-A desktop shell/workflow switcher;
+- startup splash tied to real startup milestones;
+- explicit output profiles;
+- remote reference URL hidden from ordinary 1.0 Planning after the 2026-08-22 decision.
 
-The 2026-08-19 integration audit found that the current ordinary Editing ProductFlow omits part of the already-required Stage-A editing-expression floor. Therefore the next gate-closing Editing Product Probe is blocked not only by provider/runtime availability but also by the integration repair now specified in `CURRENT_WORK_ORDER.md`.
+Historical superseded UX wave details belong in `docs/archive/**` and are not current authority.
 
-Execution order:
+## Current execution order
 
-1. finalize/push/accept the preserved local UX candidate;
-2. repair the Stage-A ordinary Editing integration gap;
-3. resume the real Editing Product/Human Gate;
-4. only after that, proceed with broader Provider-neutral/commercial-shell/packaging work as separate bounded waves.
+1. Project Workspace + UX consolidation;
+2. compatible Windows onedir packaging foundation;
+3. clean-machine-ish distributable proof;
+4. retained Planning / Editing / clear single-speaker subtitle Human Gate;
+5. exact-head quality, governance and CI closure;
+6. only then Stage-A 100% if the completion contract is genuinely satisfied.
 
-Completing UX polish alone does **not** close Editing Gate or raise Stage A to 100%.
+UX polish or an EXE by itself does not close Stage A.

@@ -35,7 +35,7 @@ The same attention-saving principle applies to local/runtime surfaces such as `.
 - `architecture/` — active Architecture Contract plus non-normative implementation/migration plans.
 - `capabilities/` — active capability specifications.
 - `adr/` — current architecture decisions.
-- `roadmap/` — Roadmap, Stage-A completion gate and live phase state.
+- `roadmap/` — Roadmap, Stage-A completion gate, live phase state and non-authoritative UX backlog.
 - `operations/` — dynamic ChatGPT/GitHub/Codex/PowerShell execution control and operational release/packaging readiness.
 - `validation/` — durable Product/Engineering/Human Gate closure evidence.
 - `logs/` — non-authoritative incidents, probes, collaboration records, chronicles and maintenance lessons.
@@ -63,14 +63,9 @@ Use `archive/` only when historical provenance is genuinely needed.
 
 ## Document lifecycle and dates
 
-`operations/DOCUMENT_CONTROL_POLICY.md` defines:
+`operations/DOCUMENT_CONTROL_POLICY.md` defines update-date, attention/lifecycle, placement/archive and registry rules.
 
-- explicit update-date rules;
-- attention/lifecycle classes;
-- placement and archive rules;
-- registry generation and audit behavior.
-
-The compact registry is tracked at `DOCUMENT_REGISTRY.json`. GitHub generates an exhaustive tracked-document manifest through `tools/maintenance/document_registry.py` / `.github/workflows/document-registry.yml` so humans and agents do not need to recursively traverse the repository for routine navigation.
+The compact registry is tracked at `DOCUMENT_REGISTRY.json`. GitHub generates an exhaustive tracked-document manifest through `tools/maintenance/document_registry.py` / `.github/workflows/document-registry.yml`, so humans and agents do not need to recursively traverse the repository for routine navigation.
 
 ## Product evolution references
 
@@ -78,19 +73,28 @@ Durable helpers do not become a second authority stack:
 
 - `logs/PROJECT_CHRONICLE.md` — daily-indexed engineering chronicle;
 - `roadmap/PRODUCT_RED_BLACK_BOARD.md` — live red/black dashboard;
+- `roadmap/PRODUCT_UX_BACKLOG.md` — non-authoritative current/future UX backlog;
 - `product/DESKTOP_UI_DESIGN_SYSTEM_V0.1.md` — Windows desktop design guidance;
 - `architecture/PROVIDER_NEUTRAL_PRODUCT_BINDING_PLAN.md` — provider-neutral binding migration plan;
-- `operations/STAGE_A_WORKSPACE_UX_CONSOLIDATION.md` — prepared next Project Workspace + desktop UX wave;
-- `operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md` — packaging/release-readiness plan;
+- `operations/STAGE_A_WORKSPACE_UX_CONSOLIDATION.md` — **active released** Project Workspace + desktop UX wave;
+- `operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md` — prepared next packaging/release-readiness plan;
 - `operations/WINDOWS_RUNTIME_DEPENDENCY_INVENTORY.md` — runtime/component packaging inventory.
 
 ## Current Stage-A sequencing
 
 Current Work Order sequencing is:
 
-`Workspace/UX consolidation → Windows packaging → final retained Product/Human Gate`
+`Workspace/UX consolidation [ACTIVE] → Windows packaging [NOT RELEASED] → final retained Product/Human Gate`
 
 Remote reference URL product support is deferred to 2.0. The ordinary Stage-A GUI keeps the unfinished URL field hidden and retains local reference video.
+
+Current local construction branch:
+
+`work/r012-workspace-ux-consolidation`
+
+Codex release details:
+
+`operations/CODEX_EXECUTION_ENTRY.md`
 
 ## Stage-A 100% gate
 

@@ -5,15 +5,16 @@
 **Phase:** R0.12 — Stage-A final closure  
 **Mode:** WORKSPACE/UX CONSOLIDATION → WINDOWS PACKAGING → FINAL HUMAN GATE  
 **Accepted production-code baseline:** `756a30562dd512fba9868eeee43cf6422f60f642`  
+**Current main preparation baseline:** `d26249f71d895efff54c1d7167f4b6bc457b98f1`  
 **Activated:** 2026-08-21  
 **Updated:** 2026-08-22  
-**Codex release:** CLOSED until ChatGPT explicitly releases the next bounded local wave
+**Codex release:** OPEN — `work/r012-workspace-ux-consolidation` / Workspace + UX consolidation only
 
 ## Objective
 
 Reach a truthful Stage-A / 1.0 structural closure without feature creep, while leaving a stable compatible foundation for later commercial-scale development.
 
-The ordinary Editing no-speech baseline has passed a real Human Gate. Planning remains PASS on the supported Stage-A surface. Remote reference URL observation is intentionally deferred to 2.0 and hidden from the ordinary 1.0 UI. The next prerequisite is to consolidate Project Workspace ownership and desktop interaction before packaging freezes path/resource behavior.
+The ordinary Editing no-speech baseline has passed a real Human Gate. Planning remains PASS on the supported Stage-A surface. Remote reference URL observation is intentionally deferred to 2.0 and hidden from the ordinary 1.0 UI. The active construction prerequisite is now to consolidate Project Workspace ownership and desktop interaction before packaging freezes path/resource behavior.
 
 ## Permanent construction principles
 
@@ -85,11 +86,19 @@ Durable evidence:
 
 Do not reopen remote reference URL work during Stage A without an explicit new product decision.
 
-## Wave C — Project Workspace + UX consolidation — NEXT
+## Wave C — Project Workspace + UX consolidation — RELEASED
+
+Construction branch:
+
+`work/r012-workspace-ux-consolidation`
 
 Specification:
 
 `docs/operations/STAGE_A_WORKSPACE_UX_CONSOLIDATION.md`
+
+Execution entry:
+
+`docs/operations/CODEX_EXECUTION_ENTRY.md`
 
 Required outcomes:
 
@@ -105,9 +114,15 @@ Required outcomes:
 
 This wave is a Packaging prerequisite because it defines writable-data and resource expectations that must not be frozen incorrectly in the distributable.
 
-## Wave D — compatible Windows packaging foundation
+Codex must stop after this wave's engineering/manual-smoke report. Packaging remains closed until ChatGPT/user accepts the Workspace/UX Human Gate.
+
+## Wave D — compatible Windows packaging foundation — PREPARED / NOT RELEASED
 
 This is an **effective packaging** requirement, not documentation-only preparation.
+
+Readiness input:
+
+`docs/operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md`
 
 Minimum engineering proof:
 
@@ -144,7 +159,7 @@ Required compatibility seams:
 
 The repository-local `.tools` FFmpeg/ffprobe locator accepted in PR #13 is a development fallback only. Packaging must not treat `.tools` as the install/resource contract.
 
-Codex may self-repair packaging blockers inside this boundary and re-run validation until stable. It must report non-blocking unrelated debt instead of expanding scope.
+When later released, Codex may self-repair packaging blockers inside that boundary and re-run validation until stable. It must report non-blocking unrelated debt instead of expanding scope.
 
 ## Wave E — final retained Product/Human Gate
 
