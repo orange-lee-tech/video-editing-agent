@@ -5,12 +5,18 @@ open only the section selected by foreman or concrete evidence.
 
 ## Work tools
 
+- Preflight current release + generate L0: `powershell -ExecutionPolicy Bypass -File scripts/maintain.ps1 preflight`.
 - Locate symbols/files: `rg "pattern"` and `rg --files`.
 - Inspect repository health: `powershell -ExecutionPolicy Bypass -File scripts/maintain.ps1 doctor`.
 - Run focused tests: `uv run pytest <focused paths>`.
-- Run the full gate: `powershell -ExecutionPolicy Bypass -File scripts/maintain.ps1 verify`.
-- Generate L0: `powershell -ExecutionPolicy Bypass -File scripts/maintain.ps1 foreman`.
+- Run the full local gate: `powershell -ExecutionPolicy Bypass -File scripts/maintain.ps1 verify`.
+- Generate L0 only: `powershell -ExecutionPolicy Bypass -File scripts/maintain.ps1 foreman`.
 - Generate a local handoff: `powershell -ExecutionPolicy Bypass -File scripts/maintain.ps1 handoff -Output .private/handoff.md`.
+
+The full local gate includes repository doctor, Ruff format/check, mypy, pytest, import-linter,
+build, `git diff --check` and launcher smoke. A dirty working tree is valid during pre-commit
+verification; use `-RequireClean` only at a boundary that explicitly requires cleanliness.
+`-SkipLauncherSmoke` is a diagnostic/headless escape hatch, not GUI acceptance evidence.
 
 ## Architecture/contract ambiguity
 
