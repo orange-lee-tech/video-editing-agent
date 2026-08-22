@@ -225,8 +225,7 @@ def _validate_alignment(
     control_branch = state.get("active_construction_branch")
     if expected_branch and control_branch and expected_branch != control_branch:
         errors.append(
-            "construction-branch mismatch: "
-            f"control={control_branch}, execution={expected_branch}"
+            f"construction-branch mismatch: control={control_branch}, execution={expected_branch}"
         )
     if expected_branch and git.branch not in {expected_branch, "unavailable"}:
         errors.append(f"local branch mismatch: expected={expected_branch}, actual={git.branch}")
@@ -296,7 +295,8 @@ def build_foreman_brief(
             (
                 "## Escalation",
                 "",
-                "Rerun with `-Trigger architecture|location|quality|git|external|high-risk` only when needed.",
+                "Rerun with `-Trigger architecture|location|quality|git|external|high-risk` "
+                "only when needed.",
                 "",
             )
         )
