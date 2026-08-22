@@ -2,7 +2,7 @@
 
 **Updated:** 2026-08-22  
 **Parent Work Order:** `R0.12-STAGE-A-FINAL-CLOSURE-002`  
-**Status:** READY FOR NEXT BOUNDED LOCAL WAVE  
+**Status:** ACTIVE / RELEASED — BOUNDED LOCAL WAVE  
 **Purpose:** make the existing Stage-A desktop product behave like one coherent user application before Windows packaging.
 
 ## Product intent
