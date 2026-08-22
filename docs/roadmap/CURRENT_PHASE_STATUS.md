@@ -4,7 +4,7 @@
 **Development stage:** STRUCTURAL_CONSTRUCTION  
 **Structural progress:** 95%  
 **Current phase:** R0.12 — Stage-A final closure / workspace UX / packaging  
-**Engineering state:** STAGE_A_FINAL_CLOSURE_WORKSPACE_UX_AND_PACKAGING  
+**Engineering state:** STAGE_A_WORKSPACE_UX_CONSOLIDATION_ACTIVE  
 **Updated:** 2026-08-22
 
 ## Progress truth
@@ -25,8 +25,8 @@ Current gate state:
 - source audio preservation + rights-safe BGM: HUMAN PASS on the accepted real run.
 - no-speech subtitle behavior: PASS (`SKIPPED` / no fabricated captions).
 - speech-bearing original voice + basic trusted subtitles: engineering seam present; approved/pinned runtime/model + real Human evidence still OPEN.
-- Project Workspace / desktop UX consolidation before packaging: OPEN.
-- Windows distributable proof without Python/uv/repository execution: OPEN.
+- Project Workspace / desktop UX consolidation before packaging: **ACTIVE / RELEASED**.
+- Windows distributable proof without Python/uv/repository execution: OPEN / not yet released.
 - Stage-A completion gate: OPEN.
 
 Therefore structural progress remains **95%**, not 100%.
@@ -36,6 +36,10 @@ Therefore structural progress remains **95%**, not 100%.
 `756a30562dd512fba9868eeee43cf6422f60f642`
 
 This is the squash merge of PR #13 after exact-head CI passed for implementation head `e8b09444e2f8402d267c670e841e8b9720418d20`.
+
+Current documentation/packaging-preparation main baseline:
+
+`d26249f71d895efff54c1d7167f4b6bc457b98f1`
 
 Durable evidence:
 
@@ -62,11 +66,21 @@ The Product Owner confirmed the final no-speech MP4 was normal, source audio was
 
 Reference compatibility exploration also proved that a provider-specific Bilibili acquisition adapter can live behind the existing acquisition seam while preserving transport/security boundaries. However, because current visual providers are image-frame oriented rather than provider-neutral remote/video-native observers, ordinary remote-reference input is intentionally hidden for 1.0 instead of forcing a heavy download/parse path into the product.
 
-## Remaining 1.0 closure terrain
+## Active construction — Project Workspace + desktop UX
 
-### A. Project Workspace + desktop UX consolidation
+Construction branch:
 
-Before packaging, make the existing desktop surface structurally coherent:
+`work/r012-workspace-ux-consolidation`
+
+Specification:
+
+`docs/operations/STAGE_A_WORKSPACE_UX_CONSOLIDATION.md`
+
+Execution entry:
+
+`docs/operations/CODEX_EXECUTION_ENTRY.md`
+
+This wave must establish before Packaging:
 
 - one shared top-level `Project Workspace` context for Planning and Editing;
 - project-specific cache/work/autosave/undo-redo/log/output ownership under that workspace;
@@ -74,20 +88,20 @@ Before packaging, make the existing desktop surface structurally coherent:
 - unified main-window configuration import/export/save/delete interaction;
 - form-level Clear / Undo / Redo;
 - vertical collapsible sections instead of unnecessary horizontal width;
-- replace the temporary pixel-camera mark with the approved feather identity if the real asset is recoverable;
+- replace the temporary pixel-camera mark with the approved feather identity only if the real asset is recoverable;
 - keep remote reference URL hidden.
 
-Specification:
+Codex must stop after this wave. Packaging remains a separate unreleased wave.
 
-`docs/operations/STAGE_A_WORKSPACE_UX_CONSOLIDATION.md`
+## Remaining retained 1.0 closure terrain
 
-### B. Basic speech/subtitle retained capability
+### A. Basic speech/subtitle retained capability
 
 Production synthetic voice/TTS is deferred, but original human speech + basic trusted subtitles remains a retained 1.0 capability.
 
 The speech runtime/model must be deliberate, pinned, diagnosable and pass a real simple spoken-video Human Gate before final closure. Advanced source separation/noise handling is not required for 1.0.
 
-### C. Compatible Windows packaging
+### B. Compatible Windows packaging
 
 Packaging must progress from Python wheel/sdist to a real Windows distributable engineering proof:
 
@@ -98,11 +112,15 @@ Packaging must progress from Python wheel/sdist to a real Windows distributable 
 - current 1.0 runtime dependencies are closed deliberately rather than accidentally copied from a developer machine;
 - fresh/clean Windows smoke proves launch and retained core-path diagnostics.
 
+Readiness input:
+
+`docs/operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md`
+
 The current repository-local `.tools` FFmpeg locator is a development fallback, not the final packaging resource-location architecture.
 
-### D. Final closure
+### C. Final closure
 
-After A-C:
+After Workspace/UX and Packaging are accepted:
 
 - run retained ordinary Planning/local-reference evidence;
 - rerun Editing no-speech baseline;
@@ -132,4 +150,4 @@ Bilibili/Douyin/Xiaohongshu site mechanics must remain adapter concerns and must
 
 `R0.12-STAGE-A-FINAL-CLOSURE-002`
 
-The next implementation wave must stay bounded to the current closure terrain and obey root `AGENTS.md` plus `docs/operations/DOCUMENT_CONTROL_POLICY.md`.
+The current implementation wave must stay bounded to Workspace/UX consolidation and obey root `AGENTS.md` plus `docs/operations/DOCUMENT_CONTROL_POLICY.md`.
