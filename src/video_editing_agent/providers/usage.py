@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import threading
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,6 +16,18 @@ class TokenUsage:
     reasoning_tokens: int = 0
     cached_input_tokens: int = 0
     source: str = "reported"
+
+
+class ChatCompletionTransport(Protocol):
+    def create_chat_completion(self, payload: dict[str, Any]) -> dict[str, Any]: ...
+
+
+class GenerateContentTransport(Protocol):
+    def generate_content(self, model: str, payload: dict[str, Any]) -> dict[str, Any]: ...
+
+
+class ResponsesTransport(Protocol):
+    def create_response(self, payload: dict[str, Any]) -> dict[str, Any]: ...
 
 
 def _nonnegative_int(value: object) -> int | None:
@@ -184,7 +196,7 @@ def _response_model(response: dict[str, Any], fallback: object) -> str:
 
 
 class MeteredDeepSeekChatTransport:
-    def __init__(self, inner: Any) -> None:
+    def __init__(self, inner: ChatCompletionTransport) -> None:
         self._inner = inner
 
     def create_chat_completion(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -199,7 +211,7 @@ class MeteredDeepSeekChatTransport:
 
 
 class MeteredGeminiGenerateContentTransport:
-    def __init__(self, inner: Any) -> None:
+    def __init__(self, inner: GenerateContentTransport) -> None:
         self._inner = inner
 
     def generate_content(self, model: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -209,7 +221,7 @@ class MeteredGeminiGenerateContentTransport:
 
 
 class MeteredOpenAIResponsesTransport:
-    def __init__(self, inner: Any) -> None:
+    def __init__(self, inner: ResponsesTransport) -> None:
         self._inner = inner
 
     def create_response(self, payload: dict[str, Any]) -> dict[str, Any]:
