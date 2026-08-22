@@ -80,12 +80,12 @@ def visual_understanding_port(
         api_key = os.environ.get("GEMINI_API_KEY", "")
         if not api_key.strip():
             raise ProviderConfigurationError("GEMINI_API_KEY is required for provider=gemini")
-        transport = MeteredGeminiGenerateContentTransport(
+        gemini_transport = MeteredGeminiGenerateContentTransport(
             UrllibGeminiGenerateContentTransport(api_key=api_key)
         )
         inner: VisualUnderstandingPort = GeminiGenerateContentVisualUnderstanding(
             artifact_store=artifacts,
-            transport=transport,
+            transport=gemini_transport,
             config=GeminiVisualConfig(model=model),
         )
         return RetryingVisualUnderstandingPort(inner)
@@ -93,10 +93,12 @@ def visual_understanding_port(
         api_key = os.environ.get("OPENAI_API_KEY", "")
         if not api_key.strip():
             raise ProviderConfigurationError("OPENAI_API_KEY is required for provider=openai")
-        transport = MeteredOpenAIResponsesTransport(UrllibOpenAIResponsesTransport(api_key=api_key))
+        openai_transport = MeteredOpenAIResponsesTransport(
+            UrllibOpenAIResponsesTransport(api_key=api_key)
+        )
         inner = OpenAIResponsesVisualUnderstanding(
             artifact_store=artifacts,
-            transport=transport,
+            transport=openai_transport,
             config=OpenAIResponsesVisualConfig(model=model),
         )
         return RetryingVisualUnderstandingPort(inner)
