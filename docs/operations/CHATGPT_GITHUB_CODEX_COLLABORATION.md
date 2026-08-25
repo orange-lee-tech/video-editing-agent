@@ -22,6 +22,8 @@ ChatGPT maintains the global picture and coordinates the other actors. It should
 - translate technical results into user-facing decisions and simple Human Gates;
 - report only **two progress percentages** when progress is requested: whole software and current phase.
 
+**User-mandated model quality floor:** every ChatGPT conversation that performs engineering control, review, acceptance, planning or construction work for this project must use **GPT-5.6 Sol or a higher-capability model**. A lower-tier model must not act as this repository's engineering control tower or acceptance authority.
+
 ChatGPT must not claim local artifacts exist merely because a GitHub file name suggests they do. Local paths reported by the user/Codex may be referenced as reported until independently observed.
 
 ### GitHub — durable shared memory and implementation truth
