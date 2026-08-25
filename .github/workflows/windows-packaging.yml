@@ -1,0 +1,32 @@
+name: Windows Packaging Candidate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - work/r012-windows-packaging
+
+jobs:
+  onedir:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Synchronize pinned packaging environment
+        run: uv sync --frozen --group packaging
+      - name: Build, inspect and smoke Windows onedir
+        shell: powershell
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_windows.ps1
+      - name: Upload identifiable onedir candidate and evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoEditingAgent-windows-x64-${{ github.sha }}
+          path: |
+            build/packaging/dist/VideoEditingAgent
+            build/packaging/evidence
+          if-no-files-found: error
+          retention-days: 14

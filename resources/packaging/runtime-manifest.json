@@ -1,0 +1,98 @@
+{
+  "schema": "video-editing-agent/runtime-manifest/v1",
+  "application_version": "0.1.0",
+  "components": [
+    {
+      "id": "application", "kind": "executable", "classification": "bundled-required",
+      "capability": "host-runtime", "version": "0.1.0", "location_policy": "install-relative",
+      "provenance": "repository source frozen by pinned PyInstaller", "license_state": "reviewed",
+      "inclusion": "include", "hash_policy": "build-generated", "path": "VideoEditingAgent.exe",
+      "platform": "windows", "architecture": "x86_64", "absence_fatal": true
+    },
+    {
+      "id": "runtime-manifest", "kind": "resource", "classification": "bundled-required",
+      "capability": "install-resources", "version": "1", "location_policy": "install-relative",
+      "provenance": "repository-controlled packaging BOM", "license_state": "reviewed",
+      "inclusion": "include", "hash_policy": "build-generated",
+      "path": "_internal/resources/packaging/runtime-manifest.json",
+      "platform": "any", "architecture": "any", "absence_fatal": true
+    },
+    {
+      "id": "python-runtime", "kind": "runtime", "classification": "bundled-required",
+      "capability": "host-runtime", "version": "3.12", "location_policy": "bundler-internal",
+      "provenance": "CPython runtime selected by pinned PyInstaller build environment",
+      "license_state": "reviewed", "inclusion": "include", "hash_policy": "build-generated",
+      "path": "_internal/python312.dll", "platform": "windows", "architecture": "x86_64",
+      "absence_fatal": true
+    },
+    {
+      "id": "tk-runtime-data", "kind": "runtime", "classification": "bundled-required",
+      "capability": "host-runtime", "version": "8.6", "location_policy": "bundler-internal",
+      "provenance": "Tcl/Tk runtime distributed with CPython and collected by PyInstaller",
+      "license_state": "reviewed", "inclusion": "include", "hash_policy": "build-generated",
+      "path": "_internal/_tk_data", "platform": "windows", "architecture": "x86_64",
+      "absence_fatal": true
+    },
+    {
+      "id": "ffmpeg", "kind": "executable", "classification": "managed-optional",
+      "capability": "media-probe-render", "version": "8.1", "location_policy": "managed-component-root",
+      "provenance": "exact redistributable build approval and hash pending", "license_state": "external-review-required",
+      "inclusion": "external", "hash_policy": "not-applicable", "path": "tools/ffmpeg.exe",
+      "platform": "windows", "architecture": "x86_64", "absence_fatal": true
+    },
+    {
+      "id": "ffprobe", "kind": "executable", "classification": "managed-optional",
+      "capability": "media-probe-render", "version": "8.1", "location_policy": "managed-component-root",
+      "provenance": "exact redistributable build approval and hash pending", "license_state": "external-review-required",
+      "inclusion": "external", "hash_policy": "not-applicable", "path": "tools/ffprobe.exe",
+      "platform": "windows", "architecture": "x86_64", "absence_fatal": true
+    },
+    {
+      "id": "transnet-runtime", "kind": "runtime", "classification": "managed-optional",
+      "capability": "shot-detection", "version": "1.0.5", "location_policy": "managed-component-root",
+      "provenance": "reviewed transnetv2-pytorch package family; release payload pending",
+      "license_state": "external-review-required", "inclusion": "external",
+      "hash_policy": "not-applicable", "path": "runtimes/transnetv2",
+      "platform": "windows", "architecture": "x86_64", "absence_fatal": true
+    },
+    {
+      "id": "transnet-weights", "kind": "model", "classification": "managed-optional",
+      "capability": "shot-detection", "version": "transnetv2-pytorch-1.0.5",
+      "location_policy": "managed-component-root", "provenance": "reviewed package-owned weights; release hash pending",
+      "license_state": "external-review-required", "inclusion": "external",
+      "hash_policy": "not-applicable", "path": "models/transnetv2/transnetv2-pytorch-weights.pth",
+      "platform": "any", "architecture": "any", "absence_fatal": true
+    },
+    {
+      "id": "speech-runtime", "kind": "runtime", "classification": "managed-optional",
+      "capability": "speech-recognition", "version": "faster-whisper-1.2.1",
+      "location_policy": "managed-component-root", "provenance": "pinned Python package; native release closure pending",
+      "license_state": "external-review-required", "inclusion": "external",
+      "hash_policy": "not-applicable", "path": "runtimes/faster-whisper",
+      "platform": "windows", "architecture": "x86_64", "absence_fatal": false
+    },
+    {
+      "id": "speech-model", "kind": "model", "classification": "managed-optional",
+      "capability": "speech-recognition",
+      "version": "Systran/faster-whisper-base@ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66",
+      "location_policy": "managed-component-root", "provenance": "pinned model revision; local-files-only",
+      "license_state": "external-review-required", "inclusion": "external",
+      "hash_policy": "not-applicable", "path": "models/faster-whisper-base",
+      "platform": "any", "architecture": "any", "absence_fatal": false
+    },
+    {
+      "id": "cloud-providers", "kind": "remote-service", "classification": "remote",
+      "capability": "remote-provider", "version": "provider-neutral", "location_policy": "remote-credential-gated",
+      "provenance": "DeepSeek/Gemini/OpenAI adapters; no credentials bundled", "license_state": "not-applicable",
+      "inclusion": "exclude", "hash_policy": "not-applicable", "platform": "any",
+      "architecture": "any", "absence_fatal": false
+    },
+    {
+      "id": "development-tooling", "kind": "development-tool", "classification": "development-only",
+      "capability": "development", "version": "repository-managed", "location_policy": "development-only",
+      "provenance": "uv, repository checkout, caches and .tools", "license_state": "not-applicable",
+      "inclusion": "exclude", "hash_policy": "not-applicable", "platform": "any",
+      "architecture": "any", "absence_fatal": false
+    }
+  ]
+}

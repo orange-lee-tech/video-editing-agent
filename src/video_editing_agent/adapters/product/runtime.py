@@ -8,6 +8,11 @@ from dataclasses import dataclass
 from importlib.machinery import ModuleSpec
 from pathlib import Path
 
+from video_editing_agent.adapters.bootstrap.resource_locator import (
+    ResourceRuntimeLocator,
+    RuntimeLayout,
+    default_runtime_locator,
+)
 from video_editing_agent.media.shot_detection.transnet_runtime import (
     TRANSNETV2_WEIGHTS_FILENAME,
 )
@@ -42,6 +47,7 @@ class ProductRuntimeConfig:
     deepseek_model: str = "deepseek-v4-flash"
     device: str = "cpu"
     speech_recognition_available: bool = False
+    speech_model_path: Path | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,6 +67,7 @@ def resolve_product_runtime(
     environment: Mapping[str, str] | None = None,
     executable_locator: Callable[[str], str | None] | None = None,
     module_finder: Callable[[str], ModuleSpec | None] = importlib.util.find_spec,
+    runtime_locator: ResourceRuntimeLocator | None = None,
 ) -> ProductRuntimeResolution:
     env = os.environ if environment is None else environment
     diagnostics: list[str] = []
@@ -69,7 +76,22 @@ def resolve_product_runtime(
     media_required = mode == "editing" or reference_required
     visual_provider: str | None = None
     visual_model: str | None = None
-    locator = locate_media_executable if executable_locator is None else executable_locator
+    resolved_runtime_locator = runtime_locator
+    if resolved_runtime_locator is None and executable_locator is None:
+        try:
+            resolved_runtime_locator = default_runtime_locator()
+        except ValueError as exc:
+            diagnostics.append(str(exc))
+    if resolved_runtime_locator is not None:
+        resolved_runtime_locator.activate_managed_python_runtime("transnet-runtime")
+        resolved_runtime_locator.activate_managed_python_runtime("speech-runtime")
+    locator = (
+        (lambda name: resolved_runtime_locator.executable(name, development_name=name))
+        if resolved_runtime_locator is not None and executable_locator is None
+        else locate_media_executable
+        if executable_locator is None
+        else executable_locator
+    )
     ffmpeg, ffprobe = locator("ffmpeg"), locator("ffprobe")
     if media_required and (ffmpeg is None or ffprobe is None):
         purpose = "Editing" if mode == "editing" else "Planning reference-video analysis"
@@ -81,7 +103,9 @@ def resolve_product_runtime(
     except (ImportError, ModuleNotFoundError, ValueError):
         spec = None
     weights = None
-    if spec is not None and spec.origin is not None:
+    if resolved_runtime_locator is not None:
+        weights = resolved_runtime_locator.existing_component_path("transnet-weights")
+    if weights is None and spec is not None and spec.origin is not None:
         candidate = Path(spec.origin).resolve().parent / TRANSNETV2_WEIGHTS_FILENAME
         if candidate.is_file():
             weights = candidate
@@ -107,6 +131,15 @@ def resolve_product_runtime(
         speech_recognition_available = module_finder("faster_whisper") is not None
     except (ImportError, ModuleNotFoundError, ValueError):
         speech_recognition_available = False
+    speech_model_path = None
+    if resolved_runtime_locator is not None:
+        speech_model_path = resolved_runtime_locator.existing_component_path("speech-model")
+        if resolved_runtime_locator.layout is RuntimeLayout.FROZEN:
+            speech_recognition_available = (
+                speech_recognition_available
+                and resolved_runtime_locator.existing_component_path("speech-runtime") is not None
+                and speech_model_path is not None
+            )
     if diagnostics:
         return ProductRuntimeResolution(None, tuple(diagnostics))
     return ProductRuntimeResolution(
@@ -117,6 +150,7 @@ def resolve_product_runtime(
             visual_provider,
             visual_model,
             speech_recognition_available=speech_recognition_available,
+            speech_model_path=speech_model_path,
         ),
         (),
     )
