@@ -13,6 +13,10 @@ $Manifest = Join-Path $RepoRoot "resources/packaging/runtime-manifest.json"
 
 Push-Location $RepoRoot
 try {
+    $PythonVersion = (uv run python -c "import platform; print(platform.python_version())").Trim()
+    if ($LASTEXITCODE -ne 0 -or $PythonVersion -ne "3.12.13") {
+        throw "Windows packaging requires exact CPython 3.12.13; resolved '$PythonVersion'"
+    }
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File `
         (Join-Path $RepoRoot "scripts/prepare_windows_runtime_payloads.ps1")
     if ($LASTEXITCODE -ne 0) { throw "Windows runtime payload preparation failed" }
