@@ -439,7 +439,10 @@ def test_unresolved_edit_slot_fails_closed_before_edl_or_render(tmp_path: Path) 
 
     assert result.outcome is ProductFlowOutcome.FAILED
     assert result.events[-1].stage is ProductFlowStage.FAILED
-    assert "unresolved EditPlan slots: slot_1" in (result.diagnostic or "")
+    assert "available local footage still cannot cover the planned edit: show value" in (
+        result.diagnostic or ""
+    )
+    assert "slot_1" not in (result.diagnostic or "")
     assert downstream == []
 
 
