@@ -23,6 +23,8 @@ def test_workspace_open_reopen_and_read_are_deterministic(tmp_path) -> None:
     assert reopened.status() == first.status()
     assert reopened.database.path.stat().st_size == before
     assert (root / "artifacts").is_dir()
+    assert (root / "outputs" / "final").is_dir()
+    assert (root / "drafts").is_dir()
     assert reopened.status()["counts"] == {
         "assets": 0,
         "shots": 0,

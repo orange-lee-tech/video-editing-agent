@@ -50,6 +50,15 @@ from video_editing_agent.adapters.product.ux_support import (
     serialize_profile,
     write_utf8_export,
 )
+from video_editing_agent.adapters.product.workspace_ui import (
+    BoundedFormHistory,
+    OutputPathOwnership,
+    WorkspaceFormStateStore,
+    context_for_workspace,
+    output_path_for_workspace,
+    require_selected_workspace,
+    restored_output_ownership,
+)
 from video_editing_agent.application.use_cases.product_flow import (
     OUTPUT_PROFILE_HORIZONTAL_1080P,
     OUTPUT_PROFILE_SQUARE_1080P,
@@ -60,6 +69,7 @@ from video_editing_agent.application.use_cases.product_flow import (
 )
 from video_editing_agent.domain.edl.subtitle import SubtitleStyleProfile
 from video_editing_agent.domain.shooting.model import ProductionConstraints
+from video_editing_agent.storage.project.workspace import ProjectWorkspace
 
 _TEXT = {
     "zh-CN": {
@@ -75,6 +85,19 @@ _TEXT = {
         "result_log_title": "结果与运行记录",
         "result_empty": "尚未生成结果。完成后会在这里显示可读摘要与运行记录。",
         "field_project": "项目目录",
+        "workspace": "项目工作区",
+        "workspace_unselected": "尚未选择项目工作区",
+        "workspace_required": "请先选择项目工作区，再开始运行。",
+        "configuration": "配置 ▾",
+        "configuration_scope": "配置范围（可同时选择）",
+        "form_configuration": "规划 / 剪辑表单",
+        "api_configuration": "API / Provider",
+        "import": "导入",
+        "clear": "清空",
+        "undo": "撤销",
+        "redo": "重做",
+        "output_exists_title": "确认覆盖输出",
+        "output_exists_message": "所选输出文件已存在。是否明确覆盖该文件？",
         "field_title": "视频标题",
         "field_objective": "视频目标",
         "field_audience": "目标受众",
@@ -166,6 +189,19 @@ _TEXT = {
         "result_log_title": "Result & Run Log",
         "result_empty": "No result yet. A readable summary and run log will appear here.",
         "field_project": "Project Directory",
+        "workspace": "Project Workspace",
+        "workspace_unselected": "No Project Workspace selected",
+        "workspace_required": "Select a Project Workspace before starting.",
+        "configuration": "Configuration ▾",
+        "configuration_scope": "Configuration scope (select either or both)",
+        "form_configuration": "Planning / Editing forms",
+        "api_configuration": "API / Provider",
+        "import": "Import",
+        "clear": "Clear",
+        "undo": "Undo",
+        "redo": "Redo",
+        "output_exists_title": "Confirm output overwrite",
+        "output_exists_message": "The selected output file already exists. Overwrite it?",
         "field_title": "Video Title",
         "field_objective": "Objective",
         "field_audience": "Audience",
@@ -394,8 +430,16 @@ def launch() -> int:
         splash.update()
 
     startup_milestone(1)
-    root.geometry("1120x760")
-    root.minsize(900, 620)
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    window_width = min(900, max(720, int(screen_width * 0.55)))
+    window_height = min(720, max(540, int(screen_height * 0.70)))
+    # Fixed logical margins remain safe under Windows DPI virtualization, where centering
+    # calculations can otherwise place the physical right edge beyond a laptop screen.
+    window_x = 20
+    window_y = 20
+    root.geometry(f"{window_width}x{window_height}+{window_x}+{window_y}")
+    root.minsize(min(720, window_width), min(540, window_height))
     language = tk.StringVar(value="zh-CN")
     startup_milestone(2)
     profile_root = default_profile_root()
@@ -436,28 +480,57 @@ def launch() -> int:
 
     language_button = ttk.Button(header, style="Ghost.TButton")
     language_button.pack(side="right")
-    settings_button = ttk.Button(header, style="Ghost.TButton")
-    settings_button.pack(side="right", padx=(0, 4))
-    profile_button = ttk.Button(header, style="Ghost.TButton")
-    profile_button.pack(side="right", padx=(0, 4))
+    configuration_button = ttk.Button(header, style="Ghost.TButton")
+    configuration_button.pack(side="right", padx=(0, 4))
     api_status = ttk.Label(header, style="StatusPill.TLabel")
     api_status.pack(side="right", padx=(0, 10))
+
+    workspace_bar = ttk.Frame(root, style="Header.TFrame", padding=(12, 8))
+    workspace_bar.pack(fill="x", padx=16, pady=(0, 6))
+    workspace_label = ttk.Label(workspace_bar, style="Body.TLabel")
+    workspace_label.pack(side="left")
+    workspace_value = tk.StringVar()
+    workspace_entry = ttk.Entry(
+        workspace_bar, textvariable=workspace_value, state="readonly", style="Product.TEntry"
+    )
+    workspace_entry.pack(side="left", fill="x", expand=True, padx=10)
+    choose_workspace_button = ttk.Button(workspace_bar, style="Secondary.TButton")
+    choose_workspace_button.pack(side="right")
 
     workflow_nav = ttk.Frame(root, style="Nav.TFrame")
     workflow_nav.pack(fill="x", padx=16, pady=(0, 4))
 
     notebook = ttk.Notebook(root, style="Product.TNotebook")
     notebook.pack(fill="both", expand=True, padx=16, pady=(0, 12))
-    planning_tab = ttk.Frame(notebook, style="App.TFrame", padding=(0, 8))
-    editing_tab = ttk.Frame(notebook, style="App.TFrame", padding=(0, 8))
-    planning_tab.columnconfigure(0, weight=1)
-    editing_tab.columnconfigure(0, weight=1)
-    notebook.add(planning_tab)
-    notebook.add(editing_tab)
+    planning_page = ttk.Frame(notebook, style="App.TFrame")
+    editing_page = ttk.Frame(notebook, style="App.TFrame")
+    notebook.add(planning_page)
+    notebook.add(editing_page)
+
+    def scrollable_page(page: Any) -> Any:
+        canvas = tk.Canvas(page, highlightthickness=0, borderwidth=0)
+        scrollbar = ttk.Scrollbar(page, orient="vertical", command=canvas.yview)
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        content = ttk.Frame(canvas, style="App.TFrame", padding=(0, 8))
+        window = canvas.create_window((0, 0), window=content, anchor="nw")
+        content.bind(
+            "<Configure>",
+            lambda _event: canvas.configure(scrollregion=canvas.bbox("all")),
+        )
+        canvas.bind(
+            "<Configure>",
+            lambda event: canvas.itemconfigure(window, width=event.width),
+        )
+        return content
+
+    planning_tab = scrollable_page(planning_page)
+    editing_tab = scrollable_page(editing_page)
 
     def select_workflow(target: str) -> None:
         is_planning = target == "planning"
-        notebook.select(planning_tab if is_planning else editing_tab)  # type: ignore[no-untyped-call]
+        notebook.select(planning_page if is_planning else editing_page)  # type: ignore[no-untyped-call]
         planning_nav.configure(
             style="WorkflowActive.TButton" if is_planning else "Workflow.TButton"
         )
@@ -475,9 +548,24 @@ def launch() -> int:
         style="Workflow.TButton",
     )
     editing_nav.pack(side="left", padx=(4, 0))
+    redo_button = ttk.Button(
+        workflow_nav, command=lambda: mutate_history("redo"), style="Ghost.TButton"
+    )
+    redo_button.pack(side="right")
+    undo_button = ttk.Button(
+        workflow_nav, command=lambda: mutate_history("undo"), style="Ghost.TButton"
+    )
+    undo_button.pack(side="right", padx=(0, 4))
+    clear_button = ttk.Button(
+        workflow_nav, command=lambda: mutate_history("clear"), style="Ghost.TButton"
+    )
+    clear_button.pack(side="right", padx=(0, 4))
 
     field_labels: list[tuple[Any, str]] = []
     translated_widgets: list[tuple[Any, str]] = []
+    translated_widgets.extend(
+        ((clear_button, "clear"), (undo_button, "undo"), (redo_button, "redo"))
+    )
     entry_fields: dict[int, tuple[Any, Any, str]] = {}
 
     def show_placeholder(entry: Any, value: Any, name: str) -> None:
@@ -532,44 +620,40 @@ def launch() -> int:
         parent.columnconfigure(1, weight=1)
         return values
 
-    planning_goal_card = ttk.LabelFrame(
-        planning_tab,
-        style="Card.TLabelframe",
-        padding=12,
-    )
-    planning_goal_card.grid(row=0, column=0, sticky="nsew", padx=(0, 6), pady=(0, 8))
-    planning_goal_card.columnconfigure(1, weight=1)
+    collapsible_sections: list[tuple[Any, Any, str, Any]] = []
 
-    planning_reference_card = ttk.LabelFrame(
-        planning_tab,
-        style="Card.TLabelframe",
-        padding=12,
-    )
-    planning_reference_card.grid(row=0, column=1, sticky="nsew", padx=(6, 0), pady=(0, 8))
-    planning_reference_card.columnconfigure(1, weight=1)
+    def collapsible(parent: Any, row: int, title_key: str) -> Any:
+        outer = ttk.Frame(parent, style="App.TFrame")
+        outer.grid(row=row, column=0, sticky="ew", pady=(0, 8))
+        outer.columnconfigure(0, weight=1)
+        body = ttk.Frame(outer, style="Card.TFrame", padding=12)
+        expanded = tk.BooleanVar(value=True)
+        header_button = ttk.Button(outer, style="Secondary.TButton")
+        header_button.grid(row=0, column=0, sticky="ew")
+        body.grid(row=1, column=0, sticky="ew")
+        body.columnconfigure(1, weight=1)
 
-    editing_goal_card = ttk.LabelFrame(
-        editing_tab,
-        style="Card.TLabelframe",
-        padding=12,
-    )
-    editing_goal_card.grid(row=0, column=0, sticky="nsew", padx=(0, 6), pady=(0, 8))
-    editing_goal_card.columnconfigure(1, weight=1)
+        def toggle() -> None:
+            expanded.set(not expanded.get())
+            if expanded.get():
+                body.grid()
+            else:
+                body.grid_remove()
+            header_button.configure(text=("▾ " if expanded.get() else "▸ ") + text(title_key))
 
-    editing_media_card = ttk.LabelFrame(
-        editing_tab,
-        style="Card.TLabelframe",
-        padding=12,
-    )
-    editing_media_card.grid(row=0, column=1, sticky="nsew", padx=(6, 0), pady=(0, 8))
-    editing_media_card.columnconfigure(1, weight=1)
+        header_button.configure(command=toggle)
+        collapsible_sections.append((header_button, body, title_key, expanded))
+        return body
 
-    planning_tab.columnconfigure(0, weight=1, uniform="planning-columns")
-    planning_tab.columnconfigure(1, weight=1, uniform="planning-columns")
-    editing_tab.columnconfigure(0, weight=1, uniform="editing-columns")
-    editing_tab.columnconfigure(1, weight=1, uniform="editing-columns")
+    planning_goal_card = collapsible(planning_tab, 0, "planning_goal_title")
+    planning_reference_card = collapsible(planning_tab, 1, "planning_reference_title")
+    editing_goal_card = collapsible(editing_tab, 0, "editing_goal_title")
+    editing_media_card = collapsible(editing_tab, 1, "editing_media_title")
 
-    common_goal = ("project", "title", "objective", "audience", "platform", "core_message")
+    planning_tab.columnconfigure(0, weight=1)
+    editing_tab.columnconfigure(0, weight=1)
+
+    common_goal = ("title", "objective", "audience", "platform", "core_message")
     planning_values = fields(planning_goal_card, common_goal)
     planning_reference_values = fields(
         planning_reference_card,
@@ -621,11 +705,11 @@ def launch() -> int:
     subtitle_style_combo.grid(row=6, column=1, sticky="ew", pady=5)
 
     planning_action_bar = ttk.Frame(planning_tab, style="App.TFrame")
-    planning_action_bar.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 8))
+    planning_action_bar.grid(row=2, column=0, sticky="ew", pady=(0, 8))
     planning_action_bar.columnconfigure(1, weight=1)
 
     editing_action_bar = ttk.Frame(editing_tab, style="App.TFrame")
-    editing_action_bar.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 8))
+    editing_action_bar.grid(row=2, column=0, sticky="ew", pady=(0, 8))
     editing_action_bar.columnconfigure(1, weight=1)
 
     result_frames: list[Any] = []
@@ -636,7 +720,7 @@ def launch() -> int:
             style="Card.TLabelframe",
             padding=10,
         )
-        frame.grid(row=row, column=0, columnspan=2, sticky="nsew")
+        frame.grid(row=row, column=0, sticky="nsew")
         parent.rowconfigure(row, weight=1)
         frame.rowconfigure(0, weight=1)
         frame.columnconfigure(0, weight=1)
@@ -663,14 +747,150 @@ def launch() -> int:
         scrollbar.grid(row=0, column=1, sticky="ns")
         return output, frame
 
-    planning_output, planning_output_frame = output_surface(planning_tab, 2)
-    editing_output, editing_output_frame = output_surface(editing_tab, 2)
+    planning_output, planning_output_frame = output_surface(planning_tab, 3)
+    editing_output, editing_output_frame = output_surface(editing_tab, 3)
     planning_output.insert("1.0", text("result_empty"))
     editing_output.insert("1.0", text("result_empty"))
     current_form_profile: Path | None = None
+    history_applying = False
+    planning_context: PlanningSessionContext | None = None
+    use_planning = tk.BooleanVar(value=False)
+    output_path_ownership = OutputPathOwnership.WORKSPACE_DEFAULT
+    histories = {
+        "planning": BoundedFormHistory.create({}),
+        "editing": BoundedFormHistory.create({}),
+    }
+
+    def workflow_snapshot(workflow: str) -> dict[str, str]:
+        fields_map = planning_values if workflow == "planning" else editing_values
+        values = {name: field_value(variable) for name, variable in fields_map.items()}
+        if workflow == "editing":
+            values["output_profile"] = output_profile_choice.get()
+            values["subtitle_style"] = subtitle_style_choice.get()
+            values["music_rights_attested"] = "1" if music_rights_attested.get() else "0"
+            values["use_planning"] = "1" if use_planning.get() else "0"
+            values["_output_path_ownership"] = output_path_ownership.value
+        return values
+
+    def apply_workflow_snapshot(workflow: str, values: dict[str, str]) -> None:
+        nonlocal history_applying, output_path_ownership
+        history_applying = True
+        try:
+            fields_map = planning_values if workflow == "planning" else editing_values
+            for name, variable in fields_map.items():
+                set_field(variable, values.get(name, ""))
+            if workflow == "editing":
+                output_profile_choice.set(
+                    values.get("output_profile", _OUTPUT_PROFILE_OPTIONS[0][0])
+                )
+                subtitle_style_choice.set(
+                    values.get("subtitle_style", SubtitleStyleProfile.OUTLINED.value)
+                )
+                music_rights_attested.set(values.get("music_rights_attested") == "1")
+                output_path_ownership = restored_output_ownership(
+                    values.get("_output_path_ownership"),
+                    values.get("output_mp4", ""),
+                    ProjectWorkspace.open(
+                        require_selected_workspace(workspace_value.get())
+                    ).writable,
+                )
+                valid_context = context_for_workspace(
+                    planning_context, require_selected_workspace(workspace_value.get())
+                )
+                use_planning.set(values.get("use_planning") == "1" and valid_context is not None)
+        finally:
+            history_applying = False
+
+    def persist_history(workflow: str) -> None:
+        if not workspace_value.get().strip():
+            return
+        workspace = ProjectWorkspace.open(Path(workspace_value.get()))
+        WorkspaceFormStateStore(workspace.writable, workflow).save(histories[workflow])
+
+    def record_history(workflow: str) -> None:
+        if history_applying:
+            return
+        if histories[workflow].record(workflow_snapshot(workflow)):
+            persist_history(workflow)
+
+    def active_workflow() -> str:
+        selected = notebook.select()  # type: ignore[no-untyped-call]
+        return "planning" if notebook.index(selected) == 0 else "editing"  # type: ignore[no-untyped-call]
+
+    def mutate_history(action: str) -> None:
+        if active_task is not None:
+            return
+        workflow = active_workflow()
+        record_history(workflow)
+        history = histories[workflow]
+        if action == "clear":
+            cleared = {key: "" for key in workflow_snapshot(workflow)}
+            if workflow == "editing":
+                cleared.update(
+                    {
+                        "output_profile": _OUTPUT_PROFILE_OPTIONS[0][0],
+                        "subtitle_style": SubtitleStyleProfile.OUTLINED.value,
+                        "music_rights_attested": "0",
+                        "use_planning": "0",
+                        "_output_path_ownership": OutputPathOwnership.WORKSPACE_DEFAULT.value,
+                    }
+                )
+            history.record(cleared)
+            apply_workflow_snapshot(workflow, cleared)
+        else:
+            restored = history.undo() if action == "undo" else history.redo()
+            if restored is not None:
+                apply_workflow_snapshot(workflow, restored)
+        persist_history(workflow)
+
+    def open_workspace(path: Path, *, restore: bool) -> None:
+        nonlocal planning_context, output_path_ownership
+        if active_task is not None:
+            return
+        if workspace_value.get().strip():
+            for workflow in ("planning", "editing"):
+                record_history(workflow)
+                persist_history(workflow)
+        workspace = ProjectWorkspace.open(path)
+        workspace_value.set(str(workspace.root))
+        planning_context = context_for_workspace(planning_context, workspace.root)
+        if planning_context is None:
+            use_planning.set(False)
+            use_planning_check.configure(state="disabled")
+        for workflow in ("planning", "editing"):
+            loaded = WorkspaceFormStateStore(workspace.writable, workflow).load()
+            if restore and loaded is not None:
+                histories[workflow] = loaded
+                apply_workflow_snapshot(workflow, loaded.current)
+            else:
+                snapshot = workflow_snapshot(workflow)
+                histories[workflow] = BoundedFormHistory.create(snapshot)
+        if output_path_ownership is OutputPathOwnership.WORKSPACE_DEFAULT:
+            set_field(
+                editing_values["output_mp4"],
+                str(
+                    output_path_for_workspace(
+                        field_value(editing_values["output_mp4"]),
+                        output_path_ownership,
+                        workspace.writable,
+                    )
+                ),
+            )
+            histories["editing"].record(workflow_snapshot("editing"))
+        for workflow in ("planning", "editing"):
+            persist_history(workflow)
+
+    def choose_workspace() -> None:
+        selected = filedialog.askdirectory(title=text("dialog_choose_project"), mustexist=False)
+        if selected:
+            open_workspace(Path(selected), restore=True)
+
+    choose_workspace_button.configure(command=choose_workspace)
 
     def form_profile_values() -> dict[str, str]:
         values: dict[str, str] = {}
+        if workspace_value.get().strip():
+            values["workspace"] = workspace_value.get().strip()
         for prefix, fields_map in (("planning", planning_values), ("editing", editing_values)):
             for name, variable in fields_map.items():
                 actual = field_value(variable).strip()
@@ -679,6 +899,7 @@ def launch() -> int:
         values["editing.output_profile"] = _output_profile_for_display(
             output_profile_choice.get()
         ).profile_id
+        values["editing._output_path_ownership"] = output_path_ownership.value
         return values
 
     def save_form_profile(*, choose: bool) -> None:
@@ -701,7 +922,7 @@ def launch() -> int:
         messagebox.showinfo(text("file"), text("profile_saved"), parent=root)
 
     def load_form_profile() -> None:
-        nonlocal current_form_profile
+        nonlocal current_form_profile, output_path_ownership
         selected = filedialog.askopenfilename(
             title=text("load"), initialdir=profile_root, filetypes=(("Text", "*.txt"),)
         )
@@ -709,9 +930,24 @@ def launch() -> int:
             return
         source = Path(selected)
         loaded = parse_profile(source.read_text(encoding="utf-8"), "form")
+        loaded_workspace = loaded.get("workspace", "").strip()
+        if loaded_workspace:
+            open_workspace(Path(loaded_workspace), restore=True)
         for prefix, fields_map in (("planning", planning_values), ("editing", editing_values)):
             for name, variable in fields_map.items():
                 set_field(variable, loaded.get(f"{prefix}.{name}", ""))
+        loaded_output = loaded.get("editing.output_mp4", "")
+        stored_ownership = loaded.get("editing._output_path_ownership")
+        if workspace_value.get().strip():
+            output_path_ownership = restored_output_ownership(
+                stored_ownership,
+                loaded_output,
+                ProjectWorkspace.open(require_selected_workspace(workspace_value.get())).writable,
+            )
+        elif loaded_output.strip():
+            output_path_ownership = OutputPathOwnership.EXPLICIT
+        else:
+            output_path_ownership = OutputPathOwnership.WORKSPACE_DEFAULT
         music_rights_attested.set(False)
         saved_output_profile = loaded.get("editing.output_profile")
         if saved_output_profile:
@@ -732,21 +968,6 @@ def launch() -> int:
                 current_form_profile = None
             messagebox.showinfo(text("file"), text("profile_deleted"), parent=root)
 
-    profile_menu = tk.Menu(root, tearoff=False)
-    profile_menu.add_command(label=text("save"), command=lambda: save_form_profile(choose=False))
-    profile_menu.add_command(label=text("save_as"), command=lambda: save_form_profile(choose=True))
-    profile_menu.add_separator()
-    profile_menu.add_command(label=text("load"), command=load_form_profile)
-    profile_menu.add_command(label=text("delete"), command=delete_form_profile)
-
-    def show_profile_menu() -> None:
-        x = profile_button.winfo_rootx()
-        y = profile_button.winfo_rooty() + profile_button.winfo_height()
-        profile_menu.tk_popup(x, y)
-
-    planning_context: PlanningSessionContext | None = None
-    use_planning = tk.BooleanVar(value=False)
-
     def update_language() -> None:
         root.title(text("window_title"))
         planning_nav.configure(text=text("tab_planning"))
@@ -757,19 +978,14 @@ def launch() -> int:
             widget.configure(text=text(key))
         app_title_label.configure(text=text("app_title"))
         app_subtitle_label.configure(text=text("app_subtitle"))
-        planning_goal_card.configure(text=text("planning_goal_title"))
-        planning_reference_card.configure(text=text("planning_reference_title"))
-        editing_goal_card.configure(text=text("editing_goal_title"))
-        editing_media_card.configure(text=text("editing_media_title"))
+        for header_button, _body, title_key, expanded in collapsible_sections:
+            header_button.configure(text=("▾ " if expanded.get() else "▸ ") + text(title_key))
         for frame in result_frames:
             frame.configure(text=text("result_log_title"))
         language_button.configure(text=text("switch_language"))
-        settings_button.configure(text=text("settings"))
-        profile_button.configure(text=text("profiles"))
-        profile_menu.entryconfigure(0, label=text("save"))
-        profile_menu.entryconfigure(1, label=text("save_as"))
-        profile_menu.entryconfigure(3, label=text("load"))
-        profile_menu.entryconfigure(4, label=text("delete"))
+        workspace_label.configure(text=text("workspace"))
+        choose_workspace_button.configure(text=text("choose_project"))
+        configuration_button.configure(text=text("configuration"))
         api_status.configure(text=api_status_text())
 
     def toggle_language() -> None:
@@ -787,7 +1003,7 @@ def launch() -> int:
         nonlocal api_settings, current_api_profile
         dialog = tk.Toplevel(root)
         dialog.title(text("settings_title"))
-        dialog.geometry("660x540")
+        dialog.geometry("680x620")
         dialog.transient(root)
         dialog.grab_set()
         dialog.columnconfigure(0, weight=1)
@@ -845,8 +1061,21 @@ def launch() -> int:
             row=3, column=0, columnspan=2, sticky="w", padx=10, pady=(6, 10)
         )
 
+        scope = ttk.LabelFrame(dialog, text=text("configuration_scope"))
+        scope.grid(row=5, column=0, sticky="ew", padx=18, pady=8)
+        include_form = tk.BooleanVar(value=True)
+        include_api = tk.BooleanVar(value=False)
+        ttk.Checkbutton(scope, text=text("form_configuration"), variable=include_form).pack(
+            side="left", padx=10, pady=8
+        )
+        ttk.Checkbutton(scope, text=text("api_configuration"), variable=include_api).pack(
+            side="left", padx=10, pady=8
+        )
+
+        configuration_actions = ttk.Frame(dialog)
+        configuration_actions.grid(row=6, column=0, sticky="w", padx=18, pady=(4, 0))
         buttons = ttk.Frame(dialog)
-        buttons.grid(row=5, column=0, sticky="e", padx=18, pady=16)
+        buttons.grid(row=7, column=0, sticky="e", padx=18, pady=16)
 
         def save_settings() -> None:
             nonlocal api_settings
@@ -918,22 +1147,41 @@ def launch() -> int:
                     current_api_profile = None
                 messagebox.showinfo(text("settings_title"), text("profile_deleted"), parent=dialog)
 
-        api_menubar = tk.Menu(dialog)
-        api_file_menu = tk.Menu(api_menubar, tearoff=False)
-        api_file_menu.add_command(label=text("save"), command=lambda: save_api_file(choose=False))
-        api_file_menu.add_command(label=text("save_as"), command=lambda: save_api_file(choose=True))
-        api_file_menu.add_command(label=text("load"), command=load_api_file)
-        api_file_menu.add_command(label=text("delete"), command=delete_api_file)
-        api_menubar.add_cascade(label=text("file"), menu=api_file_menu)
-        dialog.configure(menu=api_menubar)
+        def selected_action(action: str) -> None:
+            if not include_form.get() and not include_api.get():
+                raise ValueError("select at least one configuration scope")
+            if include_form.get():
+                if action == "import":
+                    load_form_profile()
+                elif action == "export":
+                    save_form_profile(choose=True)
+                elif action == "save":
+                    save_form_profile(choose=False)
+                else:
+                    delete_form_profile()
+            if include_api.get():
+                if action == "import":
+                    load_api_file()
+                elif action == "export":
+                    save_api_file(choose=True)
+                elif action == "save":
+                    save_api_file(choose=False)
+                else:
+                    delete_api_file()
+
+        for action in ("import", "export", "save", "delete"):
+            ttk.Button(
+                configuration_actions,
+                text=text(action),
+                command=partial(selected_action, action),
+            ).pack(side="left", padx=(0, 6))
 
         ttk.Button(buttons, text=text("cancel"), command=dialog.destroy).pack(
             side="right", padx=(8, 0)
         )
         ttk.Button(buttons, text=text("save_settings"), command=save_settings).pack(side="right")
 
-    settings_button.configure(command=open_settings)
-    profile_button.configure(command=show_profile_menu)
+    configuration_button.configure(command=open_settings)
 
     work_queue: queue.Queue[tuple[str, str, Any]] = queue.Queue()
     active_task: str | None = None
@@ -965,7 +1213,18 @@ def launch() -> int:
         output_profile_combo.configure(state="disabled" if running else "readonly")
         subtitle_style_combo.configure(state="disabled" if running else "readonly")
         music_rights_check.configure(state=state)
-        settings_button.configure(state=state)
+        configuration_button.configure(state=state)
+        choose_workspace_button.configure(state=state)
+        clear_button.configure(state=state)
+        undo_button.configure(state=state)
+        redo_button.configure(state=state)
+        for entry, _value, _name in entry_fields.values():
+            entry.configure(state=state)
+        for widget in (choose_reference, choose_files, choose_music, choose_output):
+            widget.configure(state=state)
+        use_planning_check.configure(
+            state="disabled" if running or planning_context is None else "normal"
+        )
 
     def pump_work() -> None:
         nonlocal active_task, active_stage, stage_started, planning_context
@@ -1026,11 +1285,6 @@ def launch() -> int:
             update_eta(label, active_stage, 1)
         root.after(30_000, refresh_eta)
 
-    def choose_project(values: dict[str, Any]) -> None:
-        selected = filedialog.askdirectory(title=text("dialog_choose_project"), mustexist=False)
-        if selected:
-            set_field(values["project"], selected)
-
     def brief(values: dict[str, Any]) -> BriefForm:
         return BriefForm(
             field_value(values["title"]),
@@ -1048,13 +1302,14 @@ def launch() -> int:
         if active_task is not None:
             return
         try:
+            project = require_selected_workspace(workspace_value.get())
             # Remote reference observation is deferred until a video-native/provider-neutral
             # capability is available. Keep the ordinary product surface fail-closed meanwhile.
             reference_url = None
             local_reference_text = field_value(planning_values["reference_local"]).strip()
             has_reference = reference_url is not None or bool(local_reference_text)
             form = PlanningForm(
-                Path(field_value(planning_values["project"])),
+                project,
                 brief(planning_values),
                 ProductionConstraints(
                     camera_or_phone=(
@@ -1095,6 +1350,8 @@ def launch() -> int:
             threading.Thread(target=worker, name="planning-product-flow", daemon=True).start()
         except Exception as exc:
             primary, detail = localized_error(exc, language.get())
+            if not workspace_value.get().strip():
+                primary, detail = text("planning_unavailable"), text("workspace_required")
             messagebox.showerror(text("planning_unavailable"), primary + "\n\n" + detail)
 
     def run_editing() -> None:
@@ -1102,16 +1359,27 @@ def launch() -> int:
         if active_task is not None:
             return
         try:
+            project = require_selected_workspace(workspace_value.get())
             raw_files = tuple(
                 Path(item.strip())
                 for item in field_value(editing_values["media_files"]).split(";")
                 if item.strip()
             )
             music_text = field_value(editing_values["music_file"]).strip()
+            workspace = ProjectWorkspace.open(project)
+            output_path = Path(field_value(editing_values["output_mp4"]))
+            if output_path.exists():
+                if output_path.parent.resolve() == workspace.writable.final_outputs:
+                    output_path = workspace.writable.default_final_output(output_path.stem)
+                    set_field(editing_values["output_mp4"], str(output_path))
+                elif not messagebox.askyesno(
+                    text("output_exists_title"), text("output_exists_message"), parent=root
+                ):
+                    return
             form = EditingForm(
-                Path(field_value(editing_values["project"])),
+                project,
                 brief(editing_values),
-                Path(field_value(editing_values["output_mp4"])),
+                output_path,
                 raw_files,
                 use_planning_result=use_planning.get(),
                 planning_context=planning_context,
@@ -1145,15 +1413,9 @@ def launch() -> int:
             threading.Thread(target=worker, name="editing-product-flow", daemon=True).start()
         except Exception as exc:
             primary, detail = localized_error(exc, language.get())
+            if not workspace_value.get().strip():
+                primary, detail = text("editing_unavailable"), text("workspace_required")
             messagebox.showerror(text("editing_unavailable"), primary + "\n\n" + detail)
-
-    choose_planning_project = ttk.Button(
-        planning_goal_card,
-        command=lambda: choose_project(planning_values),
-        style="Secondary.TButton",
-    )
-    choose_planning_project.grid(row=0, column=2, padx=(10, 0))
-    translated_widgets.append((choose_planning_project, "choose_project"))
 
     choose_reference = ttk.Button(
         planning_reference_card,
@@ -1172,14 +1434,6 @@ def launch() -> int:
     )
     start_planning.grid(row=0, column=2, sticky="e")
     translated_widgets.append((start_planning, "start_planning"))
-
-    choose_editing_project = ttk.Button(
-        editing_goal_card,
-        command=lambda: choose_project(editing_values),
-        style="Secondary.TButton",
-    )
-    choose_editing_project.grid(row=0, column=2, padx=(10, 0))
-    translated_widgets.append((choose_editing_project, "choose_project"))
 
     choose_files = ttk.Button(
         editing_media_card,
@@ -1239,18 +1493,23 @@ def launch() -> int:
     music_rights_check.grid(row=3, column=1, columnspan=2, sticky="w", pady=(6, 2))
     translated_widgets.append((music_rights_check, "music_rights_attestation"))
 
+    def choose_output_path() -> None:
+        nonlocal output_path_ownership
+        selected = filedialog.asksaveasfilename(
+            title=text("dialog_choose_output"),
+            defaultextension=".mp4",
+            filetypes=(
+                (text("filetype_video"), ("*.mp4", "*.mov", "*.mkv", "*.webm")),
+                (text("filetype_all"), "*.*"),
+            ),
+        )
+        if selected:
+            output_path_ownership = OutputPathOwnership.EXPLICIT
+            set_field(editing_values["output_mp4"], selected)
+
     choose_output = ttk.Button(
         editing_media_card,
-        command=lambda: editing_values["output_mp4"].set(
-            filedialog.asksaveasfilename(
-                title=text("dialog_choose_output"),
-                defaultextension=".mp4",
-                filetypes=(
-                    (text("filetype_video"), ("*.mp4", "*.mov", "*.mkv", "*.webm")),
-                    (text("filetype_all"), "*.*"),
-                ),
-            )
-        ),
+        command=choose_output_path,
         style="Secondary.TButton",
     )
     choose_output.grid(row=2, column=2, padx=(10, 0))
@@ -1299,6 +1558,24 @@ def launch() -> int:
     editing_export.grid(row=0, column=1, sticky="e", padx=(0, 8))
     translated_widgets.append((editing_export, "export"))
 
+    planning_variable_ids = {id(value) for value in planning_values.values()}
+    for entry, value, _name in entry_fields.values():
+        workflow = "planning" if id(value) in planning_variable_ids else "editing"
+        entry.bind(
+            "<FocusOut>",
+            lambda _event, target=workflow: record_history(target),
+            add="+",
+        )
+    output_profile_combo.bind(
+        "<<ComboboxSelected>>", lambda _event: record_history("editing"), add="+"
+    )
+    subtitle_style_combo.bind(
+        "<<ComboboxSelected>>", lambda _event: record_history("editing"), add="+"
+    )
+    root.bind_all("<Control-z>", lambda _event: mutate_history("undo"))
+    root.bind_all("<Control-y>", lambda _event: mutate_history("redo"))
+    root.bind_all("<Control-Shift-Z>", lambda _event: mutate_history("redo"))
+
     update_language()
     startup_milestone(5)
     root.update_idletasks()
@@ -1308,6 +1585,16 @@ def launch() -> int:
     pump_work()
     refresh_eta()
     if os.environ.get("VIDEO_EDITING_AGENT_LAUNCHER_SMOKE") == "1":
+        smoke_workspace = os.environ.get("VIDEO_EDITING_AGENT_SMOKE_WORKSPACE", "").strip()
+        if smoke_workspace:
+            open_workspace(Path(smoke_workspace), restore=True)
+        for header_button, _body, _title_key, _expanded in collapsible_sections:
+            header_button.invoke()
+            header_button.invoke()
+        mutate_history("clear")
+        mutate_history("undo")
+        mutate_history("redo")
+        configuration_button.invoke()
         root.update_idletasks()
         root.destroy()
         return 0

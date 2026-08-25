@@ -2,7 +2,7 @@
 
 **Updated:** 2026-08-22  
 **Parent Work Order:** `R0.12-STAGE-A-FINAL-CLOSURE-002`  
-**Status:** READY FOR NEXT BOUNDED LOCAL WAVE  
+**Status:** ACTIVE / RELEASED — BOUNDED LOCAL WAVE  
 **Purpose:** make the existing Stage-A desktop product behave like one coherent user application before Windows packaging.
 
 ## Product intent
@@ -179,6 +179,23 @@ Future 2.0 home:
 
 `ReferenceObservationPort` / provider-neutral remote-video observation capability.
 
+## 8. Lightweight provider usage telemetry
+
+Keep API token consumption visible during ordinary runs without turning telemetry into a new product subsystem.
+
+Requirements:
+
+- after each completed DeepSeek/Gemini/OpenAI provider call, print that call's input/output/total token usage to the existing terminal output when the provider reports it;
+- also print process-session cumulative usage so a user can see how token consumption grows during one run;
+- provider-reported usage is authoritative for this display; if usage metadata is absent, a fallback estimate may be shown only when it is clearly marked approximate;
+- do not make an additional network request solely to count tokens;
+- do not log API keys, prompt bodies, image/base64 payloads, credentials or other secret material;
+- usage telemetry is best-effort observability and must never make Planning or Editing fail;
+- keep the meter provider-normalized and outside Domain/EDL/Renderer/Review ownership so future provider/model replacement remains compatible;
+- do not hard-code a billing price table into this wave. Exact token counts are sufficient; pricing can remain a replaceable presentation concern if later required.
+
+This is a small observability seam, not a new gate and not a reason to delay the Workspace/UX mainline.
+
 ## Non-goals
 
 Do not:
@@ -200,6 +217,7 @@ Minimum engineering gate:
 - launcher smoke;
 - Windows manual smoke for workspace selection, workflow switching, collapse/expand, configuration import/export choices, Clear/Undo/Redo, default output destination, and project switching;
 - confirm no plaintext secret leakage;
+- provider usage parsing/accumulation tests, including clearly labeled estimate fallback;
 - Ruff format/check;
 - mypy `src`;
 - full pytest;

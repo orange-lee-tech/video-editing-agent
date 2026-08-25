@@ -26,6 +26,7 @@ from video_editing_agent.providers.llm.deepseek_preproduction_review import (
     DeepSeekScriptProposalReviewPort,
     DeepSeekShootingProposalReviewPort,
 )
+from video_editing_agent.providers.usage import MeteredDeepSeekChatTransport
 
 
 class ProviderConfigurationError(RuntimeError):
@@ -49,7 +50,7 @@ def deepseek_preproduction_ports(
         api_key = os.environ.get("DEEPSEEK_API_KEY", "")
         if not api_key.strip():
             raise ProviderConfigurationError("DEEPSEEK_API_KEY is required for provider=deepseek")
-        transport = UrllibDeepSeekChatTransport(api_key=api_key)
+        transport = MeteredDeepSeekChatTransport(UrllibDeepSeekChatTransport(api_key=api_key))
     generation = DeepSeekChatConfig(
         model=model,
         thinking_enabled=False,
@@ -77,7 +78,7 @@ def deepseek_director_port(
         api_key = os.environ.get("DEEPSEEK_API_KEY", "")
         if not api_key.strip():
             raise ProviderConfigurationError("DEEPSEEK_API_KEY is required for provider=deepseek")
-        transport = UrllibDeepSeekChatTransport(api_key=api_key)
+        transport = MeteredDeepSeekChatTransport(UrllibDeepSeekChatTransport(api_key=api_key))
     return DeepSeekDirectorPort(
         transport=transport,
         config=DeepSeekChatConfig(

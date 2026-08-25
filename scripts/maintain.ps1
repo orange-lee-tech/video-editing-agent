@@ -1,10 +1,12 @@
 param(
-    [ValidateSet("doctor", "foreman", "handoff", "verify")]
+    [ValidateSet("preflight", "doctor", "foreman", "handoff", "verify")]
     [string]$Task = "doctor",
     [string]$Output,
     [ValidateSet("architecture", "location", "quality", "git", "external", "high-risk")]
     [string]$Trigger,
-    [switch]$SkipSync
+    [switch]$SkipSync,
+    [switch]$SkipLauncherSmoke,
+    [switch]$RequireClean
 )
 
 $ErrorActionPreference = "Stop"
@@ -24,9 +26,23 @@ function Invoke-Checked {
     }
 }
 
+function Invoke-Foreman {
+    $args = @("run", "python", "tools/maintenance/foreman.py")
+    if ($Trigger) {
+        $args += @("--trigger", $Trigger)
+    }
+    Invoke-Checked "uv" $args
+}
+
 Push-Location $RepoRoot
 try {
     switch ($Task) {
+        "preflight" {
+            Invoke-Checked "uv" @("run", "python", "tools/maintenance/repo_doctor.py")
+            Invoke-Foreman
+            Write-Host ""
+            Write-Host "Preflight PASSED. Use .private/codex_brief.md as the compact Codex entry." -ForegroundColor Green
+        }
         "doctor" {
             Invoke-Checked "uv" @("run", "python", "tools/maintenance/repo_doctor.py")
         }
@@ -38,19 +54,20 @@ try {
             Invoke-Checked "uv" $args
         }
         "foreman" {
-            $args = @("run", "python", "tools/maintenance/foreman.py")
-            if ($Trigger) {
-                $args += @("--trigger", $Trigger)
-            }
-            Invoke-Checked "uv" $args
+            Invoke-Foreman
         }
         "verify" {
+            $verifyArgs = @{}
             if ($SkipSync) {
-                & "$PSScriptRoot\verify.ps1" -SkipSync
+                $verifyArgs["SkipSync"] = $true
             }
-            else {
-                & "$PSScriptRoot\verify.ps1"
+            if ($SkipLauncherSmoke) {
+                $verifyArgs["SkipLauncherSmoke"] = $true
             }
+            if ($RequireClean) {
+                $verifyArgs["RequireClean"] = $true
+            }
+            & "$PSScriptRoot\verify.ps1" @verifyArgs
         }
     }
 }
