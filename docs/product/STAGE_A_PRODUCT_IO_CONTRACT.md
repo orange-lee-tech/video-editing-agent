@@ -1,7 +1,8 @@
 # Stage-A Product I/O Contract
 
-**Status:** ACCEPTED  
+**Status:** ACCEPTED — PRODUCT OWNER AMENDED  
 **Date:** 2026-08-16  
+**Product Owner amendment:** 2026-08-25  
 **Applies to:** Planning-only / Editing-only / Combined  
 **Stage:** Stage A structural construction
 
@@ -19,6 +20,17 @@ The product has two core user outcomes:
 Planning-only, Editing-only and Combined remain equally legitimate product entries.
 
 `Brief` is the common intent root. ScriptPlan/ShootingPlan are optional exact-revision enrichment for Editing, not an activation license.
+
+### 1.1 2026-08-25 Product Owner amendment
+
+The Product Owner explicitly confirmed the 1.0 product-boundary decision already reflected by the 2026-08-22 reference-compatibility closure:
+
+- supported **local reference video** remains an ordinary Stage-A / 1.0 Planning input;
+- ordinary **Remote Reference URL** input is deferred to 2.0 and remains hidden in the 1.0 product surface;
+- bounded provider/site-specific acquisition work already present may remain as an engineering compatibility seam, but it is not ordinary 1.0 product capability or release authority;
+- future Remote Reference URL support must return through a provider-neutral observation/acquisition boundary without changing Planning Domain authority or making reference media output-eligible.
+
+This amendment supersedes the original 2026-08-16 clauses that listed supported Reference URL acquisition requests as an ordinary Stage-A input or immediate Stage-A implementation item.
 
 ---
 
@@ -73,10 +85,11 @@ Planning-only accepts:
 - product/brand/commercial constraints;
 - reference or high-performing target information;
 - supported local reference media;
-- supported Reference URL acquisition requests;
 - optional authoritative facts / prohibited content / brand constraints already represented by Brief policy.
 
-The product-facing layer translates these into the existing Brief/reference/planning application boundaries. It SHALL NOT construct ScriptPlan/ShootingPlan by bypassing their owner workflows.
+Remote Reference URL is **not** an ordinary Stage-A / 1.0 product-facing input. It is deferred to 2.0 by explicit Product Owner decision recorded in Section 1.1.
+
+The product-facing layer translates supported inputs into the existing Brief/reference/planning application boundaries. It SHALL NOT construct ScriptPlan/ShootingPlan by bypassing their owner workflows.
 
 ### 3.2 Owner chain
 
@@ -184,23 +197,25 @@ When exact Planning revisions are available they may enrich Director/coverage/re
 
 ---
 
-## 6. Reference URL acquisition boundary
+## 6. Remote Reference URL boundary — deferred from ordinary Stage A / 1.0
 
-A Reference URL is a **product acquisition request**, not a Domain media reference and not output-eligible visual footage.
+Remote Reference URL is not an ordinary 1.0 product capability. The ordinary Stage-A Planning surface keeps Remote Reference URL hidden and supports local reference video instead.
 
-Required route:
+Existing bounded acquisition code may remain as a compatibility/engineering seam, provided it stays outside Planning Domain and does not become implicit product exposure.
+
+The intended future 2.0 boundary remains conceptually:
 
 `supported URL`
-`→ ReferenceAcquisitionPort/adapter`
-`→ rights/technical/platform preflight`
-`→ controlled project-local file`
-`→ normal local media probe/ingest`
-`→ Asset with REFERENCE_ANALYSIS_ONLY usage role`
+`→ provider-neutral ReferenceObservation / acquisition boundary`
+`→ rights/technical/platform preflight where acquisition is required`
+`→ controlled observation and/or project-local reference material`
+`→ normal local media probe/ingest where a local file is required`
+`→ Asset with REFERENCE_ANALYSIS_ONLY usage role where an Asset is created`
 `→ existing reference analysis / Planning guidance`
 
-The acquisition adapter owns transport/platform mechanics only. It cannot grant output eligibility or edit/timeline authority.
+A transport/acquisition adapter owns platform mechanics only. It cannot grant output eligibility or edit/timeline authority.
 
-Fail closed for at least:
+Any future acquisition path must fail closed for at least:
 
 - unsupported platform/URL;
 - login/session-required acquisition not explicitly supported;
@@ -211,6 +226,8 @@ Fail closed for at least:
 Failure must produce understandable user guidance rather than silently substituting public stock/generated footage.
 
 Reference media remains analysis-only unless a separate explicit local user-owned media path creates an editable Asset under the Product Constitution.
+
+Nothing in this section releases Remote Reference URL implementation during Stage A. Live release authority remains with `CURRENT_CONTROL_STATE.md`, `CURRENT_WORK_ORDER.md`, and `CODEX_EXECUTION_ENTRY.md`.
 
 ---
 
@@ -384,21 +401,13 @@ A future product-facing adapter may map ordinary-user controls to these applicat
 
 ---
 
-## 13. Immediate implementation sequence
+## 13. Implementation sequencing authority
 
-This contract freezes the following order:
+The original 2026-08-16 version of this contract listed Remote Reference URL acquisition as an immediate Stage-A implementation item. That item is superseded by the explicit 2026-08-25 Product Owner amendment and is deferred to 2.0.
 
-1. mixed source-audio selection/range semantics;
-2. VoiceTreatment + speech-protection rules;
-3. non-silent audible-lane QC;
-4. Reference URL acquisition adapter into controlled local `REFERENCE_ANALYSIS_ONLY` Asset;
-5. rights-aware public music discovery + acquisition into controlled local `MUSIC` Asset;
-6. remaining bounded R0.12 productization, including production GStreamer Preview integration;
-7. minimum Review/repair;
-8. ordinary-user Windows runtime/Environment Doctor;
-9. plain product-facing integration and real Product Probes.
+This product contract no longer self-releases construction waves. Current implementation order is governed by the live control plane and active Work Order.
 
-The first implementation batch is items 1–3 because they share one audio authority boundary and require coordinated Domain/Application/EDL/QC tests.
+For Stage-A closure, engineering must continue to preserve the retained product requirements in this contract while following the currently released sequence, including Workspace/UX consolidation, compatible Windows packaging, and final Product/Human evidence.
 
 ---
 
