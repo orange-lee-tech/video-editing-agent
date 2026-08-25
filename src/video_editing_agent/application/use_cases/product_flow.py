@@ -326,6 +326,9 @@ class EditingProductOperations:
         ]
         | None
     ) = None
+    recover_edit_plan: (
+        Callable[[EditPlan, tuple[ResolutionDecision, ...]], EditPlan] | None
+    ) = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -539,11 +542,53 @@ class EditingProductFlow:
                 for decision in decisions
                 if decision.decision_type is ResolutionDecisionType.UNRESOLVED
             )
-            if unresolved:
-                slot_ids = ",".join(
-                    slot_id for decision in unresolved for slot_id in decision.target_slot_ids
+            if unresolved and self._operations.recover_edit_plan is not None:
+                emit(
+                    ProductFlowEvent(
+                        ProductFlowStage.RESOLVING,
+                        "Some planned edit beats were not grounded; adapting the EditPlan to "
+                        "available local footage",
+                        ProductFlowEventLevel.WARNING,
+                    )
                 )
-                raise ValueError(f"unresolved EditPlan slots: {slot_ids}")
+                previous_plan = edit_plan
+                edit_plan = self._operations.recover_edit_plan(previous_plan, unresolved)
+                if (
+                    edit_plan.envelope.id != previous_plan.envelope.id
+                    or edit_plan.envelope.revision <= previous_plan.envelope.revision
+                ):
+                    raise RuntimeError(
+                        "resolver recovery must persist a later revision of the same EditPlan"
+                    )
+                if (
+                    edit_plan.brief_ref != previous_plan.brief_ref
+                    or edit_plan.script_plan_ref != previous_plan.script_plan_ref
+                    or edit_plan.shooting_plan_ref != previous_plan.shooting_plan_ref
+                ):
+                    raise RuntimeError("resolver recovery changed authoritative EditPlan lineage")
+                edit_plan_ref = _ref(edit_plan)
+                decisions = self._operations.resolve_edit_plan(edit_plan)
+                unresolved = tuple(
+                    decision
+                    for decision in decisions
+                    if decision.decision_type is ResolutionDecisionType.UNRESOLVED
+                )
+            if unresolved:
+                slots = {slot.slot_id: slot for slot in edit_plan.slots}
+                missing_purposes = tuple(
+                    dict.fromkeys(
+                        slots[slot_id].purpose
+                        for decision in unresolved
+                        for slot_id in decision.target_slot_ids
+                        if slot_id in slots
+                    )
+                )
+                detail = "; ".join(missing_purposes) or "one or more required visual beats"
+                raise ValueError(
+                    "available local footage still cannot cover the planned edit: "
+                    f"{detail}. Add footage that shows this content or adjust the requested video "
+                    "intent"
+                )
             emit(ProductFlowEvent(ProductFlowStage.EDL_ASSEMBLY, "Building canonical EDL"))
             current_stage = ProductFlowStage.EDL_ASSEMBLY
             if prepared_music is None:
