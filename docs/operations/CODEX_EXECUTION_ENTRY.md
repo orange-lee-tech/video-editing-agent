@@ -1,71 +1,73 @@
 # Codex Execution Entry
 
 **Last updated:** 2026-08-25  
-**Purpose:** expose the currently authorized local construction release.
+**Purpose:** expose the currently authorized local construction boundary.
 
 ## Release state
 
 **Work Order:** `R0.12-STAGE-A-FINAL-CLOSURE-002`  
-**Release:** CLOSED — FINAL PRODUCT/HUMAN GATE ACTIVE  
+**Release:** CLOSED PENDING FOCUSED LOCAL DIAGNOSTIC  
 **Construction branch:** NONE  
-**Accepted production-code baseline:** `c2c959239cf8842388ac661777c19f20f64a6a90`  
+**Accepted engineering foundation:** `c2c959239cf8842388ac661777c19f20f64a6a90`  
+**Current main / failed Human Gate candidate:** `1015096fc4c5b2b9138e98cbe713fc4cc1770c07`  
 **Foreman:** ChatGPT  
 **Authority:** `docs/operations/CURRENT_WORK_ORDER.md`
 
-There is currently **no authorized Codex implementation batch**.
+There is currently no authorized blind implementation batch. The Product Owner's real Human Gate has already proved two implementation defects; however, Editing must first be diagnosed from its persisted local Workspace evidence rather than by guessing at another prompt or threshold.
 
-PR #20 accepted and merged the Windows runtime payload closure. The next required evidence is ordinary-user packaged Product/Human evidence, not another engineering wave.
+## Current defects
 
-## Accepted engineering result
+### Planning
 
-The accepted baseline provides:
+The bounded Script proposal repair remains insufficient. The second model proposal still introduced unsupported fit/operability implications and the independent semantic reviewer correctly vetoed it.
 
-- exact Windows x64 LGPL-only FFmpeg/ffprobe payload;
-- exact TransNetV2 + CPU Torch + package weights with a real packaged CPU prediction probe;
-- exact faster-whisper/CTranslate2/PyAV + pinned local model with a real packaged offline ASR probe;
-- PyAV compatibility against the approved LGPL FFmpeg DLLs while excluding its broad/GPL codec DLL payload;
-- exact CPython 3.12.13 packaging baseline;
-- manifest/NOTICE/component hashes and static package inspection;
-- packaged Environment Doctor, GUI launcher and external Project Workspace smoke;
-- SHA-addressed main artifact and evidence.
+A reopened implementation batch may add a bounded conservative `unsupported_claim` recovery that removes unsupported semantic properties and re-reviews the result. It must not weaken prohibited-content, brand, locked-state or authority gates and must not add an open-ended retry loop.
 
-Accepted main artifact:
+### Editing
 
-`VideoEditingAgent-windows-x64-c2c959239cf8842388ac661777c19f20f64a6a90`
+The one bounded Resolver -> Director recovery added by PR #21 executed in the real packaged product. The revised EditPlan still requested multiple semantic beats not grounded in the actual local footage.
 
-GitHub artifact digest:
+Before a new Editing patch, inspect at minimum the failed Workspace's:
 
-`sha256:a21a71211c0bee6848f93852d2f4cf6d27cd194b89f92a1fed6e4c24ccd57d5d`
+- Brief payload;
+- latest shot-analysis payloads;
+- EditPlan revision 1 and revision 2;
+- resolver reasons / temporal evidence only if necessary.
 
-## Current action
+No public/web/generated visual substitution is allowed.
 
-The Product Owner should run the final ordinary-user Human Gate described in `docs/operations/CURRENT_WORK_ORDER.md`.
+## Engineering iteration protocol
 
-Do not ask Codex to perform synthetic substitutes for this Human Gate.
+When ChatGPT reopens Codex/local construction:
 
-## When Codex may be reopened
+1. sync the local repository to the exact current main;
+2. apply one focused patch for the evidence-backed defect;
+3. run targeted tests first, then the repository quality gate as needed;
+4. use the local developer GUI/product route to repeat the failed scenario;
+5. return compact logs/structured Workspace evidence, not private media unless specifically needed;
+6. do **not** build/upload the full Windows onedir artifact for each repair;
+7. commit/push only a coherent green patch.
 
-ChatGPT may create a new narrow execution release only if the Human Gate produces a reproducible implementation defect, for example:
+The developer may use PowerShell/CLI for this loop. That is engineering tooling, not ordinary-user product UX.
 
-- packaged launcher/runtime fails on the real supported Windows machine;
-- FFmpeg/TransNet/speech Doctor state disagrees with actual runtime behavior;
-- clear speech cannot reach the grounded subtitle path because of a packaging/runtime defect;
-- Workspace/output ownership regresses in the packaged application;
-- Planning-only / Editing-only / Combined ordinary product semantics regress.
+## Windows release delivery
 
-A reopened Codex task must be bounded to the observed defect. It must not revive already accepted packaging work or expand into unrelated cleanup.
+Guided `Setup.exe` delivery is now part of Stage-A / 1.0 closure by explicit Product Owner direction. Raw ZIP/onedir is engineering staging only.
+
+Installer implementation should start after the current Planning/Editing repair set is stable enough to avoid repeatedly repackaging multi-gigabyte runtime trees. Preferred study order is Inno Setup 7.1, NSIS Modern UI 2, Velopack, then WiX/Burn only if prerequisite chaining justifies it.
+
+The installer boundary must preserve application-owned private runtimes, Workspace separation and user consent before destructive environment changes.
 
 ## Still out of scope
 
-Without a new explicit release, do not start:
+Do not reopen:
 
-- installer / onefile / updater / signing;
-- artifact-size optimization;
 - Remote Reference URL 2.0;
-- TTS or advanced separation/effects;
-- Domain/EDL/Renderer authority changes;
+- TTS or advanced separation/effects/NLE features;
+- public/generated visual fallback;
+- unrelated Domain/EDL/Renderer authority changes;
 - unrelated architecture cleanup.
 
 ## Final authority
 
-Stage-A remains 95% until Human evidence closes the gate. ChatGPT/Product Owner retain final acceptance authority.
+Stage-A remains 95% until repaired Planning, grounded Editing/speech, Combined behavior and guided Windows setup delivery all pass Human evidence. ChatGPT/Product Owner retain final acceptance authority.
