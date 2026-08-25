@@ -3,130 +3,122 @@
 **ID:** `R0.12-STAGE-A-FINAL-CLOSURE-002`  
 **Status:** ACTIVE  
 **Phase:** R0.12 — Stage-A final closure  
-**Mode:** FINAL PRODUCT/HUMAN GATE  
-**Accepted production-code baseline:** `c2c959239cf8842388ac661777c19f20f64a6a90`  
+**Mode:** HUMAN GATE REPAIR + WINDOWS RELEASE DELIVERY  
+**Accepted engineering foundation:** `c2c959239cf8842388ac661777c19f20f64a6a90`  
+**Current main / latest Human Gate candidate:** `1015096fc4c5b2b9138e98cbe713fc4cc1770c07`  
 **Updated:** 2026-08-25  
-**Codex release:** CLOSED — no active construction branch
+**Codex release:** CLOSED pending focused local evidence
 
 ## Objective
 
-Reach truthful Stage-A / 1.0 structural closure by validating the accepted packaged Windows product through one consolidated ordinary-user Human Gate.
+Reach truthful Stage-A / 1.0 closure by repairing the defects demonstrated by the real Product/Human Gate, then deliver the stabilized Windows product through a guided `Setup.exe` installation path rather than a raw large ZIP.
 
-Engineering construction for the retained Stage-A surface is accepted through PR #20. No new Codex batch is authorized by default. If Human evidence exposes a concrete implementation defect, ChatGPT may release only the narrow repair required by that defect.
+The current task is not another broad architecture wave. Repair only the demonstrated Planning and Editing defects, improve the release-maintenance boundary, and preserve all accepted authority/safety invariants.
 
-## Permanent construction principles
+## Current Human Gate defects
 
-1. preserve compatible development and replaceable adapters;
-2. keep bootstrap/runtime location outside Domain/editorial authority;
-3. keep user originals immutable and user/project writable state outside the install tree;
-4. never bundle or log plaintext provider secrets;
-5. retain CPU-capable baseline behavior;
-6. use exact evidence rather than inferred PASS;
-7. do not expand retained 1.0 scope merely because the engineering phase is nearly complete;
-8. ChatGPT/Codex engineering remains serial; Codex is currently closed.
+### A. Planning factual-grounding defect — OPEN
 
-## Accepted waves
+Latest real failure:
 
-### Wave A — governance — ACCEPTED
+- the Script reviewer correctly rejected a proposal that implied the bottle fits in a bag and can be held in one hand;
+- the only cited authoritative fact was 350 ml capacity, which does not prove those fit/operability claims;
+- the previous prompt-only bounded repair therefore remains insufficient.
 
-### Wave B — Planning reference compatibility — ACCEPTED / remote support deferred to 2.0
+Required repair direction:
 
-Local reference video remains supported. Generic remote Reference URL remains a deliberate 2.0 deferral and is not a Stage-A blocker.
+- do not weaken the semantic reviewer;
+- do not add open-ended model retry loops;
+- introduce a bounded conservative recovery for `unsupported_claim` that removes claim-bearing implications and preserves only authoritative facts / neutral observable framing;
+- re-review the recovered proposal before owner commit;
+- prohibited content, brand constraints, locked authority and other hard violations remain fail-closed.
 
-### Wave C — Project Workspace + UX — ACCEPTED / PR #17
+### B. Editing Director/Resolver grounding defect — OPEN
 
-Merge: `4b2b4ed5f6e2347ae3b29381f39e79ad6930e393`.
+Latest real failure:
 
-### Wave D1 — Windows Packaging foundation — ACCEPTED / PR #19
+- ingest, public-music fallback, rights gate, acquisition and BeatMap succeeded;
+- first Resolver pass reported unresolved coverage;
+- the new bounded Resolver -> Director recovery executed;
+- the revised EditPlan still requested multiple beats unsupported by the real local footage, so the flow correctly failed before EDL/render.
 
-Merge: `cb63713c0daa02b396fd4f5268d280af831d5f70`.
+Required next action is **evidence inspection before modification**. Inspect the actual persisted local Workspace evidence, especially:
 
-### Wave D2 — Windows runtime payload closure — ACCEPTED / PR #20
+- Brief payload;
+- latest shot analyses;
+- both EditPlan revisions;
+- resolver reasons / relevant temporal evidence if needed.
 
-Merge: `c2c959239cf8842388ac661777c19f20f64a6a90`.
+Do not guess at a new Director prompt or Resolver threshold before this evidence is observed.
 
-Accepted runtime closure includes:
+## Repair-loop protocol — mandatory
 
-- exact BtbN Windows x64 LGPL-only FFmpeg/ffprobe 8.1 payload;
-- `transnetv2-pytorch==1.0.5` + `torch==2.13.0+cpu` + package-owned weights;
-- `faster-whisper==1.2.1`, `ctranslate2==4.8.1`, `av==18.1.0`, pinned `Systran/faster-whisper-base` revision, CPU/int8/local-files-only;
-- PyAV extension compatibility against the approved LGPL FFmpeg DLL set while excluding the wheel's broad/GPL codec DLL payload;
-- exact CPython 3.12.13 packaging interpreter;
-- manifest/NOTICE/component hash evidence;
-- clean Windows packaged Doctor, real TransNet prediction, real offline ASR, launcher and external Workspace smoke;
-- main SHA-addressed artifact `VideoEditingAgent-windows-x64-c2c959239cf8842388ac661777c19f20f64a6a90` with GitHub digest `sha256:a21a71211c0bee6848f93852d2f4cf6d27cd194b89f92a1fed6e4c24ccd57d5d`.
+During this active Human Gate repair boundary:
 
-## Wave E — final retained Product/Human Gate — ACTIVE
+1. **No full Windows package per small repair.** The ~769 MB compressed / ~1.88 GB extracted onedir candidate is not an iteration transport.
+2. Use focused local diagnostics from the external Workspace. Prefer `project.sqlite3` + `logs/`; request `history/` or `drafts/` only if necessary. Never request private source media unless the Human Gate itself requires visual judgment.
+3. Use patch-first development: focused diff/patch, targeted tests, then full repository quality gate when appropriate.
+4. Local developer runs may use PowerShell/CLI because this is an engineering feedback loop. Ordinary-user product behavior must still require no terminal knowledge.
+5. GitHub CI validates source changes, but the full Windows Packaging Candidate workflow is run only at an explicit release-candidate checkpoint.
+6. Only after Planning + Editing repair is stable should a new full Windows release artifact be built.
+7. Final Human Gate must use the installer-produced ordinary product, not an ad-hoc repository/uv launch.
 
-This is now the only Stage-A closure wave.
+## Windows delivery / installer boundary — NOW IN SCOPE
 
-### Human Gate A — ordinary packaged shell
+The Product Owner has explicitly rejected raw ZIP extraction as the normal release experience and requires a guided `Setup.exe` flow.
 
-PASS if an ordinary Windows user can:
+The release solution must provide:
 
-- extract/use the accepted onedir artifact;
-- double-click the application without repository/Python/uv/Git setup;
-- select/create an external Project Workspace;
-- configure API providers through the GUI;
-- understand basic progress/failure/output location behavior;
-- keep writable project/profile/output state outside the install tree.
+- install, upgrade/repair and uninstall;
+- license/agreement page where applicable;
+- installation path guidance;
+- selectable desktop shortcut;
+- finish-page launch option;
+- clear detection/explanation of existing application-owned component conflicts;
+- explicit consent before destructive replacement/reconfiguration;
+- no arbitrary system Python/FFmpeg/PATH mutation by default;
+- Workspace/projects/original media outside the install tree and preserved across app uninstall/update;
+- practical componentization so heavy Editing/speech runtimes are not an indivisible payload for Planning-only users.
 
-### Human Gate B — Planning-only
+Preferred implementation study order:
 
-PASS if the product GUI can run the supported Planning path from normal user inputs to persisted/inspectable ScriptPlan + ShootingPlan without repository editing.
+1. **Inno Setup 7.1** as the primary guided `Setup.exe` candidate;
+2. **NSIS Modern UI 2** as the permissive/custom-script alternative;
+3. **Velopack** as a competing whole install/update stack, especially for delta/self-update needs;
+4. WiX/Burn only if prerequisite chaining requirements justify its additional complexity.
 
-### Human Gate C — Editing-only with clear speech
+Do not combine installer stacks merely because they exist. Choose the smallest established solution that satisfies the product contract and licensing constraints.
 
-Use a short real local video with clear single-speaker speech and Planning enrichment disabled.
+## Runtime decomposition target
 
-PASS if:
+The current large onedir should be treated as engineering staging, not a single indivisible release payload. Evaluate at least these logical ownership packs:
 
-- automatic Editing reaches a real final MP4;
-- original/source voice is preserved and intelligible;
-- trusted subtitles correspond to the actual speech with acceptable timing;
-- BGM remains natural enough not to bury speech;
-- user originals remain unchanged;
-- failure/progress state is understandable;
-- no transcript/subtitle content is fabricated.
+- **Core App:** GUI, application code, minimum private CPython/Tcl/Tk, profiles/Workspace/Planning cloud adapters;
+- **Media Runtime:** FFmpeg/ffprobe;
+- **Scene Detection Runtime:** TransNet + CPU Torch + reviewed weights;
+- **Speech Runtime:** faster-whisper + CTranslate2/PyAV + pinned model.
 
-The already-accepted no-speech Editing Human evidence need not be repeated unless the packaged run reveals a regression in that path.
+Capability-oriented installation should preserve flexible production-line semantics: Planning-only can remain light; Editing adds media/scene components; trusted speech subtitles add speech components.
 
-### Human Gate D — Combined semantics
+## Permanent invariants
 
-With a valid Planning result bound to the selected Project Workspace/session, enable Planning enrichment and run a short Combined edit. PASS if Combined works through the ordinary UI while Editing-only remains independently usable.
+- preserve replaceable adapters and canonical Domain/EDL/Renderer authority;
+- no public/web/generated visual fallback for missing user footage;
+- no plaintext provider secrets in install/project/log artifacts;
+- keep source media immutable;
+- keep user Projects/Profiles/outputs outside application installation ownership;
+- retain CPU-capable ordinary baseline;
+- destructive environment actions require explicit user consent;
+- Remote Reference URL remains deferred to 2.0.
 
-### Human Gate E — credential/profile protection
+## Exit gates
 
-The GUI already supports session-local API settings and optional protected API profiles. If a profile is saved, verify it can be loaded through the GUI and no plaintext API key is present in the visible profile file. Windows DPAPI is the protected credential persistence mechanism.
+This work order closes only when:
 
-## Evidence required to close this work order
+1. Planning-only real Human Gate passes the unsupported-claim scenario safely;
+2. Editing-only real Human Gate reaches grounded final output for an appropriately satisfiable local-footage case, including clear speech/original voice/trusted subtitles, while honestly handling truly missing coverage;
+3. Combined remains independently usable;
+4. final Windows ordinary delivery is a tested `Setup.exe` flow with install/update-or-repair/uninstall and Workspace preservation;
+5. exact final candidate identity and durable Human evidence are recorded.
 
-Record:
-
-- exact accepted artifact/main SHA and artifact digest;
-- Windows machine/environment class;
-- provider choices used for Planning/visual understanding;
-- final MP4/output locations and concise Human observations;
-- PASS/FAIL for ordinary shell, Planning-only, Editing-only speech, Combined semantics and credential/profile behavior;
-- any genuine limitation discovered.
-
-If all required Human checks pass, update durable validation evidence, set Core 2 and Stage-A completion gates to PASS, set structural progress to 100, and close this work order.
-
-If a check fails, keep progress below 100 and release only the narrow defect repair demonstrated by the failure.
-
-## Explicitly post-Stage-A / non-blocking
-
-Do not delay Stage-A 100% for:
-
-- shrinking the current large onedir footprint;
-- installer / onefile packaging;
-- code signing;
-- auto-update;
-- longer artifact retention/release-channel polish;
-- advanced TTS/separation/effects/NLE features;
-- Remote Reference URL 2.0;
-- optional release-hardening that does not affect the accepted ordinary-user path.
-
-## Current progress
-
-**95%** — held only for final Product/Human evidence.
+Structural progress remains **95%** until those gates pass.
