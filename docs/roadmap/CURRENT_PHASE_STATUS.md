@@ -3,8 +3,8 @@
 **Roadmap V2:** ACTIVE  
 **Development stage:** STRUCTURAL_CONSTRUCTION  
 **Structural progress:** 95%  
-**Current phase:** R0.12 — Stage-A final Product/Human Gate  
-**Engineering state:** STAGE_A_FINAL_PRODUCT_HUMAN_GATE_ACTIVE  
+**Current phase:** R0.12 — Stage-A Human Gate repair + Windows release delivery  
+**Engineering state:** STAGE_A_HUMAN_GATE_REPAIR_ACTIVE  
 **Updated:** 2026-08-25
 
 ## Progress truth
@@ -15,97 +15,82 @@ Hard 100% contract:
 
 `docs/roadmap/STAGE_A_COMPLETION_GATE.md`
 
+The latest real Product/Human Gate on main `1015096fc4c5b2b9138e98cbe713fc4cc1770c07` supersedes earlier optimistic gate labels.
+
 Current gates:
 
-- Planning Product/Human Gate: PASS on the supported Stage-A surface.
+- Planning Product/Human Gate: **REOPENED** — bounded model repair still introduced unsupported fit/operability claims and the semantic reviewer correctly vetoed them.
+- Editing Product/Human Gate: **REOPENED** — bounded Resolver -> Director recovery executed, but the revised EditPlan still requested multiple beats not grounded in the supplied real local footage.
+- Editing no-speech historical Human baseline: remains PASS unless a later regression disproves it.
 - local reference video: supported.
 - remote reference URL: deliberately deferred to 2.0; not a 1.0 blocker.
-- Editing no-speech Human baseline: PASS with real final MP4, source audio and rights-safe BGM.
-- Project Workspace / desktop UX: ACCEPTED / MERGED in PR #17.
-- Windows packaging foundation: ACCEPTED / MERGED in PR #19.
-- exact Windows runtime payload closure: ACCEPTED / MERGED in PR #20.
-- final ordinary-user packaged Human Gate: ACTIVE.
-- speech-bearing original voice + trusted subtitles: Human evidence OPEN.
+- Project Workspace / desktop UX foundation: ACCEPTED / PR #17.
+- Windows packaging/runtime foundation: ACCEPTED / PR #19 + PR #20.
+- Windows ordinary release delivery: **OPEN** — final user delivery must be guided `Setup.exe`, not raw large ZIP extraction.
+- clear-speech original voice + trusted subtitles: still OPEN because Editing has not yet reached the downstream speech/subtitle/render path in the current real-footage Human Gate.
 - Stage-A completion gate: OPEN.
 
 Therefore progress remains **95%**, not 100%.
 
-## Accepted engineering baseline
+## Current implementation truth
 
-Current accepted production-code main:
+Accepted runtime/packaging engineering foundation:
 
-`c2c959239cf8842388ac661777c19f20f64a6a90`
+`c2c959239cf8842388ac661777c19f20f64a6a90` (PR #20)
 
-PR #20 exact implementation head:
+Current main and latest Human Gate candidate:
 
-`e22cb3cb96ba13414cff7d13deaa15a647bd8542`
+`1015096fc4c5b2b9138e98cbe713fc4cc1770c07` (PR #21)
 
-The runtime payload closure is now proven on a clean GitHub-hosted Windows environment with exact CPython 3.12.13:
+PR #21 proved one important mechanism: when the first Resolver pass cannot ground an EditPlan, the product now performs one bounded Director replan on the same authoritative lineage and re-resolves. It no longer exposes a raw `slot_6` failure immediately. The real Human Gate showed that the mechanism runs, but also showed that Director grounding/recovery quality is still insufficient.
+
+The current onedir artifact size (~769 MB compressed / ~1.88 GB extracted) is no longer treated as the intended normal distribution shape. It is engineering staging/evidence only.
+
+## Active repair method
+
+Human Gate repair now uses an evidence-first / patch-first loop:
 
 ```text
-exact/hash-locked runtime inputs
-→ LGPL-only FFmpeg/ffprobe
-→ TransNetV2 + CPU Torch + package weights
-→ faster-whisper + native runtime + exact local model
-→ deterministic Windows x64 onedir
-→ manifest/static inspection
-→ packaged Doctor
-→ real FFmpeg/TransNet/ASR runtime probe
-→ GUI launcher
-→ external Project Workspace smoke
-→ SHA-addressed artifact upload
+real failure
+→ collect small Workspace/log evidence
+→ inspect exact persisted Brief / shot analysis / EditPlan revisions
+→ focused patch
+→ targeted tests + normal CI
+→ local developer run for the same scenario
+→ repeat if needed
+→ explicit release-candidate build only after repair stability
+→ Setup.exe Human Gate
 ```
 
-Final main artifact:
-
-`VideoEditingAgent-windows-x64-c2c959239cf8842388ac661777c19f20f64a6a90`
-
-GitHub digest:
-
-`sha256:a21a71211c0bee6848f93852d2f4cf6d27cd194b89f92a1fed6e4c24ccd57d5d`
-
-Compressed size: `768923438` bytes.
-
-The large unpacked footprint is a post-Stage-A optimization concern, not authority to remove retained 1.0 capabilities. Installer/onefile/signing/updater work remains later release-readiness work.
+Do not use a full Windows artifact as the transport for every small repair.
 
 ## What remains before effective 100%
 
-No new engineering wave is planned by default.
+### A. Planning factual recovery
 
-The remaining work is one consolidated ordinary-user Human Gate on the accepted packaged application:
+Preserve commercial-fact safety while making ordinary creative positioning usable. A second unsupported-claim veto must not lead to endless model retries; recovery must conservatively remove unsupported semantic properties and pass an independent re-review before commit.
 
-### A. Ordinary launcher / configuration / Workspace
+### B. Editing grounding recovery
 
-- launch the packaged EXE without repository/Python/uv/Git setup;
-- configure DeepSeek plus the chosen Gemini/OpenAI visual provider through the GUI;
-- create/select an external Project Workspace;
-- verify outputs and writable state remain outside the install tree;
-- verify progress/errors are understandable.
+Inspect the persisted Workspace evidence from the failed real run before changing Director/Resolver behavior. The goal is not to force a render: adapt optional/adaptable editorial beats to what real local footage actually contains, while keeping genuinely essential missing coverage fail-closed and never substituting public/generated visuals.
 
-### B. Planning-only retained product path
+### C. Clear-speech retained path
 
-Use the GUI to provide a normal planning brief and run the supported Planning workflow. Confirm an inspectable/persisted ScriptPlan and ShootingPlan are produced without editing repository files.
-
-### C. Editing-only retained speech path
-
-Use a short real local video with clear single-speaker original speech and run Editing-only with Planning enrichment disabled. Confirm:
-
-- real final MP4 exists at the selected output;
-- original/source speech remains audible;
-- subtitles are grounded in the actual speech and timing is acceptably aligned;
-- BGM does not destroy speech intelligibility;
-- originals remain untouched;
-- no fabricated transcript/subtitle content appears.
+Once Editing reaches a grounded EDL, confirm final MP4, preserved original speech, trusted subtitle content/timing and acceptable BGM balance.
 
 ### D. Combined semantics
 
-With a valid Planning result in the same Project Workspace/session, enable the ordinary Planning-enrichment control and run a short Combined edit. Confirm the path works and that Planning remains optional enrichment rather than an activation license.
+Confirm Planning enrichment remains optional and Combined works through the ordinary UI.
 
-### E. Closure evidence
+### E. Windows release delivery
 
-Record exact artifact/main SHA, Windows machine class, provider choices, resulting output paths and concise Human PASS/FAIL observations.
+Produce and Human-test a guided `Setup.exe` install/upgrade-or-repair/uninstall path. The installer should use established tooling rather than bespoke installer mechanics and should support application-owned componentized runtime delivery.
 
-If all of A–E pass, Core 2 may become PASS and Stage-A may move directly from 95% to 100%. If one check fails, reopen only the narrow implementation defect demonstrated by that failure; do not invent a new broad phase.
+### F. Closure evidence
+
+Record exact final release SHA/artifact identities, installer/runtime component identities and concise Human PASS/FAIL observations.
+
+If all gates pass, Stage-A may move directly from 95% to 100%. Do not create artificial percentage increments for each repair.
 
 ## Active Work Order
 
