@@ -3,8 +3,8 @@
 **Roadmap V2:** ACTIVE  
 **Development stage:** STRUCTURAL_CONSTRUCTION  
 **Structural progress:** 95%  
-**Current phase:** R0.12 — Stage-A final closure / runtime payload / final Human Gate  
-**Engineering state:** STAGE_A_WINDOWS_RUNTIME_PAYLOAD_CLOSURE_ACTIVE  
+**Current phase:** R0.12 — Stage-A final Product/Human Gate  
+**Engineering state:** STAGE_A_FINAL_PRODUCT_HUMAN_GATE_ACTIVE  
 **Updated:** 2026-08-25
 
 ## Progress truth
@@ -21,116 +21,91 @@ Current gates:
 - local reference video: supported.
 - remote reference URL: deliberately deferred to 2.0; not a 1.0 blocker.
 - Editing no-speech Human baseline: PASS with real final MP4, source audio and rights-safe BGM.
-- Workspace/desktop UX: ACCEPTED / MERGED in PR #17.
-- Windows onedir packaging foundation: ACCEPTED / MERGED in PR #19.
-- exact Windows runtime payload closure: ACTIVE / RELEASED.
-- speech-bearing original voice + trusted subtitles: final runtime + Human evidence OPEN.
+- Project Workspace / desktop UX: ACCEPTED / MERGED in PR #17.
+- Windows packaging foundation: ACCEPTED / MERGED in PR #19.
+- exact Windows runtime payload closure: ACCEPTED / MERGED in PR #20.
+- final ordinary-user packaged Human Gate: ACTIVE.
+- speech-bearing original voice + trusted subtitles: Human evidence OPEN.
 - Stage-A completion gate: OPEN.
 
 Therefore progress remains **95%**, not 100%.
 
-## Accepted Packaging foundation
+## Accepted engineering baseline
 
-PR #19 squash merge:
+Current accepted production-code main:
 
-`cb63713c0daa02b396fd4f5268d280af831d5f70`
+`c2c959239cf8842388ac661777c19f20f64a6a90`
 
-Implementation head:
+PR #20 exact implementation head:
 
-`cf3e4ff7f2a05b88dabef33867ef813f67956cfb`
+`e22cb3cb96ba13414cff7d13deaa15a647bd8542`
 
-Proven foundation capabilities:
+The runtime payload closure is now proven on a clean GitHub-hosted Windows environment with exact CPython 3.12.13:
 
 ```text
-runtime BOM / manifest + schema
-→ strict manifest validation
-→ frozen/development/managed ResourceRuntimeLocator
-→ existing Environment Doctor integration
-→ pinned PyInstaller 6.16.0 Windows x64 onedir
-→ static staged-package inspection
+exact/hash-locked runtime inputs
+→ LGPL-only FFmpeg/ffprobe
+→ TransNetV2 + CPU Torch + package weights
+→ faster-whisper + native runtime + exact local model
+→ deterministic Windows x64 onedir
+→ manifest/static inspection
 → packaged Doctor
-→ packaged GUI launcher
-→ external temporary Project Workspace
-→ plaintext-secret scan
-→ SHA-addressed GitHub artifact + evidence
+→ real FFmpeg/TransNet/ASR runtime probe
+→ GUI launcher
+→ external Project Workspace smoke
+→ SHA-addressed artifact upload
 ```
 
-The Windows Packaging Candidate workflow completed successfully and uploaded an identifiable artifact tied to the implementation SHA. Main `cb63713...` subsequently passed CI and document-registry.
+Final main artifact:
 
-This proves the packaging architecture, not final runtime completeness. The artifact intentionally reported required media/speech payloads as missing rather than fabricating readiness.
+`VideoEditingAgent-windows-x64-c2c959239cf8842388ac661777c19f20f64a6a90`
 
-## Active construction — runtime payload closure
+GitHub digest:
 
-Construction branch:
+`sha256:a21a71211c0bee6848f93852d2f4cf6d27cd194b89f92a1fed6e4c24ccd57d5d`
 
-`work/r012-runtime-payload-closure`
+Compressed size: `768923438` bytes.
 
-The accepted foundation must now receive exact reproducible payloads without weakening its flexible locator/manifest architecture.
+The large unpacked footprint is a post-Stage-A optimization concern, not authority to remove retained 1.0 capabilities. Installer/onefile/signing/updater work remains later release-readiness work.
 
-### FFmpeg / ffprobe
+## What remains before effective 100%
 
-Use an exact **LGPL-only** Windows x64 build; GPL/nonfree developer `full_build` payloads are forbidden for the release candidate.
+No new engineering wave is planned by default.
 
-Current engineering candidate:
+The remaining work is one consolidated ordinary-user Human Gate on the accepted packaged application:
 
-- upstream distribution: BtbN FFmpeg-Builds;
-- release tag: `autobuild-2026-08-20-13-45`;
-- FFmpeg revision family: `n8.1.2-44-g7c533d0f86`;
-- asset: `ffmpeg-n8.1.2-44-g7c533d0f86-win64-lgpl-shared-8.1.zip`;
-- archive SHA-256: `d311c8c7b86e06b54588e442652f963bae165bd4d8393e73cc9ebb445b025547`.
+### A. Ordinary launcher / configuration / Workspace
 
-The implementation must verify the downloaded archive hash and runtime `-version` configuration, retain required license/NOTICE/provenance evidence, and make ffmpeg/ffprobe executable discovery come only from the manifest/locator in frozen mode.
+- launch the packaged EXE without repository/Python/uv/Git setup;
+- configure DeepSeek plus the chosen Gemini/OpenAI visual provider through the GUI;
+- create/select an external Project Workspace;
+- verify outputs and writable state remain outside the install tree;
+- verify progress/errors are understandable.
 
-### TransNetV2
+### B. Planning-only retained product path
 
-Retain `transnetv2-pytorch==1.0.5` and package-owned weights.
+Use the GUI to provide a normal planning brief and run the supported Planning workflow. Confirm an inspectable/persisted ScriptPlan and ShootingPlan are produced without editing repository files.
 
-Exact PyPI wheel identity:
+### C. Editing-only retained speech path
 
-`transnetv2_pytorch-1.0.5-py3-none-any.whl`
+Use a short real local video with clear single-speaker original speech and run Editing-only with Planning enrichment disabled. Confirm:
 
-SHA-256:
+- real final MP4 exists at the selected output;
+- original/source speech remains audible;
+- subtitles are grounded in the actual speech and timing is acceptably aligned;
+- BGM does not destroy speech intelligibility;
+- originals remain untouched;
+- no fabricated transcript/subtitle content appears.
 
-`9f8e72085526aaa95383d219b6750b1fa45b865fd10d840cafa12ef78ab3bf27`
+### D. Combined semantics
 
-Close the CPU PyTorch/native transitive runtime deliberately; do not depend on an existing `.venv` or user Python.
+With a valid Planning result in the same Project Workspace/session, enable the ordinary Planning-enrichment control and run a short Combined edit. Confirm the path works and that Planning remains optional enrichment rather than an activation license.
 
-### Speech
+### E. Closure evidence
 
-Retain the accepted Stage-A baseline:
+Record exact artifact/main SHA, Windows machine class, provider choices, resulting output paths and concise Human PASS/FAIL observations.
 
-- `faster-whisper==1.2.1`;
-- wheel SHA-256 `79a66ad50688c0b794dd501dc340a736992a6342f7f95e5811be60b5224a26a7`;
-- `Systran/faster-whisper-base` revision `ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66`;
-- CPU / int8;
-- local-files-only.
-
-Close CTranslate2/PyAV and other native/transitive payload identities, required notices and model-file hashes. No CUDA hard requirement and no implicit model download.
-
-## Runtime closure proof required
-
-The next candidate should prove, from the packaged/managed runtime rather than the development environment:
-
-- FFmpeg and ffprobe execute and Doctor reports READY;
-- TransNet package + weights import/load and a bounded CPU prediction probe succeeds;
-- faster-whisper native runtime + pinned model load locally and a bounded recognition probe succeeds;
-- manifest/Doctor/package evidence records exact component identities and hashes;
-- no developer tree, secret or repository-relative fallback is required;
-- packaged launcher and external Workspace smoke remain green.
-
-## Final closure after runtime payload acceptance
-
-Then perform the final packaged Human Gate:
-
-- ordinary launcher without repo/Python/uv;
-- packaged Workspace/UX behavior;
-- supported Planning path;
-- Editing no-speech non-regression as needed;
-- one clear single-speaker original-voice + trusted-subtitle run;
-- protected Windows credential/profile round trip;
-- exact artifact identity recorded.
-
-Only then may structural progress become 100%.
+If all of A–E pass, Core 2 may become PASS and Stage-A may move directly from 95% to 100%. If one check fails, reopen only the narrow implementation defect demonstrated by that failure; do not invent a new broad phase.
 
 ## Active Work Order
 

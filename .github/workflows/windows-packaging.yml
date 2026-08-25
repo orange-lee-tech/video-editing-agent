@@ -7,6 +7,8 @@ on:
       - main
       - work/r012-windows-packaging
       - work/r012-runtime-payload-closure
+    paths-ignore:
+      - "docs/**"
 
 jobs:
   onedir:
