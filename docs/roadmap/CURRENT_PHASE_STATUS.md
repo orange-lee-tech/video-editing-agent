@@ -3,9 +3,9 @@
 **Roadmap V2:** ACTIVE  
 **Development stage:** STRUCTURAL_CONSTRUCTION  
 **Structural progress:** 95%  
-**Current phase:** R0.12 — Stage-A final closure / workspace UX / packaging  
-**Engineering state:** STAGE_A_WORKSPACE_UX_CONSOLIDATION_ACTIVE  
-**Updated:** 2026-08-22
+**Current phase:** R0.12 — Stage-A final closure / Windows packaging / final Human Gate  
+**Engineering state:** STAGE_A_WINDOWS_PACKAGING_ACTIVE  
+**Updated:** 2026-08-25
 
 ## Progress truth
 
@@ -20,35 +20,34 @@ Current gate state:
 - Planning Product/Human Gate: PASS on the supported Stage-A surface.
 - local reference video: retained supported Planning input.
 - remote reference URL: deliberately hidden and deferred to 2.0 provider-neutral `ReferenceObservation`; not a 1.0 blocker.
-- bounded Bilibili acquisition fallback: Engineering PASS, not exposed as ordinary 1.0 product capability.
+- bounded Bilibili acquisition fallback: Engineering PASS, not ordinary 1.0 product capability.
 - Editing no-speech ordinary Human baseline: PASS with real final MP4.
 - source audio preservation + rights-safe BGM: HUMAN PASS on the accepted real run.
 - no-speech subtitle behavior: PASS (`SKIPPED` / no fabricated captions).
 - speech-bearing original voice + basic trusted subtitles: engineering seam present; approved/pinned runtime/model + real Human evidence still OPEN.
-- Project Workspace / desktop UX consolidation before packaging: **ACTIVE / RELEASED**.
-- Windows distributable proof without Python/uv/repository execution: OPEN / not yet released.
+- Project Workspace / desktop UX consolidation: **ACCEPTED / MERGED** in PR #17.
+- Windows distributable proof without Python/uv/repository execution: **ACTIVE / RELEASED**.
 - Stage-A completion gate: OPEN.
 
 Therefore structural progress remains **95%**, not 100%.
 
 ## Accepted production-code baseline
 
-`756a30562dd512fba9868eeee43cf6422f60f642`
+Workspace/UX accepted merge:
 
-This is the squash merge of PR #13 after exact-head CI passed for implementation head `e8b09444e2f8402d267c670e841e8b9720418d20`.
+`4b2b4ed5f6e2347ae3b29381f39e79ad6930e393`
 
-Current documentation/packaging-preparation main baseline:
+PR #17 exact implementation head:
 
-`d26249f71d895efff54c1d7167f4b6bc457b98f1`
+`21b2d1c52fc1b1c8aef6a1d269861ace2f0f7b8c`
 
-Durable evidence:
+Exact-head CI / repository-governance / document-registry all passed before merge.
 
-- `docs/validation/R0.12_EDITING_AUDIO_SUBTITLE_CLOSURE_2026-08-21.md`
-- `docs/validation/R0.12_REFERENCE_COMPATIBILITY_CLOSURE_2026-08-22.md`
+The final attempted local `maintain.ps1 verify` did not start because the Windows host blocks `.ps1` execution by policy. This is tracked as a shell-invocation constraint, not a quality-gate failure. Use process-scoped ExecutionPolicy bypass for future local script invocation; do not weaken machine-wide policy.
 
 ## What is now proven
 
-Ordinary Editing has real evidence for:
+Ordinary Editing already has real evidence for:
 
 ```text
 real user footage
@@ -62,92 +61,79 @@ real user footage
 → final MP4
 ```
 
-The Product Owner confirmed the final no-speech MP4 was normal, source audio was present, and BGM was present/natural.
+Workspace/UX now additionally establishes the shared Project Workspace, project-scoped writable state, default-output ownership, bounded form history, project-bound Planning context, configuration surfaces and task-state gating needed before packaging freezes runtime/resource behavior.
 
-Reference compatibility exploration also proved that a provider-specific Bilibili acquisition adapter can live behind the existing acquisition seam while preserving transport/security boundaries. However, because current visual providers are image-frame oriented rather than provider-neutral remote/video-native observers, ordinary remote-reference input is intentionally hidden for 1.0 instead of forcing a heavy download/parse path into the product.
+The remaining Workspace ordinary-user acceptance is deliberately consolidated into the final packaged-artifact Human Gate. This avoids duplicate acceptance of a development launcher while preserving the final Human requirement.
 
-## Active construction — Project Workspace + desktop UX
+## Active construction — compatible Windows packaging
 
 Construction branch:
 
-`work/r012-workspace-ux-consolidation`
+`work/r012-windows-packaging`
 
-Specification:
+Contract:
 
-`docs/operations/STAGE_A_WORKSPACE_UX_CONSOLIDATION.md`
+`docs/operations/WINDOWS_PACKAGING_FOUNDATION_CONTRACT.md`
 
 Execution entry:
 
 `docs/operations/CODEX_EXECUTION_ENTRY.md`
 
-This wave must establish before Packaging:
+The active wave must turn the existing development environment assumptions into explicit product-owned runtime behavior:
 
-- one shared top-level `Project Workspace` context for Planning and Editing;
-- project-specific cache/work/autosave/undo-redo/log/output ownership under that workspace;
-- sensible project-local default output destination;
-- unified main-window configuration import/export/save/delete interaction;
-- form-level Clear / Undo / Redo;
-- vertical collapsible sections instead of unnecessary horizontal width;
-- replace the temporary pixel-camera mark with the approved feather identity only if the real asset is recoverable;
-- keep remote reference URL hidden.
+- machine-readable runtime/component manifest;
+- manifest validation and package-content allow/deny rules;
+- thin frozen/development resource/runtime locator;
+- reuse/refactor the existing Environment Doctor rather than creating a second diagnostic architecture;
+- approved/pinned TransNet runtime + weights resolution;
+- approved/pinned faster-whisper speech runtime/model release strategy;
+- approved FFmpeg/ffprobe exact build strategy and notices;
+- deterministic Windows x64 onedir build;
+- static package inspection;
+- packaged launcher + Doctor + external temporary Workspace smoke;
+- artifact identity with source SHA, manifest snapshot and hashes where required.
 
-Codex must stop after this wave. Packaging remains a separate unreleased wave.
+The ordinary target must not need repository checkout, system Python, uv, Git or developer-only PATH setup.
+
+Codex may continue through bounded implementation/repair inside this wave until it has an identifiable onedir artifact and packaged smoke evidence, or reaches a genuine external blocker. It should not stop for ordinary low-risk implementation choices that can be resolved from repository contracts and tests.
+
+## Known local Packaging seed work
+
+The user reported pre-existing untracked local items:
+
+```text
+resources/
+src/video_editing_agent/adapters/bootstrap/
+tests/unit/test_packaging_foundation.py
+```
+
+These are not accepted repository facts yet. The active Packaging implementation must inspect and preserve them, classify/reuse useful work, and must not discard them via reset/stash/clean. They should be committed only after review and alignment with the active Packaging contract.
 
 ## Remaining retained 1.0 closure terrain
 
 ### A. Basic speech/subtitle retained capability
 
-Production synthetic voice/TTS is deferred, but original human speech + basic trusted subtitles remains a retained 1.0 capability.
+The repository already pins the intended Stage-A baseline to `faster-whisper==1.2.1` and `Systran/faster-whisper-base` at an exact revision, CPU/int8, local-files-only. Packaging must turn that code-level pin into a deliberate distributable/managed component with Doctor evidence rather than relying on developer cache state.
 
-The speech runtime/model must be deliberate, pinned, diagnosable and pass a real simple spoken-video Human Gate before final closure. Advanced source separation/noise handling is not required for 1.0.
+### B. Runtime/legal closure
 
-### B. Compatible Windows packaging
-
-Packaging must progress from Python wheel/sdist to a real Windows distributable engineering proof:
-
-- ordinary target does not need Python, uv or repository checkout;
-- thin bootstrap/resource/runtime location outside Domain authority;
-- user-writable data outside install directory;
-- providers/models/renderers remain replaceable;
-- current 1.0 runtime dependencies are closed deliberately rather than accidentally copied from a developer machine;
-- fresh/clean Windows smoke proves launch and retained core-path diagnostics.
-
-Readiness input:
-
-`docs/operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md`
-
-The current repository-local `.tools` FFmpeg locator is a development fallback, not the final packaging resource-location architecture.
+FFmpeg/ffprobe and any bundled model/native component must have exact distributable identity, provenance/license/NOTICE state and approved release location. Do not copy arbitrary developer `.tools` or cache trees.
 
 ### C. Final closure
 
-After Workspace/UX and Packaging are accepted:
+After Packaging evidence is accepted:
 
 - run retained ordinary Planning/local-reference evidence;
-- rerun Editing no-speech baseline;
+- rerun Editing no-speech baseline if packaging changes touch its path;
 - run clear single-speaker original-voice + basic subtitle Human Gate;
 - verify packaged launcher/diagnostics without repo/Python/uv;
+- exercise the final packaged Workspace/UX Human Gate;
 - verify required full quality/governance gates and exact-head CI;
 - synchronize live control documents;
-- set Stage-A 100% only if every machine/human completion invariant actually passes.
-
-## 2.0 deferred reference direction
-
-Remote URLs may return only when a provider-neutral observation capability exists, e.g.:
-
-```text
-Reference URL
-→ provider-neutral ReferenceObservation capability
-→ remote/video-native observation when supported
-→ provider upload-media observation when required
-→ controlled image-only fallback when appropriate
-→ structured reference observations
-→ Planning/Director
-```
-
-Bilibili/Douyin/Xiaohongshu site mechanics must remain adapter concerns and must not own Planning Domain.
+- set Stage-A 100% only if every machine/human completion invariant genuinely passes.
 
 ## Active Work Order
 
 `R0.12-STAGE-A-FINAL-CLOSURE-002`
 
-The current implementation wave must stay bounded to Workspace/UX consolidation and obey root `AGENTS.md` plus `docs/operations/DOCUMENT_CONTROL_POLICY.md`.
+The current implementation wave is Windows Packaging and must obey root `AGENTS.md`, `docs/operations/WINDOWS_PACKAGING_FOUNDATION_CONTRACT.md` and the live execution entry.
