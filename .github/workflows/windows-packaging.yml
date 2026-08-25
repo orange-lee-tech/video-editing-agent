@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - work/r012-windows-packaging
+      - work/r012-runtime-payload-closure
 
 jobs:
   onedir:

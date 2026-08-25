@@ -60,6 +60,18 @@ def test_checked_in_runtime_bom_loads_and_covers_frozen_runtime_terrain() -> Non
     assert speech is not None and "ebe41f70" in speech.version
     assert manifest.component("cloud-providers") is not None
     assert manifest.component("development-tooling") is not None
+    for component_id in (
+        "ffmpeg",
+        "ffprobe",
+        "transnet-runtime",
+        "transnet-weights",
+        "speech-runtime",
+        "speech-model",
+    ):
+        component = manifest.component(component_id)
+        assert component is not None
+        assert component.inclusion.value == "include"
+        assert component.license_state.value == "reviewed"
 
 
 @pytest.mark.parametrize("path", ("../escape.exe", "/absolute/tool", "C:/tool.exe", "a\\b"))
@@ -231,3 +243,21 @@ def test_static_package_inspection_rejects_plaintext_provider_secret(tmp_path: P
     (stage / "config.txt").write_text("OPENAI_API_KEY=abcdefghijklmnop", encoding="utf-8")
     with pytest.raises(ValueError, match="plaintext"):
         inspect_staged_package(stage, manifest)
+
+
+def test_static_package_inspection_hashes_owned_runtime_tree_deterministically(
+    tmp_path: Path,
+) -> None:
+    manifest = parse_runtime_manifest(
+        _payload(_component(id="runtime", kind="runtime", path="runtimes/component"))
+    )
+    stage = tmp_path / "stage"
+    runtime = stage / "runtimes/component"
+    runtime.mkdir(parents=True)
+    (runtime / "b.bin").write_bytes(b"second")
+    (runtime / "a.bin").write_bytes(b"first")
+    first = inspect_staged_package(stage, manifest).component_hashes["runtime"]
+    second = inspect_staged_package(stage, manifest).component_hashes["runtime"]
+    assert first == second
+    (runtime / "a.bin").write_bytes(b"changed")
+    assert inspect_staged_package(stage, manifest).component_hashes["runtime"] != first

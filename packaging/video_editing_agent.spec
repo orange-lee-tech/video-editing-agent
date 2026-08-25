@@ -1,6 +1,7 @@
 from pathlib import Path
 
 repo = Path(SPECPATH).parent
+payloads = repo / "build/runtime-payloads"
 
 a = Analysis(
     [str(repo / "src/video_editing_agent/adapters/bootstrap/desktop_entry.py")],
@@ -15,6 +16,12 @@ a = Analysis(
             str(repo / "resources/packaging/runtime-manifest.schema.json"),
             "resources/packaging",
         ),
+        (str(repo / "resources/licenses/THIRD_PARTY_RUNTIME_NOTICES.md"), "licenses"),
+        (str(payloads / "ffmpeg-owned"), "tools"),
+        (str(payloads / "python-stdlib"), "runtimes/python-stdlib"),
+        (str(payloads / "transnet"), "runtimes/transnet"),
+        (str(payloads / "speech-owned"), "runtimes/speech"),
+        (str(payloads / "models/faster-whisper-base"), "models/faster-whisper-base"),
     ],
     hiddenimports=["tkinter", "tkinter.ttk"],
     excludes=["faster_whisper", "transnetv2_pytorch", "torch", "mediapipe"],

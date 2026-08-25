@@ -34,51 +34,65 @@
       "absence_fatal": true
     },
     {
-      "id": "ffmpeg", "kind": "executable", "classification": "managed-optional",
-      "capability": "media-probe-render", "version": "8.1", "location_policy": "managed-component-root",
-      "provenance": "exact redistributable build approval and hash pending", "license_state": "external-review-required",
-      "inclusion": "external", "hash_policy": "not-applicable", "path": "tools/ffmpeg.exe",
+      "id": "python-stdlib-managed", "kind": "runtime", "classification": "bundled-required",
+      "capability": "managed-python-runtime", "version": "3.12.13", "location_policy": "install-relative",
+      "provenance": "standard library and native modules from the pinned CPython build runtime",
+      "license_state": "reviewed", "inclusion": "include", "hash_policy": "build-generated",
+      "path": "_internal/runtimes/python-stdlib", "notice_path": "_internal/licenses/THIRD_PARTY_RUNTIME_NOTICES.md",
       "platform": "windows", "architecture": "x86_64", "absence_fatal": true
     },
     {
-      "id": "ffprobe", "kind": "executable", "classification": "managed-optional",
-      "capability": "media-probe-render", "version": "8.1", "location_policy": "managed-component-root",
-      "provenance": "exact redistributable build approval and hash pending", "license_state": "external-review-required",
-      "inclusion": "external", "hash_policy": "not-applicable", "path": "tools/ffprobe.exe",
+      "id": "ffmpeg", "kind": "executable", "classification": "bundled-required",
+      "capability": "media-probe-render", "version": "n8.1.2-44-g7c533d0f86", "location_policy": "install-relative",
+      "provenance": "BtbN autobuild-2026-08-20-13-45 LGPL shared archive sha256:d311c8c7b86e06b54588e442652f963bae165bd4d8393e73cc9ebb445b025547", "license_state": "reviewed",
+      "inclusion": "include", "hash_policy": "build-generated", "path": "_internal/tools/ffmpeg.exe",
+      "notice_path": "_internal/licenses/THIRD_PARTY_RUNTIME_NOTICES.md",
       "platform": "windows", "architecture": "x86_64", "absence_fatal": true
     },
     {
-      "id": "transnet-runtime", "kind": "runtime", "classification": "managed-optional",
-      "capability": "shot-detection", "version": "1.0.5", "location_policy": "managed-component-root",
-      "provenance": "reviewed transnetv2-pytorch package family; release payload pending",
-      "license_state": "external-review-required", "inclusion": "external",
-      "hash_policy": "not-applicable", "path": "runtimes/transnetv2",
+      "id": "ffprobe", "kind": "executable", "classification": "bundled-required",
+      "capability": "media-probe-render", "version": "n8.1.2-44-g7c533d0f86", "location_policy": "install-relative",
+      "provenance": "BtbN autobuild-2026-08-20-13-45 LGPL shared archive sha256:d311c8c7b86e06b54588e442652f963bae165bd4d8393e73cc9ebb445b025547", "license_state": "reviewed",
+      "inclusion": "include", "hash_policy": "build-generated", "path": "_internal/tools/ffprobe.exe",
+      "notice_path": "_internal/licenses/THIRD_PARTY_RUNTIME_NOTICES.md",
       "platform": "windows", "architecture": "x86_64", "absence_fatal": true
     },
     {
-      "id": "transnet-weights", "kind": "model", "classification": "managed-optional",
+      "id": "transnet-runtime", "kind": "runtime", "classification": "bundled-required",
+      "capability": "shot-detection", "version": "transnetv2-pytorch==1.0.5;torch==2.13.0+cpu", "location_policy": "install-relative",
+      "provenance": "hash-locked Windows x64 CPU dependency payload",
+      "license_state": "reviewed", "inclusion": "include",
+      "hash_policy": "build-generated", "path": "_internal/runtimes/transnet",
+      "notice_path": "_internal/licenses/THIRD_PARTY_RUNTIME_NOTICES.md",
+      "platform": "windows", "architecture": "x86_64", "absence_fatal": true
+    },
+    {
+      "id": "transnet-weights", "kind": "model", "classification": "bundled-required",
       "capability": "shot-detection", "version": "transnetv2-pytorch-1.0.5",
-      "location_policy": "managed-component-root", "provenance": "reviewed package-owned weights; release hash pending",
-      "license_state": "external-review-required", "inclusion": "external",
-      "hash_policy": "not-applicable", "path": "models/transnetv2/transnetv2-pytorch-weights.pth",
+      "location_policy": "install-relative", "provenance": "package-owned transnetv2-pytorch 1.0.5 weights",
+      "license_state": "reviewed", "inclusion": "include",
+      "hash_policy": "build-generated", "path": "_internal/runtimes/transnet/transnetv2_pytorch/transnetv2-pytorch-weights.pth",
+      "notice_path": "_internal/licenses/THIRD_PARTY_RUNTIME_NOTICES.md",
       "platform": "any", "architecture": "any", "absence_fatal": true
     },
     {
-      "id": "speech-runtime", "kind": "runtime", "classification": "managed-optional",
+      "id": "speech-runtime", "kind": "runtime", "classification": "bundled-required",
       "capability": "speech-recognition", "version": "faster-whisper-1.2.1",
-      "location_policy": "managed-component-root", "provenance": "pinned Python package; native release closure pending",
-      "license_state": "external-review-required", "inclusion": "external",
-      "hash_policy": "not-applicable", "path": "runtimes/faster-whisper",
-      "platform": "windows", "architecture": "x86_64", "absence_fatal": false
+      "location_policy": "install-relative", "provenance": "hash-locked Windows CPU payload; PyAV 18.1.0 linked to approved LGPL-only FFmpeg DLLs",
+      "license_state": "reviewed", "inclusion": "include",
+      "hash_policy": "build-generated", "path": "_internal/runtimes/speech",
+      "notice_path": "_internal/licenses/THIRD_PARTY_RUNTIME_NOTICES.md",
+      "platform": "windows", "architecture": "x86_64", "absence_fatal": true
     },
     {
-      "id": "speech-model", "kind": "model", "classification": "managed-optional",
+      "id": "speech-model", "kind": "model", "classification": "bundled-required",
       "capability": "speech-recognition",
       "version": "Systran/faster-whisper-base@ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66",
-      "location_policy": "managed-component-root", "provenance": "pinned model revision; local-files-only",
-      "license_state": "external-review-required", "inclusion": "external",
-      "hash_policy": "not-applicable", "path": "models/faster-whisper-base",
-      "platform": "any", "architecture": "any", "absence_fatal": false
+      "location_policy": "install-relative", "provenance": "Systran/faster-whisper-base@ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66; local-files-only",
+      "license_state": "reviewed", "inclusion": "include",
+      "hash_policy": "build-generated", "path": "_internal/models/faster-whisper-base",
+      "notice_path": "_internal/licenses/THIRD_PARTY_RUNTIME_NOTICES.md",
+      "platform": "any", "architecture": "any", "absence_fatal": true
     },
     {
       "id": "cloud-providers", "kind": "remote-service", "classification": "remote",
