@@ -2,11 +2,64 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any
+from enum import StrEnum
+from pathlib import Path
+from typing import Any, Protocol
 
 from video_editing_agent.storage.project.layout import WorkspaceWritableLayout
 
 _FORM_STATE_SCHEMA = "video-editing-agent-form-state-v1"
+
+
+class ProjectBoundContext(Protocol):
+    @property
+    def project(self) -> Path: ...
+
+
+class OutputPathOwnership(StrEnum):
+    WORKSPACE_DEFAULT = "workspace_default"
+    EXPLICIT = "explicit"
+
+
+def require_selected_workspace(value: str) -> Path:
+    """Reject an absent UI selection before any project-opening side effect."""
+    if not value.strip():
+        raise ValueError("A Project Workspace must be selected before running this workflow.")
+    return Path(value).expanduser().resolve(strict=False)
+
+
+def context_for_workspace[T: ProjectBoundContext](context: T | None, workspace: Path) -> T | None:
+    if context is None:
+        return None
+    resolved = workspace.expanduser().resolve(strict=False)
+    return context if context.project.expanduser().resolve(strict=False) == resolved else None
+
+
+def restored_output_ownership(
+    stored_value: str | None,
+    output_path: str,
+    layout: WorkspaceWritableLayout,
+) -> OutputPathOwnership:
+    if stored_value is not None:
+        try:
+            return OutputPathOwnership(stored_value)
+        except ValueError:
+            pass
+    if output_path.strip():
+        candidate = Path(output_path).expanduser().resolve(strict=False)
+        if candidate.parent == layout.final_outputs:
+            return OutputPathOwnership.WORKSPACE_DEFAULT
+    return OutputPathOwnership.EXPLICIT
+
+
+def output_path_for_workspace(
+    current_value: str,
+    ownership: OutputPathOwnership,
+    layout: WorkspaceWritableLayout,
+) -> Path:
+    if ownership is OutputPathOwnership.WORKSPACE_DEFAULT:
+        return layout.default_final_output()
+    return Path(current_value).expanduser().resolve(strict=False)
 
 
 @dataclass(slots=True)

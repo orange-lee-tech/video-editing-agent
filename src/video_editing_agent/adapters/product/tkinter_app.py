@@ -52,7 +52,12 @@ from video_editing_agent.adapters.product.ux_support import (
 )
 from video_editing_agent.adapters.product.workspace_ui import (
     BoundedFormHistory,
+    OutputPathOwnership,
     WorkspaceFormStateStore,
+    context_for_workspace,
+    output_path_for_workspace,
+    require_selected_workspace,
+    restored_output_ownership,
 )
 from video_editing_agent.application.use_cases.product_flow import (
     OUTPUT_PROFILE_HORIZONTAL_1080P,
@@ -82,6 +87,7 @@ _TEXT = {
         "field_project": "项目目录",
         "workspace": "项目工作区",
         "workspace_unselected": "尚未选择项目工作区",
+        "workspace_required": "请先选择项目工作区，再开始运行。",
         "configuration": "配置 ▾",
         "configuration_scope": "配置范围（可同时选择）",
         "form_configuration": "规划 / 剪辑表单",
@@ -185,6 +191,7 @@ _TEXT = {
         "field_project": "Project Directory",
         "workspace": "Project Workspace",
         "workspace_unselected": "No Project Workspace selected",
+        "workspace_required": "Select a Project Workspace before starting.",
         "configuration": "Configuration ▾",
         "configuration_scope": "Configuration scope (select either or both)",
         "form_configuration": "Planning / Editing forms",
@@ -746,6 +753,9 @@ def launch() -> int:
     editing_output.insert("1.0", text("result_empty"))
     current_form_profile: Path | None = None
     history_applying = False
+    planning_context: PlanningSessionContext | None = None
+    use_planning = tk.BooleanVar(value=False)
+    output_path_ownership = OutputPathOwnership.WORKSPACE_DEFAULT
     histories = {
         "planning": BoundedFormHistory.create({}),
         "editing": BoundedFormHistory.create({}),
@@ -758,10 +768,12 @@ def launch() -> int:
             values["output_profile"] = output_profile_choice.get()
             values["subtitle_style"] = subtitle_style_choice.get()
             values["music_rights_attested"] = "1" if music_rights_attested.get() else "0"
+            values["use_planning"] = "1" if use_planning.get() else "0"
+            values["_output_path_ownership"] = output_path_ownership.value
         return values
 
     def apply_workflow_snapshot(workflow: str, values: dict[str, str]) -> None:
-        nonlocal history_applying
+        nonlocal history_applying, output_path_ownership
         history_applying = True
         try:
             fields_map = planning_values if workflow == "planning" else editing_values
@@ -775,6 +787,17 @@ def launch() -> int:
                     values.get("subtitle_style", SubtitleStyleProfile.OUTLINED.value)
                 )
                 music_rights_attested.set(values.get("music_rights_attested") == "1")
+                output_path_ownership = restored_output_ownership(
+                    values.get("_output_path_ownership"),
+                    values.get("output_mp4", ""),
+                    ProjectWorkspace.open(
+                        require_selected_workspace(workspace_value.get())
+                    ).writable,
+                )
+                valid_context = context_for_workspace(
+                    planning_context, require_selected_workspace(workspace_value.get())
+                )
+                use_planning.set(values.get("use_planning") == "1" and valid_context is not None)
         finally:
             history_applying = False
 
@@ -819,6 +842,7 @@ def launch() -> int:
         persist_history(workflow)
 
     def open_workspace(path: Path, *, restore: bool) -> None:
+        nonlocal planning_context, output_path_ownership
         if active_task is not None:
             return
         if workspace_value.get().strip():
@@ -827,6 +851,10 @@ def launch() -> int:
                 persist_history(workflow)
         workspace = ProjectWorkspace.open(path)
         workspace_value.set(str(workspace.root))
+        planning_context = context_for_workspace(planning_context, workspace.root)
+        if planning_context is None:
+            use_planning.set(False)
+            use_planning_check.configure(state="disabled")
         for workflow in ("planning", "editing"):
             loaded = WorkspaceFormStateStore(workspace.writable, workflow).load()
             if restore and loaded is not None:
@@ -835,10 +863,16 @@ def launch() -> int:
             else:
                 snapshot = workflow_snapshot(workflow)
                 histories[workflow] = BoundedFormHistory.create(snapshot)
-        if not field_value(editing_values["output_mp4"]).strip():
+        if output_path_ownership is OutputPathOwnership.WORKSPACE_DEFAULT:
             set_field(
                 editing_values["output_mp4"],
-                str(workspace.writable.default_final_output()),
+                str(
+                    output_path_for_workspace(
+                        field_value(editing_values["output_mp4"]),
+                        output_path_ownership,
+                        workspace.writable,
+                    )
+                ),
             )
             histories["editing"].record(workflow_snapshot("editing"))
         for workflow in ("planning", "editing"):
@@ -885,7 +919,7 @@ def launch() -> int:
         messagebox.showinfo(text("file"), text("profile_saved"), parent=root)
 
     def load_form_profile() -> None:
-        nonlocal current_form_profile
+        nonlocal current_form_profile, output_path_ownership
         selected = filedialog.askopenfilename(
             title=text("load"), initialdir=profile_root, filetypes=(("Text", "*.txt"),)
         )
@@ -899,6 +933,8 @@ def launch() -> int:
         for prefix, fields_map in (("planning", planning_values), ("editing", editing_values)):
             for name, variable in fields_map.items():
                 set_field(variable, loaded.get(f"{prefix}.{name}", ""))
+        if loaded.get("editing.output_mp4", "").strip():
+            output_path_ownership = OutputPathOwnership.EXPLICIT
         music_rights_attested.set(False)
         saved_output_profile = loaded.get("editing.output_profile")
         if saved_output_profile:
@@ -918,9 +954,6 @@ def launch() -> int:
             if current_form_profile == Path(selected):
                 current_form_profile = None
             messagebox.showinfo(text("file"), text("profile_deleted"), parent=root)
-
-    planning_context: PlanningSessionContext | None = None
-    use_planning = tk.BooleanVar(value=False)
 
     def update_language() -> None:
         root.title(text("window_title"))
@@ -1249,13 +1282,14 @@ def launch() -> int:
         if active_task is not None:
             return
         try:
+            project = require_selected_workspace(workspace_value.get())
             # Remote reference observation is deferred until a video-native/provider-neutral
             # capability is available. Keep the ordinary product surface fail-closed meanwhile.
             reference_url = None
             local_reference_text = field_value(planning_values["reference_local"]).strip()
             has_reference = reference_url is not None or bool(local_reference_text)
             form = PlanningForm(
-                Path(workspace_value.get()),
+                project,
                 brief(planning_values),
                 ProductionConstraints(
                     camera_or_phone=(
@@ -1296,6 +1330,8 @@ def launch() -> int:
             threading.Thread(target=worker, name="planning-product-flow", daemon=True).start()
         except Exception as exc:
             primary, detail = localized_error(exc, language.get())
+            if not workspace_value.get().strip():
+                primary, detail = text("planning_unavailable"), text("workspace_required")
             messagebox.showerror(text("planning_unavailable"), primary + "\n\n" + detail)
 
     def run_editing() -> None:
@@ -1303,13 +1339,14 @@ def launch() -> int:
         if active_task is not None:
             return
         try:
+            project = require_selected_workspace(workspace_value.get())
             raw_files = tuple(
                 Path(item.strip())
                 for item in field_value(editing_values["media_files"]).split(";")
                 if item.strip()
             )
             music_text = field_value(editing_values["music_file"]).strip()
-            workspace = ProjectWorkspace.open(Path(workspace_value.get()))
+            workspace = ProjectWorkspace.open(project)
             output_path = Path(field_value(editing_values["output_mp4"]))
             if output_path.exists():
                 if output_path.parent.resolve() == workspace.writable.final_outputs:
@@ -1320,7 +1357,7 @@ def launch() -> int:
                 ):
                     return
             form = EditingForm(
-                Path(workspace_value.get()),
+                project,
                 brief(editing_values),
                 output_path,
                 raw_files,
@@ -1356,6 +1393,8 @@ def launch() -> int:
             threading.Thread(target=worker, name="editing-product-flow", daemon=True).start()
         except Exception as exc:
             primary, detail = localized_error(exc, language.get())
+            if not workspace_value.get().strip():
+                primary, detail = text("editing_unavailable"), text("workspace_required")
             messagebox.showerror(text("editing_unavailable"), primary + "\n\n" + detail)
 
     choose_reference = ttk.Button(
@@ -1434,18 +1473,23 @@ def launch() -> int:
     music_rights_check.grid(row=3, column=1, columnspan=2, sticky="w", pady=(6, 2))
     translated_widgets.append((music_rights_check, "music_rights_attestation"))
 
+    def choose_output_path() -> None:
+        nonlocal output_path_ownership
+        selected = filedialog.asksaveasfilename(
+            title=text("dialog_choose_output"),
+            defaultextension=".mp4",
+            filetypes=(
+                (text("filetype_video"), ("*.mp4", "*.mov", "*.mkv", "*.webm")),
+                (text("filetype_all"), "*.*"),
+            ),
+        )
+        if selected:
+            output_path_ownership = OutputPathOwnership.EXPLICIT
+            set_field(editing_values["output_mp4"], selected)
+
     choose_output = ttk.Button(
         editing_media_card,
-        command=lambda: editing_values["output_mp4"].set(
-            filedialog.asksaveasfilename(
-                title=text("dialog_choose_output"),
-                defaultextension=".mp4",
-                filetypes=(
-                    (text("filetype_video"), ("*.mp4", "*.mov", "*.mkv", "*.webm")),
-                    (text("filetype_all"), "*.*"),
-                ),
-            )
-        ),
+        command=choose_output_path,
         style="Secondary.TButton",
     )
     choose_output.grid(row=2, column=2, padx=(10, 0))
