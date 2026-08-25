@@ -47,7 +47,9 @@ def _envelope(identity: str, revision: int = 1) -> EntityEnvelope:
 
 
 def _brief() -> Brief:
-    return Brief(_envelope("brf_gate"), "Bottle", "Show the product", "commuters", "short", "Daily use")
+    return Brief(
+        _envelope("brf_gate"), "Bottle", "Show the product", "commuters", "short", "Daily use"
+    )
 
 
 def _brief_input() -> ProductBriefInput:
@@ -155,18 +157,27 @@ def test_script_repair_reframes_unsupported_commute_convenience_as_neutral_obser
     assert "non-claim framing or a neutral observable action/state" in instruction
     assert "placing, carrying, or taking out the product" in instruction
     assert "must not say or imply that doing so is easy, convenient, adequate" in instruction
-    assert "Do not turn a neutral action into a demonstration of the unsupported result" in instruction
+    assert (
+        "Do not turn a neutral action into a demonstration of the unsupported result" in instruction
+    )
 
 
-def test_director_contract_requires_slots_to_be_grounded_and_declares_importance_semantics() -> None:
-    assert "Every proposed slot must be grounded in at least one supplied footage_evidence item" in _SYSTEM_PROMPT
+def test_director_contract_requires_slots_to_be_grounded_and_declares_importance_semantics() -> (
+    None
+):
+    assert (
+        "Every proposed slot must be grounded in at least one supplied footage_evidence item"
+        in _SYSTEM_PROMPT
+    )
     assert "importance 1 or 2" in _SYSTEM_PROMPT
     assert "importance 3 intent" in _SYSTEM_PROMPT
     assert "Never invent missing coverage" in _SYSTEM_PROMPT
     assert "Resolver feedback is operational evidence about coverage failure" in _SYSTEM_PROMPT
 
 
-def test_editing_flow_replans_once_and_continues_with_later_edit_plan_revision(tmp_path: Path) -> None:
+def test_editing_flow_replans_once_and_continues_with_later_edit_plan_revision(
+    tmp_path: Path,
+) -> None:
     source = tmp_path / "source.mp4"
     source.write_bytes(b"original")
     output = tmp_path / "final.mp4"
@@ -195,9 +206,7 @@ def test_editing_flow_replans_once_and_continues_with_later_edit_plan_revision(t
         resolve_calls.append(plan.envelope.revision)
         return (_unresolved(plan),) if plan.envelope.revision == 1 else (_resolved(plan),)
 
-    def recover(
-        plan: EditPlan, unresolved: tuple[ResolutionDecision, ...]
-    ) -> EditPlan:
+    def recover(plan: EditPlan, unresolved: tuple[ResolutionDecision, ...]) -> EditPlan:
         recovery_calls.append(
             (
                 plan.envelope.revision,
