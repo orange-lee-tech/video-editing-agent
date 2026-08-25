@@ -732,6 +732,48 @@ def build_editing_product_flow(
     def resolve_edit_plan(edit_plan: EditPlan) -> tuple[ResolutionDecision, ...]:
         return resolver.resolve(edit_plan)
 
+    def recover_edit_plan(
+        edit_plan: EditPlan,
+        unresolved: tuple[ResolutionDecision, ...],
+    ) -> EditPlan:
+        if edit_plan.brief_ref is None:
+            raise RuntimeError("resolver recovery requires EditPlan Brief lineage")
+        slots = {slot.slot_id: slot for slot in edit_plan.slots}
+        diagnostics: list[str] = []
+        for decision in unresolved:
+            for slot_id in decision.target_slot_ids:
+                slot = slots.get(slot_id)
+                if slot is None:
+                    raise RuntimeError("resolver recovery referenced an unknown EditSlot")
+                reasons = ", ".join(decision.reasons) or "no legal grounded candidate"
+                diagnostics.append(
+                    "Unresolved grounded coverage: "
+                    f"purpose={slot.purpose!r}; semantic_query={slot.semantic_query!r}; "
+                    f"importance={slot.importance}; resolver_reason={reasons}."
+                )
+        guidance = (
+            "Resolver recovery feedback is operational evidence only, not product-fact authority. "
+            "Regenerate one fresh complete EditPlan from the same Brief and the supplied real local "
+            "footage evidence. Never add stock, public-web, generated, or unrelated visual "
+            "coverage. importance=3 is essential; importance=2 is important but adaptable; "
+            "importance=1 is optional. Remove, merge, or neutrally reframe unsupported importance "
+            "1/2 beats when the Brief still works without them. For importance 3, preserve the "
+            "intent only through evidence-supported subjects/actions/visible states; if the real "
+            "footage cannot support that intent, keep the missing intent explicit so resolution "
+            "fails closed rather than fabricating coverage.",
+            *diagnostics,
+        )
+        return editing_runtime.editing.generate_edit_plan(
+            GenerateEditPlanRequest(
+                edit_plan.envelope.id,
+                edit_plan.brief_ref,
+                edit_plan.script_plan_ref,
+                edit_plan.shooting_plan_ref,
+                policy_guidance=guidance,
+                created_by="product-flow-resolver-recovery",
+            )
+        )
+
     def assemble_edl(
         edit_plan: EditPlan,
         decisions: tuple[ResolutionDecision, ...],
@@ -1033,5 +1075,6 @@ def build_editing_product_flow(
             validate_audio,
             finalize_voice,
             compile_product_subtitles,
+            recover_edit_plan,
         )
     )
