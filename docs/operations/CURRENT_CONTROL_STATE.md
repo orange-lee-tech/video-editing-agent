@@ -4,17 +4,17 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-25
 current_phase: R0.12
-phase_state: STAGE_A_WINDOWS_PACKAGING_ACTIVE
+phase_state: STAGE_A_WINDOWS_RUNTIME_PAYLOAD_CLOSURE_ACTIVE
 active_work_order: R0.12-STAGE-A-FINAL-CLOSURE-002
-active_construction_branch: work/r012-windows-packaging
-accepted_code_baseline: 4b2b4ed5f6e2347ae3b29381f39e79ad6930e393
-main_preparation_baseline: 4b2b4ed5f6e2347ae3b29381f39e79ad6930e393
+active_construction_branch: work/r012-runtime-payload-closure
+accepted_code_baseline: cb63713c0daa02b396fd4f5268d280af831d5f70
+main_preparation_baseline: cb63713c0daa02b396fd4f5268d280af831d5f70
 control_plane_baseline: e758c3dfb2cab08b901001c5c59379583d249a06
 structural_progress_percent: 95
 stage_a_completion_gate: OPEN
 core_1_planning_product_gate: PASS
-core_2_editing_product_gate: PARTIAL_HUMAN_PASS_PACKAGING_AND_SPEECH_EVIDENCE_OPEN
-codex_release: OPEN_WINDOWS_PACKAGING_FOUNDATION
+core_2_editing_product_gate: PARTIAL_HUMAN_PASS_RUNTIME_PAYLOAD_AND_SPEECH_EVIDENCE_OPEN
+codex_release: OPEN_WINDOWS_RUNTIME_PAYLOAD_CLOSURE
 previous_work_order: R0.12-STAGE-A-PRODUCT-GATE-CLOSURE-001
 previous_work_order_result: EDITING_AUDIO_SUBTITLE_WAVE_ACCEPTED
 foreman: v2-trigger-first
@@ -25,30 +25,29 @@ writer: chatgpt
 
 ## Routing truth
 
-Accepted Workspace/UX production baseline is merge commit:
+Accepted Workspace/UX baseline:
 
 `4b2b4ed5f6e2347ae3b29381f39e79ad6930e393` (PR #17).
 
-PR #17 exact implementation head `21b2d1c52fc1b1c8aef6a1d269861ace2f0f7b8c` passed CI, repository-governance and document-registry before merge.
+Accepted Windows Packaging foundation baseline:
 
-The final local `.ps1` verification invocation was blocked by the Windows host ExecutionPolicy before the script started; this is an execution-shell policy issue, not a reported verify failure. Future local scripted verification should use a process-scoped bypass or an explicit `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ...` invocation rather than changing machine policy.
+`cb63713c0daa02b396fd4f5268d280af831d5f70` (PR #19).
 
-Durable evidence already retained:
+PR #19 foundation head `cf3e4ff7f2a05b88dabef33867ef813f67956cfb` passed the Windows Packaging Candidate workflow and PR CI. The workflow uploaded the SHA-addressed artifact `VideoEditingAgent-windows-x64-cf3e4ff7f2a05b88dabef33867ef813f67956cfb` with GitHub artifact digest `sha256:1a3637a7e0725ae68e0854fc2dc2c0e7e581e406a4ca02db0b3645258bd9e46c`.
 
-- `docs/validation/R0.12_EDITING_AUDIO_SUBTITLE_CLOSURE_2026-08-21.md`
-- `docs/validation/R0.12_REFERENCE_COMPATIBILITY_CLOSURE_2026-08-22.md`
+The squash-merged main head `cb63713c0daa02b396fd4f5268d280af831d5f70` passed main CI and document-registry.
 
 ## Current truth
 
 - Planning Product/Human Gate remains PASS for the supported 1.0 surface.
-- Remote reference URL is not an ordinary 1.0 feature; local reference video remains supported.
+- Remote reference URL remains deferred to 2.0; local reference video remains supported.
 - Ordinary no-speech Editing Human evidence remains PASS.
-- Basic speech-bearing original voice + trusted subtitle execution remains a retained 1.0 gate and still needs approved/pinned runtime/model plus real Human evidence.
-- Project Workspace + UX consolidation is **ACCEPTED / MERGED** in PR #17.
-- The remaining ordinary-user Human Gate for Workspace behavior is consolidated into the final packaged-artifact Human Gate rather than duplicated on the development launcher. It is not waived.
-- Compatible Windows Packaging is now **ACTIVE / RELEASED**.
-- A real Windows distributable proof remains required before structural 100%: ordinary target environment must not require Python, uv, Git or repository execution.
-- Packaging/bootstrap/resource location must remain replaceable and outside Domain authority.
+- Project Workspace + UX consolidation is ACCEPTED / MERGED.
+- Windows x64 onedir **foundation** is ACCEPTED / MERGED: manifest/schema, frozen/development locator, Doctor integration, PyInstaller build, static package inspection, packaged launcher/Doctor/external-Workspace smoke and SHA-addressed artifact evidence are real.
+- The foundation artifact is not the final product artifact because FFmpeg/ffprobe, TransNet and speech runtime/model payloads are not yet closed as reproducible release payloads.
+- Basic original speech + trusted subtitles remains a retained 1.0 Human Gate.
+- The remaining Workspace ordinary-user Human check stays consolidated into the final packaged-artifact Human Gate; it is not waived.
+- Stage-A completion remains OPEN and structural progress remains 95%.
 
 ## Active execution boundary
 
@@ -56,20 +55,20 @@ Durable evidence already retained:
 
 Active construction branch:
 
-`work/r012-windows-packaging`
+`work/r012-runtime-payload-closure`
 
-Packaging contract:
+Active task:
 
-`docs/operations/WINDOWS_PACKAGING_FOUNDATION_CONTRACT.md`
+**Runtime Payload Closure** — convert the accepted packaging foundation's managed/external placeholders into exact Windows runtime payloads with provenance, hashes, notices, Doctor readiness and real load/execute evidence.
 
-Execution order:
+Required payload families:
 
-1. repository attention/document governance — ACCEPTED;
-2. bounded reference compatibility decision — ACCEPTED;
-3. Project Workspace + UX consolidation — ACCEPTED / MERGED (`4b2b4ed`);
-4. compatible Windows packaging foundation and clean-machine-ish proof — **ACTIVE / RELEASED**;
-5. final retained 1.0 Product/Human evidence and closure synchronization — OPEN.
+1. FFmpeg/ffprobe — exact Windows x64 LGPL payload only; no GPL/nonfree developer `full_build` copying.
+2. TransNetV2 — `transnetv2-pytorch==1.0.5`, package-owned weights, exact package identity plus CPU PyTorch/native dependency closure.
+3. Speech — `faster-whisper==1.2.1`, pinned `Systran/faster-whisper-base@ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66`, CPU/int8, local-files-only, exact native dependency/model identity.
 
-Codex may perform bounded self-repair and continue construction inside the released Packaging wave without stopping for every small implementation decision. It must stop for constitutional/product-policy changes, unresolved redistribution/license decisions, secret/user-account actions, or changes outside the released boundary.
+Remote provider code may remain bundled; API secrets never bundle.
 
-Do not report Stage-A 100% until `docs/roadmap/STAGE_A_COMPLETION_GATE.md` and the machine/human gates are genuinely satisfied.
+Codex may perform bounded Windows/native/build self-repair inside this released task. It must not expand into installer/onefile/updater/signing, Remote Reference 2.0, TTS, advanced separation/effects, or Domain/EDL authority changes.
+
+Do not report Stage-A 100% until `docs/roadmap/STAGE_A_COMPLETION_GATE.md` and the final machine/Human gates genuinely pass.
