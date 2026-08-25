@@ -48,7 +48,12 @@ if ($Configuration -match "--enable-(gpl|nonfree)") {
 }
 
 if (-not (Test-Path -LiteralPath (Join-Path $TransNet "transnetv2_pytorch"))) {
+    # The locked CPU Torch wheel lives on PyTorch's dedicated CPU index. The
+    # compile input records this source, but generated requirement locks do not
+    # preserve index directives, so repeat the source explicitly at install time.
     uv pip install --target $TransNet --require-hashes `
+        --extra-index-url "https://download.pytorch.org/whl/cpu" `
+        --index-strategy unsafe-best-match `
         -r (Join-Path $RepoRoot "packaging/requirements-transnet-windows-cpu.lock")
     if ($LASTEXITCODE -ne 0) { throw "TransNet runtime installation failed" }
 }
