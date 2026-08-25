@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from video_editing_agent.adapters.bootstrap.capability_doctor import RuntimeManifestProbe
+from video_editing_agent.adapters.bootstrap.resource_locator import default_runtime_locator
 from video_editing_agent.adapters.cli.main import main as project_main
 from video_editing_agent.application.ports.environment_doctor import ProductCapability
 from video_editing_agent.application.use_cases.environment_doctor import (
@@ -33,6 +35,9 @@ def _doctor_parser() -> argparse.ArgumentParser:
 
 
 def _build_environment_doctor(preview_runtime: Path | None) -> EnvironmentDoctor:
+    runtime_locator = default_runtime_locator()
+    runtime_locator.activate_managed_python_runtime("transnet-runtime")
+    runtime_locator.activate_managed_python_runtime("speech-runtime")
     preview_backend = None
     if preview_runtime is not None:
         preview_backend = GStreamerPreviewBackend(
@@ -44,7 +49,10 @@ def _build_environment_doctor(preview_runtime: Path | None) -> EnvironmentDoctor
     return EnvironmentDoctor(
         (
             SystemHostProbe(),
-            FFmpegToolchainProbe(),
+            RuntimeManifestProbe(runtime_locator),
+            FFmpegToolchainProbe(
+                locator=lambda name: runtime_locator.executable(name, development_name=name)
+            ),
             TransNetRuntimeProbe(),
             PreviewRuntimeProbe(preview_backend),
             ConfiguredSecretProbe(

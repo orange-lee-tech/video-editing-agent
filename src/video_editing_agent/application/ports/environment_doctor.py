@@ -23,6 +23,9 @@ class ProductCapability(StrEnum):
     VISUAL_UNDERSTANDING = "visual_understanding"
     OPTIONAL_LOCAL_ACCELERATION = "optional_local_acceleration"
     SHOT_DETECTION = "shot_detection"
+    SPEECH_RECOGNITION = "speech_recognition"
+    INSTALL_RESOURCES = "install_resources"
+    WORKSPACE_STORAGE = "workspace_storage"
 
 
 @dataclass(frozen=True, slots=True)

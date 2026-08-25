@@ -26,7 +26,10 @@ from video_editing_agent.media.understanding.service import (
 from video_editing_agent.providers.reference.bilibili import BilibiliHtmlReferenceResolver
 from video_editing_agent.providers.reference.direct_https import DirectHttpsReferenceAcquirer
 from video_editing_agent.providers.review.ffmpeg_pcm import FFmpegPcmRenderedMediaQc
-from video_editing_agent.providers.speech.faster_whisper import FasterWhisperSpeechRecognitionPort
+from video_editing_agent.providers.speech.faster_whisper import (
+    FasterWhisperConfig,
+    FasterWhisperSpeechRecognitionPort,
+)
 from video_editing_agent.render.edl_ffmpeg import FFmpegEDLRenderer
 from video_editing_agent.storage.asset.repository_media import RepositoryLocalAssetMediaResolver
 from video_editing_agent.storage.project.product_flow import (
@@ -115,7 +118,11 @@ def editing_flow(project: Path, config: ProductRuntimeConfig) -> EditingProductF
             shot_repository=workspace.shots,
             asset_media_resolver=RepositoryLocalAssetMediaResolver(workspace.assets),
             transcript_repository=workspace.transcripts,
-            speech_port=FasterWhisperSpeechRecognitionPort(),
+            speech_port=FasterWhisperSpeechRecognitionPort(
+                FasterWhisperConfig(model_id=str(config.speech_model_path))
+                if config.speech_model_path is not None
+                else FasterWhisperConfig()
+            ),
         )
         speech_recognition = speech.recognize
     return build_editing_product_flow(
