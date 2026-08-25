@@ -831,6 +831,8 @@ def launch() -> int:
                         "output_profile": _OUTPUT_PROFILE_OPTIONS[0][0],
                         "subtitle_style": SubtitleStyleProfile.OUTLINED.value,
                         "music_rights_attested": "0",
+                        "use_planning": "0",
+                        "_output_path_ownership": OutputPathOwnership.WORKSPACE_DEFAULT.value,
                     }
                 )
             history.record(cleared)
@@ -897,6 +899,7 @@ def launch() -> int:
         values["editing.output_profile"] = _output_profile_for_display(
             output_profile_choice.get()
         ).profile_id
+        values["editing._output_path_ownership"] = output_path_ownership.value
         return values
 
     def save_form_profile(*, choose: bool) -> None:
@@ -933,8 +936,18 @@ def launch() -> int:
         for prefix, fields_map in (("planning", planning_values), ("editing", editing_values)):
             for name, variable in fields_map.items():
                 set_field(variable, loaded.get(f"{prefix}.{name}", ""))
-        if loaded.get("editing.output_mp4", "").strip():
+        loaded_output = loaded.get("editing.output_mp4", "")
+        stored_ownership = loaded.get("editing._output_path_ownership")
+        if workspace_value.get().strip():
+            output_path_ownership = restored_output_ownership(
+                stored_ownership,
+                loaded_output,
+                ProjectWorkspace.open(require_selected_workspace(workspace_value.get())).writable,
+            )
+        elif loaded_output.strip():
             output_path_ownership = OutputPathOwnership.EXPLICIT
+        else:
+            output_path_ownership = OutputPathOwnership.WORKSPACE_DEFAULT
         music_rights_attested.set(False)
         saved_output_profile = loaded.get("editing.output_profile")
         if saved_output_profile:
@@ -1205,6 +1218,13 @@ def launch() -> int:
         clear_button.configure(state=state)
         undo_button.configure(state=state)
         redo_button.configure(state=state)
+        for entry, _value, _name in entry_fields.values():
+            entry.configure(state=state)
+        for widget in (choose_reference, choose_files, choose_music, choose_output):
+            widget.configure(state=state)
+        use_planning_check.configure(
+            state="disabled" if running or planning_context is None else "normal"
+        )
 
     def pump_work() -> None:
         nonlocal active_task, active_stage, stage_started, planning_context
