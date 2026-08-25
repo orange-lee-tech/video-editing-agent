@@ -326,9 +326,7 @@ class EditingProductOperations:
         ]
         | None
     ) = None
-    recover_edit_plan: (
-        Callable[[EditPlan, tuple[ResolutionDecision, ...]], EditPlan] | None
-    ) = None
+    recover_edit_plan: Callable[[EditPlan, tuple[ResolutionDecision, ...]], EditPlan] | None = None
 
 
 @dataclass(frozen=True, slots=True)
