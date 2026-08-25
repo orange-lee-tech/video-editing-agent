@@ -753,7 +753,7 @@ def build_editing_product_flow(
                 )
         guidance = (
             "Resolver recovery feedback is operational evidence only, not product-fact authority. "
-            "Regenerate one fresh complete EditPlan from the same Brief and the supplied real local "
+            "Regenerate one fresh complete EditPlan from the same Brief and supplied real local "
             "footage evidence. Never add stock, public-web, generated, or unrelated visual "
             "coverage. importance=3 is essential; importance=2 is important but adaptable; "
             "importance=1 is optional. Remove, merge, or neutrally reframe unsupported importance "
