@@ -1,0 +1,2 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+transnetv2-pytorch==1.0.5

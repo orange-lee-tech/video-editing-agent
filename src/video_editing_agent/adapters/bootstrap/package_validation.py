@@ -54,6 +54,8 @@ def inspect_staged_package(root: Path, manifest: RuntimeManifest) -> PackageInsp
             hashes[component.component_id] = actual
             if component.hash_policy is HashPolicy.EXACT and actual != component.sha256:
                 raise ValueError(f"component hash mismatch: {component.component_id}")
+        elif target.is_dir():
+            hashes[component.component_id] = _tree_sha256(target)
     for path in files:
         if path.stat().st_size <= 2_000_000 and _SECRET_ASSIGNMENT.search(path.read_bytes()):
             raise ValueError(f"plaintext provider secret pattern found: {path.relative_to(staged)}")
@@ -87,6 +89,16 @@ def _sha256(path: Path) -> str:
     with path.open("rb") as source:
         for block in iter(lambda: source.read(1024 * 1024), b""):
             digest.update(block)
+    return digest.hexdigest()
+
+
+def _tree_sha256(root: Path) -> str:
+    digest = hashlib.sha256()
+    for path in sorted(item for item in root.rglob("*") if item.is_file()):
+        relative = path.relative_to(root).as_posix().encode()
+        digest.update(len(relative).to_bytes(8, "big"))
+        digest.update(relative)
+        digest.update(bytes.fromhex(_sha256(path)))
     return digest.hexdigest()
 
 

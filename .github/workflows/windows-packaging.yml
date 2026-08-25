@@ -4,7 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - work/r012-windows-packaging
+      - work/r012-runtime-payload-closure
 
 jobs:
   onedir:
@@ -15,9 +17,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with:
+          version: "0.12.5"
           enable-cache: true
+      - name: Install exact packaging Python
+        run: uv python install 3.12.13
       - name: Synchronize pinned packaging environment
-        run: uv sync --frozen --group packaging
+        run: uv sync --frozen --group packaging --python 3.12.13
       - name: Build, inspect and smoke Windows onedir
         shell: powershell
         run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package_windows.ps1

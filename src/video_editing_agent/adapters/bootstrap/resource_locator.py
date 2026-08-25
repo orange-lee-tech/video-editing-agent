@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import ctypes
+import os
 import shutil
 import sys
 from collections.abc import Callable
@@ -12,6 +14,8 @@ from video_editing_agent.adapters.bootstrap.runtime_manifest import (
     RuntimeManifest,
     load_runtime_manifest,
 )
+
+_DLL_DIRECTORY_HANDLES: list[object] = []
 
 
 class RuntimeLayout(StrEnum):
@@ -67,11 +71,16 @@ class ResourceRuntimeLocator:
         return str(candidate) if candidate.is_file() else None
 
     def activate_managed_python_runtime(self, component_id: str) -> bool:
+        if component_id != "python-stdlib-managed":
+            self._activate_runtime_path("python-stdlib-managed")
+        return self._activate_runtime_path(component_id)
+
+    def _activate_runtime_path(self, component_id: str) -> bool:
         component = self.manifest.component(component_id)
         path = self.existing_component_path(component_id)
         if (
             component is None
-            or component.inclusion is not InclusionPolicy.EXTERNAL
+            or component.inclusion not in {InclusionPolicy.EXTERNAL, InclusionPolicy.INCLUDE}
             or path is None
             or not path.is_dir()
         ):
@@ -79,6 +88,14 @@ class ResourceRuntimeLocator:
         value = str(path)
         if value not in sys.path:
             sys.path.insert(0, value)
+        if component_id == "python-stdlib-managed":
+            ctypes_path = str(path / "ctypes")
+            if ctypes_path not in ctypes.__path__:
+                ctypes.__path__.append(ctypes_path)
+        if hasattr(os, "add_dll_directory"):
+            for candidate in (path, path / "torch/lib", path / "ctranslate2", path / "av.libs"):
+                if candidate.is_dir():
+                    _DLL_DIRECTORY_HANDLES.append(os.add_dll_directory(str(candidate)))
         return True
 
 
