@@ -2,7 +2,8 @@
 
 **Status:** USER-APPROVED PRODUCT POLICY  
 **Approved:** 2026-08-25  
-**Scope:** Windows desktop ordinary-user experience, runtime management, API configuration and Workspace ownership  
+**Updated:** 2026-08-25  
+**Scope:** Windows desktop ordinary-user experience, runtime management, API configuration, Workspace ownership, installation and maintenance  
 **Authority note:** Records explicit Product Owner direction. A later Product Constitution revision should absorb these rules verbatim in substance rather than weakening them.
 
 ## 1. Ordinary-user principle
@@ -18,7 +19,8 @@ The product MUST NOT require terminal knowledge for normal:
 - Planning;
 - Editing;
 - output discovery;
-- ordinary diagnostics/recovery.
+- ordinary diagnostics/recovery;
+- application update/repair/uninstall.
 
 Developer shells may remain engineering tools, but they are not a product UI.
 
@@ -50,6 +52,8 @@ The product should make this separation visible and understandable so that:
 - user originals, project database/state, caches and outputs do not live inside the install directory by default;
 - multiple projects remain independently manageable;
 - accidental deletion or overwrite risk is reduced.
+
+Application update, repair and uninstall must preserve user Projects/Profiles/original media unless the user separately and explicitly requests their deletion.
 
 ## 4. Runtime/environment management
 
@@ -85,6 +89,8 @@ This includes, where applicable:
 
 The UI must explain the proposed action and consequence in ordinary language before proceeding.
 
+The normal design should prefer an application-private compatible runtime rather than trying to reuse, repair or delete an arbitrary system Python, FFmpeg, CUDA or developer environment.
+
 ## 5. Failure and recovery UX
 
 When a required capability is missing or broken, the normal GUI should prefer:
@@ -103,8 +109,42 @@ Public software, open-source projects, platform conventions and real user feedba
 
 References are inputs, not authority. Final UI decisions must preserve this product's own workflow, safety, Workspace ownership, credential protection and flexible Planning/Editing production-line semantics.
 
-## 7. Stage-A relationship
+Established installation/update systems should be evaluated before custom bootstrap/update machinery is invented. Current reference candidates include Inno Setup, NSIS, Velopack and, where prerequisite chaining actually justifies it, WiX/Burn.
 
-The current Stage-A accepted onedir architecture already bundles the retained core runtime payloads and therefore does not need to modify a user's Python/uv/Git environment.
+## 7. Windows distribution requirement
 
-Installer, component-manager and auto-update implementation remain post-Stage-A unless a current Human Gate proves they are required for the accepted ordinary-user path. When implemented, they must obey this policy.
+The raw PyInstaller `onedir` ZIP is an engineering staging/evidence format, not the normal 1.0 user-delivery format.
+
+The normal Windows release MUST provide a guided `Setup.exe` experience before Stage-A / 1.0 release closure. The installer/maintenance path must support at least:
+
+- a normal Windows installation wizard;
+- a license/agreement page where applicable;
+- an understandable install location;
+- user-selectable desktop shortcut creation;
+- a completion option to launch the application;
+- install-state detection and a safe upgrade/repair path;
+- normal uninstall through Windows conventions;
+- clear explanation/choice when an existing application-owned component conflicts with the supported version;
+- explicit consent before destructive replacement or substantial reconfiguration;
+- preservation of Project Workspaces, profiles and original media across application update/repair/uninstall.
+
+A giant single embedded payload is not a product requirement. Release engineering should prefer component ownership and verified acquisition where this reduces unnecessary downloads and maintenance risk.
+
+## 8. Capability-oriented component delivery
+
+The application is a flexible production line. Distribution should reflect that rather than forcing every user to acquire every heavy runtime on first install.
+
+The release architecture should be able to distinguish at least:
+
+- core desktop / Planning capability;
+- media runtime (for example FFmpeg/ffprobe);
+- scene-detection runtime (TransNet/CPU Torch/weights);
+- speech runtime (faster-whisper/CTranslate2/PyAV/model).
+
+Exact component boundaries may evolve after measurement, but they must be application-owned, versioned, verifiable and diagnosable. Planning-only users should not be required to download the complete heavy Editing/speech stack merely because those capabilities exist.
+
+## 9. Engineering iteration vs product operation
+
+Terminal/PowerShell use is permitted and encouraged for focused engineering diagnostics, patch application and local verification during development/Human Gate repair. This does not weaken Section 1: terminal knowledge remains forbidden as a requirement for the normal released product.
+
+During repair iterations, prefer small patches and focused Workspace/log evidence over repeatedly rebuilding and transferring the full release payload. A complete installer/package build is reserved for explicit release-candidate validation.
