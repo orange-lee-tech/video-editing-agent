@@ -134,6 +134,19 @@ def test_output_default_ownership_rebases_but_explicit_save_as_survives(tmp_path
     )
 
 
+def test_cleared_output_restores_workspace_default_ownership(tmp_path: Path) -> None:
+    workspace = ProjectWorkspace.open(tmp_path / "project")
+
+    assert (
+        restored_output_ownership("", "", workspace.writable)
+        is OutputPathOwnership.WORKSPACE_DEFAULT
+    )
+    assert (
+        restored_output_ownership(None, "", workspace.writable)
+        is OutputPathOwnership.WORKSPACE_DEFAULT
+    )
+
+
 @dataclass(frozen=True)
 class _PlanningContext:
     project: Path
