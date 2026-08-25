@@ -45,10 +45,11 @@ def restored_output_ownership(
             return OutputPathOwnership(stored_value)
         except ValueError:
             pass
-    if output_path.strip():
-        candidate = Path(output_path).expanduser().resolve(strict=False)
-        if candidate.parent == layout.final_outputs:
-            return OutputPathOwnership.WORKSPACE_DEFAULT
+    if not output_path.strip():
+        return OutputPathOwnership.WORKSPACE_DEFAULT
+    candidate = Path(output_path).expanduser().resolve(strict=False)
+    if candidate.parent == layout.final_outputs:
+        return OutputPathOwnership.WORKSPACE_DEFAULT
     return OutputPathOwnership.EXPLICIT
 
 
