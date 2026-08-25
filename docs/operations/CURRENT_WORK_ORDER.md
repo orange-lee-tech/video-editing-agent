@@ -3,186 +3,175 @@
 **ID:** `R0.12-STAGE-A-FINAL-CLOSURE-002`  
 **Status:** ACTIVE  
 **Phase:** R0.12 — Stage-A final closure  
-**Mode:** WORKSPACE/UX CONSOLIDATION → WINDOWS PACKAGING → FINAL HUMAN GATE  
-**Accepted production-code baseline:** `756a30562dd512fba9868eeee43cf6422f60f642`  
-**Current main preparation baseline:** `d26249f71d895efff54c1d7167f4b6bc457b98f1`  
+**Mode:** WINDOWS PACKAGING → FINAL PRODUCT/HUMAN GATE  
+**Accepted production-code baseline:** `4b2b4ed5f6e2347ae3b29381f39e79ad6930e393`  
 **Activated:** 2026-08-21  
-**Updated:** 2026-08-22  
-**Codex release:** OPEN — `work/r012-workspace-ux-consolidation` / Workspace + UX consolidation only
+**Updated:** 2026-08-25  
+**Codex release:** OPEN — `work/r012-windows-packaging` / compatible Windows Packaging foundation and artifact proof
 
 ## Objective
 
-Reach a truthful Stage-A / 1.0 structural closure without feature creep, while leaving a stable compatible foundation for later commercial-scale development.
+Reach truthful Stage-A / 1.0 structural closure by converting the already-working repository/development environment into an ordinary-user Windows product without compromising the existing modular architecture.
 
-The ordinary Editing no-speech baseline has passed a real Human Gate. Planning remains PASS on the supported Stage-A surface. Remote reference URL observation is intentionally deferred to 2.0 and hidden from the ordinary 1.0 UI. The active construction prerequisite is now to consolidate Project Workspace ownership and desktop interaction before packaging freezes path/resource behavior.
+Planning remains PASS on the supported 1.0 surface. Ordinary no-speech Editing remains Human PASS. Remote reference URL remains deferred to 2.0. Project Workspace + UX consolidation is accepted in PR #17. The active engineering wave is now Windows Packaging plus the retained speech/runtime closure required for the final Product/Human Gate.
 
 ## Permanent construction principles
 
-1. **Bounded self-repair** — repair blockers discovered inside the active 1.0/packaging boundary; do not expand into unrelated cleanup.
-2. **Compatible development** — solve current defects without locking future provider/model/runtime/renderer substitution.
-3. **Flexible production line** — stages expose capability/input/output/diagnostic/fallback semantics; absence of work is not automatically failure.
-4. **Source protection** — user originals remain immutable; generated/analyzed/separated media are derived assets.
-5. **Thin packaging** — bootstrap/resource/runtime location stays outside Domain authority and does not become a second application architecture.
-6. **Attention discipline** — root `AGENTS.md` controls default reading; `docs/archive/**` is excluded by default.
-7. **Workspace ownership** — project-specific writable state belongs to the user-selected Project Workspace, not the installation directory or scattered developer paths.
+1. **Bounded self-repair** — repair blockers discovered inside the active packaging/1.0 boundary without unrelated cleanup.
+2. **Compatible development** — runtime/provider/model/renderer substitutions must remain possible behind existing seams.
+3. **Flexible production line** — missing optional capabilities report truthful degraded states rather than silently changing semantics.
+4. **Source protection** — user originals remain immutable.
+5. **Thin packaging** — bootstrap/resource/runtime location stays outside Domain authority and does not become a second architecture.
+6. **Workspace ownership** — user/project writable data stays outside the installation tree.
+7. **Single runtime truth** — runtime manifest, locator, Doctor, package validator and build evidence should share one ownership model where practical.
+8. **Low-frequency execution** — Codex should make maximal bounded progress per released batch; ordinary reversible implementation decisions do not require repeated user/ChatGPT interruption.
 
 ## 1.0 retained scope
 
 Must remain real and supportable:
 
-- Planning: user intent, confirmed facts/constraints, optional local reference → inspectable ScriptPlan + usable ShootingPlan;
-- Editing: user-selected real footage → automatic grounded editing → canonical EDL → Review/Renderer → final media;
-- original/source audio on the ordinary path;
+- Planning: user intent, confirmed facts/constraints, optional local reference → ScriptPlan + ShootingPlan;
+- Editing: real user footage → grounded automatic editing → canonical EDL → Renderer/Review → final MP4;
+- original/source audio;
 - rights-safe BGM;
-- basic trusted subtitles for ordinary clear speech when the approved speech capability is available;
-- deterministic Stage-A editing-expression floor already accepted by the completion contract;
-- understandable progress/failure/degraded states;
-- coherent Project Workspace ownership and ordinary desktop interaction;
-- Windows ordinary-user distributable proof without requiring Python/uv/repository execution.
+- basic trusted subtitles for ordinary clear speech using the approved pinned speech capability;
+- coherent Project Workspace and desktop interaction;
+- truthful capability diagnostics;
+- Windows ordinary-user distributable proof without repository/Python/uv/Git requirements.
 
 ## Explicitly deferred beyond 1.0
 
-- production synthetic-voice/TTS backend;
-- advanced speech/ambience source-separation backend and advanced stem mixing;
-- rich subtitle font/animation/speaker systems;
-- advanced audiovisual effects and feature-rich NLE behavior;
-- generic/unbounded website crawling;
-- remote reference URL product support until provider-neutral `ReferenceObservation` exists;
-- Bilibili/Douyin/Xiaohongshu remote-reference product UI.
+- production synthetic voice/TTS;
+- advanced speech/ambience separation;
+- rich subtitle animation/effects systems;
+- advanced audiovisual/NLE feature surface;
+- generic remote-reference URL product support and provider-neutral `ReferenceObservation` implementation.
 
-Typed seams already introduced for deferred capabilities must remain; do not remove them merely because their backends are deferred.
+## Accepted Waves
 
-## Wave A — repository attention/document governance — ACCEPTED
+### Wave A — repository attention/document governance — ACCEPTED
 
-Accepted outcomes:
+Existing attention firewall, document registry, governance checks and lifecycle rules remain authoritative.
 
-- root `AGENTS.md` attention firewall;
-- compact `docs/DOCUMENT_REGISTRY.json` relative-path map;
-- automatic exhaustive registry inventory;
-- update-date/document lifecycle/archive rules;
-- `docs/archive/**` default exclusion;
-- refreshed live trio and durable R0.12 evidence;
-- existing governance checks extended rather than replaced.
+### Wave B — Planning reference compatibility — ACCEPTED / PRODUCT DEFERRED
 
-Archive decisions remain semantic/manual; automation must not move documents automatically.
+Local reference video remains supported; remote reference URL is deferred to 2.0. Product Owner reconfirmed this decision on 2026-08-25.
 
-## Wave B — bounded Planning reference compatibility — ACCEPTED / PRODUCT DEFERRED
+### Wave C — Project Workspace + UX consolidation — ACCEPTED / MERGED
 
-Accepted merge: `756a30562dd512fba9868eeee43cf6422f60f642` (PR #13).
+PR #17 merge:
 
-Engineering exploration proved a bounded Bilibili acquisition fallback can live behind the existing acquisition seam while preserving HTTPS/SSRF/DNS/IP/redirect/MIME/size/timeout/provenance rules.
+`4b2b4ed5f6e2347ae3b29381f39e79ad6930e393`
 
-Product decision:
+Exact implementation head:
 
-- current Gemini/OpenAI visual adapters are image-frame oriented and do not provide a provider-neutral remote/video-native observation contract;
-- forcing ordinary remote references through a heavy full-download → probe → shot-detect → frame-analysis path is not required for 1.0;
-- ordinary Tkinter reference-URL input is hidden;
-- local reference video remains supported;
-- provider-neutral remote/video-native `ReferenceObservation` is deferred to 2.0.
+`21b2d1c52fc1b1c8aef6a1d269861ace2f0f7b8c`
 
-Durable evidence:
+Exact-head CI, repository-governance and document-registry all passed before merge.
 
-`docs/validation/R0.12_REFERENCE_COMPATIBILITY_CLOSURE_2026-08-22.md`
+The final ordinary-user Workspace/UX Human Gate is consolidated into the packaged-artifact Human Gate rather than duplicated on the development launcher. It remains mandatory before Stage-A closure.
 
-Do not reopen remote reference URL work during Stage A without an explicit new product decision.
-
-## Wave C — Project Workspace + UX consolidation — RELEASED
+## Wave D — compatible Windows Packaging foundation — ACTIVE / RELEASED
 
 Construction branch:
 
-`work/r012-workspace-ux-consolidation`
+`work/r012-windows-packaging`
 
-Specification:
+Primary contract:
 
-`docs/operations/STAGE_A_WORKSPACE_UX_CONSOLIDATION.md`
-
-Execution entry:
-
-`docs/operations/CODEX_EXECUTION_ENTRY.md`
-
-Required outcomes:
-
-- one shared top-level `Project Workspace` context for Planning and Editing;
-- Project Workspace owns project-specific cache/work/autosave/undo-redo/log/output state without duplicating canonical Domain authority;
-- ordinary output gets a sensible project-local default while preserving explicit Save As;
-- configuration import/export/save/delete is consolidated on the main window;
-- form-level Clear / Undo / Redo exists with bounded history and safe task-state behavior;
-- Planning/Editing sub-sections become vertically collapsible instead of consuming unnecessary horizontal width;
-- temporary pixel-camera mark is retired in favor of the approved feather identity if the real asset can be recovered; do not invent an approximation;
-- remote reference URL remains hidden;
-- existing source/EDL/provider/secret invariants remain unchanged.
-
-This wave is a Packaging prerequisite because it defines writable-data and resource expectations that must not be frozen incorrectly in the distributable.
-
-Codex must stop after this wave's engineering/manual-smoke report. Packaging remains closed until ChatGPT/user accepts the Workspace/UX Human Gate.
-
-## Wave D — compatible Windows packaging foundation — PREPARED / NOT RELEASED
-
-This is an **effective packaging** requirement, not documentation-only preparation.
+`docs/operations/WINDOWS_PACKAGING_FOUNDATION_CONTRACT.md`
 
 Readiness input:
 
 `docs/operations/WINDOWS_DESKTOP_PACKAGING_READINESS.md`
 
-Minimum engineering proof:
+### Required engineering result
+
+Build an identifiable Windows x64 onedir candidate that launches and diagnoses its retained capabilities without relying on a repository checkout, system Python, uv, Git or developer-only PATH setup.
+
+The implementation should progress through the complete available boundary, not stop after creating one class or one test.
+
+Preferred construction sequence:
 
 ```text
-Windows distributable (prefer onedir first)
-→ thin bootstrap
-→ resource/runtime locator
-→ ordinary GUI launch
-→ environment/capability diagnostics
+inspect/preserve existing local Packaging seed work
+→ reconcile runtime BOM
+→ machine-readable runtime manifest
+→ manifest validator
+→ frozen/development resource + runtime locator
+→ adapt existing Environment Doctor to locator/manifest truth
+→ close TransNet runtime/weights location
+→ close speech runtime/model location
+→ define approved FFmpeg/ffprobe release source/build identity
+→ deterministic Windows x64 onedir build
+→ static package inspection
+→ packaged launcher + Doctor + external temporary Workspace smoke
+→ artifact/build manifest + source SHA/component identity
+→ upload/retain identifiable candidate evidence
 ```
 
-Target environment must not require:
+### Existing local seed work
 
-- a repository checkout;
-- Python installation;
-- uv;
-- developer-only PATH setup.
+The user reports these currently untracked local paths:
 
-Packaging must not:
+```text
+resources/
+src/video_editing_agent/adapters/bootstrap/
+tests/unit/test_packaging_foundation.py
+```
 
+Codex must inspect them before editing, preserve useful work, and must not reset/stash/clean them away. They are not accepted facts until reviewed/tested/committed.
+
+### Runtime facts already frozen enough to avoid re-research
+
+- Python baseline: 3.12.
+- Desktop shell requires Tcl/Tk.
+- TransNet ordinary path uses `transnetv2-pytorch==1.0.5` family and reviewed package-owned weight resolution; final release artifact identity still needs closure.
+- Speech baseline in code is `faster-whisper==1.2.1`, `Systran/faster-whisper-base`, exact model revision `ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66`, CPU/int8, local-files-only.
+- Existing Environment Doctor already probes host, FFmpeg/ffprobe, TransNet, preview and provider configuration. Extend/reuse it rather than creating a second Doctor architecture.
+- Existing repository-local `.tools` FFmpeg path is a development fallback only.
+
+### Packaging hard prohibitions
+
+Do not:
+
+- copy `.venv`, `.private`, `.uv-cache*`, `.git` or arbitrary `.tools` trees into the package;
+- bundle plaintext API credentials;
+- make install directory the Project Workspace/profile root;
 - hard-code one provider/model as Domain truth;
-- place user-writable project/profile data inside the install directory;
-- silently bundle unreviewed binaries/models/licenses;
-- bypass the ordinary application composition path;
-- copy arbitrary `.private`, `.tools`, `.venv`, caches or developer-machine artifacts into release output.
+- silently redistribute an unreviewed FFmpeg binary/model/native payload;
+- bypass ordinary application composition just to make an EXE launch;
+- require CUDA for the accepted CPU baseline;
+- claim Stage-A 100% because an executable exists.
 
-Required compatibility seams:
+### Codex autonomy inside this wave
 
-- resource location separate from business logic;
-- runtime capability resolution explicit and diagnosable;
-- later TTS/separation/providers/models/renderers can be added without replacing bootstrap architecture;
-- FFmpeg/TransNet/speech-runtime/model handling uses deliberate manifest/config ownership;
-- existing projects remain readable or have explicit migration if persistence contracts change.
+Codex is authorized to perform bounded multi-file implementation, focused/full tests, build/debug/repair loops and Packaging automation until one of these stopping conditions occurs:
 
-The repository-local `.tools` FFmpeg/ffprobe locator accepted in PR #13 is a development fallback only. Packaging must not treat `.tools` as the install/resource contract.
+1. an identifiable onedir candidate + packaged smoke evidence is produced; or
+2. a genuine external blocker requires Product Owner/ChatGPT input, such as unresolved redistribution/license approval, secret/account access, or a constitutional/product-scope decision; or
+3. continuing would cross into installer/onefile/updater/signing work not yet required for the onedir proof.
 
-When later released, Codex may self-repair packaging blockers inside that boundary and re-run validation until stable. It must report non-blocking unrelated debt instead of expanding scope.
+Ordinary implementation choices—file names, helper placement, test structure, PyInstaller hook/spec details, manifest schema refinements consistent with the contract, locator plumbing, deterministic script composition—do **not** require user interruption.
 
 ## Wave E — final retained Product/Human Gate
 
-After Waves C/D are accepted:
+After Wave D produces an identifiable candidate:
 
-1. Planning without remote URL remains usable; local-reference Planning path is non-regressed.
-2. Editing no-speech baseline remains non-regressed.
-3. A simple, clear single-speaker video proves original speech + basic trusted subtitle timing with the approved/pinned speech capability.
-4. Project Workspace behavior is understandable and project-specific writable state stays outside the install directory.
-5. The packaged ordinary Windows surface launches without Python/uv/repository execution and exposes truthful diagnostics.
-6. Sources remain unchanged.
-7. Full repository quality/governance gates pass.
-8. Exact-head CI passes.
+1. double-click/ordinary packaged launcher works without repo/Python/uv;
+2. packaged Project Workspace behavior is understandable and writes outside install tree;
+3. Planning supported surface remains usable;
+4. Editing no-speech baseline remains non-regressed;
+5. one clear single-speaker sample proves original speech + trusted basic subtitles through the approved pinned speech capability;
+6. bundled/managed FFmpeg, TransNet and speech states are truthful in Doctor;
+7. protected profile/credential behavior works on Windows;
+8. full quality/governance/exact-head CI passes;
+9. exact artifact identity is recorded.
 
-Only then may control state set:
-
-- `core_1_planning_product_gate: PASS`;
-- `core_2_editing_product_gate: PASS`;
-- `stage_a_completion_gate: PASS`;
-- `structural_progress_percent: 100`.
+Only then may control state set `core_2_editing_product_gate: PASS`, `stage_a_completion_gate: PASS`, and `structural_progress_percent: 100`.
 
 ## Current progress
 
 **95%**.
 
-Do not trade architecture compatibility, ordinary usability, or truthful product behavior for an artificial 100% number.
+The percentage deliberately stays at 95 until a real Windows distributable and final retained Human evidence exist. Engineering should nevertheless advance aggressively inside the released boundary rather than preserving the percentage through procedural delay.
