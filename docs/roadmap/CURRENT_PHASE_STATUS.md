@@ -3,8 +3,8 @@
 **Roadmap V2:** ACTIVE  
 **Development stage:** STRUCTURAL_CONSTRUCTION  
 **Structural progress:** 95%  
-**Current phase:** R0.12 — Stage-A final closure / Windows packaging / final Human Gate  
-**Engineering state:** STAGE_A_WINDOWS_PACKAGING_ACTIVE  
+**Current phase:** R0.12 — Stage-A final closure / runtime payload / final Human Gate  
+**Engineering state:** STAGE_A_WINDOWS_RUNTIME_PAYLOAD_CLOSURE_ACTIVE  
 **Updated:** 2026-08-25
 
 ## Progress truth
@@ -15,125 +15,123 @@ Hard 100% contract:
 
 `docs/roadmap/STAGE_A_COMPLETION_GATE.md`
 
-Current gate state:
+Current gates:
 
 - Planning Product/Human Gate: PASS on the supported Stage-A surface.
-- local reference video: retained supported Planning input.
-- remote reference URL: deliberately hidden and deferred to 2.0 provider-neutral `ReferenceObservation`; not a 1.0 blocker.
-- bounded Bilibili acquisition fallback: Engineering PASS, not ordinary 1.0 product capability.
-- Editing no-speech ordinary Human baseline: PASS with real final MP4.
-- source audio preservation + rights-safe BGM: HUMAN PASS on the accepted real run.
-- no-speech subtitle behavior: PASS (`SKIPPED` / no fabricated captions).
-- speech-bearing original voice + basic trusted subtitles: engineering seam present; approved/pinned runtime/model + real Human evidence still OPEN.
-- Project Workspace / desktop UX consolidation: **ACCEPTED / MERGED** in PR #17.
-- Windows distributable proof without Python/uv/repository execution: **ACTIVE / RELEASED**.
+- local reference video: supported.
+- remote reference URL: deliberately deferred to 2.0; not a 1.0 blocker.
+- Editing no-speech Human baseline: PASS with real final MP4, source audio and rights-safe BGM.
+- Workspace/desktop UX: ACCEPTED / MERGED in PR #17.
+- Windows onedir packaging foundation: ACCEPTED / MERGED in PR #19.
+- exact Windows runtime payload closure: ACTIVE / RELEASED.
+- speech-bearing original voice + trusted subtitles: final runtime + Human evidence OPEN.
 - Stage-A completion gate: OPEN.
 
-Therefore structural progress remains **95%**, not 100%.
+Therefore progress remains **95%**, not 100%.
 
-## Accepted production-code baseline
+## Accepted Packaging foundation
 
-Workspace/UX accepted merge:
+PR #19 squash merge:
 
-`4b2b4ed5f6e2347ae3b29381f39e79ad6930e393`
+`cb63713c0daa02b396fd4f5268d280af831d5f70`
 
-PR #17 exact implementation head:
+Implementation head:
 
-`21b2d1c52fc1b1c8aef6a1d269861ace2f0f7b8c`
+`cf3e4ff7f2a05b88dabef33867ef813f67956cfb`
 
-Exact-head CI / repository-governance / document-registry all passed before merge.
-
-The final attempted local `maintain.ps1 verify` did not start because the Windows host blocks `.ps1` execution by policy. This is tracked as a shell-invocation constraint, not a quality-gate failure. Use process-scoped ExecutionPolicy bypass for future local script invocation; do not weaken machine-wide policy.
-
-## What is now proven
-
-Ordinary Editing already has real evidence for:
+Proven foundation capabilities:
 
 ```text
-real user footage
-→ media understanding
-→ rights-safe public BGM
-→ EditPlan / grounded Resolver
-→ canonical EDL
-→ SOURCE_AUDIO preservation
-→ capability-aware no-speech subtitle handling
-→ Renderer / Review
-→ final MP4
+runtime BOM / manifest + schema
+→ strict manifest validation
+→ frozen/development/managed ResourceRuntimeLocator
+→ existing Environment Doctor integration
+→ pinned PyInstaller 6.16.0 Windows x64 onedir
+→ static staged-package inspection
+→ packaged Doctor
+→ packaged GUI launcher
+→ external temporary Project Workspace
+→ plaintext-secret scan
+→ SHA-addressed GitHub artifact + evidence
 ```
 
-Workspace/UX now additionally establishes the shared Project Workspace, project-scoped writable state, default-output ownership, bounded form history, project-bound Planning context, configuration surfaces and task-state gating needed before packaging freezes runtime/resource behavior.
+The Windows Packaging Candidate workflow completed successfully and uploaded an identifiable artifact tied to the implementation SHA. Main `cb63713...` subsequently passed CI and document-registry.
 
-The remaining Workspace ordinary-user acceptance is deliberately consolidated into the final packaged-artifact Human Gate. This avoids duplicate acceptance of a development launcher while preserving the final Human requirement.
+This proves the packaging architecture, not final runtime completeness. The artifact intentionally reported required media/speech payloads as missing rather than fabricating readiness.
 
-## Active construction — compatible Windows packaging
+## Active construction — runtime payload closure
 
 Construction branch:
 
-`work/r012-windows-packaging`
+`work/r012-runtime-payload-closure`
 
-Contract:
+The accepted foundation must now receive exact reproducible payloads without weakening its flexible locator/manifest architecture.
 
-`docs/operations/WINDOWS_PACKAGING_FOUNDATION_CONTRACT.md`
+### FFmpeg / ffprobe
 
-Execution entry:
+Use an exact **LGPL-only** Windows x64 build; GPL/nonfree developer `full_build` payloads are forbidden for the release candidate.
 
-`docs/operations/CODEX_EXECUTION_ENTRY.md`
+Current engineering candidate:
 
-The active wave must turn the existing development environment assumptions into explicit product-owned runtime behavior:
+- upstream distribution: BtbN FFmpeg-Builds;
+- release tag: `autobuild-2026-08-20-13-45`;
+- FFmpeg revision family: `n8.1.2-44-g7c533d0f86`;
+- asset: `ffmpeg-n8.1.2-44-g7c533d0f86-win64-lgpl-shared-8.1.zip`;
+- archive SHA-256: `d311c8c7b86e06b54588e442652f963bae165bd4d8393e73cc9ebb445b025547`.
 
-- machine-readable runtime/component manifest;
-- manifest validation and package-content allow/deny rules;
-- thin frozen/development resource/runtime locator;
-- reuse/refactor the existing Environment Doctor rather than creating a second diagnostic architecture;
-- approved/pinned TransNet runtime + weights resolution;
-- approved/pinned faster-whisper speech runtime/model release strategy;
-- approved FFmpeg/ffprobe exact build strategy and notices;
-- deterministic Windows x64 onedir build;
-- static package inspection;
-- packaged launcher + Doctor + external temporary Workspace smoke;
-- artifact identity with source SHA, manifest snapshot and hashes where required.
+The implementation must verify the downloaded archive hash and runtime `-version` configuration, retain required license/NOTICE/provenance evidence, and make ffmpeg/ffprobe executable discovery come only from the manifest/locator in frozen mode.
 
-The ordinary target must not need repository checkout, system Python, uv, Git or developer-only PATH setup.
+### TransNetV2
 
-Codex may continue through bounded implementation/repair inside this wave until it has an identifiable onedir artifact and packaged smoke evidence, or reaches a genuine external blocker. It should not stop for ordinary low-risk implementation choices that can be resolved from repository contracts and tests.
+Retain `transnetv2-pytorch==1.0.5` and package-owned weights.
 
-## Known local Packaging seed work
+Exact PyPI wheel identity:
 
-The user reported pre-existing untracked local items:
+`transnetv2_pytorch-1.0.5-py3-none-any.whl`
 
-```text
-resources/
-src/video_editing_agent/adapters/bootstrap/
-tests/unit/test_packaging_foundation.py
-```
+SHA-256:
 
-These are not accepted repository facts yet. The active Packaging implementation must inspect and preserve them, classify/reuse useful work, and must not discard them via reset/stash/clean. They should be committed only after review and alignment with the active Packaging contract.
+`9f8e72085526aaa95383d219b6750b1fa45b865fd10d840cafa12ef78ab3bf27`
 
-## Remaining retained 1.0 closure terrain
+Close the CPU PyTorch/native transitive runtime deliberately; do not depend on an existing `.venv` or user Python.
 
-### A. Basic speech/subtitle retained capability
+### Speech
 
-The repository already pins the intended Stage-A baseline to `faster-whisper==1.2.1` and `Systran/faster-whisper-base` at an exact revision, CPU/int8, local-files-only. Packaging must turn that code-level pin into a deliberate distributable/managed component with Doctor evidence rather than relying on developer cache state.
+Retain the accepted Stage-A baseline:
 
-### B. Runtime/legal closure
+- `faster-whisper==1.2.1`;
+- wheel SHA-256 `79a66ad50688c0b794dd501dc340a736992a6342f7f95e5811be60b5224a26a7`;
+- `Systran/faster-whisper-base` revision `ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66`;
+- CPU / int8;
+- local-files-only.
 
-FFmpeg/ffprobe and any bundled model/native component must have exact distributable identity, provenance/license/NOTICE state and approved release location. Do not copy arbitrary developer `.tools` or cache trees.
+Close CTranslate2/PyAV and other native/transitive payload identities, required notices and model-file hashes. No CUDA hard requirement and no implicit model download.
 
-### C. Final closure
+## Runtime closure proof required
 
-After Packaging evidence is accepted:
+The next candidate should prove, from the packaged/managed runtime rather than the development environment:
 
-- run retained ordinary Planning/local-reference evidence;
-- rerun Editing no-speech baseline if packaging changes touch its path;
-- run clear single-speaker original-voice + basic subtitle Human Gate;
-- verify packaged launcher/diagnostics without repo/Python/uv;
-- exercise the final packaged Workspace/UX Human Gate;
-- verify required full quality/governance gates and exact-head CI;
-- synchronize live control documents;
-- set Stage-A 100% only if every machine/human completion invariant genuinely passes.
+- FFmpeg and ffprobe execute and Doctor reports READY;
+- TransNet package + weights import/load and a bounded CPU prediction probe succeeds;
+- faster-whisper native runtime + pinned model load locally and a bounded recognition probe succeeds;
+- manifest/Doctor/package evidence records exact component identities and hashes;
+- no developer tree, secret or repository-relative fallback is required;
+- packaged launcher and external Workspace smoke remain green.
+
+## Final closure after runtime payload acceptance
+
+Then perform the final packaged Human Gate:
+
+- ordinary launcher without repo/Python/uv;
+- packaged Workspace/UX behavior;
+- supported Planning path;
+- Editing no-speech non-regression as needed;
+- one clear single-speaker original-voice + trusted-subtitle run;
+- protected Windows credential/profile round trip;
+- exact artifact identity recorded.
+
+Only then may structural progress become 100%.
 
 ## Active Work Order
 
 `R0.12-STAGE-A-FINAL-CLOSURE-002`
-
-The current implementation wave is Windows Packaging and must obey root `AGENTS.md`, `docs/operations/WINDOWS_PACKAGING_FOUNDATION_CONTRACT.md` and the live execution entry.
