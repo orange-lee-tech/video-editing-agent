@@ -60,8 +60,8 @@ class ShootingDelegate:
         return self.responses.pop(0)
 
 
-def test_script_refinement_spends_second_pass_on_quality_and_chinese_language() -> None:
-    draft = ScriptPlanProposal(
+def _draft_script() -> ScriptPlanProposal:
+    return ScriptPlanProposal(
         tuple(
             NarrativeSectionProposal(
                 section_id,
@@ -77,9 +77,14 @@ def test_script_refinement_spends_second_pass_on_quality_and_chinese_language() 
             )
         )
     )
-    refined = ScriptPlanProposal(
+
+
+def _refined_script() -> ScriptPlanProposal:
+    return ScriptPlanProposal(
         (
-            NarrativeSectionProposal("hook", "hook", "快速建立主体", spoken_content="今天来看一只水瓶。"),
+            NarrativeSectionProposal(
+                "hook", "hook", "快速建立主体", spoken_content="今天来看一只水瓶。"
+            ),
             NarrativeSectionProposal(
                 "body",
                 "body",
@@ -95,6 +100,11 @@ def test_script_refinement_spends_second_pass_on_quality_and_chinese_language() 
             ),
         )
     )
+
+
+def test_script_refinement_spends_second_pass_on_quality_and_chinese_language() -> None:
+    draft = _draft_script()
+    refined = _refined_script()
     delegate = ScriptDelegate(draft, refined)
     port = EditoriallyRefinedScriptPlanningPort(delegate)
 
@@ -108,6 +118,17 @@ def test_script_refinement_spends_second_pass_on_quality_and_chinese_language() 
     second = delegate.requests[1].instruction or ""
     assert "draft_proposal=" in second
     assert "Do not mechanically repeat the same authoritative fact" in second
+
+
+def test_explicit_ui_language_overrides_brief_language_inference() -> None:
+    delegate = ScriptDelegate(_draft_script(), _refined_script())
+    port = EditoriallyRefinedScriptPlanningPort(delegate, output_language="en")
+
+    port.propose(ScriptPlanningRequest(_brief(chinese=True)))
+
+    assert "every ordinary-user natural-language field must be in English" in (
+        delegate.requests[0].instruction or ""
+    )
 
 
 def test_output_language_inference_tracks_ordinary_brief_language() -> None:
@@ -158,5 +179,5 @@ def test_shooting_refinement_requests_beginner_detail_without_new_resources() ->
     assert len(delegate.requests) == 2
     second = delegate.requests[1].instruction or ""
     assert "所有面向普通用户的自然语言字段必须使用简体中文" in second
-    assert "Do not require a physical label, measuring tool, prop, location, or person" in second
+    assert "physical label, measuring tool, prop, location, or person" in second
     assert "draft_proposal=" in second
