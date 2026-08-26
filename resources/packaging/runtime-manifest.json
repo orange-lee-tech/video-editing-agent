@@ -76,23 +76,23 @@
       "platform": "any", "architecture": "any", "absence_fatal": true
     },
     {
-      "id": "speech-runtime", "kind": "runtime", "classification": "bundled-required",
+      "id": "speech-runtime", "kind": "runtime", "classification": "bundled-optional",
       "capability": "speech-recognition", "version": "faster-whisper-1.2.1",
-      "location_policy": "install-relative", "provenance": "hash-locked Windows CPU payload; PyAV 18.1.0 linked to approved LGPL-only FFmpeg DLLs",
-      "license_state": "reviewed", "inclusion": "include",
-      "hash_policy": "build-generated", "path": "_internal/runtimes/speech",
+      "location_policy": "deferred-2.0", "provenance": "hash-locked Windows CPU payload; PyAV 18.1.0 linked to approved LGPL-only FFmpeg DLLs; engineering proof retained for 2.0",
+      "license_state": "reviewed", "inclusion": "exclude",
+      "hash_policy": "not-applicable", "path": "_internal/runtimes/speech",
       "notice_path": "_internal/licenses/THIRD_PARTY_RUNTIME_NOTICES.md",
-      "platform": "windows", "architecture": "x86_64", "absence_fatal": true
+      "platform": "windows", "architecture": "x86_64", "absence_fatal": false
     },
     {
-      "id": "speech-model", "kind": "model", "classification": "bundled-required",
+      "id": "speech-model", "kind": "model", "classification": "bundled-optional",
       "capability": "speech-recognition",
       "version": "Systran/faster-whisper-base@ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66",
-      "location_policy": "install-relative", "provenance": "Systran/faster-whisper-base@ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66; local-files-only",
-      "license_state": "reviewed", "inclusion": "include",
-      "hash_policy": "build-generated", "path": "_internal/models/faster-whisper-base",
+      "location_policy": "deferred-2.0", "provenance": "Systran/faster-whisper-base@ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66; local-files-only; engineering proof retained for 2.0",
+      "license_state": "reviewed", "inclusion": "exclude",
+      "hash_policy": "not-applicable", "path": "_internal/models/faster-whisper-base",
       "notice_path": "_internal/licenses/THIRD_PARTY_RUNTIME_NOTICES.md",
-      "platform": "any", "architecture": "any", "absence_fatal": true
+      "platform": "any", "architecture": "any", "absence_fatal": false
     },
     {
       "id": "cloud-providers", "kind": "remote-service", "classification": "remote",
