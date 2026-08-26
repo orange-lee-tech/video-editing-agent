@@ -3,21 +3,34 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+import subprocess
 from pathlib import Path
 from typing import Any
 
-from video_editing_agent.adapters.bootstrap.runtime import PackagedRuntimeLocator
+from video_editing_agent.adapters.bootstrap.resource_locator import default_runtime_locator
 
 
-def run_probe(
-    locator: PackagedRuntimeLocator,
-    *,
-    speech_wav: Path | None = None,
-) -> dict[str, Any]:
-    ffmpeg = locator.existing_component_path("ffmpeg")
-    ffprobe = locator.existing_component_path("ffprobe")
+def run_runtime_probe(speech_wav: Path | None = None) -> dict[str, Any]:
+    locator = default_runtime_locator()
+    ffmpeg = locator.executable("ffmpeg", development_name="ffmpeg")
+    ffprobe = locator.executable("ffprobe", development_name="ffprobe")
     if ffmpeg is None or ffprobe is None:
-        raise RuntimeError("owned ffmpeg runtime is unavailable")
+        raise RuntimeError("owned FFmpeg payload is unavailable")
+    versions = {}
+    for name, executable in (("ffmpeg", ffmpeg), ("ffprobe", ffprobe)):
+        completed = subprocess.run(
+            (executable, "-version"), check=True, capture_output=True, text=True, timeout=20
+        )
+        output = completed.stdout
+        configuration = next(
+            (line for line in output.splitlines() if line.startswith("configuration:")), ""
+        )
+        if "--enable-gpl" in configuration or "--enable-nonfree" in configuration:
+            raise RuntimeError("FFmpeg payload violates LGPL-only configuration policy")
+        versions[name] = {
+            "version": output.splitlines()[0],
+            "configuration": configuration,
+        }
 
     locator.activate_managed_python_runtime("transnet-runtime")
     torch = importlib.import_module("torch")
@@ -59,28 +72,25 @@ def run_probe(
             "ctranslate2": ctranslate2.__version__,
             "av": av.__version__,
             "language": info.language,
-            "language_probability": info.language_probability,
             "text": text,
+            "local_files_only": True,
+            "device": "cpu",
+            "compute_type": "int8",
         }
 
     return {
-        "ffmpeg": str(ffmpeg),
-        "ffprobe": str(ffprobe),
+        "schema": "video-editing-agent-runtime-probe/v1",
+        "ffmpeg": versions,
         "transnet": transnet,
         "speech": speech,
     }
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Probe packaged heavyweight runtime components")
-    parser.add_argument("--runtime-root", type=Path, required=True)
-    parser.add_argument("--manifest", type=Path, required=True)
+    parser = argparse.ArgumentParser()
     parser.add_argument("--speech-wav", type=Path)
     args = parser.parse_args(argv)
-
-    locator = PackagedRuntimeLocator(args.runtime_root, args.manifest)
-    payload = run_probe(locator, speech_wav=args.speech_wav)
-    print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+    print(json.dumps(run_runtime_probe(args.speech_wav), sort_keys=True))
     return 0
 
 
