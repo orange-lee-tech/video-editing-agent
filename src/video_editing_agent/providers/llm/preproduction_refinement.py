@@ -16,9 +16,11 @@ from video_editing_agent.application.ports.preproduction_planning import (
 from video_editing_agent.domain.brief.model import Brief
 from video_editing_agent.domain.common.media_time import MediaTime
 
+_SUPPORTED_OUTPUT_LANGUAGES = frozenset({"zh-CN", "en"})
+
 
 def _target_language(brief: Brief) -> str:
-    """Infer the ordinary-output language from the user-authored Brief for the 1.0 UI."""
+    """Infer a fallback language when a non-GUI caller did not provide one explicitly."""
 
     text = " ".join(
         value
@@ -37,6 +39,14 @@ def _target_language(brief: Brief) -> str:
     cjk = sum("\u3400" <= char <= "\u9fff" for char in text)
     latin = sum(char.isascii() and char.isalpha() for char in text)
     return "zh-CN" if cjk >= latin else "en"
+
+
+def _resolved_language(explicit: str | None, brief: Brief) -> str:
+    if explicit is None:
+        return _target_language(brief)
+    if explicit not in _SUPPORTED_OUTPUT_LANGUAGES:
+        raise ValueError(f"unsupported planning output language: {explicit}")
+    return explicit
 
 
 def _language_rule(language: str) -> str:
@@ -150,9 +160,7 @@ def _script_quality_instruction(language: str, draft: ScriptPlanProposal | None 
     )
 
 
-def _shooting_quality_instruction(
-    language: str, draft: ShootingPlanProposal | None = None
-) -> str:
+def _shooting_quality_instruction(language: str, draft: ShootingPlanProposal | None = None) -> str:
     rules = (
         f"{_language_rule(language)}\n"
         "Shooting-quality rules: write for an ordinary phone user, not a professional crew. Each "
@@ -161,9 +169,9 @@ def _shooting_quality_instruction(
         "still. Use practical pre-roll/post-roll handles where useful and provide simple alternate "
         "coverage for important shots. Vary framing or camera movement across the sequence when it "
         "improves clarity, but do not add equipment the user did not declare. Do not require a "
-        "physical label, measuring tool, prop, location, or person unless it is declared available. "
-        "Verified facts may appear as narration or on-screen text; filming instructions must not "
-        "turn them into a stronger unsupported demonstration."
+        "physical label, measuring tool, prop, location, or person unless it is declared "
+        "available. Verified facts may appear as narration or on-screen text; filming instructions "
+        "must not turn them into a stronger unsupported demonstration."
     )
     if draft is None:
         return rules
@@ -180,11 +188,14 @@ def _shooting_quality_instruction(
 class EditoriallyRefinedScriptPlanningPort(ScriptPlanningPort):
     """Spend one extra text-model pass on editorial quality before independent semantic review."""
 
-    def __init__(self, delegate: ScriptPlanningPort) -> None:
+    def __init__(self, delegate: ScriptPlanningPort, *, output_language: str | None = None) -> None:
+        if output_language is not None and output_language not in _SUPPORTED_OUTPUT_LANGUAGES:
+            raise ValueError(f"unsupported planning output language: {output_language}")
         self._delegate = delegate
+        self._output_language = output_language
 
     def propose(self, request: ScriptPlanningRequest) -> ScriptPlanProposal:
-        language = _target_language(request.brief)
+        language = _resolved_language(self._output_language, request.brief)
         draft = self._delegate.propose(
             replace(
                 request,
@@ -207,11 +218,14 @@ class EditoriallyRefinedScriptPlanningPort(ScriptPlanningPort):
 class EditoriallyRefinedShootingPlanningPort(ShootingPlanningPort):
     """Spend one extra text-model pass on beginner-friendly shooting-plan quality."""
 
-    def __init__(self, delegate: ShootingPlanningPort) -> None:
+    def __init__(self, delegate: ShootingPlanningPort, *, output_language: str | None = None) -> None:
+        if output_language is not None and output_language not in _SUPPORTED_OUTPUT_LANGUAGES:
+            raise ValueError(f"unsupported planning output language: {output_language}")
         self._delegate = delegate
+        self._output_language = output_language
 
     def propose(self, request: ShootingPlanningRequest) -> ShootingPlanProposal:
-        language = _target_language(request.brief)
+        language = _resolved_language(self._output_language, request.brief)
         draft = self._delegate.propose(
             replace(
                 request,
