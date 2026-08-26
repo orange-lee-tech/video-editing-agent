@@ -1,0 +1,143 @@
+name: Windows Release Candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Source ref to package
+        required: true
+        default: main
+        type: string
+
+concurrency:
+  group: windows-release-candidate
+  cancel-in-progress: false
+
+jobs:
+  setup-exe:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout selected release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+
+      - name: Record exact release source
+        id: source
+        shell: powershell
+        run: |
+          $sha = (git rev-parse HEAD).Trim()
+          if (-not $sha) { throw "Could not resolve release source SHA" }
+          "sha=$sha" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Release source: $sha"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.5"
+          enable-cache: true
+
+      - name: Install exact packaging Python
+        shell: powershell
+        run: uv python install 3.12.13
+
+      - name: Synchronize pinned packaging environment
+        shell: powershell
+        run: uv sync --frozen --group packaging --python 3.12.13
+
+      - name: Build inspect and smoke Windows application staging
+        shell: powershell
+        run: >-
+          powershell.exe -NoProfile -ExecutionPolicy Bypass
+          -File .\scripts\package_windows.ps1
+
+      - name: Acquire and verify Inno Setup 7.1.0
+        id: inno
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $asset = "https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe"
+          $expected = "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
+          $download = Join-Path $env:RUNNER_TEMP "innosetup-7.1.0-x64.exe"
+          $root = Join-Path $env:RUNNER_TEMP "inno-7.1.0"
+
+          Invoke-WebRequest -Uri $asset -OutFile $download
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $download).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) {
+            throw "Inno Setup 7.1.0 SHA-256 mismatch: $actual"
+          }
+
+          $signature = Get-AuthenticodeSignature -LiteralPath $download
+          if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
+            throw "Inno Setup Authenticode signature is not valid: $($signature.Status)"
+          }
+          if ($signature.SignerCertificate.Subject -notmatch "Pyrsys B\.V\.") {
+            throw "Unexpected Inno Setup signer: $($signature.SignerCertificate.Subject)"
+          }
+
+          $process = Start-Process -FilePath $download -ArgumentList @(
+            "/VERYSILENT",
+            "/SUPPRESSMSGBOXES",
+            "/NORESTART",
+            "/SP-",
+            "/DIR=$root"
+          ) -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            throw "Inno Setup tool installation failed with exit code $($process.ExitCode)"
+          }
+
+          $iscc = Join-Path $root "ISCC.exe"
+          if (-not (Test-Path -LiteralPath $iscc -PathType Leaf)) {
+            throw "Verified Inno Setup compiler was not installed: $iscc"
+          }
+          $compilerVersion = (Get-Item -LiteralPath $iscc).VersionInfo.FileVersion
+          if (-not $compilerVersion.StartsWith("7.1.0")) {
+            throw "Unexpected ISCC version: $compilerVersion"
+          }
+
+          New-Item -ItemType Directory -Force -Path "build/installer" | Out-Null
+          [ordered]@{
+            schema = "video-editing-agent-installer-tool-evidence/v1"
+            tool = "Inno Setup"
+            release = "7.1.0"
+            immutable_release_tag = "is-7_1_0"
+            asset = $asset
+            sha256 = $actual
+            authenticode_status = [string]$signature.Status
+            authenticode_signer = $signature.SignerCertificate.Subject
+            compiler_path = $iscc
+            compiler_file_version = $compilerVersion
+          } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 "build/installer/inno-tool-evidence.json"
+
+          "iscc=$iscc" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Build guided Setup.exe
+        shell: powershell
+        run: >-
+          powershell.exe -NoProfile -ExecutionPolicy Bypass
+          -File .\scripts\build_windows_installer.ps1
+          -IsccPath "${{ steps.inno.outputs.iscc }}"
+          -AppVersion "0.1.0"
+
+      - name: Smoke install upgrade repair and uninstall lifecycle
+        shell: powershell
+        run: >-
+          powershell.exe -NoProfile -ExecutionPolicy Bypass
+          -File .\scripts\smoke_windows_installer.ps1
+          -InstallerPath .\build\installer\VideoEditingAgent-Setup-0.1.0.exe
+
+      - name: Upload release-candidate installer and compact evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoEditingAgent-Setup-${{ steps.source.outputs.sha }}
+          path: |
+            build/installer/VideoEditingAgent-Setup-0.1.0.exe
+            build/installer/installer-evidence.json
+            build/installer/inno-tool-evidence.json
+            build/installer/installer-smoke.json
+            build/packaging/evidence
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
