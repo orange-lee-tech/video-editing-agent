@@ -20,11 +20,9 @@ a = Analysis(
         (str(payloads / "ffmpeg-owned"), "tools"),
         (str(payloads / "python-stdlib"), "runtimes/python-stdlib"),
         (str(payloads / "transnet"), "runtimes/transnet"),
-        (str(payloads / "speech-owned"), "runtimes/speech"),
-        (str(payloads / "models/faster-whisper-base"), "models/faster-whisper-base"),
     ],
     hiddenimports=["tkinter", "tkinter.ttk"],
-    excludes=["faster_whisper", "transnetv2_pytorch", "torch", "mediapipe"],
+    excludes=["faster_whisper", "ctranslate2", "av", "transnetv2_pytorch", "torch", "mediapipe"],
     noarchive=False,
 )
 pyz = PYZ(a.pure)
