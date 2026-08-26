@@ -2,7 +2,8 @@ param(
     [string]$StageRoot = "build/packaging/dist/VideoEditingAgent",
     [string]$OutputRoot = "build/installer",
     [string]$AppVersion = "0.1.0",
-    [string]$IsccPath = ""
+    [string]$IsccPath = "",
+    [string]$InstallerToolVersion = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -52,6 +53,9 @@ if (-not (Test-Path -LiteralPath (Join-Path $Stage "_internal\runtimes\transnet\
 if (-not (Test-Path -LiteralPath $InstallerScript -PathType Leaf)) {
     throw "Installer script is missing: $InstallerScript"
 }
+if ($InstallerToolVersion -and $InstallerToolVersion -notmatch '^\d+\.\d+\.\d+$') {
+    throw "InstallerToolVersion must be an exact semantic release version"
+}
 
 $Iscc = Resolve-Iscc $IsccPath
 New-Item -ItemType Directory -Force -Path $Output | Out-Null
@@ -62,13 +66,22 @@ if ($LASTEXITCODE -ne 0 -or -not $SourceSha) {
 
 $ResolvedStage = (Resolve-Path -LiteralPath $Stage).Path
 $ResolvedOutput = (Resolve-Path -LiteralPath $Output).Path
-$CompilerVersion = (Get-Item -LiteralPath $Iscc).VersionInfo.FileVersion
+$CompilerFileVersion = (Get-Item -LiteralPath $Iscc).VersionInfo.FileVersion
+$CompilerVersion = if ($InstallerToolVersion) {
+    $InstallerToolVersion
+}
+elseif ($CompilerFileVersion -and $CompilerFileVersion -ne "0.0.0.0") {
+    $CompilerFileVersion
+}
+else {
+    "unreported"
+}
 
 Write-Host "Building guided Windows installer" -ForegroundColor Cyan
 Write-Host "  source:   $SourceSha"
 Write-Host "  stage:    $ResolvedStage"
 Write-Host "  output:   $ResolvedOutput"
-Write-Host "  compiler: $Iscc ($CompilerVersion)"
+Write-Host "  compiler: $Iscc (release $CompilerVersion; file resource $CompilerFileVersion)"
 
 & $Iscc `
     "/DStageRoot=$ResolvedStage" `
@@ -92,6 +105,7 @@ $Evidence = [ordered]@{
     application_version = $AppVersion
     installer_tool = "Inno Setup"
     installer_tool_version = $CompilerVersion
+    installer_tool_file_version = $CompilerFileVersion
     staged_root = $ResolvedStage
     installer_path = $Installer
     installer_sha256 = $Hash
