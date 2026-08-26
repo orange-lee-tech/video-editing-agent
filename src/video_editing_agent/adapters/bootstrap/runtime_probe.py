@@ -10,7 +10,7 @@ from typing import Any
 from video_editing_agent.adapters.bootstrap.resource_locator import default_runtime_locator
 
 
-def run_runtime_probe(speech_wav: Path) -> dict[str, Any]:
+def run_runtime_probe(speech_wav: Path | None = None) -> dict[str, Any]:
     locator = default_runtime_locator()
     ffmpeg = locator.executable("ffmpeg", development_name="ffmpeg")
     ffprobe = locator.executable("ffprobe", development_name="ffprobe")
@@ -44,24 +44,33 @@ def run_runtime_probe(speech_wav: Path) -> dict[str, Any]:
         "finite": all(bool(torch.isfinite(item).all()) for item in predictions),
     }
 
-    locator.activate_managed_python_runtime("speech-runtime")
-    av = importlib.import_module("av")
-    ctranslate2 = importlib.import_module("ctranslate2")
-    WhisperModel = importlib.import_module("faster_whisper").WhisperModel
+    speech: dict[str, Any]
+    if speech_wav is None:
+        speech = {
+            "status": "deferred_not_shipped_1_0",
+            "reason": " ".join(
+                (
+                    "advanced speech continuity / multilingual voice production",
+                    "is deferred to 2.0",
+                )
+            ),
+        }
+    else:
+        locator.activate_managed_python_runtime("speech-runtime")
+        av = importlib.import_module("av")
+        ctranslate2 = importlib.import_module("ctranslate2")
+        WhisperModel = importlib.import_module("faster_whisper").WhisperModel
 
-    model_path = locator.existing_component_path("speech-model")
-    if model_path is None:
-        raise RuntimeError("owned pinned speech model is unavailable")
-    whisper = WhisperModel(
-        str(model_path), device="cpu", compute_type="int8", local_files_only=True
-    )
-    segments, info = whisper.transcribe(str(speech_wav), beam_size=1, language="en")
-    text = " ".join(segment.text.strip() for segment in segments)
-    return {
-        "schema": "video-editing-agent-runtime-probe/v1",
-        "ffmpeg": versions,
-        "transnet": transnet,
-        "speech": {
+        model_path = locator.existing_component_path("speech-model")
+        if model_path is None:
+            raise RuntimeError("owned pinned speech model is unavailable")
+        whisper = WhisperModel(
+            str(model_path), device="cpu", compute_type="int8", local_files_only=True
+        )
+        segments, info = whisper.transcribe(str(speech_wav), beam_size=1, language="en")
+        text = " ".join(segment.text.strip() for segment in segments)
+        speech = {
+            "status": "probed_optional_component",
             "ctranslate2": ctranslate2.__version__,
             "av": av.__version__,
             "language": info.language,
@@ -69,13 +78,19 @@ def run_runtime_probe(speech_wav: Path) -> dict[str, Any]:
             "local_files_only": True,
             "device": "cpu",
             "compute_type": "int8",
-        },
+        }
+
+    return {
+        "schema": "video-editing-agent-runtime-probe/v1",
+        "ffmpeg": versions,
+        "transnet": transnet,
+        "speech": speech,
     }
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--speech-wav", required=True, type=Path)
+    parser.add_argument("--speech-wav", type=Path)
     args = parser.parse_args(argv)
     print(json.dumps(run_runtime_probe(args.speech_wav), sort_keys=True))
     return 0
