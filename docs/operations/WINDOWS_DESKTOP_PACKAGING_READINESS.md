@@ -1,390 +1,254 @@
 # Windows Desktop Packaging Readiness
 
-**状态：** PREPARATION ACTIVE — package not yet release-approved  
-**更新日期：** 2026-08-22  
-**目标：** 从“开发机上 `uv run ...` 能启动”演进到“普通 Windows 用户无需安装 Python/uv/仓库即可启动、诊断和运行”。  
-**当前 Work Order：** `R0.12-STAGE-A-FINAL-CLOSURE-002` / Wave D（在 Project Workspace + UX consolidation 之后）
+**状态：** RELEASE DELIVERY ACTIVE — guided Setup.exe not yet Human-approved  
+**更新日期：** 2026-08-26  
+**目标：** 从已完成的 Windows onedir/runtime 工程证明，收口到普通用户可安装、可修复、可卸载的 1.0 `Setup.exe`。  
+**当前 Work Order：** `R0.12-STAGE-A-FINAL-CLOSURE-002`
 
 ---
 
 # 1. 当前判断
 
-**现在仍不能宣布可发布正式安装包。**
+**运行时/onedir 工程基础已经证明，当前真正未闭环的是普通用户安装交付。**
 
-这不是 Tkinter 能不能被 PyInstaller 打包的问题，而是完整普通用户路径还需要一个明确、可追溯、可替换的 runtime/resource closure。
+已完成的工程事实包括：
 
-当前 first-proof 目标保持：
+- pinned CPython 3.12.13 + Tcl/Tk；
+- approved FFmpeg/ffprobe；
+- TransNetV2 CPU runtime + reviewed weights；
+- previously proven faster-whisper speech runtime/model engineering payload；
+- runtime manifest / NOTICE / static inspection / Doctor；
+- packaged runtime probes；
+- GUI launcher and external Project Workspace smoke；
+- heavy Windows packaging workflow改为显式手动触发，不再作为每次修复的迭代运输方式。
 
-> **Windows `onedir` Engineering Probe first；稳定后再比较 `onefile` / installer / MSIX。**
+旧的 ~769 MB 压缩 / ~1.88 GB 解压 onedir 是 engineering staging，不是普通 1.0 用户交付形态。
 
-`onedir` 更适合第一步，因为 FFmpeg、模型、Tcl/Tk、NOTICE、native DLL、resource locator 和 license manifest 都更容易检查与诊断。
-
----
-
-# 2. Packaging 前置门：先完成 Project Workspace + UX consolidation
-
-Packaging 不应冻结当前仍偏开发型的路径/交互。
-
-下一波规范：
-
-`docs/operations/STAGE_A_WORKSPACE_UX_CONSOLIDATION.md`
-
-Packaging 开工前至少要稳定：
-
-- 一个 top-level `Project Workspace` 供 Planning/Editing 共用；
-- project-specific cache/work/autosave/undo-redo/log/output 归位；
-- 默认输出路径语义；
-- global profile / project-local state 的边界；
-- 主窗口配置入口；
-- canonical brand resource 来源。
-
-这不是“先美化再打包”，而是在安装包形成前先确定**哪些数据可写、写到哪里、哪些资源属于程序**。
+Product Owner 于 2026-08-26 明确将高级人声连续性/多语言旁白线推迟至 2.0，因此最终 1.0 默认安装包不应继续为了历史工程探针而携带 speech runtime/model。
 
 ---
 
-# 3. 当前必须闭环的 runtime/component
+# 2. Packaging 前最后 source freeze
 
-## 3.1 Python 3.12 + Tcl/Tk
+在生成最终候选 staging tree 前，只允许完成与 1.0 直接相关的最后一组源码收口：
 
-**CORE-NOW**
+- Planning 输出质量提升且不削弱事实审查；
+- 中文/英文真实素材已证明的 visual-first Editing 修复进入 accepted SHA；
+- 配置导入改为 Form/Director 与 API/Provider 的直接独立动作；
+- 隐藏 2.0 speech/translated-subtitle/TTS 与 remote-reference 未完成入口；
+- provider-directed 429/RetryInfo 等等待行为做 bounded ordinary-user recovery；
+- 完整 Quality Gate + CI。
 
-- frozen app 自带 private Python runtime；
-- Tk/Tcl DLL/data 完整；
-- 普通用户不安装 Python；
-- 中文路径/IME/DPI smoke。
+不得以此为理由重新开启 2.0 音频分离、异语旁白或富 NLE 波次。
 
-## 3.2 FFmpeg / ffprobe
+---
 
-**CORE-NOW**
+# 3. 1.0 runtime/component ownership
 
-用途已包括 media probe、frame extraction、render、audio mix、subtitle execution 等。
+## 3.1 Core App / Planning
 
-PR #13 加入的 repository-local `.tools/ffmpeg-8.1/...` locator 只是**开发 fallback**，不是 packaging contract。
+**CORE / REQUIRED**
 
-正式 bundle 必须由独立 resource/runtime locator 找到 approved component，而不是依赖：
+- frozen application code；
+- private CPython 3.12.13；
+- Tcl/Tk；
+- GUI/resources；
+- Workspace/Profile/DPAPI integration；
+- DeepSeek / Gemini / OpenAI adapter code（credentials never bundled）。
 
-- PATH；
-- repo root；
-- `.tools`；
-- `Path(__file__).parents[...]` 的开发目录假设。
+普通 Planning-only 用户不应被迫安装完整 Editing runtime。
+
+## 3.2 Media Runtime — FFmpeg / ffprobe
+
+**EDITING + LOCAL REFERENCE COMPONENT**
+
+用途包括：
+
+- probe/decode/frame extraction；
+- render；
+- music/basic audio execution；
+- local-reference analysis path。
 
 Release hard gate继续遵守 ADR-001：exact version/build config/hash/source provenance/notices/license review。
 
-## 3.3 TransNetV2 CPU runtime + reviewed weights
+不修改 arbitrary system PATH，不依赖系统开发环境。
 
-**CORE-NOW**
+## 3.3 Scene Detection Runtime — TransNetV2 CPU + reviewed weights
 
-当前 reviewed runtime path：`transnetv2-pytorch==1.0.5`。
+**EDITING + LOCAL REFERENCE COMPONENT**
 
-Packaging 要解决：
+- `transnetv2-pytorch==1.0.5`；
+- CPU Torch runtime；
+- reviewed package-owned weights；
+- no CUDA hard dependency。
 
-- CPU-only dependency closure；
-- Torch/native DLL；
-- weights provenance/hash/license；
-- frozen hidden imports；
-- clean-machine model-load smoke。
+## 3.4 Speech Runtime / model
 
-不要把 CUDA 变成普通用户 hard dependency。
+**DEFERRED DEFAULT PAYLOAD — 2.0 ADVANCED AUDIO**
 
-## 3.4 Speech runtime / basic trusted subtitles
+此前已经完成并保留以下工程证据：
 
-**RETAINED 1.0 GATE**
+- `faster-whisper==1.2.1`；
+- CTranslate2/PyAV；
+- pinned `Systran/faster-whisper-base` local model；
+- CPU/int8/local-files-only runtime proof；
+- approved LGPL FFmpeg DLL binding for PyAV。
 
-`pyproject.toml` 已有 pinned optional extra：
+这些工作不作废，但在 Product Owner 2026-08-26 的版本边界下，它们不再属于默认 1.0 installer payload，也不再是 Stage-A 100% blocker。
 
-`speech-runtime = faster-whisper==1.2.1`
-
-Stage-A 已证明：
-
-- no-speech 不应因 ASR 缺失而失败；
-- grounded speech + required subtitles + speech capability unavailable 必须准确 fail closed。
-
-最终 Packaging 前必须明确二选一的正式 component strategy：
-
-1. 第一个 1.0 bundle 默认包含批准的 speech runtime + pinned local model；或
-2. speech component 是受控可安装组件，但 ordinary Doctor/UX 能明确安装状态且最终 single-speaker Human Gate 在目标发行配置上 PASS。
-
-不能继续依赖开发机“刚好装过”。
+保留 lockfiles/provenance/seams，为 2.0 dual-track speech / translation / TTS 使用。1.0 不展示未完成 speech/translation/TTS 控件。
 
 ## 3.5 Cloud provider adapters
 
-**REMOTE / CORE-NOW**
+**REMOTE CODE / 1.0 REQUIRED WHERE CAPABILITY USED**
 
 Adapter code可 bundle；API key不可 bundle。
 
 - DeepSeek reasoning/direction；
-- Gemini/OpenAI image-frame understanding；
-- stdlib HTTP 为主，不要求 vendor SDK。
-
-Remote reference URL/video-native observation已延后至 2.0，不是 first package dependency。
+- Gemini/OpenAI visual understanding；
+- ordinary GUI owns provider configuration；
+- retryable 429/408/5xx应有 bounded wait/retry UX；
+- no silent provider fallback。
 
 ## 3.6 Public music
 
-**CORE-NOW NETWORK CAPABILITY**
+**1.0 NETWORK CAPABILITY**
 
-Ordinary Editing 已真实通过 rights-safe public BGM Human Gate。
+保留：
 
-Packaging 需保留：
-
-- Openverse/Wikimedia provider/acquisition code；
-- timeout/proxy/network diagnostics；
+- discovery/acquisition；
 - rights verification/provenance；
-- fail-closed behavior。
+- bounded fallback；
+- timeout/proxy/network diagnostics。
 
-不要把音乐素材静态塞进安装包来规避网络/rights 逻辑。
-
----
-
-# 4. 明确不应无条件塞进 first bundle
-
-## MediaPipe recovery / EfficientDet Lite0
-
-`RELEASE_LICENSE_PENDING`。
-
-在 license 未闭环前：
-
-- 不默认 bundle；
-- 不成为普通路径 hard dependency；
-- optional capability缺失时必须明确降级。
-
-## Advanced VAD / embeddings / recovery providers
-
-Silero VAD、multilingual E5 等历史上有真实能力证据，但 first release 是否 mandatory 应由**当前 ordinary Stage-A path dependency audit**决定，而不是“仓库里有就打进去”。
-
-## Preview runtime
-
-GStreamer/VLC/libmpv 等历史候选不能全塞进 first bundle。
-
-若 Stage-A ordinary UI不依赖 external preview runtime完成核心结果，则先保持非 hard dependency；未来选定 production preview route 后再做 exact build/plugin/license closure。
+不要静态塞一堆音乐进 installer 来绕过 rights contract。
 
 ---
 
-# 5. Distribution layout 与 Project Workspace 必须分开
+# 4. 1.0 安装形态
 
-建议 first onedir 语义：
+首选候选：**Inno Setup 7.1**，前提是最终商业许可策略可接受。
+
+Plan B：**NSIS Modern UI 2**。
+
+Velopack 仅在后续明确选择 whole install/update/delta stack 时作为竞争方案，不与 Inno 默认叠加。WiX/Burn 仅在 prerequisite chaining 确实需要时考虑。
+
+建议的 1.0 installer component semantics：
+
+```text
+VideoEditingAgent-Setup.exe
+├─ Core App / Planning                     [required]
+└─ Media Analysis + Automatic Editing      [optional, recommended]
+   ├─ FFmpeg / ffprobe
+   └─ TransNetV2 CPU + weights
+```
+
+高级 Speech Runtime 不进入默认 1.0 component tree。
+
+Planning-only 用户可以只装 Core；需要本地参考视频分析或自动剪辑的用户安装 Editing component。
+
+---
+
+# 5. Setup.exe ordinary-user contract
+
+Installer/maintenance flow至少需要：
+
+- Windows 安装向导；
+- license/agreement page where applicable；
+- 清楚的安装目录；
+- desktop shortcut checkbox；
+- completion-page launch checkbox；
+- same-AppId upgrade/repair path；
+- Windows conventional uninstall；
+- 对 application-owned component conflict 给出普通语言说明；
+- destructive replacement/reconfiguration 前获得用户同意；
+- 不任意修改系统 Python / FFmpeg / PATH；
+- Project Workspaces、Profiles、original media 均位于 install tree 外，update/repair/uninstall 后保留。
+
+---
+
+# 6. Distribution layout 与 Project Workspace 分离
+
+候选 staging tree 继续使用明确 application-owned layout，例如：
 
 ```text
 VideoEditingAgent/
 ├─ VideoEditingAgent.exe
-├─ runtime/             # bundler/private Python/Tk/native runtime
-├─ tools/               # approved FFmpeg/ffprobe etc.
-├─ models/              # only redistribution-approved bundled models
-├─ resources/           # canonical icon/UI resources
-├─ licenses/
-└─ version.json
+├─ _internal/
+│  ├─ private Python/Tk runtime
+│  ├─ resources/
+│  ├─ licenses/
+│  ├─ tools/                  # Editing component
+│  └─ runtimes/transnet/      # Editing component
+└─ ...
 ```
 
 安装目录默认只读。
 
-用户项目不放这里。
+用户 Project Workspace 继续位于用户选择路径，不进入 application install tree。
+
+Reusable Profiles 继续位于 user-level profile location，API secret 由 Windows user-scoped protection 持有。
 
 ---
 
-# 6. Writable-data ownership
+# 7. Installer build chain
 
-## Project Workspace — project-specific
-
-用户在主界面第一步选择/打开的 Project Workspace 应成为一个视频工作的 project-local writable root。
-
-逻辑上允许包含：
+最终候选 sequence：
 
 ```text
-<Project Workspace>/
-├─ project.sqlite3
-├─ artifacts/
-├─ cache/
-├─ work/                # drafts/autosave/bounded undo-redo/session scratch
-├─ logs/
-├─ provider_audio/
-└─ outputs/
-   ├─ preview/
-   └─ final/
+accepted green source SHA
+→ prepare only 1.0 required runtime payloads
+→ PyInstaller onedir staging tree
+→ static manifest/license inspection
+→ build Setup.exe with established installer tool
+→ install to clean-machine-ish target
+→ ordinary launcher/Workspace/API/Planning/Editing smoke
+→ upgrade-or-repair test
+→ uninstall test
+→ verify Projects/Profiles/originals preserved
+→ Product/Human Gate
+→ release approval
 ```
 
-不要为了目录好看而复制 canonical Domain 数据；现有 revisioned SQLite/artifact ownership继续有效。
-
-## Documents — user-level reusable config
-
-例如现有：
-
-`%USERPROFILE%\Documents\Video Editing Agent\Profiles`
-
-API profile仍只保存 non-secret metadata / protected credential reference。
-
-## LocalAppData — machine/app-level state
-
-只放不属于单一 project 的程序管理数据，例如：
-
-- component metadata；
-- updater state；
-- crash marker；
-- machine cache；
-- sanitized global diagnostics。
-
-项目-specific工作缓存不要无理由散落回 LocalAppData。
+真实付费/有额度 API probe保持显式，不在 installer smoke里偷偷消耗。
 
 ---
 
-# 7. Secret 与封装
+# 8. Release manifest
 
-Packaging 后继续保持：
-
-- API key 不写 executable旁 TXT/JSON；
-- profile 不保存 plaintext key；
-- secret 使用 user-scoped Windows protection；
-- visible log/export/crash report不打印 key；
-- 删除 profile 时 protected credential lifecycle正常；
-- upgrade 后旧 profile可读或有明确迁移。
-
-必须测试同一 Windows user round trip，并确认另一 Windows user不能直接复用受保护密钥。
-
----
-
-# 8. Thin desktop bootstrap
-
-正式 bundle应有极薄 desktop bootstrap，只负责：
-
-```text
-frozen/development mode detection
-→ resource locator
-→ writable-root/user-profile locator
-→ logging/crash boundary
-→ lightweight capability/Doctor startup
-→ ordinary product shell
-```
-
-Bootstrap/PyInstaller spec不得知道 Resolver/EDL/editorial business rules。
-
-CLI 与 desktop共用 product composition，不做第二套应用架构。
-
----
-
-# 9. Resource / runtime locator
-
-Packaging Wave必须建立一个清晰 owner，区分：
-
-- development resource；
-- frozen install resource；
-- project writable data；
-- user profile data；
-- optional externally installed component。
-
-图标、模型、FFmpeg、licenses/templates都通过该 owner解析。
-
-禁止在普通业务代码继续扩散：
-
-- repo-relative `.tools` assumptions；
-- current-working-directory assumptions；
-- machine-specific absolute paths。
-
----
-
-# 10. First onedir Engineering Probe
-
-## Build
-
-要求：
-
-- Windows x64构建；
-- exact pinned bundler version；
-- checked-in deterministic spec/config；
-- `--onedir` + windowed desktop entry；
-- build/release manifest；
-- no real API secrets；
-- package artifact不从 `.private`/`.tools`/`.venv`/developer cache“整目录复制”。
-
-`.tools` 可以作为开发 evidence/source locator，但正式 component必须通过明确 packaging manifest进入 bundle。
-
-## Clean-machine-ish smoke
-
-目标环境不安装：
-
-- Python；
-- uv；
-- repository checkout。
-
-至少验证：
-
-1. EXE双击启动；
-2. Splash/main window；
-3. 中文用户名/路径；
-4. Project Workspace创建/打开；
-5. project-specific writable data不进入 install dir；
-6. Profiles + DPAPI round trip；
-7. Doctor找到 bundled FFmpeg/ffprobe；
-8. TransNet CPU runtime + reviewed weights load；
-9. speech component状态准确可诊断；
-10. 本地 MP4 ingest/shot-detection smoke；
-11. fixture provider完整机械 path；
-12. 正常退出无残留 worker；
-13. 删除/卸载 bundle不删除用户 Projects/Profiles。
-
-真实付费/有额度的 API Product Probe另行显式执行，不在 installer smoke中偷偷消耗。
-
----
-
-# 11. Release manifest
-
-每个候选 release至少可追溯：
+最终候选至少记录：
 
 ```text
 app version / git SHA
 Python runtime
-bundler version
+PyInstaller version
+installer tool + version
 FFmpeg/ffprobe version + config + SHA256
 TransNet runtime + weights revision/hash/license
-speech runtime + model/component status
-optional models/components + license state
-canonical icon/resource revision
+1.0 installed component set
 third-party notices
 build date / build profile
 ```
 
----
-
-# 12. CI / release sequence
-
-建议：
-
-```text
-normal Quality Gate
-→ Windows onedir build
-→ static package inspection
-→ artifact upload
-→ clean-machine-ish smoke
-→ Product/Human Gate
-→ manual release approval
-```
-
-不要自动发布未签名、未 license-approved、未 Product Gate 的 executable。
+Speech runtime/model可以记录为 `deferred_not_shipped_1_0`，不应继续作为默认 package closure 条件。
 
 ---
 
-# 13. Installer / onefile
+# 9. Current action order
 
-只有 `onedir` dependency/resource/writable-data closure稳定后，再比较：
+- [x] Project Workspace / UX foundation；
+- [x] runtime inventory / manifest；
+- [x] onedir engineering build foundation；
+- [x] FFmpeg / TransNet / speech engineering payload proof；
+- [x] heavy package workflow改为 explicit/manual；
+- [ ] preserve + accept current focused Planning/Editing repair；
+- [ ] final Planning quality + UI isolation + bounded provider wait patch；
+- [ ] full Quality Gate + accepted green SHA；
+- [ ] remove deferred speech payload from default 1.0 staging spec/manifest；
+- [ ] build explicit 1.0 staging tree；
+- [ ] build guided `Setup.exe`；
+- [ ] install / repair-or-upgrade / uninstall smoke；
+- [ ] final ordinary-user Human Gate；
+- [ ] Stage-A 100% only when the gate is truthful。
 
-- Inno Setup / WiX；
-- MSIX；
-- onefile；
-- signing/SmartScreen；
-- update/rollback。
-
-“只有一个 exe”不是产品质量指标。
-
----
-
-# 14. 当前行动顺序
-
-- [x] repository attention/document governance；
-- [x] ordinary remote-reference URL从 1.0 隐藏并明确 2.0 home；
-- [ ] Project Workspace + UX consolidation；
-- [ ] 从真实 ordinary 1.0 path生成 mandatory/optional runtime BOM；
-- [ ] thin desktop bootstrap + resource/runtime locator；
-- [ ] pin first bundler + checked-in onedir spec；
-- [ ] package build manifest/license manifest；
-- [ ] Windows clean-machine-ish probe；
-- [ ] retained Planning/Editing/speech Product/Human Gate；
-- [ ] 再决定 installer/onefile/update route。
-
-Stage-A 不能因为生成了一个 EXE 就自动变成 100%。
+我们现在已经越过“能不能打包”的问题。剩下的是**把 1.0 scope 冻结干净，并完成真正的 Windows 安装产品化**。
