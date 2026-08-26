@@ -143,18 +143,67 @@ def _fallback_fact_owners(
     return {fact_id: candidate[2] for fact_id, candidate in owners.items()}
 
 
+def _brief_output_language(brief: Brief) -> str:
+    text = " ".join(
+        value
+        for value in (
+            brief.title,
+            brief.objective,
+            brief.audience,
+            brief.platform,
+            brief.core_message,
+            brief.product_topic or "",
+            brief.user_notes or "",
+            *(fact.statement for fact in brief.authoritative_facts),
+        )
+        if value
+    )
+    cjk = sum("\u3400" <= char <= "\u9fff" for char in text)
+    latin = sum(char.isascii() and char.isalpha() for char in text)
+    return "zh-CN" if cjk >= latin else "en"
+
+
 def _claim_free_fallback_content(
     narrative_role: str,
     exact_fact_text: str,
+    language: str,
 ) -> tuple[str, str | None, str, str | None]:
     role = _fallback_role(narrative_role)
+    if language == "zh-CN":
+        if role == "hook":
+            return (
+                "用不包含产品性能断言的方式快速建立主体。",
+                None,
+                "先清楚展示产品本身，不演示是否装得下、是否方便、是否易用或任何结果。",
+                None,
+            )
+        if role == "demonstration":
+            return (
+                "展示可直接观察的产品细节，并且只陈述分配给本段的已确认事实。",
+                exact_fact_text or None,
+                "用近景或中景展示产品外观与可见细节，不安排便利性、适配性、性能或结果演示。",
+                None,
+            )
+        if role == "closing":
+            return (
+                "用稳定的产品画面收尾，不增加新的产品事实或性能断言。",
+                None,
+                "最后保持一个稳定、干净的产品画面，不增加便利性、适配性、性能或结果演示。",
+                None,
+            )
+        return (
+            "继续展示产品可直接观察的内容，不增加未经证实的产品断言。",
+            exact_fact_text or None,
+            "使用中性的产品画面，不演示便利性、适配性、性能或任何结果。",
+            None,
+        )
     if role == "hook":
         return (
             "Open with a claim-free product reveal that establishes the subject immediately.",
             None,
             "Begin with a clear neutral product reveal. Do not demonstrate fit, ease, "
             "performance, or any outcome.",
-            exact_fact_text or None,
+            None,
         )
     if role == "demonstration":
         return (
@@ -171,7 +220,7 @@ def _claim_free_fallback_content(
             None,
             "End on a stable neutral product view. Do not add a fit, ease, performance, or "
             "outcome demonstration.",
-            exact_fact_text or None,
+            None,
         )
     return (
         "Continue with neutral product coverage without adding an unsupported product claim.",
@@ -210,6 +259,7 @@ def _deterministic_claim_fallback(
         sanitize_all=sanitize_all,
         facts_by_id=facts_by_id,
     )
+    language = _brief_output_language(brief)
     sanitized: list[NarrativeSectionProposal] = []
     for section in proposal.sections:
         if not sanitize_all and section.section_id not in targeted_ids:
@@ -223,7 +273,7 @@ def _deterministic_claim_fallback(
         )
         exact_fact_text = " ".join(fact_statements).strip()
         information_goal, spoken_content, visual_requirement, on_screen_text_intent = (
-            _claim_free_fallback_content(section.narrative_role, exact_fact_text)
+            _claim_free_fallback_content(section.narrative_role, exact_fact_text, language)
         )
 
         sanitized.append(
