@@ -245,7 +245,9 @@ _EVENT_MESSAGES_ZH = {
     "Validating canonical source-audio and background-music lanes": "正在检查原声与背景音乐轨道",
     "Preserving grounded original source voice": "正在保留真实素材中的原声",
     "Preparing requested synthetic voice": "正在准备所请求的合成人声",
-    "Compiling trusted speech evidence into canonical subtitle timing": "正在根据可信语音证据生成字幕时间",
+    (
+        "Compiling trusted speech evidence into canonical subtitle timing"
+    ): "正在根据可信语音证据生成字幕时间",
     "Rendering canonical EDL": "正在渲染正式剪辑时间线",
     "Reviewing delivered output": "正在检查最终成片",
     "Editing flow completed": "自动剪辑已完成",
@@ -260,9 +262,10 @@ _EVENT_MESSAGES_ZH = {
     "Candidate passed the public music rights gate": "候选音乐已通过公共音乐权利门槛",
     "Acquiring rights-approved public music": "正在获取已通过权利核验的公共音乐",
     "Public music acquisition completed": "公共音乐获取完成",
-    "Subtitle stage SKIPPED: no trusted speech transcript or grounded speech requirement; no subtitle cues were fabricated": (
-        "字幕阶段已跳过：没有可信语音转写或已落地的语音要求，因此未虚构字幕"
-    ),
+    (
+        "Subtitle stage SKIPPED: no trusted speech transcript or grounded speech requirement; "
+        "no subtitle cues were fabricated"
+    ): "字幕阶段已跳过：没有可信语音转写或已落地的语音要求，因此未虚构字幕",
 }
 
 
@@ -313,7 +316,9 @@ def format_product_event(event: ProductFlowEvent, language: str) -> str:
             ProductFlowEventLevel.ERROR: " 错误",
         }[event.level]
     else:
-        severity = "" if event.level is ProductFlowEventLevel.INFO else f" {event.level.value.upper()}"
+        severity = (
+            "" if event.level is ProductFlowEventLevel.INFO else f" {event.level.value.upper()}"
+        )
     return (
         f"[{localized_stage(event.stage, language)}{severity}] "
         f"{_localized_event_message(event, language)}"
