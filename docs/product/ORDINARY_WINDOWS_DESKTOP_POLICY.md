@@ -2,7 +2,7 @@
 
 **Status:** USER-APPROVED PRODUCT POLICY  
 **Approved:** 2026-08-25  
-**Updated:** 2026-08-25  
+**Updated:** 2026-08-26  
 **Scope:** Windows desktop ordinary-user experience, runtime management, API configuration, Workspace ownership, installation and maintenance  
 **Authority note:** Records explicit Product Owner direction. A later Product Constitution revision should absorb these rules verbatim in substance rather than weakening them.
 
@@ -24,6 +24,8 @@ The product MUST NOT require terminal knowledge for normal:
 
 Developer shells may remain engineering tools, but they are not a product UI.
 
+The ordinary UI must also be truthful about capability scope: unfinished or deferred features are hidden rather than exposed as decorative, disabled or unreliable controls.
+
 ## 2. API / provider configuration
 
 API configuration must be exposed through a clear GUI intended for non-technical users.
@@ -38,6 +40,8 @@ The GUI should:
 - provide understandable validation/error feedback rather than raw stack traces;
 - support secure user-level persistence when the user chooses to save a profile;
 - never write plaintext API keys into ordinary project/profile files or logs.
+
+Configuration file actions should have direct ownership. Form/Director configuration and API/provider configuration should each expose their own obvious Import/Export/Save/Delete action rather than requiring users to select one or both configuration scopes before performing the action.
 
 Exact provider onboarding/help links and visual design may evolve, but ease of use for non-technical users is a product requirement.
 
@@ -103,6 +107,8 @@ rather than:
 
 A user may decline an optional repair/install action. The product should then explain what capability will be unavailable or degraded.
 
+Retryable provider failures such as an explicit quota wait / HTTP 429 should use bounded, visible wait-and-retry behavior when the provider supplies reliable retry guidance. The product must not silently loop forever, but it should not fail an entire ordinary task immediately when the provider explicitly says the same request may resume after a short wait.
+
 ## 6. UI design evidence
 
 Public software, open-source projects, platform conventions and real user feedback may be researched as UI/UX references.
@@ -134,14 +140,17 @@ A giant single embedded payload is not a product requirement. Release engineerin
 
 The application is a flexible production line. Distribution should reflect that rather than forcing every user to acquire every heavy runtime on first install.
 
-The release architecture should be able to distinguish at least:
+For 1.0 the ordinary release should distinguish at least:
 
-- core desktop / Planning capability;
-- media runtime (for example FFmpeg/ffprobe);
-- scene-detection runtime (TransNet/CPU Torch/weights);
-- speech runtime (faster-whisper/CTranslate2/PyAV/model).
+- **Core desktop / Planning** — required;
+- **Media runtime** — FFmpeg/ffprobe, required for automatic Editing and local-reference media analysis;
+- **Scene-detection runtime** — TransNet/CPU Torch/weights, required for automatic Editing and local-reference media analysis.
 
-Exact component boundaries may evolve after measurement, but they must be application-owned, versioned, verifiable and diagnosable. Planning-only users should not be required to download the complete heavy Editing/speech stack merely because those capabilities exist.
+The previously engineered speech runtime (`faster-whisper`/CTranslate2/PyAV/model) is preserved as future capability evidence but, after the Product Owner's 2026-08-26 scope decision, it is not a default 1.0 payload requirement.
+
+Advanced source-speech separation/reconstruction, translated/bilingual subtitles and cross-language narration/TTS belong to 2.0. 1.0 must not expose unfinished controls for those capabilities.
+
+Exact component boundaries may evolve after measurement, but they must be application-owned, versioned, verifiable and diagnosable. Planning-only users should not be required to download the complete Editing stack merely because those capabilities exist.
 
 ## 9. Engineering iteration vs product operation
 
