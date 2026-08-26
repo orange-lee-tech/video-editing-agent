@@ -2,20 +2,20 @@
 
 ---
 schema: video-editing-agent-control-state/v1
-updated: 2026-08-25
+updated: 2026-08-26
 current_phase: R0.12
-phase_state: STAGE_A_HUMAN_GATE_REPAIR_ACTIVE
+phase_state: STAGE_A_FINAL_SOURCE_CONSOLIDATION_AND_INSTALLER
 active_work_order: R0.12-STAGE-A-FINAL-CLOSURE-002
 active_construction_branch: NONE
 accepted_engineering_baseline: c2c959239cf8842388ac661777c19f20f64a6a90
-current_main_baseline: 1015096fc4c5b2b9138e98cbe713fc4cc1770c07
-latest_human_gate_candidate: 1015096fc4c5b2b9138e98cbe713fc4cc1770c07
+current_main_baseline: 153a7686aef3700c2a992542884a33dc135225cc
+latest_human_gate_candidate: 153a7686aef3700c2a992542884a33dc135225cc
 structural_progress_percent: 95
 stage_a_completion_gate: OPEN
-core_1_planning_product_gate: REOPENED_UNSUPPORTED_CLAIM_REPAIR_REQUIRED
-core_2_editing_product_gate: REOPENED_DIRECTOR_RESOLVER_GROUNDING_REQUIRED
+core_1_planning_product_gate: OPEN_QUALITY_HARDENING_REQUIRED
+core_2_editing_product_gate: LOCAL_VISUAL_FIRST_PASS_PENDING_ACCEPTED_SHA
 windows_release_delivery_gate: OPEN_SETUP_EXE_REQUIRED
-codex_release: CLOSED_PENDING_FOCUSED_LOCAL_DIAGNOSTIC
+codex_release: CLOSED_PENDING_LOCAL_PATCH_ACCEPTANCE
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
 development_stage: STRUCTURAL_CONSTRUCTION
@@ -28,47 +28,65 @@ The accepted runtime/packaging foundation remains PR #20 at:
 
 `c2c959239cf8842388ac661777c19f20f64a6a90`.
 
-It proves the exact application-owned Windows runtime inventory and packaged execution machinery, including:
+It proved the exact engineering runtime inventory and packaged execution machinery, including:
 
 - LGPL-only FFmpeg/ffprobe 8.1;
-- `transnetv2-pytorch==1.0.5` + `torch==2.13.0+cpu` + package-owned weights;
-- `faster-whisper==1.2.1` + CTranslate2/PyAV + pinned local model, CPU/int8/local-files-only;
+- `transnetv2-pytorch==1.0.5` + `torch==2.13.0+cpu` + reviewed weights;
+- `faster-whisper==1.2.1` + CTranslate2/PyAV + pinned local model as an engineering-proven speech component;
 - exact CPython 3.12.13 packaging baseline;
 - runtime manifest/NOTICE/hash evidence, Doctor, real TransNet/ASR probes, GUI launcher and external Workspace smoke.
 
-PR #21 merged at current main:
+Current remote main is:
 
-`1015096fc4c5b2b9138e98cbe713fc4cc1770c07`.
+`153a7686aef3700c2a992542884a33dc135225cc`.
 
-It added one bounded Resolver -> Director EditPlan recovery and improved Planning proposal repair without weakening commercial-fact safety. Main CI and the Windows packaging candidate for this SHA passed.
+The latest Human Gate executed a focused uncommitted local repair based on that SHA. Because that repair is not yet an accepted GitHub commit, the front-matter candidate remains anchored to its remote base SHA and the successful local observations below must not be mistaken for accepted-main proof.
 
 ## Latest Human Gate truth
 
-The 2026-08-25 Product Owner run on the exact `1015096...` candidate reopened two product gates:
+### Planning
 
-1. **Planning-only FAIL.** After bounded repair, Script generation still introduced unsupported fit/operability implications (for example fitting in a bag or being held in one hand) that were not supported by the authoritative fact set. The semantic reviewer correctly vetoed the proposal. Planning must therefore not remain marked PASS.
-2. **Editing-only FAIL.** The new bounded recovery executed as designed, but the revised EditPlan still requested multiple semantic beats that the real local footage could not ground. The flow correctly stopped before EDL/render instead of fabricating or substituting public visuals. The next repair must be grounded in the persisted shot-analysis/EditPlan evidence, not prompt guessing.
+The previous factual failure is mechanically repaired in the focused local candidate: the 350 ml scenario completed without unsupported bag-fit / one-hand-operability claims escaping semantic review.
 
-The bounded recovery mechanism itself is therefore mechanically proven; the remaining defect is Director/Resolver grounding quality and recovery policy.
+The Product Owner nevertheless rejected release quality. The plan was too sparse and repetitive, with generic hook language, duplicate fact copy, static visual guidance and weak role-specific shooting coverage. Planning therefore remains OPEN for quality hardening while factual safety stays non-negotiable.
 
-Ordinary no-speech Editing evidence, Workspace separation, credential protection and runtime packaging evidence remain valid unless a later regression disproves them.
+### Editing
 
-## Engineering-loop correction
+Real local Human Gate runs completed automatic visual-first Editing for both Chinese-speaking and English-speaking footage after a focused cross-language retrieval repair. This locally demonstrates the intended visual chain:
 
-Human Gate repair iterations are now **patch-first and evidence-first**:
+`local footage → visual understanding → Director → Resolver → EDL → Renderer/Review → final output`.
 
-- do not rebuild or ask the Product Owner to download the ~769 MB compressed / ~1.88 GB extracted onedir artifact after every small source repair;
-- collect focused local evidence from the external Workspace (`project.sqlite3`, logs and only other narrowly requested state), keeping private media outside GitHub;
-- investigate the actual persisted Brief / shot analyses / EditPlan revisions / resolver evidence before changing Editing behavior;
-- use focused patches plus local repository tests and local GUI/product runs for repair iterations;
-- run ordinary CI on code changes, but reserve the full Windows packaging candidate for an explicit release-candidate checkpoint;
-- run the final ordinary-user Human Gate only after the repair set and Windows installer delivery are stable.
+The previously observed false missing-coverage failure was caused by a language mismatch between footage evidence and a purely lexical internal retrieval query. The focused repair prevents Director retrieval fields from silently translating away from the evidence language.
 
-A developer terminal is allowed for this engineering feedback loop. It remains forbidden as a requirement of the ordinary-user product path.
+This local success does not become accepted main truth until the dirty local work is preserved, verified, committed, pushed and passed through normal CI.
+
+### Speech / multilingual voice production scope
+
+The Product Owner decided on 2026-08-26 that speech-continuity reconstruction requires a future dual-track audio/video design and must not distort 1.0 visual editing authority.
+
+Therefore source-speech separation/reconstruction, sentence-preserving dialogue editing, translated/bilingual subtitles and cross-language narration/TTS are deferred to 2.0. Unfinished controls must be hidden in 1.0.
+
+The previously proven speech runtime remains useful future engineering evidence but is no longer a default 1.0 release payload requirement.
+
+### Provider quota behavior
+
+A real English run hit Gemini HTTP 429 with an explicit retry delay and then succeeded when repeated later. The transport already classifies that condition as transient. The final source consolidation should consume provider-directed bounded wait/retry information rather than immediately failing the whole ordinary-user task on the first retryable quota response.
+
+## Final source consolidation boundary
+
+Before installer freeze, preserve the current local repair and complete only the remaining coherent 1.0 source set:
+
+- Planning quality hardening without weakening factual review;
+- direct independent configuration actions instead of select-scope-then-import UI;
+- hide unfinished/deferred speech/translated-subtitle/TTS interfaces;
+- bounded provider quota/wait UX;
+- retain visual-first Editing semantics and user-local source authority.
+
+Do not reopen 2.0 audio reconstruction, Remote Reference URL or unrelated architecture work.
 
 ## Windows release delivery gate
 
-The Product Owner has explicitly rejected raw ZIP/onedir extraction as the normal release experience. Stage-A / 1.0 release closure now requires a guided Windows `Setup.exe` path with application-owned runtime management.
+The Product Owner has explicitly rejected raw ZIP/onedir extraction as the normal release experience. Stage-A / 1.0 release closure requires a guided Windows `Setup.exe` path with application-owned runtime management.
 
 The release design must support, at minimum:
 
@@ -77,19 +95,26 @@ The release design must support, at minimum:
 - license/agreement presentation where applicable;
 - user-selectable desktop shortcut;
 - install-complete option to launch the application;
-- clear handling of existing application-owned runtime/component conflicts, with consent before destructive replacement/reconfiguration;
-- Project Workspace and user originals remaining outside the install tree and surviving uninstall/upgrade;
-- componentized delivery so Planning-only does not have to acquire every heavy Editing/speech runtime when it is not needed.
+- safe handling of existing application-owned runtime/component conflicts;
+- Project Workspace, Profiles and user originals remaining outside the install tree and surviving uninstall/upgrade;
+- capability-oriented delivery so Core/Planning does not have to acquire Editing runtime components when they are not needed.
 
-Inno Setup, NSIS, Velopack and bootstrapper approaches are implementation references, not product authority. Do not reinvent installer mechanics that established tooling already provides.
+For 1.0 the default release component model is now:
+
+- Core App / Planning;
+- Media Runtime (FFmpeg/ffprobe);
+- Scene Detection Runtime (TransNet/CPU Torch/weights).
+
+Speech Runtime is deferred from the default 1.0 payload with the advanced speech line.
 
 ## Final gate boundary
 
 Structural progress remains **95%**. Stage-A 100% is forbidden until all of the following are true:
 
-1. Planning-only passes ordinary inputs without fabricating unsupported commercial facts;
-2. Editing-only can adapt to real available local footage or fail with an honest, useful missing-coverage explanation, and the retained clear-speech path reaches final MP4 with original voice + trusted subtitles;
+1. Planning-only passes factual review and the Product Owner's ordinary-user quality bar;
+2. the focused visual-first Editing repair exists on an accepted green GitHub SHA and real Chinese/English footage remains usable;
 3. Combined semantics remain valid;
-4. originals, credentials and Workspace ownership remain protected;
-5. the normal Windows delivery is a tested guided `Setup.exe` install/upgrade/uninstall path rather than a raw large ZIP;
-6. final evidence records the exact release candidate and Human observations.
+4. 1.0 hides unfinished/deferred interfaces and keeps originals, credentials and Workspace ownership protected;
+5. provider-directed transient waits are bounded and understandable;
+6. normal Windows delivery is a tested guided `Setup.exe` install/upgrade-or-repair/uninstall path rather than a raw large ZIP;
+7. final evidence records the exact release candidate and Human observations.
