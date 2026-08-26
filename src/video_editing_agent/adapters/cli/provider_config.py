@@ -26,6 +26,10 @@ from video_editing_agent.providers.llm.deepseek_preproduction_review import (
     DeepSeekScriptProposalReviewPort,
     DeepSeekShootingProposalReviewPort,
 )
+from video_editing_agent.providers.llm.preproduction_refinement import (
+    EditoriallyRefinedScriptPlanningPort,
+    EditoriallyRefinedShootingPlanningPort,
+)
 from video_editing_agent.providers.usage import MeteredDeepSeekChatTransport
 
 
@@ -45,6 +49,7 @@ def deepseek_preproduction_ports(
     *,
     model: str = "deepseek-v4-flash",
     transport: DeepSeekChatTransport | None = None,
+    output_language: str | None = None,
 ) -> PreproductionPorts:
     if transport is None:
         api_key = os.environ.get("DEEPSEEK_API_KEY", "")
@@ -63,10 +68,18 @@ def deepseek_preproduction_ports(
         max_tokens=REVIEW_INITIAL_MAX_TOKENS,
         temperature=None,
     )
+    script_generation = DeepSeekScriptPlanningPort(transport=transport, config=generation)
+    shooting_generation = DeepSeekShootingPlanningPort(transport=transport, config=generation)
     return PreproductionPorts(
-        DeepSeekScriptPlanningPort(transport=transport, config=generation),
+        EditoriallyRefinedScriptPlanningPort(
+            script_generation,
+            output_language=output_language,
+        ),
         DeepSeekScriptProposalReviewPort(transport=transport, config=review),
-        DeepSeekShootingPlanningPort(transport=transport, config=generation),
+        EditoriallyRefinedShootingPlanningPort(
+            shooting_generation,
+            output_language=output_language,
+        ),
         DeepSeekShootingProposalReviewPort(transport=transport, config=review),
     )
 

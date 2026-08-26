@@ -131,7 +131,29 @@ def test_run_log_format_includes_stage_message_and_warning() -> None:
 
     rendered = format_product_event(event, "en")
 
-    assert rendered == ("[Music Preparation WARNING] Trying the next bounded fallback")
+    assert rendered == "[Music Preparation WARNING] Trying the next bounded fallback"
+
+
+def test_chinese_run_log_localizes_known_and_unknown_provider_messages() -> None:
+    known = ProductFlowEvent(
+        ProductFlowStage.PLANNING_GENERATION,
+        "Generating and validating ScriptPlan",
+    )
+    warning = ProductFlowEvent(
+        ProductFlowStage.MUSIC_PREPARATION,
+        "Candidate failed rights verification",
+        ProductFlowEventLevel.WARNING,
+    )
+    dynamic = ProductFlowEvent(
+        ProductFlowStage.MUSIC_PREPARATION,
+        "Public music query 2 returned 20 candidate(s)",
+    )
+
+    assert format_product_event(known, "zh-CN") == "[正在生成并复审方案] 正在生成并复审脚本方案"
+    assert format_product_event(warning, "zh-CN") == "[正在准备音乐 警告] 候选音乐权利核验失败"
+    assert format_product_event(dynamic, "zh-CN") == (
+        "[正在准备音乐] 公共音乐检索第 2 组返回 20 个候选"
+    )
 
 
 def test_launcher_smoke_catalog_is_complete_and_uses_real_unicode_chinese() -> None:

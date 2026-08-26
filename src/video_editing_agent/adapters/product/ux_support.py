@@ -13,6 +13,7 @@ from urllib.parse import urlsplit
 
 from video_editing_agent.application.use_cases.product_flow import (
     ProductFlowEvent,
+    ProductFlowEventLevel,
     ProductFlowStage,
 )
 
@@ -224,14 +225,104 @@ _STAGE_LABELS = {
     "en": {stage: stage.value.replace("_", " ").title() for stage in ProductFlowStage},
 }
 
+_EVENT_MESSAGES_ZH = {
+    "Project is open and ready": "项目已打开并准备就绪",
+    "Planning input accepted": "拍摄规划输入已通过校验",
+    "Editing input accepted": "自动剪辑输入已通过校验",
+    "Acquiring and analyzing reference-only media": "正在获取并分析仅用于参考的媒体",
+    "Generating and validating ScriptPlan": "正在生成并复审脚本方案",
+    "Generating and validating ShootingPlan": "正在生成并复审拍摄方案",
+    "Planning flow completed": "拍摄规划已完成",
+    "Ingesting and understanding local media": "正在导入并理解本地素材",
+    "Preparing rights-attested local music": "正在准备已确认使用权的本地音乐",
+    "Selecting rights-verified public background music": "正在选择通过权利核验的公共背景音乐",
+    "Generating and persisting EditPlan": "正在生成并保存剪辑决策",
+    "Resolving grounded source selections": "正在根据真实素材匹配剪辑镜头",
+    "Some planned edit beats were not grounded; adapting the EditPlan to available local footage": (
+        "部分计划镜头未能匹配真实素材，正在根据现有本地素材调整剪辑方案"
+    ),
+    "Building canonical EDL": "正在组装正式剪辑时间线",
+    "Validating canonical source-audio and background-music lanes": "正在检查原声与背景音乐轨道",
+    "Preserving grounded original source voice": "正在保留真实素材中的原声",
+    "Preparing requested synthetic voice": "正在准备所请求的合成人声",
+    (
+        "Compiling trusted speech evidence into canonical subtitle timing"
+    ): "正在根据可信语音证据生成字幕时间",
+    "Rendering canonical EDL": "正在渲染正式剪辑时间线",
+    "Reviewing delivered output": "正在检查最终成片",
+    "Editing flow completed": "自动剪辑已完成",
+    "Review passed without output": "成片检查通过，但未找到输出文件",
+    "Public music query produced no candidates; trying the next bounded fallback": (
+        "当前公共音乐检索没有候选，正在尝试下一组有限备用检索"
+    ),
+    "Candidate did not pass the attribution-free automatic rights gate": (
+        "候选音乐未通过无需署名的自动权利门槛"
+    ),
+    "Candidate failed rights verification": "候选音乐权利核验失败",
+    "Candidate passed the public music rights gate": "候选音乐已通过公共音乐权利门槛",
+    "Acquiring rights-approved public music": "正在获取已通过权利核验的公共音乐",
+    "Public music acquisition completed": "公共音乐获取完成",
+    (
+        "Subtitle stage SKIPPED: no trusted speech transcript or grounded speech requirement; "
+        "no subtitle cues were fabricated"
+    ): "字幕阶段已跳过：没有可信语音转写或已落地的语音要求，因此未虚构字幕",
+}
+
 
 def localized_stage(stage: ProductFlowStage, language: str) -> str:
     return _STAGE_LABELS.get(language, _STAGE_LABELS["en"])[stage]
 
 
+def _localized_event_message(event: ProductFlowEvent, language: str) -> str:
+    if language != "zh-CN":
+        return event.message
+    exact = _EVENT_MESSAGES_ZH.get(event.message)
+    if exact is not None:
+        return exact
+    patterns: tuple[tuple[str, str], ...] = (
+        (
+            r"Public music query (\d+) returned (\d+) candidate\(s\)",
+            "公共音乐检索第 {0} 组返回 {1} 个候选",
+        ),
+        (
+            r"Public music discovery produced (\d+) unique candidate\(s\)",
+            "公共音乐检索共得到 {0} 个不重复候选",
+        ),
+        (
+            r"Rights gate checking public music candidate (\d+)/(\d+)",
+            "正在核验公共音乐候选 {0}/{1}",
+        ),
+        (
+            r"BeatMap analysis completed with (\d+) beat point\(s\)",
+            "节拍分析完成，共识别 {0} 个节拍点",
+        ),
+    )
+    for pattern, template in patterns:
+        match = re.fullmatch(pattern, event.message)
+        if match is not None:
+            return template.format(*match.groups())
+    if event.level is ProductFlowEventLevel.ERROR:
+        return "当前阶段未能完成，请查看错误提示中的处理建议"
+    if event.level is ProductFlowEventLevel.WARNING:
+        return "当前阶段出现可恢复警告，系统将按安全边界继续处理"
+    return "当前阶段处理中"
+
+
 def format_product_event(event: ProductFlowEvent, language: str) -> str:
-    severity = "" if event.level.value == "info" else f" {event.level.value.upper()}"
-    return f"[{localized_stage(event.stage, language)}{severity}] {event.message}"
+    if language == "zh-CN":
+        severity = {
+            ProductFlowEventLevel.INFO: "",
+            ProductFlowEventLevel.WARNING: " 警告",
+            ProductFlowEventLevel.ERROR: " 错误",
+        }[event.level]
+    else:
+        severity = (
+            "" if event.level is ProductFlowEventLevel.INFO else f" {event.level.value.upper()}"
+        )
+    return (
+        f"[{localized_stage(event.stage, language)}{severity}] "
+        f"{_localized_event_message(event, language)}"
+    )
 
 
 def localized_error(error: BaseException, language: str) -> tuple[str, str]:

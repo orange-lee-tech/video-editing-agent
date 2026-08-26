@@ -138,8 +138,8 @@ _TEXT = {
         "filetype_all": "所有文件",
         "switch_language": "English",
         "settings": "设置",
-        "profiles": "配置",
-        "settings_title": "API 设置",
+        "profiles": "配置文件",
+        "settings_title": "配置与 API 设置",
         "settings_intro": "本软件不附赠 API 密钥。请使用你自己的 API 服务。",
         "settings_no_video": ("这些 API 仅用于理解、推理、规划和剪辑决策，不用于视频生成。"),
         "settings_session": ("当前 Stage A 仅在本次应用会话中使用密钥；不会写入项目、仓库或日志。"),
@@ -169,6 +169,7 @@ _TEXT = {
         "profile_saved": "配置已保存。",
         "profile_loaded": "配置已读取。",
         "profile_deleted": "配置已删除。",
+        "profile_action_failed": "配置操作失败：{detail}",
         "selected_files": "已选择 {count} 个素材文件",
         "export_title": "导出当前输出",
         "exported": "已按 UTF-8 导出当前可见输出。",
@@ -245,7 +246,7 @@ _TEXT = {
         "switch_language": "简体中文",
         "settings": "Settings",
         "profiles": "Profiles",
-        "settings_title": "API Settings",
+        "settings_title": "Configuration & API Settings",
         "settings_intro": (
             "This application does not include API keys. Use your own API services."
         ),
@@ -289,6 +290,7 @@ _TEXT = {
         "profile_saved": "Profile saved.",
         "profile_loaded": "Profile loaded.",
         "profile_deleted": "Profile deleted.",
+        "profile_action_failed": "Configuration action failed: {detail}",
         "selected_files": "{count} media files selected",
         "export_title": "Export visible output",
         "exported": "The visible output was exported as UTF-8.",
@@ -690,19 +692,8 @@ def launch() -> int:
     )
     output_profile_combo.grid(row=4, column=1, sticky="ew", pady=5)
 
-    subtitle_style_label = ttk.Label(editing_media_card, style="Body.TLabel")
-    subtitle_style_label.grid(row=6, column=0, sticky="w", padx=(0, 12), pady=5)
-    field_labels.append((subtitle_style_label, "subtitle_style"))
+    # Stage A / 1.0 keeps subtitle styling fixed internally; advanced subtitle controls are 2.0.
     subtitle_style_choice = tk.StringVar(value=SubtitleStyleProfile.OUTLINED.value)
-    subtitle_style_combo = ttk.Combobox(
-        editing_media_card,
-        textvariable=subtitle_style_choice,
-        values=tuple(style.value for style in SubtitleStyleProfile),
-        state="readonly",
-        width=28,
-        style="Product.TCombobox",
-    )
-    subtitle_style_combo.grid(row=6, column=1, sticky="ew", pady=5)
 
     planning_action_bar = ttk.Frame(planning_tab, style="App.TFrame")
     planning_action_bar.grid(row=2, column=0, sticky="ew", pady=(0, 8))
@@ -768,7 +759,7 @@ def launch() -> int:
             values["output_profile"] = output_profile_choice.get()
             values["subtitle_style"] = subtitle_style_choice.get()
             values["music_rights_attested"] = "1" if music_rights_attested.get() else "0"
-            values["use_planning"] = "1" if use_planning.get() else "0"
+            values["use_planning"] = "0"
             values["_output_path_ownership"] = output_path_ownership.value
         return values
 
@@ -783,9 +774,7 @@ def launch() -> int:
                 output_profile_choice.set(
                     values.get("output_profile", _OUTPUT_PROFILE_OPTIONS[0][0])
                 )
-                subtitle_style_choice.set(
-                    values.get("subtitle_style", SubtitleStyleProfile.OUTLINED.value)
-                )
+                subtitle_style_choice.set(SubtitleStyleProfile.OUTLINED.value)
                 music_rights_attested.set(values.get("music_rights_attested") == "1")
                 output_path_ownership = restored_output_ownership(
                     values.get("_output_path_ownership"),
@@ -794,10 +783,8 @@ def launch() -> int:
                         require_selected_workspace(workspace_value.get())
                     ).writable,
                 )
-                valid_context = context_for_workspace(
-                    planning_context, require_selected_workspace(workspace_value.get())
-                )
-                use_planning.set(values.get("use_planning") == "1" and valid_context is not None)
+                # Combined Planning -> Editing remains internal/deferred for the 1.0 ordinary UI.
+                use_planning.set(False)
         finally:
             history_applying = False
 
@@ -854,9 +841,7 @@ def launch() -> int:
         workspace = ProjectWorkspace.open(path)
         workspace_value.set(str(workspace.root))
         planning_context = context_for_workspace(planning_context, workspace.root)
-        if planning_context is None:
-            use_planning.set(False)
-            use_planning_check.configure(state="disabled")
+        use_planning.set(False)
         for workflow in ("planning", "editing"):
             loaded = WorkspaceFormStateStore(workspace.writable, workflow).load()
             if restore and loaded is not None:
@@ -1003,7 +988,7 @@ def launch() -> int:
         nonlocal api_settings, current_api_profile
         dialog = tk.Toplevel(root)
         dialog.title(text("settings_title"))
-        dialog.geometry("680x620")
+        dialog.geometry("680x650")
         dialog.transient(root)
         dialog.grab_set()
         dialog.columnconfigure(0, weight=1)
@@ -1061,21 +1046,12 @@ def launch() -> int:
             row=3, column=0, columnspan=2, sticky="w", padx=10, pady=(6, 10)
         )
 
-        scope = ttk.LabelFrame(dialog, text=text("configuration_scope"))
-        scope.grid(row=5, column=0, sticky="ew", padx=18, pady=8)
-        include_form = tk.BooleanVar(value=True)
-        include_api = tk.BooleanVar(value=False)
-        ttk.Checkbutton(scope, text=text("form_configuration"), variable=include_form).pack(
-            side="left", padx=10, pady=8
-        )
-        ttk.Checkbutton(scope, text=text("api_configuration"), variable=include_api).pack(
-            side="left", padx=10, pady=8
-        )
+        profiles = ttk.LabelFrame(dialog, text=text("profiles"))
+        profiles.grid(row=5, column=0, sticky="ew", padx=18, pady=8)
+        profiles.columnconfigure(1, weight=1)
 
-        configuration_actions = ttk.Frame(dialog)
-        configuration_actions.grid(row=6, column=0, sticky="w", padx=18, pady=(4, 0))
         buttons = ttk.Frame(dialog)
-        buttons.grid(row=7, column=0, sticky="e", padx=18, pady=16)
+        buttons.grid(row=6, column=0, sticky="e", padx=18, pady=16)
 
         def save_settings() -> None:
             nonlocal api_settings
@@ -1147,34 +1123,48 @@ def launch() -> int:
                     current_api_profile = None
                 messagebox.showinfo(text("settings_title"), text("profile_deleted"), parent=dialog)
 
-        def selected_action(action: str) -> None:
-            if not include_form.get() and not include_api.get():
-                raise ValueError("select at least one configuration scope")
-            if include_form.get():
-                if action == "import":
-                    load_form_profile()
-                elif action == "export":
-                    save_form_profile(choose=True)
-                elif action == "save":
-                    save_form_profile(choose=False)
-                else:
-                    delete_form_profile()
-            if include_api.get():
-                if action == "import":
-                    load_api_file()
-                elif action == "export":
-                    save_api_file(choose=True)
-                elif action == "save":
-                    save_api_file(choose=False)
-                else:
-                    delete_api_file()
+        def run_profile_action(action: Any) -> None:
+            try:
+                action()
+            except Exception as exc:
+                messagebox.showerror(
+                    text("settings_title"),
+                    text("profile_action_failed").format(detail=str(exc)),
+                    parent=dialog,
+                )
 
-        for action in ("import", "export", "save", "delete"):
-            ttk.Button(
-                configuration_actions,
-                text=text(action),
-                command=partial(selected_action, action),
-            ).pack(side="left", padx=(0, 6))
+        profile_rows = (
+            (
+                "form_configuration",
+                (
+                    ("import", load_form_profile),
+                    ("export", lambda: save_form_profile(choose=True)),
+                    ("save", lambda: save_form_profile(choose=False)),
+                    ("delete", delete_form_profile),
+                ),
+            ),
+            (
+                "api_configuration",
+                (
+                    ("import", load_api_file),
+                    ("export", lambda: save_api_file(choose=True)),
+                    ("save", lambda: save_api_file(choose=False)),
+                    ("delete", delete_api_file),
+                ),
+            ),
+        )
+        for row, (label_key, actions) in enumerate(profile_rows):
+            ttk.Label(profiles, text=text(label_key)).grid(
+                row=row, column=0, sticky="w", padx=10, pady=8
+            )
+            action_frame = ttk.Frame(profiles)
+            action_frame.grid(row=row, column=1, sticky="w", padx=(8, 10), pady=8)
+            for action_key, action in actions:
+                ttk.Button(
+                    action_frame,
+                    text=text(action_key),
+                    command=partial(run_profile_action, action),
+                ).pack(side="left", padx=(0, 6))
 
         ttk.Button(buttons, text=text("cancel"), command=dialog.destroy).pack(
             side="right", padx=(8, 0)
@@ -1211,7 +1201,6 @@ def launch() -> int:
         start_planning.configure(state=state)
         start_editing.configure(state=state)
         output_profile_combo.configure(state="disabled" if running else "readonly")
-        subtitle_style_combo.configure(state="disabled" if running else "readonly")
         music_rights_check.configure(state=state)
         configuration_button.configure(state=state)
         choose_workspace_button.configure(state=state)
@@ -1222,9 +1211,6 @@ def launch() -> int:
             entry.configure(state=state)
         for widget in (choose_reference, choose_files, choose_music, choose_output):
             widget.configure(state=state)
-        use_planning_check.configure(
-            state="disabled" if running or planning_context is None else "normal"
-        )
 
     def pump_work() -> None:
         nonlocal active_task, active_stage, stage_started, planning_context
@@ -1249,11 +1235,7 @@ def launch() -> int:
                     result = payload
                     if task == "planning":
                         planning_context = PlanningSessionContext.from_result(result)
-                        use_planning_check.configure(
-                            state="normal" if planning_context is not None else "disabled"
-                        )
-                        if planning_context is None:
-                            use_planning.set(False)
+                        use_planning.set(False)
                         output.insert("end", "\n" + planning_presentation(result, language.get()))
                     else:
                         output.insert("end", "\n" + editing_presentation(result, language.get()))
@@ -1381,13 +1363,13 @@ def launch() -> int:
                 brief(editing_values),
                 output_path,
                 raw_files,
-                use_planning_result=use_planning.get(),
-                planning_context=planning_context,
+                use_planning_result=False,
+                planning_context=None,
                 output_profile=_output_profile_for_display(output_profile_choice.get()),
                 music_file=Path(music_text) if music_text else None,
                 music_rights_attested=music_rights_attested.get(),
                 voice_mode=VoiceMode.ORIGINAL,
-                subtitle_style=SubtitleStyleProfile(subtitle_style_choice.get()),
+                subtitle_style=SubtitleStyleProfile.OUTLINED,
             )
             form.to_request()
             editing_output.delete("1.0", "end")
@@ -1515,15 +1497,6 @@ def launch() -> int:
     choose_output.grid(row=2, column=2, padx=(10, 0))
     translated_widgets.append((choose_output, "choose_output"))
 
-    use_planning_check = ttk.Checkbutton(
-        editing_media_card,
-        variable=use_planning,
-        state="disabled",
-        style="Product.TCheckbutton",
-    )
-    use_planning_check.grid(row=5, column=1, columnspan=2, sticky="w", pady=(8, 0))
-    translated_widgets.append((use_planning_check, "use_planning_result"))
-
     start_editing = ttk.Button(
         editing_action_bar,
         command=run_editing,
@@ -1567,9 +1540,6 @@ def launch() -> int:
             add="+",
         )
     output_profile_combo.bind(
-        "<<ComboboxSelected>>", lambda _event: record_history("editing"), add="+"
-    )
-    subtitle_style_combo.bind(
         "<<ComboboxSelected>>", lambda _event: record_history("editing"), add="+"
     )
     root.bind_all("<Control-z>", lambda _event: mutate_history("undo"))

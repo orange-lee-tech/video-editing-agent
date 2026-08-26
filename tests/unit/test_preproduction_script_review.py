@@ -245,7 +245,7 @@ def test_semantic_veto_rejects_implied_leak_resistance_without_owner_commit(
         )
 
     assert captured.value.review.violations == (violation,)
-    assert len(review_port.requests) == 2
+    assert len(review_port.requests) == 3
     assert len(planning_port.requests) == 2
     with pytest.raises(KeyError):
         scripts.load(EntityRevisionRef("scp_semantic_review", 1))
@@ -367,7 +367,8 @@ def test_no_facts_brief_stops_after_two_rejected_full_proposals(tmp_path: Path) 
             EntityRevisionRef(brief.envelope.id, brief.envelope.revision)
         )
 
-    assert len(planning_port.requests) == len(review_port.requests) == 2
+    assert len(planning_port.requests) == 2
+    assert len(review_port.requests) == 3
 
 
 def test_review_result_is_veto_only_and_internally_consistent() -> None:

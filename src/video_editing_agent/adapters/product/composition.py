@@ -78,10 +78,17 @@ def _media_capabilities(
 
 
 def planning_flow(
-    project: Path, config: ProductRuntimeConfig, *, reference: bool
+    project: Path,
+    config: ProductRuntimeConfig,
+    *,
+    reference: bool,
+    output_language: str | None = None,
 ) -> PlanningProductFlow:
     workspace = ProjectWorkspace.open(project)
-    ports = deepseek_preproduction_ports(model=config.deepseek_model)
+    ports = deepseek_preproduction_ports(
+        model=config.deepseek_model,
+        output_language=output_language,
+    )
     reference_capabilities = None
     if reference:
         detector, understanding = _media_capabilities(workspace, config)
