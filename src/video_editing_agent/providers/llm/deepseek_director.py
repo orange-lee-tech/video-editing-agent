@@ -93,8 +93,7 @@ _SYSTEM_PROMPT = (
 
 def _contains_cjk(text: str) -> bool:
     return any(
-        "\u3400" <= character <= "\u4dbf" or "\u4e00" <= character <= "\u9fff"
-        for character in text
+        "\u3400" <= character <= "\u4dbf" or "\u4e00" <= character <= "\u9fff" for character in text
     )
 
 
