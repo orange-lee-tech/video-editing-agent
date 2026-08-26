@@ -35,11 +35,20 @@ try {
         --manifest $Manifest --staged-root $Stage `
         --evidence (Join-Path $Evidence "package-evidence.json") --source-sha $SourceSha
     if ($LASTEXITCODE -ne 0) { throw "Static package validation failed" }
+
+    foreach ($DeferredPath in @(
+        (Join-Path $Stage "_internal\runtimes\speech"),
+        (Join-Path $Stage "_internal\models\faster-whisper-base")
+    )) {
+        if (Test-Path -LiteralPath $DeferredPath) {
+            throw "Deferred 2.0 speech payload leaked into the 1.0 staging tree: $DeferredPath"
+        }
+    }
+
     & (Join-Path $Stage "VideoEditingAgent.exe") doctor |
         Set-Content -Encoding utf8 (Join-Path $Evidence "packaged-doctor.json")
     if ($LASTEXITCODE -ne 0) { throw "Packaged Doctor failed" }
-    & (Join-Path $Stage "VideoEditingAgent.exe") runtime-probe `
-        --speech-wav (Join-Path $RepoRoot "build/runtime-payloads/speech-probe.wav") |
+    & (Join-Path $Stage "VideoEditingAgent.exe") runtime-probe |
         Set-Content -Encoding utf8 (Join-Path $Evidence "packaged-runtime-probe.json")
     if ($LASTEXITCODE -ne 0) { throw "Packaged runtime probe failed" }
     $Workspace = Join-Path ([System.IO.Path]::GetTempPath()) "video-editing-agent-packaged-smoke"
@@ -59,10 +68,12 @@ try {
         launcher = "PASS"
         doctor = "PASS"
         runtime_payloads = "PASS"
+        shipped_components = @("core", "media-runtime", "transnet-runtime")
+        deferred_speech_absent = "PASS"
         external_workspace = "PASS"
         workspace_outside_install = "PASS"
     } | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $Evidence "packaged-smoke.json")
-    Write-Host "Windows onedir candidate: $Stage" -ForegroundColor Green
+    Write-Host "Windows 1.0 onedir candidate: $Stage" -ForegroundColor Green
     Write-Host "Evidence: $Evidence" -ForegroundColor Green
 }
 finally {
