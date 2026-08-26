@@ -45,13 +45,13 @@ def _request() -> DirectorRequest:
     return DirectorRequest(brief, (evidence,))
 
 
-def _slot(*, scale: int) -> dict[str, object]:
+def _slot(*, scale: int, semantic_query: str = "small bottle close-up") -> dict[str, object]:
     return {
         "slot_id": "hook",
         "order": 0,
         "narrative_role": "hook",
         "purpose": "show the bottle",
-        "semantic_query": "small bottle close-up",
+        "semantic_query": semantic_query,
         "minimum_duration": {"value": 1, "scale": scale},
         "maximum_duration": {"value": 2, "scale": 1},
         "pacing": "quick",
@@ -99,6 +99,26 @@ def test_director_repairs_one_locally_invalid_duration_proposal() -> None:
     assert repair_context["repair_feedback"]["local_validation_error"] == (
         "minimum_duration.scale must be > 0"
     )
+
+
+def test_director_repairs_query_language_to_match_footage_evidence() -> None:
+    transport = SequenceTransport(
+        [
+            _completion({"slots": [_slot(scale=1, semantic_query="小水杯产品特写")]}),
+            _completion({"slots": [_slot(scale=1, semantic_query="small bottle close-up")]}),
+        ]
+    )
+    port = DeepSeekDirectorPort(transport=transport, config=DeepSeekChatConfig())
+
+    proposal = port.propose(_request())
+
+    assert proposal.slots[0].semantic_query == "small bottle close-up"
+    assert len(transport.payloads) == 2
+    repair_context = json.loads(transport.payloads[1]["messages"][1]["content"])
+    error = repair_context["repair_feedback"]["local_validation_error"]
+    assert "evidence is Latin-script but the query is CJK-only" in error
+    instruction = repair_context["repair_feedback"]["instruction"]
+    assert "preserve the evidence language" in instruction
 
 
 def test_director_repair_is_bounded_to_one_extra_proposal() -> None:

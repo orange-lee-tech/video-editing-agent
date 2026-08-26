@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 from video_editing_agent.application.ports.brief_repository import BriefRepository
 from video_editing_agent.application.ports.preproduction_planning import (
     NarrativeSectionProposal,
@@ -87,6 +89,80 @@ def _repair_instruction(review: ScriptProposalReview, original: str | None) -> s
     )
 
 
+def _is_unsupported_claim_review(review: ScriptProposalReview) -> bool:
+    if not review.violations:
+        return False
+    for violation in review.violations:
+        code = violation.code.casefold()
+        if code != "unsupported_claim" and not (
+            code.startswith("unsupported_") and "claim" in code
+        ):
+            return False
+    return True
+
+
+def _deterministic_claim_fallback(
+    brief: Brief,
+    proposal: ScriptPlanProposal,
+    review: ScriptProposalReview,
+    *,
+    current_script: ScriptPlan | None,
+) -> ScriptPlanProposal | None:
+    """Strip repeatedly vetoed claim-bearing copy without inventing replacement facts."""
+
+    if not _is_unsupported_claim_review(review):
+        return None
+
+    targeted_ids = {
+        violation.section_id
+        for violation in review.violations
+        if violation.section_id is not None
+    }
+    sanitize_all = any(violation.section_id is None for violation in review.violations)
+    if current_script is not None:
+        locked_ids = set(current_script.locked_section_ids)
+        if (sanitize_all and locked_ids) or targeted_ids.intersection(locked_ids):
+            return None
+
+    facts_by_id = {fact.fact_id: fact.statement for fact in brief.authoritative_facts}
+    sanitized: list[NarrativeSectionProposal] = []
+    for section in proposal.sections:
+        if not sanitize_all and section.section_id not in targeted_ids:
+            sanitized.append(section)
+            continue
+
+        fact_statements = tuple(
+            facts_by_id[fact_id]
+            for fact_id in section.protected_fact_ids
+            if fact_id in facts_by_id
+        )
+        exact_fact_text = " ".join(fact_statements).strip()
+        if exact_fact_text:
+            information_goal = "Present only the verified fact text exactly as provided."
+            spoken_content = exact_fact_text
+            on_screen_text_intent = exact_fact_text
+            visual_requirement = (
+                "Show a neutral static view of the product while the verified fact is presented."
+            )
+        else:
+            information_goal = "Present a neutral product view without making a product claim."
+            spoken_content = None
+            on_screen_text_intent = None
+            visual_requirement = "Show a neutral static view of the product."
+
+        sanitized.append(
+            replace(
+                section,
+                information_goal=information_goal,
+                spoken_content=spoken_content,
+                visual_requirement=visual_requirement,
+                on_screen_text_intent=on_screen_text_intent,
+                editing_intent=None,
+            )
+        )
+    return ScriptPlanProposal(tuple(sanitized))
+
+
 class ScriptProposalRejectedError(ValueError):
     """A semantic reviewer vetoed the proposal before owner commit."""
 
@@ -166,7 +242,27 @@ class ScriptPlanningWorkflow:
             if review is None or review.accepted:
                 break
             if attempt == 1:
-                raise ScriptProposalRejectedError(review)
+                fallback = _deterministic_claim_fallback(
+                    brief,
+                    proposal,
+                    review,
+                    current_script=None,
+                )
+                if fallback is None:
+                    raise ScriptProposalRejectedError(review)
+                fallback_sections = _sections_from_proposal(fallback.sections)
+                self._planner.validate_create(brief_ref, fallback_sections)
+                fallback_review = self._review(
+                    brief=brief,
+                    proposal=fallback,
+                    current_script=None,
+                    instruction="Deterministic conservative fallback after repeated claim veto.",
+                    policy_guidance=policy_guidance,
+                )
+                if fallback_review is not None and not fallback_review.accepted:
+                    raise ScriptProposalRejectedError(fallback_review)
+                sections = fallback_sections
+                break
             request = ScriptPlanningRequest(
                 brief=brief,
                 instruction=_repair_instruction(review, None),
@@ -209,7 +305,27 @@ class ScriptPlanningWorkflow:
             if review is None or review.accepted:
                 break
             if attempt == 1:
-                raise ScriptProposalRejectedError(review)
+                fallback = _deterministic_claim_fallback(
+                    brief,
+                    proposal,
+                    review,
+                    current_script=current,
+                )
+                if fallback is None:
+                    raise ScriptProposalRejectedError(review)
+                fallback_sections = _sections_from_proposal(fallback.sections)
+                self._planner.validate_revision(current_ref, fallback_sections)
+                fallback_review = self._review(
+                    brief=brief,
+                    proposal=fallback,
+                    current_script=current,
+                    instruction="Deterministic conservative fallback after repeated claim veto.",
+                    policy_guidance=policy_guidance,
+                )
+                if fallback_review is not None and not fallback_review.accepted:
+                    raise ScriptProposalRejectedError(fallback_review)
+                sections = fallback_sections
+                break
             request = ScriptPlanningRequest(
                 brief=brief,
                 current_script=current,
