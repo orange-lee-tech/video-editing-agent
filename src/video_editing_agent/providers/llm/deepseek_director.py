@@ -59,10 +59,10 @@ _SYSTEM_PROMPT = (
     "Every proposed slot must be grounded in at least one supplied footage_evidence item: its "
     "purpose and semantic_query may describe only subjects, actions, scenes, or visible states "
     "that the evidence can support. semantic_query is an internal lexical-retrieval field, not "
-"user-facing copy. Build it by reusing exact subject, action, tag, or summary vocabulary from "
-"the supporting footage_evidence and preserve that evidence language. Do not translate a "
-"semantic_query merely to match the Brief or user-facing language; purpose may use the "
-"user-facing language separately. Never invent missing coverage or request an unseen action "
+    "user-facing copy. Build it by reusing exact subject, action, tag, or summary vocabulary from "
+    "the supporting footage_evidence and preserve that evidence language. Do not translate a "
+    "semantic_query merely to match the Brief or user-facing language; purpose may use the "
+    "user-facing language separately. Never invent missing coverage or request an unseen action "
     "merely to complete a preferred story. importance has stable editorial semantics: 3 means "
     "essential to the requested video intent, 2 means important but adaptable, and 1 means "
     "optional. When policy_guidance reports resolver recovery feedback, regenerate one fresh "
@@ -204,9 +204,9 @@ def _director_context(
             "local_validation_error": repair_feedback,
             "instruction": (
                 "Regenerate the complete slots array from the same evidence and correct this local "
-                "contract error. For semantic_query language/vocabulary errors, reuse exact words or short "
-"phrases from footage_evidence and preserve the evidence language. Do not invent "
-"authority-bearing fields or source coordinates."
+                "contract error. For semantic_query language/vocabulary errors, reuse exact words "
+                "or short phrases from footage_evidence and preserve the evidence language. Do not "
+                "invent authority-bearing fields or source coordinates."
             ),
         }
     return context
