@@ -1,8 +1,8 @@
 # Product UX Backlog
 
-**Updated:** 2026-08-22  
+**Updated:** 2026-08-26  
 **Purpose:** preserve ordinary-user UX work without overriding the live Work Order.  
-**Current authority:** `docs/operations/CURRENT_WORK_ORDER.md` and `docs/operations/STAGE_A_WORKSPACE_UX_CONSOLIDATION.md`.
+**Current authority:** `docs/operations/CURRENT_WORK_ORDER.md`.
 
 Priority:
 
@@ -13,34 +13,51 @@ Priority:
 ## Current truth
 
 - structural progress is **95%**; Stage-A completion remains OPEN;
-- Planning Product/Human Gate is PASS on the supported 1.0 surface;
-- ordinary no-speech Editing Human Gate is PASS with real footage, source audio, rights-safe BGM and no fabricated subtitles;
-- ordinary remote reference URL is hidden in 1.0; local reference video remains supported;
-- bounded Bilibili acquisition is only an engineering fallback seam;
-- provider-neutral remote/video observation is deferred to 2.0;
-- next sequence is Project Workspace + UX consolidation → Windows packaging → final retained Human Gate.
+- Planning factual recovery now works in a focused local repair, but Planning quality still requires hardening;
+- Chinese-speaking and English-speaking real local footage both completed the visual-first automatic Editing path on the focused local repair candidate;
+- source-speech continuity reconstruction, translated/bilingual subtitles and cross-language narration/TTS are deferred to 2.0 by Product Owner decision on 2026-08-26;
+- ordinary remote reference URL remains hidden in 1.0; local reference video remains supported;
+- Windows runtime/onedir engineering proof exists; normal 1.0 delivery still requires guided `Setup.exe`.
 
-Do not use this backlog to reopen an accepted gate or override the live control trio.
+Do not use this backlog to override the live control trio.
 
 ---
 
-# P0 — Project Workspace + UX consolidation
+# P0 — final 1.0 source/UI freeze
 
-Specification:
+## Project Workspace ownership
 
-`docs/operations/STAGE_A_WORKSPACE_UX_CONSOLIDATION.md`
+Keep one shared top-level `项目工作区 / Project Workspace` context for Planning and Editing. Project-specific writable state belongs under that workspace; global reusable profiles stay outside the project and API secrets remain protected rather than serialized as plaintext.
 
-Required ordinary-user outcomes:
+## Configuration actions — direct ownership, no scope-checkbox ceremony
 
-1. One shared top-level `项目工作区 / Project Workspace` context for Planning and Editing.
-2. Project-specific writable state belongs under that workspace: existing `project.sqlite3`, artifacts, project cache/work/session scratch, bounded form draft/undo-redo state, project logs and default outputs. Do not duplicate canonical Domain state into ad-hoc snapshots.
-3. Editing derives a visible project-local default output, while retaining explicit Save As and safe overwrite/collision handling.
-4. Main-window configuration actions are consolidated into Import / Export / Save / Delete. Form configuration and API/provider configuration can be selected independently or together. Never export plaintext API keys; retain Windows protected-secret semantics.
-5. Main-window Clear / Undo / Redo acts on coherent active-form state, not only the focused text widget. UI history is separate from immutable/revisioned Domain history and must be bounded.
-6. Planning and Editing internal groups become vertical collapsible sections suitable for ordinary laptop windows.
-7. The generated Canvas pixel-camera mark must not be frozen as the permanent brand. Prefer the real previously approved feather asset if it can be recovered; otherwise leave icon replacement as a Human Gate rather than inventing an approximation.
-8. Project switching/opening must not silently discard unsaved drafts and must not default writable project state into the packaged install directory.
-9. Remote reference URL stays hidden throughout this wave.
+The current "select Form/API scope, then choose Import/Export/Save/Delete" interaction is too indirect.
+
+For 1.0, configuration actions should be owned explicitly by configuration type:
+
+- **Form / Director configuration** — direct Import / Export / Save / Delete actions;
+- **API / Provider configuration** — direct Import / Export / Save / Delete actions;
+- do not require the user to tick one or two scope checkboxes before an obvious action;
+- never export plaintext API keys; retain Windows protected-secret semantics;
+- labels should remain understandable to ordinary users in Chinese and English.
+
+The important design rule is direct action ownership, not the exact button arrangement.
+
+## Deferred-capability isolation
+
+The ordinary 1.0 UI must hide rather than cosmetically expose unfinished/deferred capabilities, including:
+
+- source-speech separation/reconstruction;
+- translated or bilingual subtitle output;
+- cross-language narration/TTS;
+- advanced speaker-aware voice/subtitle controls;
+- remote reference URL.
+
+If an internal seam remains for future compatibility, that does not authorize a user-facing 1.0 control.
+
+## Planning result quality
+
+Planning output must be understandable and useful as an actual shooting construction manual. Avoid generic hook copy, duplicated authoritative facts and repeated static-product instructions. Use section-role-aware truthful creative framing, equipment-aware instructions, alternate/backup coverage and practical ordinary-user wording.
 
 ---
 
@@ -71,7 +88,7 @@ Environment Doctor should remain a static/local readiness surface by default and
 
 ## Provider quota / wait UX
 
-Provider-directed retry/wait states should look intentional rather than frozen. Primary messages are localized, technical detail is bounded, and secrets stay redacted.
+Provider-directed retry/wait states should look intentional rather than frozen. Primary messages are localized, technical detail is bounded, secrets stay redacted, and retry remains bounded rather than becoming an unending loop.
 
 ## High-DPI / keyboard / laptop Human Smoke
 
@@ -104,9 +121,23 @@ Only after this capability exists should ordinary product work consider Bilibili
 
 When backed by a real replaceable research/material adapter, Planning may recommend public material or learn from similar examples. Research remains analysis-only until the user explicitly imports/selects eligible material and satisfies source/rights contracts. No silent stock/generated replacement visuals.
 
-## Production synthetic voice / advanced audio
+## Dual-track speech / multilingual voice production
 
-Production TTS, advanced speech/ambience separation, advanced stem mixing and richer speaker-aware subtitle systems remain beyond 1.0. Preserve existing seams; do not expose unfinished controls.
+The long-term solution for speech-heavy footage is **not** to make sentence boundaries the primary video-cut authority. It is to keep visual editing and speech/narration production as separate coordinated tracks.
+
+2.0 scope includes:
+
+- source-speech / ambience separation where technically/licensing-appropriate;
+- sentence-preserving dialogue reconstruction after visual-first cuts;
+- original-language transcript with reliable timing;
+- target-language translation;
+- original / translated / bilingual subtitle modes;
+- cross-language narration/TTS;
+- original-audio mute/duck/retain controls coordinated with narration;
+- speaker-aware subtitle/narration systems;
+- explicit source-language, subtitle-language and narration-language choices rather than one overloaded "video language" setting.
+
+Provider interfaces should remain replaceable; visual evidence must not be overwritten by translated text and translated/narrated content must not become source-footage authority.
 
 ## Rich editing / NLE UX
 
@@ -129,17 +160,18 @@ Already implemented/accepted unless a regression is observed:
 - modernized Stage-A desktop shell/workflow switcher;
 - startup splash tied to real startup milestones;
 - explicit output profiles;
-- remote reference URL hidden from ordinary 1.0 Planning after the 2026-08-22 decision.
+- Project Workspace separation;
+- remote reference URL hidden from ordinary 1.0 Planning.
 
 Historical superseded UX wave details belong in `docs/archive/**` and are not current authority.
 
 ## Current execution order
 
-1. Project Workspace + UX consolidation;
-2. compatible Windows onedir packaging foundation;
-3. clean-machine-ish distributable proof;
-4. retained Planning / Editing / clear single-speaker subtitle Human Gate;
-5. exact-head quality, governance and CI closure;
-6. only then Stage-A 100% if the completion contract is genuinely satisfied.
+1. preserve/accept focused local Human Gate repair;
+2. Planning quality hardening + direct configuration UI + deferred-capability hiding + bounded provider wait;
+3. exact-head quality/governance/CI closure;
+4. release-candidate staging build with 1.0-only default runtime payload;
+5. guided `Setup.exe` build and install/repair/uninstall Human Gate;
+6. Stage-A 100% only if the completion contract is genuinely satisfied.
 
 UX polish or an EXE by itself does not close Stage A.
