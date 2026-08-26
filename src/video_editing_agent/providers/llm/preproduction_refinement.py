@@ -218,7 +218,9 @@ class EditoriallyRefinedScriptPlanningPort(ScriptPlanningPort):
 class EditoriallyRefinedShootingPlanningPort(ShootingPlanningPort):
     """Spend one extra text-model pass on beginner-friendly shooting-plan quality."""
 
-    def __init__(self, delegate: ShootingPlanningPort, *, output_language: str | None = None) -> None:
+    def __init__(
+        self, delegate: ShootingPlanningPort, *, output_language: str | None = None
+    ) -> None:
         if output_language is not None and output_language not in _SUPPORTED_OUTPUT_LANGUAGES:
             raise ValueError(f"unsupported planning output language: {output_language}")
         self._delegate = delegate
