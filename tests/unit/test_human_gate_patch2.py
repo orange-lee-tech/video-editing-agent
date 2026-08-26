@@ -25,7 +25,7 @@ def _brief() -> Brief:
         "年轻上班族",
         "短视频",
         "便携、日常使用方便",
-        authoritative_facts=(AuthoritativeFact("fact_capacity", "The bottle capacity is 350ml."),),
+        authoritative_facts=(AuthoritativeFact("fact_capacity", "容量350ml"),),
     )
 
 
@@ -68,11 +68,10 @@ def test_deterministic_claim_fallback_keeps_only_exact_verified_fact() -> None:
 
     assert fallback is not None
     section = fallback.sections[0]
-    assert section.spoken_content == "The bottle capacity is 350ml."
+    assert section.spoken_content == "容量350ml"
     assert section.on_screen_text_intent is None
     assert section.visual_requirement == (
-        "Show close or medium detail coverage of visible product form. Do not stage a fit, "
-        "ease, performance, or outcome demonstration."
+        "用近景或中景展示产品外观与可见细节，不安排便利性、适配性、性能或结果演示。"
     )
     assert section.editing_intent is None
     joined = " ".join(
@@ -118,7 +117,7 @@ def test_deterministic_fallback_assigns_repeated_fact_to_one_narrative_role() ->
     )
 
     assert fallback is not None
-    fact_text = "The bottle capacity is 350ml."
+    fact_text = "容量350ml"
     presentations = sum(
         value == fact_text
         for section in fallback.sections
@@ -129,6 +128,17 @@ def test_deterministic_fallback_assigns_repeated_fact_to_one_narrative_role() ->
     assert fallback.sections[0].visual_requirement != fallback.sections[1].visual_requirement
     assert fallback.sections[1].visual_requirement != fallback.sections[2].visual_requirement
     assert all(section.editing_intent is None for section in fallback.sections)
+    assert all(
+        not any(char.isascii() and char.isalpha() for char in value)
+        for section in fallback.sections
+        for value in (
+            section.information_goal,
+            section.spoken_content,
+            section.visual_requirement,
+            section.on_screen_text_intent,
+        )
+        if value is not None
+    )
 
 
 def test_deterministic_fallback_never_handles_non_claim_policy_veto() -> None:
