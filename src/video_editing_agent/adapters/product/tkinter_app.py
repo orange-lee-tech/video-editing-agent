@@ -1163,7 +1163,7 @@ def launch() -> int:
                 ttk.Button(
                     action_frame,
                     text=text(action_key),
-                    command=lambda handler=action: run_profile_action(handler),
+                    command=partial(run_profile_action, action),
                 ).pack(side="left", padx=(0, 6))
 
         ttk.Button(buttons, text=text("cancel"), command=dialog.destroy).pack(
