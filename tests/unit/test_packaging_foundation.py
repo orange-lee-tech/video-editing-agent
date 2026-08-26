@@ -65,12 +65,15 @@ def test_checked_in_runtime_bom_loads_and_covers_frozen_runtime_terrain() -> Non
         "ffprobe",
         "transnet-runtime",
         "transnet-weights",
-        "speech-runtime",
-        "speech-model",
     ):
         component = manifest.component(component_id)
         assert component is not None
         assert component.inclusion.value == "include"
+        assert component.license_state.value == "reviewed"
+    for component_id in ("speech-runtime", "speech-model"):
+        component = manifest.component(component_id)
+        assert component is not None
+        assert component.inclusion.value == "exclude"
         assert component.license_state.value == "reviewed"
 
 
