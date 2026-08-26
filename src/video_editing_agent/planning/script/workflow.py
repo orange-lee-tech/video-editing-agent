@@ -101,6 +101,87 @@ def _is_unsupported_claim_review(review: ScriptProposalReview) -> bool:
     return True
 
 
+def _fallback_role(narrative_role: str) -> str:
+    role = narrative_role.casefold()
+    if any(token in role for token in ("demo", "demonstr", "proof", "feature", "detail")):
+        return "demonstration"
+    if any(token in role for token in ("hook", "open", "intro")):
+        return "hook"
+    if any(token in role for token in ("closing", "close", "outro", "ending", "end", "cta")):
+        return "closing"
+    return "body"
+
+
+def _fallback_role_priority(narrative_role: str) -> int:
+    return {
+        "demonstration": 0,
+        "body": 1,
+        "hook": 2,
+        "closing": 3,
+    }[_fallback_role(narrative_role)]
+
+
+def _fallback_fact_owners(
+    proposal: ScriptPlanProposal,
+    targeted_ids: set[str],
+    *,
+    sanitize_all: bool,
+    facts_by_id: dict[str, str],
+) -> dict[str, str]:
+    owners: dict[str, tuple[int, int, str]] = {}
+    for index, section in enumerate(proposal.sections):
+        if not sanitize_all and section.section_id not in targeted_ids:
+            continue
+        priority = _fallback_role_priority(section.narrative_role)
+        for fact_id in section.protected_fact_ids:
+            if fact_id not in facts_by_id:
+                continue
+            candidate = (priority, index, section.section_id)
+            current = owners.get(fact_id)
+            if current is None or candidate < current:
+                owners[fact_id] = candidate
+    return {fact_id: candidate[2] for fact_id, candidate in owners.items()}
+
+
+def _claim_free_fallback_content(
+    narrative_role: str,
+    exact_fact_text: str,
+) -> tuple[str, str | None, str, str | None]:
+    role = _fallback_role(narrative_role)
+    if role == "hook":
+        return (
+            "Open with a claim-free product reveal that establishes the subject immediately.",
+            None,
+            "Begin with a clear neutral product reveal. Do not demonstrate fit, ease, "
+            "performance, or any outcome.",
+            exact_fact_text or None,
+        )
+    if role == "demonstration":
+        return (
+            "Show neutral observable product details and state only any verified fact assigned "
+            "to this section.",
+            exact_fact_text or None,
+            "Show close or medium detail coverage of visible product form. Do not stage a fit, "
+            "ease, performance, or outcome demonstration.",
+            None,
+        )
+    if role == "closing":
+        return (
+            "Close with a stable product view without adding a new product claim.",
+            None,
+            "End on a stable neutral product view. Do not add a fit, ease, performance, or "
+            "outcome demonstration.",
+            exact_fact_text or None,
+        )
+    return (
+        "Continue with neutral product coverage without adding an unsupported product claim.",
+        exact_fact_text or None,
+        "Use neutral coverage of visible product form without demonstrating fit, ease, "
+        "performance, or any outcome.",
+        None,
+    )
+
+
 def _deterministic_claim_fallback(
     brief: Brief,
     proposal: ScriptPlanProposal,
@@ -114,9 +195,7 @@ def _deterministic_claim_fallback(
         return None
 
     targeted_ids = {
-        violation.section_id
-        for violation in review.violations
-        if violation.section_id is not None
+        violation.section_id for violation in review.violations if violation.section_id is not None
     }
     sanitize_all = any(violation.section_id is None for violation in review.violations)
     if current_script is not None:
@@ -125,6 +204,12 @@ def _deterministic_claim_fallback(
             return None
 
     facts_by_id = {fact.fact_id: fact.statement for fact in brief.authoritative_facts}
+    fact_owners = _fallback_fact_owners(
+        proposal,
+        targeted_ids,
+        sanitize_all=sanitize_all,
+        facts_by_id=facts_by_id,
+    )
     sanitized: list[NarrativeSectionProposal] = []
     for section in proposal.sections:
         if not sanitize_all and section.section_id not in targeted_ids:
@@ -134,21 +219,12 @@ def _deterministic_claim_fallback(
         fact_statements = tuple(
             facts_by_id[fact_id]
             for fact_id in section.protected_fact_ids
-            if fact_id in facts_by_id
+            if fact_id in facts_by_id and fact_owners.get(fact_id) == section.section_id
         )
         exact_fact_text = " ".join(fact_statements).strip()
-        if exact_fact_text:
-            information_goal = "Present only the verified fact text exactly as provided."
-            spoken_content = exact_fact_text
-            on_screen_text_intent = exact_fact_text
-            visual_requirement = (
-                "Show a neutral static view of the product while the verified fact is presented."
-            )
-        else:
-            information_goal = "Present a neutral product view without making a product claim."
-            spoken_content = None
-            on_screen_text_intent = None
-            visual_requirement = "Show a neutral static view of the product."
+        information_goal, spoken_content, visual_requirement, on_screen_text_intent = (
+            _claim_free_fallback_content(section.narrative_role, exact_fact_text)
+        )
 
         sanitized.append(
             replace(
