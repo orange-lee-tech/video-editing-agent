@@ -58,6 +58,7 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = "Stop"
+          $release = "7.1.0"
           $asset = "https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe"
           $expected = "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
           $download = Join-Path $env:RUNNER_TEMP "innosetup-7.1.0-x64.exe"
@@ -92,26 +93,25 @@ jobs:
           if (-not (Test-Path -LiteralPath $iscc -PathType Leaf)) {
             throw "Verified Inno Setup compiler was not installed: $iscc"
           }
-          $compilerVersion = (Get-Item -LiteralPath $iscc).VersionInfo.FileVersion
-          if (-not $compilerVersion.StartsWith("7.1.0")) {
-            throw "Unexpected ISCC version: $compilerVersion"
-          }
+          $compilerFileVersion = (Get-Item -LiteralPath $iscc).VersionInfo.FileVersion
 
           New-Item -ItemType Directory -Force -Path "build/installer" | Out-Null
           [ordered]@{
             schema = "video-editing-agent-installer-tool-evidence/v1"
             tool = "Inno Setup"
-            release = "7.1.0"
+            release = $release
+            release_version_authority = "verified immutable release asset"
             immutable_release_tag = "is-7_1_0"
             asset = $asset
             sha256 = $actual
             authenticode_status = [string]$signature.Status
             authenticode_signer = $signature.SignerCertificate.Subject
             compiler_path = $iscc
-            compiler_file_version = $compilerVersion
+            compiler_file_version_informational = $compilerFileVersion
           } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 "build/installer/inno-tool-evidence.json"
 
           "iscc=$iscc" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "release=$release" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Build guided Setup.exe
         shell: powershell
@@ -119,6 +119,7 @@ jobs:
           powershell.exe -NoProfile -ExecutionPolicy Bypass
           -File .\scripts\build_windows_installer.ps1
           -IsccPath "${{ steps.inno.outputs.iscc }}"
+          -InstallerToolVersion "${{ steps.inno.outputs.release }}"
           -AppVersion "0.1.0"
 
       - name: Smoke install upgrade repair and uninstall lifecycle
