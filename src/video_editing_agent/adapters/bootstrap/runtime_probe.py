@@ -48,9 +48,11 @@ def run_runtime_probe(speech_wav: Path | None = None) -> dict[str, Any]:
     if speech_wav is None:
         speech = {
             "status": "deferred_not_shipped_1_0",
-            "reason": (
-                "advanced speech continuity / multilingual voice production "
-                "is deferred to 2.0"
+            "reason": " ".join(
+                (
+                    "advanced speech continuity / multilingual voice production",
+                    "is deferred to 2.0",
+                )
             ),
         }
     else:
