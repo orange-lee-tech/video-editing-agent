@@ -97,11 +97,6 @@ Name: "{autodesktop}\Video Editing Agent"; Filename: "{app}\{#AppExeName}"; Task
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
-[UninstallDelete]
-; Only application-owned install files are deleted. User Workspaces/Profiles/originals
-; are deliberately outside {app} and must never be listed here.
-Type: filesandordirs; Name: "{app}"
-
 [Code]
 procedure InitializeWizard();
 begin
