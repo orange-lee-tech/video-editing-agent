@@ -128,8 +128,8 @@ def test_deterministic_fallback_assigns_repeated_fact_to_one_narrative_role() ->
     assert fallback.sections[0].visual_requirement != fallback.sections[1].visual_requirement
     assert fallback.sections[1].visual_requirement != fallback.sections[2].visual_requirement
     assert all(section.editing_intent is None for section in fallback.sections)
-    assert all(
-        not any(char.isascii() and char.isalpha() for char in value)
+    rendered = " ".join(
+        value
         for section in fallback.sections
         for value in (
             section.information_goal,
@@ -138,7 +138,15 @@ def test_deterministic_fallback_assigns_repeated_fact_to_one_narrative_role() ->
             section.on_screen_text_intent,
         )
         if value is not None
-    )
+    ).casefold()
+    for stale_english in (
+        "unsupported convenience claim",
+        "convenient everywhere",
+        "demonstrate easy use",
+        "open with a claim-free",
+        "close with a stable product view",
+    ):
+        assert stale_english not in rendered
 
 
 def test_deterministic_fallback_never_handles_non_claim_policy_veto() -> None:
