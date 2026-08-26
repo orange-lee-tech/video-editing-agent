@@ -127,7 +127,7 @@ def planning_presentation(result: PlanningProductResult, language: str = "en") -
         + (", ".join(resources) if resources else "-")
     )
     for ordinal, item in enumerate(shooting.requirements, start=1):
-        shot_label = f"镜头 {ordinal}" if zh else f"Shot {ordinal}"
+        shot_label = f"镜头 {ordinal}" if zh else item.requirement_id
         lines.extend(
             (
                 f"[{shot_label}] {item.purpose}",
@@ -146,7 +146,8 @@ def planning_presentation(result: PlanningProductResult, language: str = "en") -
                 + "；".join(item.alternate_coverage)
             )
     if shooting.notes:
-        lines.append(("备注：" if zh else "Notes: ") + ("；" if zh else "; ").join(shooting.notes))
+        separator = "；" if zh else "; "
+        lines.append(("备注：" if zh else "Notes: ") + separator.join(shooting.notes))
     return "\n".join(lines)
 
 
