@@ -84,7 +84,7 @@ Name: "desktopicon"; Description: "{cm:DesktopIcon}"; GroupDescription: "{cm:Add
 ; Core contains the application/private Python/Tk/resources, but not Editing runtimes
 ; or deferred 2.0 speech payloads. Excludes are defense-in-depth if an engineering
 ; staging tree still contains historical speech proof artifacts.
-Source: "{#StageRoot}\*"; DestDir: "{app}"; Components: core; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "_internal\tools\*,_internal\runtimes\transnet\*,_internal\runtimes\speech\*,_internal\models\faster-whisper-base\*"
+Source: "{#StageRoot}\*"; DestDir: "{app}"; Components: core; Flags: ignoreversion recursesubdirs; Excludes: "_internal\tools\*,_internal\runtimes\transnet\*,_internal\runtimes\speech\*,_internal\models\faster-whisper-base\*"
 
 ; Editing capability is optional so Planning-only users do not acquire heavy media
 ; runtimes merely because the product supports automatic editing.
