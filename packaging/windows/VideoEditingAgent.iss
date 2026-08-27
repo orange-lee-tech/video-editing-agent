@@ -26,6 +26,7 @@ VersionInfoDescription={#AppName} Windows Installer
 DefaultDirName={localappdata}\Programs\Video Editing Agent
 DefaultGroupName=Video Editing Agent
 DisableProgramGroupPage=yes
+DisableWelcomePage=no
 OutputDir={#OutputDir}
 OutputBaseFilename=VideoEditingAgent-Setup-{#AppVersion}
 Compression=lzma2
@@ -98,10 +99,15 @@ Name: "{autodesktop}\Video Editing Agent"; Filename: "{app}\{#AppExeName}"; Task
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
-procedure InitializeWizard();
+procedure CurPageChanged(CurPageID: Integer);
 begin
-  if FileExists(ExpandConstant('{app}\{#AppExeName}')) then
+  if CurPageID = wpWelcome then
   begin
-    WizardForm.WelcomeLabel2.Caption := CustomMessage('ExistingInstall') + #13#10 + #13#10 + CustomMessage('SourceIdentity');
+    if FileExists(ExpandConstant('{app}\{#AppExeName}')) then
+    begin
+      WizardForm.WelcomeLabel2.Caption :=
+        CustomMessage('ExistingInstall') + #13#10 + #13#10 +
+        CustomMessage('SourceIdentity');
+    end;
   end;
 end;
