@@ -264,3 +264,20 @@ def test_static_package_inspection_hashes_owned_runtime_tree_deterministically(
     assert first == second
     (runtime / "a.bin").write_bytes(b"changed")
     assert inspect_staged_package(stage, manifest).component_hashes["runtime"] != first
+
+def test_guided_installer_defers_app_constant_and_avoids_excluded_directory_skeletons() -> None:
+    installer = Path("packaging/windows/VideoEditingAgent.iss").read_text(encoding="utf-8")
+
+    assert "DisableWelcomePage=no" in installer
+    assert "procedure InitializeWizard();" not in installer
+    assert "procedure CurPageChanged(CurPageID: Integer);" in installer
+    assert "if CurPageID = wpWelcome then" in installer
+
+    core_source = next(
+        line
+        for line in installer.splitlines()
+        if line.startswith('Source: "{#StageRoot}\\*";') and "Components: core;" in line
+    )
+    assert "recursesubdirs" in core_source
+    assert "createallsubdirs" not in core_source
+
