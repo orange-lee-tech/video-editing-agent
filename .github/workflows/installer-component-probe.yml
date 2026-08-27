@@ -61,7 +61,7 @@ jobs:
             "/DSourceSha=component-probe",
             ".\packaging\windows\VideoEditingAgent.iss"
           )
-          & "\${{ steps.inno.outputs.iscc }}" @compilerArgs
+          & "${{ steps.inno.outputs.iscc }}" @compilerArgs
           if ($LASTEXITCODE -ne 0) { throw "Synthetic installer compilation failed: $LASTEXITCODE" }
           $setup = Join-Path $out "VideoEditingAgent-Setup-0.1.0.exe"
           if (-not (Test-Path -LiteralPath $setup -PathType Leaf)) { throw "Synthetic Setup.exe missing" }
@@ -71,7 +71,7 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = "Stop"
-          $setup = "\${{ steps.build.outputs.setup }}"
+          $setup = "${{ steps.build.outputs.setup }}"
           $install = Join-Path $env:RUNNER_TEMP "vea-probe-install"
           $logs = Join-Path $env:RUNNER_TEMP "vea-probe-logs"
           New-Item -ItemType Directory -Force -Path $logs | Out-Null
