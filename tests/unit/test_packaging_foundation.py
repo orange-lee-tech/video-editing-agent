@@ -265,7 +265,9 @@ def test_static_package_inspection_hashes_owned_runtime_tree_deterministically(
     (runtime / "a.bin").write_bytes(b"changed")
     assert inspect_staged_package(stage, manifest).component_hashes["runtime"] != first
 
-def test_guided_installer_defers_app_constant_and_avoids_excluded_directory_skeletons() -> None:
+
+def test_guided_installer_defers_app_constant_and_avoids_excluded_directory_skeletons(
+) -> None:
     installer = Path("packaging/windows/VideoEditingAgent.iss").read_text(encoding="utf-8")
 
     assert "DisableWelcomePage=no" in installer
