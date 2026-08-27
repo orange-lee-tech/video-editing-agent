@@ -1,0 +1,115 @@
+name: Installer Component Probe
+
+on:
+  push:
+    branches:
+      - ops/installer-component-probe
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Acquire verified Inno Setup 7.1.0
+        id: inno
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $asset = "https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe"
+          $expected = "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
+          $download = Join-Path $env:RUNNER_TEMP "innosetup-7.1.0-x64.exe"
+          $root = Join-Path $env:RUNNER_TEMP "inno-7.1.0"
+          Invoke-WebRequest -Uri $asset -OutFile $download
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $download).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw "Inno SHA-256 mismatch: $actual" }
+          $signature = Get-AuthenticodeSignature -LiteralPath $download
+          if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) { throw "Inno signature invalid: $($signature.Status)" }
+          if ($signature.SignerCertificate.Subject -notmatch "Pyrsys B\.V\.") { throw "Unexpected Inno signer: $($signature.SignerCertificate.Subject)" }
+          $p = Start-Process -FilePath $download -ArgumentList @("/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/SP-","/DIR=$root") -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Inno tool install failed: $($p.ExitCode)" }
+          $iscc = Join-Path $root "ISCC.exe"
+          if (-not (Test-Path -LiteralPath $iscc -PathType Leaf)) { throw "ISCC missing" }
+          "iscc=$iscc" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Build tiny synthetic component installer
+        id: build
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $stage = Join-Path $env:RUNNER_TEMP "vea-probe-stage"
+          $out = Join-Path $env:RUNNER_TEMP "vea-probe-out"
+          New-Item -ItemType Directory -Force -Path $stage,$out | Out-Null
+          $dirs = @(
+            (Join-Path $stage "_internal\tools"),
+            (Join-Path $stage "_internal\runtimes\transnet\transnetv2_pytorch"),
+            (Join-Path $stage "_internal\resources\packaging"),
+            (Join-Path $stage "_internal\licenses")
+          )
+          New-Item -ItemType Directory -Force -Path $dirs | Out-Null
+          Set-Content -Encoding ascii -Path (Join-Path $stage "VideoEditingAgent.exe") -Value "core-exe"
+          Set-Content -Encoding ascii -Path (Join-Path $stage "_internal\core-marker.txt") -Value "core"
+          Set-Content -Encoding ascii -Path (Join-Path $stage "_internal\tools\ffmpeg.exe") -Value "editing-ffmpeg"
+          Set-Content -Encoding ascii -Path (Join-Path $stage "_internal\tools\ffprobe.exe") -Value "editing-ffprobe"
+          Set-Content -Encoding ascii -Path (Join-Path $stage "_internal\runtimes\transnet\transnetv2_pytorch\transnetv2-pytorch-weights.pth") -Value "editing-weights"
+          $compilerArgs = @(
+            "/DStageRoot=$stage",
+            "/DOutputDir=$out",
+            "/DAppVersion=0.1.0",
+            "/DSourceSha=component-probe",
+            ".\packaging\windows\VideoEditingAgent.iss"
+          )
+          & "\${{ steps.inno.outputs.iscc }}" @compilerArgs
+          if ($LASTEXITCODE -ne 0) { throw "Synthetic installer compilation failed: $LASTEXITCODE" }
+          $setup = Join-Path $out "VideoEditingAgent-Setup-0.1.0.exe"
+          if (-not (Test-Path -LiteralPath $setup -PathType Leaf)) { throw "Synthetic Setup.exe missing" }
+          "setup=$setup" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Probe planning full repair uninstall component semantics
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $setup = "\${{ steps.build.outputs.setup }}"
+          $install = Join-Path $env:RUNNER_TEMP "vea-probe-install"
+          $logs = Join-Path $env:RUNNER_TEMP "vea-probe-logs"
+          New-Item -ItemType Directory -Force -Path $logs | Out-Null
+
+          function Run-Setup([string]$type,[string]$name) {
+            $log = Join-Path $logs "$name.log"
+            Write-Host "PHASE=$name TYPE=$type"
+            $args = @("/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/SP-","/DIR=$install","/TYPE=$type","/TASKS=!desktopicon","/LOG=$log")
+            $p = Start-Process -FilePath $setup -ArgumentList $args -Wait -PassThru
+            Write-Host "PHASE=$name EXIT=$($p.ExitCode)"
+            if ($p.ExitCode -ne 0) {
+              if (Test-Path $log) { Get-Content $log -Tail 80 }
+              throw "$name Setup failed with exit code $($p.ExitCode)"
+            }
+          }
+
+          Run-Setup "planning" "planning"
+          if (-not (Test-Path (Join-Path $install "VideoEditingAgent.exe"))) { throw "planning: core exe missing" }
+          if (Test-Path (Join-Path $install "_internal\tools\ffmpeg.exe")) { throw "planning: ffmpeg leaked" }
+          if (Test-Path (Join-Path $install "_internal\runtimes\transnet")) { throw "planning: transnet leaked" }
+          Write-Host "PLANNING_COMPONENTS=PASS"
+
+          Run-Setup "full" "upgrade-full"
+          if (-not (Test-Path (Join-Path $install "_internal\tools\ffmpeg.exe"))) { throw "upgrade: ffmpeg missing" }
+          if (-not (Test-Path (Join-Path $install "_internal\runtimes\transnet\transnetv2_pytorch\transnetv2-pytorch-weights.pth"))) { throw "upgrade: weights missing" }
+          Write-Host "UPGRADE_COMPONENTS=PASS"
+
+          Run-Setup "full" "repair-full"
+          if (-not (Test-Path (Join-Path $install "_internal\tools\ffmpeg.exe"))) { throw "repair: ffmpeg missing" }
+          Write-Host "REPAIR_COMPONENTS=PASS"
+
+          $uninstaller = Get-ChildItem -LiteralPath $install -Filter "unins*.exe" -File | Select-Object -First 1
+          if ($null -eq $uninstaller) { throw "uninstaller missing" }
+          $ulog = Join-Path $logs "uninstall.log"
+          $u = Start-Process -FilePath $uninstaller.FullName -ArgumentList @("/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/LOG=$ulog") -Wait -PassThru
+          if ($u.ExitCode -ne 0) {
+            if (Test-Path $ulog) { Get-Content $ulog -Tail 80 }
+            throw "uninstall failed with exit code $($u.ExitCode)"
+          }
+          if (Test-Path (Join-Path $install "VideoEditingAgent.exe")) { throw "uninstall left core exe" }
+          Write-Host "UNINSTALL=PASS"
