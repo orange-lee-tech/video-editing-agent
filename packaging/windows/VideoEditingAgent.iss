@@ -26,6 +26,7 @@ VersionInfoDescription={#AppName} Windows Installer
 DefaultDirName={localappdata}\Programs\Video Editing Agent
 DefaultGroupName=Video Editing Agent
 DisableProgramGroupPage=yes
+DisableWelcomePage=no
 OutputDir={#OutputDir}
 OutputBaseFilename=VideoEditingAgent-Setup-{#AppVersion}
 Compression=lzma2
@@ -83,7 +84,7 @@ Name: "desktopicon"; Description: "{cm:DesktopIcon}"; GroupDescription: "{cm:Add
 ; Core contains the application/private Python/Tk/resources, but not Editing runtimes
 ; or deferred 2.0 speech payloads. Excludes are defense-in-depth if an engineering
 ; staging tree still contains historical speech proof artifacts.
-Source: "{#StageRoot}\*"; DestDir: "{app}"; Components: core; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "_internal\tools\*,_internal\runtimes\transnet\*,_internal\runtimes\speech\*,_internal\models\faster-whisper-base\*"
+Source: "{#StageRoot}\*"; DestDir: "{app}"; Components: core; Flags: ignoreversion recursesubdirs; Excludes: "_internal\tools\*,_internal\runtimes\transnet\*,_internal\runtimes\speech\*,_internal\models\faster-whisper-base\*"
 
 ; Editing capability is optional so Planning-only users do not acquire heavy media
 ; runtimes merely because the product supports automatic editing.
@@ -98,10 +99,15 @@ Name: "{autodesktop}\Video Editing Agent"; Filename: "{app}\{#AppExeName}"; Task
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
-procedure InitializeWizard();
+procedure CurPageChanged(CurPageID: Integer);
 begin
-  if FileExists(ExpandConstant('{app}\{#AppExeName}')) then
+  if CurPageID = wpWelcome then
   begin
-    WizardForm.WelcomeLabel2.Caption := CustomMessage('ExistingInstall') + #13#10 + #13#10 + CustomMessage('SourceIdentity');
+    if FileExists(ExpandConstant('{app}\{#AppExeName}')) then
+    begin
+      WizardForm.WelcomeLabel2.Caption :=
+        CustomMessage('ExistingInstall') + #13#10 + #13#10 +
+        CustomMessage('SourceIdentity');
+    end;
   end;
 end;
