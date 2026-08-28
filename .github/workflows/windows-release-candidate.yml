@@ -122,12 +122,53 @@ jobs:
           -InstallerToolVersion "${{ steps.inno.outputs.release }}"
           -AppVersion "0.1.0"
 
+      - name: Reclaim sealed packaging staging before lifecycle smoke
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $installer = ".\build\installer\VideoEditingAgent-Setup-0.1.0.exe"
+          if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
+            throw "Sealed Setup.exe is missing before lifecycle smoke"
+          }
+          $before = Get-PSDrive -Name D -ErrorAction SilentlyContinue
+          if ($null -ne $before) {
+            Write-Host "D: free before cleanup: $($before.Free) bytes"
+          }
+          foreach ($path in @(
+            ".\build\packaging\dist",
+            ".\build\packaging\work",
+            ".\build\runtime-payloads"
+          )) {
+            if (Test-Path -LiteralPath $path) {
+              Remove-Item -LiteralPath $path -Recurse -Force
+            }
+          }
+          $after = Get-PSDrive -Name D -ErrorAction SilentlyContinue
+          if ($null -ne $after) {
+            Write-Host "D: free after cleanup: $($after.Free) bytes"
+          }
+
       - name: Smoke install upgrade repair and uninstall lifecycle
         shell: powershell
         run: >-
           powershell.exe -NoProfile -ExecutionPolicy Bypass
           -File .\scripts\smoke_windows_installer.ps1
           -InstallerPath .\build\installer\VideoEditingAgent-Setup-0.1.0.exe
+
+      - name: Upload compact installer failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoEditingAgent-installer-smoke-failure-${{ steps.source.outputs.sha }}
+          path: |
+            build/installer/installer-smoke-failure.json
+            build/installer/installer-smoke-progress.log
+            build/installer/smoke-logs
+            build/installer/installer-evidence.json
+            build/installer/inno-tool-evidence.json
+          if-no-files-found: warn
+          compression-level: 9
+          retention-days: 7
 
       - name: Upload release-candidate installer and compact evidence
         uses: actions/upload-artifact@v4
