@@ -33,7 +33,12 @@ function Invoke-CheckedProcess {
         [string]$FilePath,
         [string[]]$ArgumentList
     )
-    $Process = Start-Process -FilePath $FilePath -ArgumentList $ArgumentList -Wait -PassThru
+    $Process = if ($null -eq $ArgumentList -or $ArgumentList.Count -eq 0) {
+        Start-Process -FilePath $FilePath -Wait -PassThru
+    }
+    else {
+        Start-Process -FilePath $FilePath -ArgumentList $ArgumentList -Wait -PassThru
+    }
     if ($Process.ExitCode -ne 0) {
         throw "Process failed with exit code $($Process.ExitCode): $FilePath"
     }
