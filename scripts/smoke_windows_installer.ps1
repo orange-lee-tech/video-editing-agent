@@ -11,6 +11,22 @@ $Evidence = Join-Path $RepoRoot $EvidencePath
 $RunId = [Guid]::NewGuid().ToString("N")
 $InstallRoot = Join-Path $env:TEMP "VideoEditingAgent-Installer-Smoke-$RunId"
 $Workspace = Join-Path $env:TEMP "VideoEditingAgent-Workspace-Smoke-$RunId"
+$EvidenceRoot = Split-Path -Parent $Evidence
+$SmokeLogRoot = Join-Path $EvidenceRoot "smoke-logs"
+$FailureEvidence = Join-Path $EvidenceRoot "installer-smoke-failure.json"
+$ProgressLog = Join-Path $EvidenceRoot "installer-smoke-progress.log"
+$CurrentPhase = "initializing"
+
+New-Item -ItemType Directory -Force -Path $EvidenceRoot, $SmokeLogRoot | Out-Null
+Remove-Item -LiteralPath $FailureEvidence, $ProgressLog -Force -ErrorAction SilentlyContinue
+
+function Set-SmokePhase {
+    param([string]$Name)
+    $script:CurrentPhase = $Name
+    $Line = "$(Get-Date -Format o) phase=$Name"
+    Write-Host $Line -ForegroundColor Cyan
+    Add-Content -Encoding utf8 -LiteralPath $ProgressLog -Value $Line
+}
 
 function Invoke-CheckedProcess {
     param(
@@ -26,8 +42,10 @@ function Invoke-CheckedProcess {
 function Invoke-Setup {
     param(
         [string]$Type,
-        [string]$Components
+        [string]$Components,
+        [string]$PhaseName
     )
+    $SetupLog = Join-Path $SmokeLogRoot "$PhaseName-setup.log"
     Invoke-CheckedProcess $Installer @(
         "/VERYSILENT",
         "/SUPPRESSMSGBOXES",
@@ -36,7 +54,8 @@ function Invoke-Setup {
         "/DIR=$InstallRoot",
         "/TYPE=$Type",
         "/COMPONENTS=$Components",
-        "/TASKS=!desktopicon"
+        "/TASKS=!desktopicon",
+        "/LOG=$SetupLog"
     )
 }
 
@@ -84,20 +103,23 @@ function Invoke-LauncherSmoke {
 }
 
 try {
-    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Evidence) | Out-Null
+    Set-SmokePhase "planning-install"
 
     # First install the smallest ordinary-user choice. Planning-only must not silently
     # acquire the heavy Editing runtime merely because the product also supports Editing.
-    Invoke-Setup -Type "planning" -Components "core"
+    Invoke-Setup -Type "planning" -Components "core" -PhaseName "planning"
 
+    Set-SmokePhase "planning-assertions"
     $App = Join-Path $InstallRoot "VideoEditingAgent.exe"
     if (-not (Test-Path -LiteralPath $App -PathType Leaf)) {
         throw "Planning-only installation has no application executable"
     }
     Assert-EditingAbsent
     Assert-DeferredSpeechAbsent
+    Set-SmokePhase "planning-launcher"
     Invoke-LauncherSmoke $App
 
+    Set-SmokePhase "planning-workspace"
     $ProjectDb = Join-Path $Workspace "project.sqlite3"
     if (-not (Test-Path -LiteralPath $ProjectDb -PathType Leaf)) {
         throw "Installed launcher smoke did not create external Workspace project.sqlite3"
@@ -105,35 +127,44 @@ try {
 
     # Re-run Setup into the same app-owned directory and expand the installation to Full.
     # This exercises the real upgrade/reconfiguration path without touching user Workspace data.
-    Invoke-Setup -Type "full" -Components "core,editing"
+    Set-SmokePhase "upgrade-full-install"
+    Invoke-Setup -Type "full" -Components "core,editing" -PhaseName "upgrade-full"
+    Set-SmokePhase "upgrade-full-assertions"
     Assert-EditingPresent
     Assert-DeferredSpeechAbsent
     if (-not (Test-Path -LiteralPath $ProjectDb -PathType Leaf)) {
         throw "Planning-to-Full upgrade removed the external Project Workspace"
     }
+    Set-SmokePhase "full-launcher"
     Invoke-LauncherSmoke $App
 
     # Same-version Full setup is the repair path. It must be idempotent for app-owned files
     # and preserve the external Workspace.
-    Invoke-Setup -Type "full" -Components "core,editing"
+    Set-SmokePhase "repair-full-install"
+    Invoke-Setup -Type "full" -Components "core,editing" -PhaseName "repair-full"
+    Set-SmokePhase "repair-full-assertions"
     Assert-EditingPresent
     Assert-DeferredSpeechAbsent
     if (-not (Test-Path -LiteralPath $ProjectDb -PathType Leaf)) {
         throw "Repair removed the external Project Workspace"
     }
 
+    Set-SmokePhase "uninstall"
     $Uninstaller = Get-ChildItem -LiteralPath $InstallRoot -Filter "unins*.exe" -File |
         Select-Object -First 1
     if ($null -eq $Uninstaller) {
         throw "Installed uninstaller was not found"
     }
 
+    $UninstallLog = Join-Path $SmokeLogRoot "uninstall.log"
     Invoke-CheckedProcess $Uninstaller.FullName @(
         "/VERYSILENT",
         "/SUPPRESSMSGBOXES",
-        "/NORESTART"
+        "/NORESTART",
+        "/LOG=$UninstallLog"
     )
 
+    Set-SmokePhase "uninstall-assertions"
     if (Test-Path -LiteralPath $App -PathType Leaf) {
         throw "Uninstall left the application executable installed"
     }
@@ -141,6 +172,7 @@ try {
         throw "Uninstall incorrectly removed the external Project Workspace"
     }
 
+    Set-SmokePhase "write-success-evidence"
     $Payload = [ordered]@{
         schema = "video-editing-agent-installer-smoke/v2"
         installer = $Installer
@@ -164,6 +196,25 @@ try {
     $Payload | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 $Evidence
     Write-Host "Installer lifecycle smoke PASSED." -ForegroundColor Green
     Write-Host "Evidence: $Evidence" -ForegroundColor Green
+}
+catch {
+    $RootName = [System.IO.Path]::GetPathRoot($InstallRoot).TrimEnd("\").TrimEnd(":")
+    $Drive = Get-PSDrive -Name $RootName -ErrorAction SilentlyContinue
+    [ordered]@{
+        schema = "video-editing-agent-installer-smoke-failure/v1"
+        phase = $CurrentPhase
+        exception_type = $_.Exception.GetType().FullName
+        message = $_.Exception.Message
+        installer = $Installer
+        install_root = $InstallRoot
+        workspace = $Workspace
+        free_bytes = if ($null -ne $Drive) { $Drive.Free } else { $null }
+        progress_log = $ProgressLog
+        smoke_log_root = $SmokeLogRoot
+    } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 $FailureEvidence
+    Write-Host "Installer lifecycle smoke FAILED at phase '$CurrentPhase'." -ForegroundColor Red
+    Write-Host "Failure evidence: $FailureEvidence" -ForegroundColor Yellow
+    throw
 }
 finally {
     Remove-Item Env:VIDEO_EDITING_AGENT_LAUNCHER_SMOKE -ErrorAction SilentlyContinue
