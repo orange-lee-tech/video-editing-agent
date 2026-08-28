@@ -1,0 +1,81 @@
+name: Installer Smoke Harness Probe
+
+on:
+  push:
+    branches:
+      - ops/installer-smoke-harness-probe
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Acquire verified Inno Setup 7.1.0
+        id: inno
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $asset = "https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe"
+          $expected = "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
+          $download = Join-Path $env:RUNNER_TEMP "innosetup-7.1.0-x64.exe"
+          $root = Join-Path $env:RUNNER_TEMP "inno-7.1.0"
+          Invoke-WebRequest -Uri $asset -OutFile $download
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $download).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw "Inno SHA-256 mismatch: $actual" }
+          $signature = Get-AuthenticodeSignature -LiteralPath $download
+          if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) { throw "Inno signature invalid: $($signature.Status)" }
+          if ($signature.SignerCertificate.Subject -notmatch "Pyrsys B\.V\.") { throw "Unexpected Inno signer: $($signature.SignerCertificate.Subject)" }
+          $p = Start-Process -FilePath $download -ArgumentList @("/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/SP-","/DIR=$root") -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Inno tool install failed: $($p.ExitCode)" }
+          $iscc = Join-Path $root "ISCC.exe"
+          if (-not (Test-Path -LiteralPath $iscc -PathType Leaf)) { throw "ISCC missing" }
+          "iscc=$iscc" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Build tiny launcher-aware synthetic Setup.exe
+        id: build
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $stage = Join-Path $env:RUNNER_TEMP "vea-smoke-stage"
+          $out = Join-Path $env:RUNNER_TEMP "vea-smoke-out"
+          $dirs = @($stage,$out,(Join-Path $stage "_internal\tools"),(Join-Path $stage "_internal\runtimes\transnet\transnetv2_pytorch"))
+          New-Item -ItemType Directory -Force -Path $dirs | Out-Null
+          $stub = @'
+          using System;
+          using System.IO;
+          public static class Program
+          {
+              public static int Main()
+              {
+                  string workspace = Environment.GetEnvironmentVariable("VIDEO_EDITING_AGENT_SMOKE_WORKSPACE");
+                  if (!String.IsNullOrWhiteSpace(workspace))
+                  {
+                      Directory.CreateDirectory(workspace);
+                      File.WriteAllText(Path.Combine(workspace, "project.sqlite3"), "synthetic-smoke");
+                  }
+                  return 0;
+              }
+          }
+          '@
+          Add-Type -TypeDefinition $stub -Language CSharp -OutputAssembly (Join-Path $stage "VideoEditingAgent.exe") -OutputType ConsoleApplication
+          Set-Content -Encoding ascii -Path (Join-Path $stage "_internal\core-marker.txt") -Value "core"
+          Set-Content -Encoding ascii -Path (Join-Path $stage "_internal\tools\ffmpeg.exe") -Value "editing-ffmpeg"
+          Set-Content -Encoding ascii -Path (Join-Path $stage "_internal\tools\ffprobe.exe") -Value "editing-ffprobe"
+          Set-Content -Encoding ascii -Path (Join-Path $stage "_internal\runtimes\transnet\transnetv2_pytorch\transnetv2-pytorch-weights.pth") -Value "editing-weights"
+          $compilerArgs = @("/DStageRoot=$stage","/DOutputDir=$out","/DAppVersion=0.1.0","/DSourceSha=smoke-harness-probe",".\packaging\windows\VideoEditingAgent.iss")
+          & "${{ steps.inno.outputs.iscc }}" @compilerArgs
+          if ($LASTEXITCODE -ne 0) { throw "Synthetic installer compilation failed: $LASTEXITCODE" }
+          $setup = Join-Path $out "VideoEditingAgent-Setup-0.1.0.exe"
+          if (-not (Test-Path -LiteralPath $setup -PathType Leaf)) { throw "Synthetic Setup.exe missing" }
+          "setup=$setup" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Run real installer lifecycle smoke harness
+        shell: powershell
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\smoke_windows_installer.ps1 -InstallerPath "${{ steps.build.outputs.setup }}" -EvidencePath "build/installer/synthetic-installer-smoke.json"
+
+      - name: Show compact smoke evidence
+        shell: powershell
+        run: Get-Content .\build\installer\synthetic-installer-smoke.json
