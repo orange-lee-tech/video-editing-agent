@@ -28,12 +28,12 @@ def build_conservative_source_audio_mix(
         if decision.decision_type is ResolutionDecisionType.RESOLVED
         for selection in decision.selections
     )
-    preserve_all_source_audio = source_audio_selection_ids is None
-    source_audio_ids = (
-        frozenset(selection.selection_id for selection in selections)
-        if preserve_all_source_audio
-        else source_audio_selection_ids
-    )
+    if source_audio_selection_ids is None:
+        preserve_all_source_audio = True
+        source_audio_ids = frozenset(selection.selection_id for selection in selections)
+    else:
+        preserve_all_source_audio = False
+        source_audio_ids = source_audio_selection_ids
     unknown = source_audio_ids - frozenset(selection.selection_id for selection in selections)
     if unknown:
         raise ValueError("source-audio selection ids must belong to resolved selections")
