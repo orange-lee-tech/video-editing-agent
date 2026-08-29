@@ -73,6 +73,7 @@ from video_editing_agent.domain.edl.subtitle import SubtitleStyleProfile
 from video_editing_agent.domain.shooting.model import ProductionConstraints
 from video_editing_agent.providers.usage import set_thread_token_usage_sink
 from video_editing_agent.storage.project.workspace import ProjectWorkspace
+from video_editing_agent.version import APP_VERSION
 
 _TEXT = {
     "zh-CN": {
@@ -979,7 +980,7 @@ def launch() -> int:
             messagebox.showinfo(text("file"), text("profile_deleted"), parent=root)
 
     def update_language() -> None:
-        root.title(text("window_title"))
+        root.title(f'{text("window_title")} · v{APP_VERSION}')
         planning_nav.configure(text=text("tab_planning"))
         editing_nav.configure(text=text("tab_editing"))
         for label, name in field_labels:
@@ -987,7 +988,7 @@ def launch() -> int:
         for widget, key in translated_widgets:
             widget.configure(text=text(key))
         app_title_label.configure(text=text("app_title"))
-        app_subtitle_label.configure(text=text("app_subtitle"))
+        app_subtitle_label.configure(text=f'{text("app_subtitle")} · v{APP_VERSION}')
         for header_button, _body, title_key, expanded in collapsible_sections:
             header_button.configure(text=("▾ " if expanded.get() else "▸ ") + text(title_key))
         for frame in result_frames:
