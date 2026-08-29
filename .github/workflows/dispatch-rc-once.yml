@@ -19,4 +19,4 @@ jobs:
           gh workflow run windows-release-candidate.yml
           --repo "$GITHUB_REPOSITORY"
           --ref main
-          -f source_ref=ff65894da88de2ebe9bc448a5719c9f9c894f0a0
+          -f source_ref=80ab920b19c1ed1aebef4fa9b7eab05d6a509f38
