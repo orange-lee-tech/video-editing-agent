@@ -1,6 +1,6 @@
 [project]
 name = "video-editing-agent"
-version = "0.1.0"
+version = "0.1.1"
 description = "Script-driven personal video editing agent"
 readme = "README.md"
 authors = [
