@@ -7,14 +7,14 @@ current_phase: R0.12
 phase_state: STAGE_A_FINAL_INSTALLER_HUMAN_GATE
 active_work_order: R0.12-STAGE-A-FINAL-CLOSURE-002
 active_construction_branch: NONE
-accepted_code_baseline: 71d7b7b46fa819f87aba785cefcc2bcf97ab7a46
-accepted_engineering_baseline: 71d7b7b46fa819f87aba785cefcc2bcf97ab7a46
-current_main_baseline: c8bbc88309bcb975987a3bce0bf6ad6f73889ede
-latest_human_gate_candidate: 71d7b7b46fa819f87aba785cefcc2bcf97ab7a46
+accepted_code_baseline: eadbaa74c686f9fe526cb1d3eab64dde21c94d84
+accepted_engineering_baseline: eadbaa74c686f9fe526cb1d3eab64dde21c94d84
+current_main_baseline: 8bd4644fba34d4a97bf35cf14e7db67be2c6cb9f
+latest_human_gate_candidate: eadbaa74c686f9fe526cb1d3eab64dde21c94d84
 structural_progress_percent: 95
 stage_a_completion_gate: OPEN_FINAL_ORDINARY_USER_HUMAN_GATE
-core_1_planning_product_gate: FINAL_0_1_1_HUMAN_REGRESSION_PENDING
-core_2_editing_product_gate: FINAL_0_1_1_HUMAN_GATE_PENDING
+core_1_planning_product_gate: HUMAN_PASS_ON_0_1_1_FINAL_0_1_2_REGRESSION_PENDING
+core_2_editing_product_gate: FINAL_0_1_2_HUMAN_GATE_PENDING
 windows_release_delivery_gate: ENGINEERING_PASS_FINAL_HUMAN_GATE_PENDING
 codex_release: CLOSED
 foreman: v2-trigger-first
@@ -25,68 +25,68 @@ writer: chatgpt
 
 ## Current accepted truth
 
-The installed-product defects found in the 0.1.0 Human Gate were repaired in application source:
+The 0.1.1 ordinary-user Human Gate established that Planning works in the installed product, but representative Editing was interrupted during visual understanding by a retryable Gemini HTTP 503 high-demand response.
 
-`71d7b7b46fa819f87aba785cefcc2bcf97ab7a46`
+The visual-provider adapter already classified the condition correctly as `VisualProviderTransientError` and already retried transient errors, but the production default budget was too short for a real provider-demand spike: 3 attempts with only 0.3 / 0.6 second local delays when no provider RetryInfo was supplied.
 
-Application version: **0.1.1**.
+That resilience defect is repaired in exact application source:
+
+`eadbaa74c686f9fe526cb1d3eab64dde21c94d84`
+
+Application version: **0.1.2**.
 
 The replacement Windows RC completed engineering verification successfully:
 
-- Windows Release Candidate run: `33262066851`;
-- exact release source: `71d7b7b46fa819f87aba785cefcc2bcf97ab7a46`;
-- installer: `VideoEditingAgent-Setup-0.1.1.exe`;
-- installer SHA-256: `fc93f83b0543a1163a44796c7f430dcc68ff5f7a5c9112134b84f5dd15cae6ea`;
-- private prerelease tag: `v0.1.1-rc-71d7b7b`;
-- release asset ID: `535433505`;
+- Windows Release Candidate run: `33265346143`;
+- exact release source: `eadbaa74c686f9fe526cb1d3eab64dde21c94d84`;
+- installer: `VideoEditingAgent-Setup-0.1.2.exe`;
+- installer SHA-256: `32838e2748ae60f0059d461cccadbc5dc971ae3a9d2fc49922f3d9d8821f8c43`;
+- private prerelease tag: `v0.1.2-rc-eadbaa7`;
+- release asset ID: `535517911`;
 - durable release asset: uploaded;
 - installer lifecycle smoke: **PASS**.
 
-The previous 0.1.0 installer remains historical evidence only and must not be used for final Stage-A acceptance.
+The 0.1.1 installer remains useful historical engineering evidence but is superseded for final Stage-A acceptance.
 
-## 0.1.1 repair boundary accepted by engineering
+## 0.1.2 transient-resilience patch
 
-The replacement candidate includes:
+The replacement candidate changes only explicit transient visual-provider handling:
 
-- shared Windows no-console child-process policy for FFmpeg/ffprobe/media subprocesses while preserving diagnostics;
-- one bounded same-EDL automatic rerender attempt;
-- correct handling of selected video clips without source audio;
-- actionable renderer/QC failure presentation;
-- one authoritative user-facing application version, displayed as v0.1.1;
-- asynchronous fail-open update discovery and explicit Check for Updates UI;
-- public source-free stable update metadata at:
-  `https://orange-lee-tech.github.io/homepages/video-editing-agent/stable/latest.json`.
+- default maximum attempts: 5;
+- local backoff without provider guidance: 2 / 4 / 8 / 16 seconds;
+- provider RetryInfo still overrides a shorter local delay;
+- non-retryable provider/schema failures are not retried;
+- exhausted retry budget preserves `VisualProviderTransientError` and original provider context;
+- final error explicitly records that automatic retry budget was exhausted.
 
-## Automated Windows evidence
+This patch does not change factual visual validation, edit selection, source provenance, Renderer semantics or Planning policy.
 
-Run `33262066851` passed:
+## Human evidence already retained
 
-1. exact selected-source checkout and source recording;
-2. pinned CPython 3.12.13 packaging environment;
-3. Windows onedir build, static inspection, Doctor/runtime probe and packaged windowed-GUI smoke;
-4. verified Inno Setup 7.1.0 acquisition;
-5. guided Setup.exe compilation;
-6. Planning-only installation and launcher assertions;
-7. Planning-only → Full upgrade;
-8. Full launcher assertions;
-9. same-version Full repair;
-10. uninstall and external Workspace preservation;
-11. durable private prerelease publication.
+The Product Owner reports that installed Planning completed successfully on 0.1.1.
 
-The run's ordinary Actions artifact is supplementary. The GitHub Release asset is the durable candidate authority.
+The 0.1.1 Editing attempt progressed through local media import and several successful Gemini visual-understanding calls before a later request returned retryable HTTP 503. Therefore the observed failure is not evidence of a local ingest/FFmpeg/Renderer regression.
 
 ## Remaining Stage-A gate
 
-Only the final ordinary-user Human Gate remains. Test this exact 0.1.1 installer and confirm:
+Test the exact 0.1.2 installer and confirm:
 
-- v0.1.1 is visibly identifiable;
-- normal Editing does not flash terminal windows;
-- representative Planning still succeeds without weakening factual safety;
-- representative real-footage Editing produces an approved final MP4;
+- v0.1.2 is visibly identifiable;
+- representative Planning remains acceptable;
+- representative real-footage Editing can pass through visual understanding and produce an approved final MP4;
+- no terminal windows flash during ordinary media processing/rendering;
+- temporary Gemini high-demand responses are tolerated by the bounded retry budget when they clear within the retry window;
+- if provider demand persists beyond the bounded budget, the resulting diagnostic remains clear rather than hanging indefinitely;
 - update discovery is understandable and non-blocking;
 - Workspace/original media remain safe.
 
-Structural progress intentionally remains **95%** until that exact Human Gate passes. If it passes without a material blocker, move directly 95% → 100% and close R0.12.
+Structural progress intentionally remains **95%** until the final Human Gate passes.
+
+## Stable update metadata
+
+`https://orange-lee-tech.github.io/homepages/video-editing-agent/stable/latest.json`
+
+currently advertises 0.1.2 and its exact installer SHA-256.
 
 ## Deferred / non-blocking 1.0 items
 
@@ -96,7 +96,8 @@ Structural progress intentionally remains **95%** until that exact Human Gate pa
 - cross-language narration/TTS;
 - Remote Reference URL;
 - delta/Web Setup updater;
-- unrelated cosmetic redesign.
+- unrelated cosmetic redesign;
+- broad task-resume/deduplicating Workspace checkpoint redesign.
 
 ## Release-management note
 
