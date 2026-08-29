@@ -7,6 +7,7 @@ current_phase: R0.12
 phase_state: STAGE_A_FINAL_INSTALLER_HUMAN_GATE
 active_work_order: R0.12-STAGE-A-FINAL-CLOSURE-002
 active_construction_branch: NONE
+accepted_code_baseline: 7753e5bbee93ca743152a7e2319c3f6739faff60
 accepted_engineering_baseline: 7753e5bbee93ca743152a7e2319c3f6739faff60
 current_main_baseline: bc413ff59da42e42cac3dc06b7ea2d6895613653
 latest_human_gate_candidate: 7753e5bbee93ca743152a7e2319c3f6739faff60
