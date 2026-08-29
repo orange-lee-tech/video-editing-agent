@@ -17,8 +17,9 @@ from video_editing_agent.application.ports.visual_understanding import (
 class VisualRetryPolicy:
     """Retry only explicit transient provider failures using bounded backoff."""
 
-    max_attempts: int = 3
-    base_delay_seconds: float = 0.3
+    max_attempts: int = 5
+    base_delay_seconds: float = 2.0
+    max_local_delay_seconds: float = 20.0
 
     def __post_init__(self) -> None:
         if isinstance(self.max_attempts, bool) or not isinstance(self.max_attempts, int):
@@ -32,6 +33,15 @@ class VisualRetryPolicy:
         delay = float(self.base_delay_seconds)
         if not math.isfinite(delay) or delay < 0:
             raise ValueError("base_delay_seconds must be finite and >= 0")
+        if isinstance(self.max_local_delay_seconds, bool) or not isinstance(
+            self.max_local_delay_seconds, (int, float)
+        ):
+            raise TypeError("max_local_delay_seconds must be a number")
+        max_delay = float(self.max_local_delay_seconds)
+        if not math.isfinite(max_delay) or max_delay < 0:
+            raise ValueError("max_local_delay_seconds must be finite and >= 0")
+        if max_delay < delay:
+            raise ValueError("max_local_delay_seconds must be >= base_delay_seconds")
 
 
 class RetryingVisualUnderstandingPort:
@@ -54,8 +64,18 @@ class RetryingVisualUnderstandingPort:
                 return self._inner.analyze(request)
             except VisualProviderTransientError as exc:
                 if attempt >= self._policy.max_attempts:
-                    raise
-                policy_delay = float(self._policy.base_delay_seconds) * attempt
+                    raise VisualProviderTransientError(
+                        (
+                            f"{exc} "
+                            f"(automatic retry budget exhausted after "
+                            f"{self._policy.max_attempts} attempts)"
+                        ),
+                        retry_after_seconds=exc.retry_after_seconds,
+                    ) from exc
+                policy_delay = min(
+                    float(self._policy.max_local_delay_seconds),
+                    float(self._policy.base_delay_seconds) * (2 ** (attempt - 1)),
+                )
                 provider_delay = exc.retry_after_seconds or 0.0
                 self._sleeper(max(policy_delay, provider_delay))
         raise AssertionError("unreachable retry loop")
