@@ -26,7 +26,7 @@ a = Analysis(
     noarchive=False,
 )
 pyz = PYZ(a.pure)
-exe = EXE(
+gui_exe = EXE(
     pyz,
     a.scripts,
     [],
@@ -36,10 +36,23 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
+    console=False,
+)
+cli_exe = EXE(
+    pyz,
+    a.scripts,
+    [],
+    exclude_binaries=True,
+    name="VideoEditingAgent-cli",
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=False,
     console=True,
 )
 coll = COLLECT(
-    exe,
+    gui_exe,
+    cli_exe,
     a.binaries,
     a.datas,
     strip=False,
