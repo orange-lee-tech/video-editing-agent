@@ -7,8 +7,8 @@ import subprocess
 import tempfile
 import typing
 
-from video_editing_agent.system.process import external_process_creationflags
 from video_editing_agent.domain.common.media_time import MediaTimeRange
+from video_editing_agent.system.process import external_process_creationflags
 
 RGB24_CHANNELS = 3
 
