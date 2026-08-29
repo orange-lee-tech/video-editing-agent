@@ -28,9 +28,10 @@ def build_conservative_source_audio_mix(
         if decision.decision_type is ResolutionDecisionType.RESOLVED
         for selection in decision.selections
     )
+    preserve_all_source_audio = source_audio_selection_ids is None
     source_audio_ids = (
         frozenset(selection.selection_id for selection in selections)
-        if source_audio_selection_ids is None
+        if preserve_all_source_audio
         else source_audio_selection_ids
     )
     unknown = source_audio_ids - frozenset(selection.selection_id for selection in selections)
@@ -55,6 +56,6 @@ def build_conservative_source_audio_mix(
     return AudioMixDecision(
         decision_id,
         plan_ref,
-        SourceAudioPolicy.MUTE,
+        SourceAudioPolicy.PRESERVE if preserve_all_source_audio else SourceAudioPolicy.MUTE,
         source_treatments=treatments,
     )
