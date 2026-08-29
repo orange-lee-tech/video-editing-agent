@@ -50,8 +50,9 @@ def install_fake_popen(
         *,
         stdout: int,
         stderr: BinaryIO,
+        creationflags: int,
     ) -> FakeProcess:
-        del stdout
+        del stdout, creationflags
         observed_command.extend(command)
         stderr.write(stderr_payload)
         process = FakeProcess(payload, return_code=return_code)
@@ -157,8 +158,9 @@ def test_streaming_decode_reports_missing_ffmpeg(monkeypatch: pytest.MonkeyPatch
         *,
         stdout: int,
         stderr: BinaryIO,
+        creationflags: int,
     ) -> FakeProcess:
-        del command, stdout, stderr
+        del command, stdout, stderr, creationflags
         raise FileNotFoundError
 
     monkeypatch.setattr(subprocess, "Popen", fake_popen)
@@ -199,8 +201,14 @@ def test_shot_scoped_decode_uses_exact_start_and_duration(
 ) -> None:
     recorded: list[str] = []
 
-    def fake_popen(command: list[str], *, stdout: int, stderr: BinaryIO) -> FakeProcess:
-        del stdout, stderr
+    def fake_popen(
+        command: list[str],
+        *,
+        stdout: int,
+        stderr: BinaryIO,
+        creationflags: int,
+    ) -> FakeProcess:
+        del stdout, stderr, creationflags
         recorded.extend(command)
         return FakeProcess(b"")
 
