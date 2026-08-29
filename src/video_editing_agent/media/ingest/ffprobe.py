@@ -8,9 +8,9 @@ from decimal import Decimal, InvalidOperation
 from fractions import Fraction
 from typing import cast
 
-from video_editing_agent.system.process import external_process_creationflags
 from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.media.ingest.probe import MediaTechnicalMetadata
+from video_editing_agent.system.process import external_process_creationflags
 
 FFPROBE_SHOW_ENTRIES = (
     "format=duration:"
