@@ -1,7 +1,7 @@
 param(
     [string]$StageRoot = "build/packaging/dist/VideoEditingAgent",
     [string]$OutputRoot = "build/installer",
-    [string]$AppVersion = "0.1.0",
+    [string]$AppVersion = "",
     [string]$IsccPath = "",
     [string]$InstallerToolVersion = ""
 )
@@ -10,6 +10,7 @@ $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $Stage = Join-Path $RepoRoot $StageRoot
 $Output = Join-Path $RepoRoot $OutputRoot
+$VersionFile = Join-Path $RepoRoot "src/video_editing_agent/version.py"
 $InstallerScript = Join-Path $RepoRoot "packaging/windows/VideoEditingAgent.iss"
 
 function Resolve-Iscc([string]$ExplicitPath) {
@@ -36,6 +37,18 @@ function Resolve-Iscc([string]$ExplicitPath) {
     }
 
     throw "Inno Setup compiler ISCC.exe was not found. Install the approved Inno Setup tool or pass -IsccPath explicitly."
+}
+
+if (-not $AppVersion) {
+    if (-not (Test-Path -LiteralPath $VersionFile -PathType Leaf)) {
+        throw "Authoritative application version file is missing: $VersionFile"
+    }
+    $VersionContent = Get-Content -LiteralPath $VersionFile -Raw
+    $VersionMatch = [regex]::Match($VersionContent, 'APP_VERSION\s*=\s*"(?<version>\d+\.\d+\.\d+)"')
+    if (-not $VersionMatch.Success) {
+        throw "Could not resolve APP_VERSION from $VersionFile"
+    }
+    $AppVersion = $VersionMatch.Groups["version"].Value
 }
 
 if (-not (Test-Path -LiteralPath $Stage -PathType Container)) {
