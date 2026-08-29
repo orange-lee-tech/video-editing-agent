@@ -797,7 +797,28 @@ def build_editing_product_flow(
             for ref in sorted(shot_refs, key=lambda item: (item.entity_id, item.revision))
         )
         plan_ref = EntityRevisionRef(edit_plan.envelope.id, edit_plan.envelope.revision)
-        source_mix = build_conservative_source_audio_mix(edit_plan, decisions)
+        shot_by_ref = {
+            EntityRevisionRef(shot.envelope.id, shot.envelope.revision): shot for shot in shots
+        }
+        source_audio_selection_ids = frozenset(
+            selection.selection_id
+            for decision in decisions
+            if decision.decision_type is ResolutionDecisionType.RESOLVED
+            for selection in decision.selections
+            if (
+                shot_by_ref[selection.shot_ref].asset_ref
+                and (
+                    workspace.assets.load(shot_by_ref[selection.shot_ref].asset_ref).audio_channels
+                    or 0
+                )
+                > 0
+            )
+        )
+        source_mix = build_conservative_source_audio_mix(
+            edit_plan,
+            decisions,
+            source_audio_selection_ids=source_audio_selection_ids,
+        )
         music_selection = None
         audio_mix = source_mix
         if music is not None:
@@ -901,10 +922,19 @@ def build_editing_product_flow(
         }
         for selection_id, video in video_by_selection.items():
             source_audio = source_by_selection.get(selection_id)
-            if source_audio is None:
+            asset = workspace.assets.load(video.asset_ref)
+            has_source_audio = (asset.audio_channels or 0) > 0
+            if has_source_audio and source_audio is None:
                 raise RuntimeError(
                     f"ORIGINAL voice requires canonical SOURCE_AUDIO for selection {selection_id}"
                 )
+            if not has_source_audio:
+                if source_audio is not None:
+                    raise RuntimeError(
+                        f"silent source selection {selection_id} must not fabricate SOURCE_AUDIO"
+                    )
+                continue
+            assert source_audio is not None
             if (
                 source_audio.asset_ref != video.asset_ref
                 or source_audio.source_range != video.source_range
