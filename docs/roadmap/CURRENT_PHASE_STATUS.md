@@ -10,61 +10,67 @@
 
 ## Progress truth
 
-The 0.1.0 installed-product Human Gate exposed material release defects. Those defects are repaired in source:
+Installed Planning completed successfully during the 0.1.1 Human Gate.
 
-`71d7b7b46fa819f87aba785cefcc2bcf97ab7a46`
+The representative Editing run then reached visual-understanding provider work and completed several Gemini calls before a later call returned retryable HTTP 503 due model high demand. This was an external transient condition, but the product's existing automatic transient retry budget was too short to absorb a realistic provider-demand spike.
 
-The replacement application version is **0.1.1**.
+The bounded resilience repair is now version **0.1.2** with exact source:
 
-Windows Release Candidate run `33262066851` completed successfully and passed the full automated installer lifecycle. The exact installer eligible for final Human acceptance is:
+`eadbaa74c686f9fe526cb1d3eab64dde21c94d84`
 
-- `VideoEditingAgent-Setup-0.1.1.exe`
-- SHA-256: `fc93f83b0543a1163a44796c7f430dcc68ff5f7a5c9112134b84f5dd15cae6ea`
-- prerelease: `v0.1.1-rc-71d7b7b`
-- exact release source: `71d7b7b46fa819f87aba785cefcc2bcf97ab7a46`.
+Windows Release Candidate run `33265346143` completed successfully.
 
-The previous 0.1.0 RC is superseded for final acceptance.
+Current final Human candidate:
 
-## 0.1.1 engineering closure
+- `VideoEditingAgent-Setup-0.1.2.exe`
+- SHA-256: `32838e2748ae60f0059d461cccadbc5dc971ae3a9d2fc49922f3d9d8821f8c43`
+- prerelease: `v0.1.2-rc-eadbaa7`
+- exact source: `eadbaa74c686f9fe526cb1d3eab64dde21c94d84`.
 
-The replacement candidate has engineering evidence for:
+The 0.1.1 candidate is superseded for final acceptance.
 
-- hidden Windows child consoles for media/runtime subprocesses while retaining diagnostics;
-- bounded automatic same-EDL rerender;
-- source clips without audio streams;
-- actionable renderer/QC diagnostics;
-- visible v0.1.1 identity;
-- fail-open asynchronous update discovery;
-- public source-free stable-channel manifest;
-- packaged windowed GUI smoke;
-- Planning-only install;
-- Planning-only → Full upgrade;
-- Full launcher;
-- same-version repair;
-- uninstall and Workspace preservation.
+## 0.1.2 engineering closure
+
+The replacement candidate preserves all accepted 0.1.1 fixes and additionally proves:
+
+- explicit transient visual-provider failures use 5 bounded attempts;
+- local delay sequence without provider guidance is 2 / 4 / 8 / 16 seconds;
+- provider RetryInfo is still respected when longer;
+- non-transient response/schema failures do not enter the retry loop;
+- exhausted retries retain the typed transient failure and provider message;
+- repository Quality Gate passes;
+- Windows packaged GUI smoke passes;
+- guided Setup.exe build passes;
+- Planning-only install passes;
+- Planning-only → Full upgrade passes;
+- Full launcher passes;
+- same-version repair passes;
+- uninstall and Workspace preservation pass;
+- durable private prerelease publication passes.
 
 ## Current gates
 
-- Planning installed path: **FINAL 0.1.1 HUMAN REGRESSION PENDING**.
-- Editing visual-first installed path: **FINAL 0.1.1 HUMAN GATE PENDING**.
-- Child-process desktop behavior: **ENGINEERING FIXED; HUMAN CONFIRMATION PENDING**.
+- Planning installed path: **HUMAN PASS ON 0.1.1; 0.1.2 REGRESSION CONFIRMATION PENDING**.
+- Editing visual-first installed path: **FINAL 0.1.2 HUMAN GATE PENDING**.
+- Windows child-process behavior: **ENGINEERING FIXED; HUMAN CONFIRMATION PENDING**.
 - Renderer/review correction behavior: **ENGINEERING FIXED; HUMAN CONFIRMATION PENDING**.
-- Version visibility: **IMPLEMENTED**.
-- Update discovery: **IMPLEMENTED; STABLE MANIFEST PUBLISHED**.
+- Visual-provider transient resilience: **ENGINEERING FIXED; HUMAN CONFIRMATION PENDING**.
+- Version visibility/update discovery: **IMPLEMENTED**.
 - Windows installer lifecycle: **ENGINEERING PASS**.
 - Stage-A completion gate: **OPEN ONLY FOR FINAL ORDINARY-USER HUMAN GATE**.
 
-Therefore structural progress remains **95%** by policy.
+Structural progress remains **95%** by policy.
 
 ## Final path to 100%
 
 ```text
-install exact 0.1.1 RC
-→ verify visible v0.1.1
-→ representative Planning
+install exact 0.1.2 RC
+→ verify visible v0.1.2
+→ brief Planning regression
 → representative real-footage Editing
 → confirm no terminal flashes
-→ confirm update discovery is non-blocking
+→ confirm transient provider handling is bounded and usable
+→ confirm update discovery
 → verify Workspace/original-media safety
 → record durable Human evidence
 → Stage-A gates PASS
@@ -74,16 +80,14 @@ install exact 0.1.1 RC
 
 ## Update-distribution status
 
-Stable update metadata is public and source-free:
+Stable metadata now advertises 0.1.2:
 
 `https://orange-lee-tech.github.io/homepages/video-editing-agent/stable/latest.json`
 
-The current download target is a private GitHub Release asset suitable for current controlled testing. A public/commercial distribution host can replace the manifest download URL later without changing the application update-check seam.
-
-Silent self-update/delta update remains deferred.
+The manifest remains public and source-free. The installer URL remains a controlled private GitHub Release asset during final testing.
 
 ## Non-blocking follow-up
 
-Do not broaden Stage-A closure into advanced speech reconstruction, bilingual/translated subtitles, cross-language narration/TTS, Remote Reference URL, delta/Web Setup updating or unrelated visual redesign.
+Do not broaden Stage-A closure into advanced speech reconstruction, bilingual/translated subtitles, cross-language narration/TTS, Remote Reference URL, delta/Web Setup updating, broad resumable-task checkpoint architecture or unrelated visual redesign.
 
 Inno Setup commercial-use licensing remains a release-management item before commercial distribution.
