@@ -57,16 +57,12 @@ en.CustomInstall=Custom installation
 en.CoreComponent=Core App / Planning
 en.EditingComponent=Media Analysis + Automatic Editing
 en.DesktopIcon=Create a desktop shortcut
-en.ExistingInstall=An existing installation was detected. Setup will upgrade or repair application-owned files. Your Project Workspaces, Profiles and original media are outside the installation directory and are not removed.
-en.SourceIdentity=Source build: {#SourceSha}
 zhcn.FullInstall=拍摄规划 + 自动剪辑
 zhcn.PlanningInstall=仅拍摄规划
 zhcn.CustomInstall=自定义安装
 zhcn.CoreComponent=核心程序 / 拍摄规划
 zhcn.EditingComponent=媒体分析 + 自动剪辑
 zhcn.DesktopIcon=创建桌面快捷方式
-zhcn.ExistingInstall=检测到已有安装。安装程序将升级或修复程序自有文件。项目工作区、配置与原始素材位于安装目录之外，不会被删除。
-zhcn.SourceIdentity=源代码版本：{#SourceSha}
 
 [Types]
 Name: "full"; Description: "{cm:FullInstall}"
@@ -97,17 +93,3 @@ Name: "{autodesktop}\Video Editing Agent"; Filename: "{app}\{#AppExeName}"; Task
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
-
-[Code]
-procedure CurPageChanged(CurPageID: Integer);
-begin
-  if CurPageID = wpWelcome then
-  begin
-    if FileExists(ExpandConstant('{app}\{#AppExeName}')) then
-    begin
-      WizardForm.WelcomeLabel2.Caption :=
-        CustomMessage('ExistingInstall') + #13#10 + #13#10 +
-        CustomMessage('SourceIdentity');
-    end;
-  end;
-end;

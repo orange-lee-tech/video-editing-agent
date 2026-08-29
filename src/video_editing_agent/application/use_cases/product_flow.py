@@ -691,7 +691,11 @@ class EditingProductFlow:
                 ProductFlowEvent(
                     ProductFlowStage.CORRECTION_REQUIRED,
                     f"Review requires correction via {verdict.correction_route.value}",
+                    ProductFlowEventLevel.WARNING,
                 )
+            )
+            candidate_path = (
+                render_result.artifact.path if render_result.artifact is not None else None
             )
             return EditingProductResult(
                 ProductFlowOutcome.CORRECTION_REQUIRED,
@@ -699,7 +703,7 @@ class EditingProductFlow:
                 brief_ref,
                 edit_plan_ref,
                 edl_ref,
-                None,
+                candidate_path,
                 verdict,
                 tuple(events),
                 verdict.correction_route.value,

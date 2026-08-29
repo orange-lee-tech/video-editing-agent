@@ -595,9 +595,15 @@ def build_editing_product_flow(
         )
         failures: list[str] = []
         for index, candidate in enumerate(candidates, start=1):
+            candidate_name = (candidate.title or candidate.provider_item_id).strip()
+            if len(candidate_name) > 120:
+                candidate_name = candidate_name[:117] + "..."
             report(
                 ProductFlowEventLevel.INFO,
-                f"Rights gate checking public music candidate {index}/{len(candidates)}",
+                (
+                    f"Rights gate checking public music candidate {index}/{len(candidates)}: "
+                    f"{candidate_name}"
+                ),
             )
             if candidate.is_generated_audio is True:
                 failures.append(f"{candidate.provider_item_id}: generated audio excluded")

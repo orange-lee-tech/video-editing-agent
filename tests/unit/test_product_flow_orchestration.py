@@ -481,7 +481,8 @@ def test_review_correction_route_is_surfaced_not_silently_repaired(tmp_path: Pat
     )
 
     assert result.outcome is ProductFlowOutcome.CORRECTION_REQUIRED
-    assert result.output_path is None
+    assert result.output_path == output
     assert result.review_verdict is not None
     assert result.review_verdict.correction_route is ReviewCorrectionRoute.RETURN_TO_AUDIO_EDITORIAL
     assert result.events[-1].stage is ProductFlowStage.CORRECTION_REQUIRED
+    assert result.events[-1].level is ProductFlowEventLevel.WARNING

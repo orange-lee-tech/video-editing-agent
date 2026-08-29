@@ -29,6 +29,14 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "PyInstaller build failed" }
     }
     $Stage = Join-Path $Dist "VideoEditingAgent"
+    $GuiExecutable = Join-Path $Stage "VideoEditingAgent.exe"
+    $CliExecutable = Join-Path $Stage "VideoEditingAgent-cli.exe"
+    if (-not (Test-Path -LiteralPath $GuiExecutable -PathType Leaf)) {
+        throw "Windowed application executable is missing from staged package"
+    }
+    if (-not (Test-Path -LiteralPath $CliExecutable -PathType Leaf)) {
+        throw "Console diagnostics executable is missing from staged package"
+    }
     New-Item -ItemType Directory -Force -Path $Evidence | Out-Null
     $SourceSha = (git rev-parse HEAD).Trim()
     uv run python -m video_editing_agent.adapters.bootstrap.package_validation `
@@ -45,16 +53,16 @@ try {
         }
     }
 
-    & (Join-Path $Stage "VideoEditingAgent.exe") doctor |
+    & $CliExecutable doctor |
         Set-Content -Encoding utf8 (Join-Path $Evidence "packaged-doctor.json")
     if ($LASTEXITCODE -ne 0) { throw "Packaged Doctor failed" }
-    & (Join-Path $Stage "VideoEditingAgent.exe") runtime-probe |
+    & $CliExecutable runtime-probe |
         Set-Content -Encoding utf8 (Join-Path $Evidence "packaged-runtime-probe.json")
     if ($LASTEXITCODE -ne 0) { throw "Packaged runtime probe failed" }
     $Workspace = Join-Path ([System.IO.Path]::GetTempPath()) "video-editing-agent-packaged-smoke"
     $env:VIDEO_EDITING_AGENT_LAUNCHER_SMOKE = "1"
     $env:VIDEO_EDITING_AGENT_SMOKE_WORKSPACE = $Workspace
-    & (Join-Path $Stage "VideoEditingAgent.exe")
+    & $GuiExecutable
     if ($LASTEXITCODE -ne 0) { throw "Packaged launcher smoke failed" }
     if (-not (Test-Path (Join-Path $Workspace "project.sqlite3"))) {
         throw "External Workspace smoke did not create project.sqlite3"
@@ -66,6 +74,8 @@ try {
         schema = "video-editing-agent-packaged-smoke/v1"
         source_git_sha = $SourceSha
         launcher = "PASS"
+        gui_without_console = "PASS"
+        diagnostics_cli = "PASS"
         doctor = "PASS"
         runtime_payloads = "PASS"
         shipped_components = @("core", "media-runtime", "transnet-runtime")

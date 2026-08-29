@@ -24,6 +24,7 @@ from video_editing_agent.adapters.product.controller import (
 from video_editing_agent.adapters.product.presentation import (
     editing_presentation,
     planning_presentation,
+    token_usage_presentation,
 )
 from video_editing_agent.adapters.product.runtime import resolve_product_runtime
 from video_editing_agent.adapters.product.ui_components import create_brand_mark
@@ -65,10 +66,12 @@ from video_editing_agent.application.use_cases.product_flow import (
     OUTPUT_PROFILE_VERTICAL_1080P,
     EditingOutputProfile,
     ProductFlowEvent,
+    ProductFlowOutcome,
     VoiceMode,
 )
 from video_editing_agent.domain.edl.subtitle import SubtitleStyleProfile
 from video_editing_agent.domain.shooting.model import ProductionConstraints
+from video_editing_agent.providers.usage import set_thread_token_usage_sink
 from video_editing_agent.storage.project.workspace import ProjectWorkspace
 
 _TEXT = {
@@ -126,6 +129,8 @@ _TEXT = {
         "start_editing": "开始自动剪辑",
         "planning_unavailable": "拍摄规划暂不可用",
         "editing_unavailable": "自动剪辑暂不可用",
+        "editing_needs_attention": "自动剪辑需要处理",
+        "editing_failed": "自动剪辑失败",
         "runtime_not_ready": "运行环境尚未就绪：",
         "dialog_choose_project": "选择或创建项目目录",
         "dialog_choose_reference": "选择本地参考视频",
@@ -233,6 +238,8 @@ _TEXT = {
         "start_editing": "Start Editing",
         "planning_unavailable": "Planning unavailable",
         "editing_unavailable": "Editing unavailable",
+        "editing_needs_attention": "Editing needs attention",
+        "editing_failed": "Editing failed",
         "runtime_not_ready": "Runtime is not ready:",
         "dialog_choose_project": "Choose or create project directory",
         "dialog_choose_reference": "Choose local reference video",
@@ -509,6 +516,8 @@ def launch() -> int:
     notebook.add(planning_page)
     notebook.add(editing_page)
 
+    scroll_canvases: list[Any] = []
+
     def scrollable_page(page: Any) -> Any:
         canvas = tk.Canvas(page, highlightthickness=0, borderwidth=0)
         scrollbar = ttk.Scrollbar(page, orient="vertical", command=canvas.yview)
@@ -525,10 +534,26 @@ def launch() -> int:
             "<Configure>",
             lambda event: canvas.itemconfigure(window, width=event.width),
         )
+        scroll_canvases.append(canvas)
         return content
 
     planning_tab = scrollable_page(planning_page)
     editing_tab = scrollable_page(editing_page)
+
+    def scroll_active_page(event: Any) -> str | None:
+        if getattr(event, "delta", 0) == 0:
+            return None
+        widget_class = event.widget.winfo_class()
+        if widget_class in {"Text", "Listbox", "TCombobox"}:
+            return None
+        notebook_widget: Any = notebook
+        selected = notebook_widget.index(notebook_widget.select())
+        if selected >= len(scroll_canvases):
+            return None
+        scroll_canvases[selected].yview_scroll(-1 if event.delta > 0 else 1, "units")
+        return "break"
+
+    root.bind_all("<MouseWheel>", scroll_active_page, add="+")
 
     def select_workflow(target: str) -> None:
         is_planning = target == "planning"
@@ -1197,20 +1222,23 @@ def launch() -> int:
         label.configure(text=format_eta(estimate, language.get()))
 
     def set_running(running: bool) -> None:
-        state = "disabled" if running else "normal"
-        start_planning.configure(state=state)
-        start_editing.configure(state=state)
-        output_profile_combo.configure(state="disabled" if running else "readonly")
-        music_rights_check.configure(state=state)
-        configuration_button.configure(state=state)
-        choose_workspace_button.configure(state=state)
-        clear_button.configure(state=state)
-        undo_button.configure(state=state)
-        redo_button.configure(state=state)
+        execution_state = "disabled" if running else "normal"
+        start_planning.configure(state=execution_state)
+        start_editing.configure(state=execution_state)
+        configuration_button.configure(state=execution_state)
+        choose_workspace_button.configure(state=execution_state)
+
+        # Each task runs from the immutable form/request snapshot captured at Start.
+        # Keep the form editable so users can prepare the next run while background work continues.
+        output_profile_combo.configure(state="readonly")
+        music_rights_check.configure(state="normal")
+        clear_button.configure(state="normal")
+        undo_button.configure(state="normal")
+        redo_button.configure(state="normal")
         for entry, _value, _name in entry_fields.values():
-            entry.configure(state=state)
+            entry.configure(state="normal")
         for widget in (choose_reference, choose_files, choose_music, choose_output):
-            widget.configure(state=state)
+            widget.configure(state="normal")
 
     def pump_work() -> None:
         nonlocal active_task, active_stage, stage_started, planning_context
@@ -1219,7 +1247,13 @@ def launch() -> int:
                 task, kind, payload = work_queue.get_nowait()
                 output = planning_output if task == "planning" else editing_output
                 eta = planning_eta if task == "planning" else editing_eta
-                if kind == "event":
+                if kind == "usage":
+                    output.insert(
+                        "end",
+                        token_usage_presentation(payload, language.get()) + "\n",
+                    )
+                    output.see("end")
+                elif kind == "event":
                     now = time.monotonic()
                     if active_stage is not None:
                         elapsed = max(0.001, now - stage_started)
@@ -1238,7 +1272,16 @@ def launch() -> int:
                         use_planning.set(False)
                         output.insert("end", "\n" + planning_presentation(result, language.get()))
                     else:
-                        output.insert("end", "\n" + editing_presentation(result, language.get()))
+                        summary = editing_presentation(result, language.get())
+                        output.insert("end", "\n" + summary)
+                        if result.outcome is ProductFlowOutcome.CORRECTION_REQUIRED:
+                            messagebox.showwarning(
+                                text("editing_needs_attention"),
+                                summary,
+                                parent=root,
+                            )
+                        elif result.outcome is ProductFlowOutcome.FAILED:
+                            messagebox.showerror(text("editing_failed"), summary, parent=root)
                     save_timing_history(timing_path, timing_history)
                     active_task = None
                     active_stage = None
@@ -1314,6 +1357,9 @@ def launch() -> int:
             planning_eta.configure(text=text("estimating"))
 
             def worker() -> None:
+                previous_usage_sink = set_thread_token_usage_sink(
+                    lambda usage: work_queue.put(("planning", "usage", usage))
+                )
                 try:
                     resolution = resolve_product_runtime(
                         mode="planning", reference_required=has_reference
@@ -1328,6 +1374,8 @@ def launch() -> int:
                     work_queue.put(("planning", "done", result))
                 except Exception as exc:
                     work_queue.put(("planning", "error", exc))
+                finally:
+                    set_thread_token_usage_sink(previous_usage_sink)
 
             threading.Thread(target=worker, name="planning-product-flow", daemon=True).start()
         except Exception as exc:
@@ -1379,6 +1427,9 @@ def launch() -> int:
             editing_eta.configure(text=text("estimating"))
 
             def worker() -> None:
+                previous_usage_sink = set_thread_token_usage_sink(
+                    lambda usage: work_queue.put(("editing", "usage", usage))
+                )
                 try:
                     resolution = resolve_product_runtime(mode="editing")
                     if not resolution.is_ready or resolution.config is None:
@@ -1391,6 +1442,8 @@ def launch() -> int:
                     work_queue.put(("editing", "done", result))
                 except Exception as exc:
                     work_queue.put(("editing", "error", exc))
+                finally:
+                    set_thread_token_usage_sink(previous_usage_sink)
 
             threading.Thread(target=worker, name="editing-product-flow", daemon=True).start()
         except Exception as exc:
