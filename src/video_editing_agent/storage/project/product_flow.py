@@ -806,10 +806,7 @@ def build_editing_product_flow(
             if decision.decision_type is ResolutionDecisionType.RESOLVED
             for selection in decision.selections
             if (
-                workspace.assets.load(
-                    shot_by_ref[selection.shot_ref].asset_ref
-                ).audio_channels
-                or 0
+                workspace.assets.load(shot_by_ref[selection.shot_ref].asset_ref).audio_channels or 0
             )
             > 0
         )
