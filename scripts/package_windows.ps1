@@ -60,10 +60,15 @@ try {
         Set-Content -Encoding utf8 (Join-Path $Evidence "packaged-runtime-probe.json")
     if ($LASTEXITCODE -ne 0) { throw "Packaged runtime probe failed" }
     $Workspace = Join-Path ([System.IO.Path]::GetTempPath()) "video-editing-agent-packaged-smoke"
+    if (Test-Path -LiteralPath $Workspace) {
+        Remove-Item -LiteralPath $Workspace -Recurse -Force
+    }
     $env:VIDEO_EDITING_AGENT_LAUNCHER_SMOKE = "1"
     $env:VIDEO_EDITING_AGENT_SMOKE_WORKSPACE = $Workspace
-    & $GuiExecutable
-    if ($LASTEXITCODE -ne 0) { throw "Packaged launcher smoke failed" }
+    $GuiProcess = Start-Process -FilePath $GuiExecutable -Wait -PassThru
+    if ($GuiProcess.ExitCode -ne 0) {
+        throw "Packaged launcher smoke failed with exit code $($GuiProcess.ExitCode)"
+    }
     if (-not (Test-Path (Join-Path $Workspace "project.sqlite3"))) {
         throw "External Workspace smoke did not create project.sqlite3"
     }

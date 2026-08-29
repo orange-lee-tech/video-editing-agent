@@ -293,3 +293,10 @@ def test_packaging_separates_windowed_gui_from_console_diagnostics_cli() -> None
     assert "VideoEditingAgent-cli.exe" in package_script
     assert "$CliExecutable doctor" in package_script
     assert "$CliExecutable runtime-probe" in package_script
+
+
+def test_packaged_gui_smoke_waits_for_windowed_process_completion() -> None:
+    package_script = Path("scripts/package_windows.ps1").read_text(encoding="utf-8")
+
+    assert "Start-Process -FilePath $GuiExecutable -Wait -PassThru" in package_script
+    assert "Remove-Item -LiteralPath $Workspace -Recurse -Force" in package_script
