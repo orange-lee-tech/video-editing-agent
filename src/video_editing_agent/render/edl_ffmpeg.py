@@ -8,7 +8,6 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
-from video_editing_agent.system.process import external_process_creationflags
 from video_editing_agent.application.ports.executor import DeterministicToolInvocation
 from video_editing_agent.application.ports.renderer import (
     RenderArtifact,
@@ -33,6 +32,7 @@ from video_editing_agent.domain.edl.subtitle import (
     SubtitleLayoutRegion,
 )
 from video_editing_agent.domain.edl.validation import validate_edl
+from video_editing_agent.system.process import external_process_creationflags
 
 
 @dataclass(frozen=True, slots=True)
