@@ -73,3 +73,44 @@ def test_conservative_product_audio_preserves_grounded_selection_ranges() -> Non
         and item.voice_treatment is VoiceTreatment.PRESERVE
         for item in first.source_treatments
     )
+
+
+def test_conservative_product_audio_mutes_selections_without_real_audio() -> None:
+    plan = EditPlan(
+        _envelope("epl_audio_partial"),
+        None,
+        None,
+        (
+            EditSlot("slot_a", "show first", 0),
+            EditSlot("slot_b", "show second", 1),
+        ),
+        EntityRevisionRef("brf_audio_partial", 1),
+    )
+    plan_ref = EntityRevisionRef(plan.envelope.id, plan.envelope.revision)
+    source_range = MediaTimeRange(MediaTime(0, 1), MediaTime(2, 1))
+    decisions = (
+        ResolutionDecision(
+            "res_a_partial",
+            plan_ref,
+            ("slot_a",),
+            ResolutionDecisionType.RESOLVED,
+            (ResolvedSelection("sel_a", EntityRevisionRef("sht_a", 1), source_range, 0),),
+        ),
+        ResolutionDecision(
+            "res_b_partial",
+            plan_ref,
+            ("slot_b",),
+            ResolutionDecisionType.RESOLVED,
+            (ResolvedSelection("sel_b", EntityRevisionRef("sht_b", 1), source_range, 0),),
+        ),
+    )
+
+    mix = build_conservative_source_audio_mix(
+        plan,
+        decisions,
+        source_audio_selection_ids=frozenset({"sel_a"}),
+    )
+
+    assert mix.source_audio_policy is SourceAudioPolicy.MUTE
+    assert tuple(item.selection_id for item in mix.source_treatments) == ("sel_a",)
+    assert mix.source_treatments[0].source_audio_policy is SourceAudioPolicy.PRESERVE
