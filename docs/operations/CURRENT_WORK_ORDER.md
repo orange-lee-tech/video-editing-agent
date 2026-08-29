@@ -1,89 +1,88 @@
 # Current Work Order
 
 **ID:** `R0.12-STAGE-A-FINAL-CLOSURE-002`  
-**Status:** ACTIVE — REPLACEMENT RC + FINAL HUMAN GATE  
+**Status:** ACTIVE — FINAL HUMAN GATE  
 **Phase:** R0.12 — Stage-A final closure  
-**Mode:** REPLACEMENT WINDOWS RELEASE CANDIDATE THEN ORDINARY-USER ACCEPTANCE  
-**Accepted source candidate:** `80ab920b19c1ed1aebef4fa9b7eab05d6a509f38`  
-**Previous superseded RC source:** `7753e5bbee93ca743152a7e2319c3f6739faff60`  
+**Mode:** FINAL ORDINARY-USER WINDOWS ACCEPTANCE  
+**Accepted release source:** `80ab920b19c1ed1aebef4fa9b7eab05d6a509f38`  
+**Release candidate:** `VideoEditingAgent-Setup-0.1.0.exe`  
+**Setup.exe SHA-256:** `15978b647dec198996b747ea41fdb77fce61c8fe59261cd983c26ae0c74e34da`  
+**Artifact:** `VideoEditingAgent-Setup-80ab920b19c1ed1aebef4fa9b7eab05d6a509f38`  
+**Artifact ID:** `9712373668`  
+**Windows RC run:** `33243959576`  
 **Updated:** 2026-08-29
 
 ## Objective
 
-Close Stage-A / 1.0 truthfully by packaging the post-Human-Gate repaired source into a fresh Windows Setup.exe, passing the automated Windows lifecycle, then performing the final ordinary-user Human Gate on that exact installer.
+Close Stage-A / 1.0 truthfully by performing the final ordinary-user Human Gate on the exact replacement Windows Setup.exe that already passed automated release engineering.
 
-No broad architecture work belongs in this work order.
+No broad architecture or packaging construction work belongs in this work order.
 
-## What changed after the previous RC
+## Engineering closure already achieved
 
-The previous Setup.exe passed automated release engineering but ordinary-user testing exposed material desktop/release defects. The accepted repair source now includes:
+The accepted post-Human-Gate repaired source and replacement installer gates are complete:
 
-- true windowed GUI executable separated from the console diagnostics CLI;
-- removal of installer pre-initialization app-path logic that could break the wizard;
-- packaged GUI smoke that waits for process completion and uses a clean external smoke Workspace;
-- editable user forms during background execution while the active task uses an immutable request snapshot;
-- localized task-local AI usage telemetry;
-- review-blocked rendered output retained as a clearly labelled candidate;
-- clearer correction/failure presentation;
-- public-music candidate names during rights checks;
-- active-page mouse-wheel scrolling.
+- ordinary repository CI green for `80ab920...`;
+- exact release-source checkout green;
+- pinned Windows packaging environment green;
+- Windows onedir staging green;
+- package static inspection green;
+- packaged Doctor/runtime probe green;
+- windowed GUI packaged smoke green;
+- verified Inno Setup 7.1.0 acquisition green;
+- guided Setup.exe compilation green;
+- Planning-only install green;
+- Planning-only → Full upgrade green;
+- Full installed launcher green;
+- same-version repair green;
+- uninstall green;
+- external Workspace preservation green;
+- deferred 2.0 payload exclusion green.
 
-Ordinary repository CI is green at the accepted source candidate.
+The previous `7753e5b...` installer is superseded for final acceptance.
 
-## Immediate engineering gate
+## Remaining Human Gate
 
-Run the manual GitHub Actions workflow:
+The Product Owner should test the exact replacement RC as an ordinary Windows user:
 
-`Windows Release Candidate`
-
-with exact input:
-
-`source_ref = 80ab920b19c1ed1aebef4fa9b7eab05d6a509f38`
-
-Acceptance requires:
-
-- exact source checkout;
-- pinned packaging environment;
-- Windows onedir build;
-- static package inspection;
-- packaged Doctor/runtime probe;
-- windowed GUI packaged smoke;
-- verified Inno Setup acquisition;
-- guided Setup.exe compilation;
-- Planning-only install;
-- Planning-only → Full upgrade;
-- Full installed launcher;
-- same-version repair;
-- uninstall;
-- external Workspace preservation;
-- deferred 2.0 payload exclusion;
-- SHA-addressed uploaded Setup.exe artifact.
-
-If any step fails, freeze new feature work and repair only the smallest release blocker.
-
-## Final Human Gate
-
-After the replacement workflow passes, the Product Owner should test the exact new Setup.exe as an ordinary Windows user:
-
-1. run the installer through the normal wizard;
-2. install the normal Full option;
-3. launch from the installed application, not from the repository;
-4. run one representative Planning case;
-5. run one representative visual-first Editing case using local footage;
-6. confirm the corrected desktop behavior is materially acceptable;
-7. uninstall and verify user Workspace/original media remain.
+1. obtain artifact `VideoEditingAgent-Setup-80ab920b19c1ed1aebef4fa9b7eab05d6a509f38` from run `33243959576`;
+2. verify the contained Setup.exe SHA-256 is `15978b647dec198996b747ea41fdb77fce61c8fe59261cd983c26ae0c74e34da`;
+3. run `VideoEditingAgent-Setup-0.1.0.exe` through the normal wizard;
+4. install the normal Full option;
+5. launch from the installed application, not from the repository;
+6. run one representative Planning case;
+7. run one representative visual-first Editing case using local footage;
+8. confirm the repaired desktop behaviors are materially acceptable;
+9. uninstall and verify user Workspace/original media remain.
 
 The Human Gate should report only material PASS/FAIL observations. Cosmetic wishes that do not block ordinary use move to backlog rather than reopening Stage-A by default.
 
+## 1.0 product boundary
+
+1.0 ships:
+
+- Core App / Planning;
+- FFmpeg/ffprobe media runtime;
+- TransNet/CPU Torch/reviewed weights;
+- visual-first automatic Editing;
+- current deterministic source-audio pass-through where implemented.
+
+2.0 retains:
+
+- advanced source-speech / ambience separation;
+- sentence-preserving speech reconstruction;
+- translated/bilingual subtitles;
+- cross-language narration/TTS;
+- Remote Reference URL.
+
 ## Exit condition
 
-If the replacement Setup.exe passes automated release engineering and the Product Owner's ordinary-user Human Gate:
+If the exact replacement Setup.exe passes the Product Owner's ordinary-user Human Gate:
 
-- record the new exact source SHA, workflow run, installer SHA-256 and artifact identity;
 - record durable Human evidence;
 - set Stage-A completion gate to PASS;
 - move structural progress directly from 95% to 100%;
 - close this work order;
-- archive the superseded RC identity as historical evidence.
+- archive the final release-candidate identity and installer evidence.
 
 Do not continue polishing non-blocking 2.0 or backlog items before closure.
