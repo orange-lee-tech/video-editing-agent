@@ -4,77 +4,86 @@
 **Development stage:** STRUCTURAL_CONSTRUCTION  
 **Structural progress:** 95%  
 **Current phase:** R0.12 — Stage-A final ordinary-user Windows acceptance  
-**Engineering state:** STAGE_A_FINAL_HUMAN_GATE_FAILED_PATCH_ACTIVE  
-**Updated:** 2026-08-29  
+**Engineering state:** STAGE_A_FINAL_INSTALLER_HUMAN_GATE  
+**Updated:** 2026-08-30  
 **Active work order:** R0.12-STAGE-A-FINAL-CLOSURE-002
 
 ## Progress truth
 
-The 0.1.0 installer built from source 80ab920b19c1ed1aebef4fa9b7eab05d6a509f38 passed automated Windows lifecycle engineering but failed the real installed-product Human Gate.
+The 0.1.0 installed-product Human Gate exposed material release defects. Those defects are repaired in source:
 
-Planning recovered and completed after the machine restart/network recovery. The first Planning rejection was a factual-safety rejection of an unsupported portability implication and is not itself a release defect.
+`71d7b7b46fa819f87aba785cefcc2bcf97ab7a46`
 
-Editing remains a release blocker because the installed application:
+The replacement application version is **0.1.1**.
 
-- repeatedly flashes child terminal windows during media/runtime work;
-- ends the representative real-footage flow in rerender_same_edl rather than final PASS;
-- hides the actionable renderer diagnostic behind a generic correction presentation.
+Windows Release Candidate run `33262066851` completed successfully and passed the full automated installer lifecycle. The exact installer eligible for final Human acceptance is:
 
-The installed UI also lacks visible version identity and an update-discovery path for already distributed copies.
+- `VideoEditingAgent-Setup-0.1.1.exe`
+- SHA-256: `fc93f83b0543a1163a44796c7f430dcc68ff5f7a5c9112134b84f5dd15cae6ea`
+- prerelease: `v0.1.1-rc-71d7b7b`
+- exact release source: `71d7b7b46fa819f87aba785cefcc2bcf97ab7a46`.
 
-## Current technical findings
+The previous 0.1.0 RC is superseded for final acceptance.
 
-- Internal FFmpeg/ffprobe child processes are launched without a shared Windows no-console policy.
-- Review permits one same-EDL repair attempt, but ProductFlow currently does not execute that retry.
-- Current source-audio construction assumes source audio for each selected video segment even though ingest metadata can identify assets without audio; this is a priority reproduction target for the render failure.
-- Application version 0.1.0 is duplicated between project/package inputs and installer inputs instead of being one authoritative source.
+## 0.1.1 engineering closure
+
+The replacement candidate has engineering evidence for:
+
+- hidden Windows child consoles for media/runtime subprocesses while retaining diagnostics;
+- bounded automatic same-EDL rerender;
+- source clips without audio streams;
+- actionable renderer/QC diagnostics;
+- visible v0.1.1 identity;
+- fail-open asynchronous update discovery;
+- public source-free stable-channel manifest;
+- packaged windowed GUI smoke;
+- Planning-only install;
+- Planning-only → Full upgrade;
+- Full launcher;
+- same-version repair;
+- uninstall and Workspace preservation.
 
 ## Current gates
 
-- Planning installed path: **HUMAN RUN RECOVERED; FINAL PATCH REGRESSION REQUIRED**.
-- Editing visual-first installed path: **HUMAN FAIL — PATCH REQUIRED**.
-- Child-process desktop behavior: **FAIL — TERMINAL FLASHING**.
-- Renderer/review correction behavior: **FAIL — NO DELIVERABLE PASS / DIAGNOSTIC TOO WEAK**.
-- Version visibility: **MISSING**.
-- Update discovery for distributed installs: **MISSING**.
-- Previous 0.1.0 automated installer lifecycle: **ENGINEERING PASS, HUMAN SUPERSEDED**.
-- Stage-A completion gate: **OPEN FOR PATCH + REPLACEMENT RC + FINAL HUMAN GATE**.
+- Planning installed path: **FINAL 0.1.1 HUMAN REGRESSION PENDING**.
+- Editing visual-first installed path: **FINAL 0.1.1 HUMAN GATE PENDING**.
+- Child-process desktop behavior: **ENGINEERING FIXED; HUMAN CONFIRMATION PENDING**.
+- Renderer/review correction behavior: **ENGINEERING FIXED; HUMAN CONFIRMATION PENDING**.
+- Version visibility: **IMPLEMENTED**.
+- Update discovery: **IMPLEMENTED; STABLE MANIFEST PUBLISHED**.
+- Windows installer lifecycle: **ENGINEERING PASS**.
+- Stage-A completion gate: **OPEN ONLY FOR FINAL ORDINARY-USER HUMAN GATE**.
 
-Therefore structural progress remains **95%**.
+Therefore structural progress remains **95%** by policy.
 
 ## Final path to 100%
 
 ```text
-bounded release-blocker patch
-→ replacement version > 0.1.0
-→ CI
-→ Windows Release Candidate workflow
-→ install/upgrade/repair/uninstall PASS
-→ ordinary-user Planning regression
-→ ordinary-user visual-first Editing PASS
-→ confirm no child terminal flashes
-→ confirm visible version/update discovery
-→ durable Human evidence
-→ Stage-A 100%
+install exact 0.1.1 RC
+→ verify visible v0.1.1
+→ representative Planning
+→ representative real-footage Editing
+→ confirm no terminal flashes
+→ confirm update discovery is non-blocking
+→ verify Workspace/original-media safety
+→ record durable Human evidence
+→ Stage-A gates PASS
+→ 95% → 100%
+→ close R0.12
 ```
 
-## Update-distribution direction
+## Update-distribution status
 
-Because the source repository is private, update discovery must not depend on authenticated access to this repository.
+Stable update metadata is public and source-free:
 
-Use a public, source-free stable-channel manifest for version metadata and release notice. The desktop app may check it asynchronously at startup and on explicit user request. Offline/update-check failure must never block core work.
+`https://orange-lee-tech.github.io/homepages/video-editing-agent/stable/latest.json`
 
-A silent self-updater or delta updater remains deferred; the current guided Setup.exe can continue to perform explicit upgrades using the stable AppId.
+The current download target is a private GitHub Release asset suitable for current controlled testing. A public/commercial distribution host can replace the manifest download URL later without changing the application update-check seam.
+
+Silent self-update/delta update remains deferred.
 
 ## Non-blocking follow-up
 
-Do not broaden this patch into:
+Do not broaden Stage-A closure into advanced speech reconstruction, bilingual/translated subtitles, cross-language narration/TTS, Remote Reference URL, delta/Web Setup updating or unrelated visual redesign.
 
-- advanced speech reconstruction;
-- translated/bilingual subtitles;
-- cross-language narration/TTS;
-- Remote Reference URL;
-- delta/Web Setup auto-updater;
-- unrelated cosmetic redesign.
-
-The Inno Setup commercial-use licensing policy remains a release-management item before commercial distribution.
+Inno Setup commercial-use licensing remains a release-management item before commercial distribution.
