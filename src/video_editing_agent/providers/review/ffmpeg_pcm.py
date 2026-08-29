@@ -6,7 +6,6 @@ import wave
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from video_editing_agent.system.process import external_process_creationflags
 from video_editing_agent.application.ports.executor import DeterministicToolInvocation
 from video_editing_agent.application.ports.rendered_media_qc import (
     RenderedMediaQcCode,
@@ -14,6 +13,7 @@ from video_editing_agent.application.ports.rendered_media_qc import (
     RenderedMediaQcResult,
 )
 from video_editing_agent.music.audio_editorial import inspect_pcm16_wav
+from video_editing_agent.system.process import external_process_creationflags
 
 
 def _run(invocation: DeterministicToolInvocation) -> subprocess.CompletedProcess[str]:
