@@ -23,7 +23,11 @@ from video_editing_agent.domain.edit.resolution import ResolutionDecision, Resol
 from video_editing_agent.domain.edl.model import EDL
 from video_editing_agent.domain.edl.subtitle import SubtitleStyleProfile
 from video_editing_agent.domain.music.model import BeatMap
-from video_editing_agent.domain.review.model import ReviewDisposition, ReviewVerdict
+from video_editing_agent.domain.review.model import (
+    ReviewCorrectionRoute,
+    ReviewDisposition,
+    ReviewVerdict,
+)
 from video_editing_agent.domain.script.model import ScriptPlan
 from video_editing_agent.domain.shooting.model import ProductionConstraints, ShootingPlan
 
@@ -291,7 +295,7 @@ class EditingProductOperations:
     build_edl: Callable[[EditPlan, tuple[ResolutionDecision, ...], bool], EDL]
     save_edl: Callable[[EDL], None]
     render: Callable[[EDL, Path, EditingOutputProfile], RenderResult]
-    review: Callable[[EntityRevisionRef, RenderResult, bool], ReviewVerdict]
+    review: Callable[[EntityRevisionRef, RenderResult, bool, int], ReviewVerdict]
     prepare_music: (
         Callable[
             [
@@ -354,6 +358,14 @@ def _diagnostic(exc: Exception) -> str:
         message,
     )
     return type(exc).__name__ if not safe else f"{type(exc).__name__}: {safe}"
+
+
+def _review_diagnostic(verdict: ReviewVerdict) -> str:
+    problems = "; ".join(
+        f"{finding.finding_id}: {finding.problem}" for finding in verdict.report.findings
+    )
+    route = verdict.correction_route.value
+    return route if not problems else f"{route}: {problems}"
 
 
 class PlanningProductFlow:
@@ -664,7 +676,36 @@ class EditingProductFlow:
                 edl_ref,
                 render_result,
                 request.requires_audible_output,
+                0,
             )
+            if (
+                verdict.disposition is ReviewDisposition.CORRECTION_REQUIRED
+                and verdict.correction_route is ReviewCorrectionRoute.RERENDER_SAME_EDL
+            ):
+                emit(
+                    ProductFlowEvent(
+                        ProductFlowStage.RENDERING,
+                        "Retrying the same canonical EDL once after renderer failure",
+                        ProductFlowEventLevel.WARNING,
+                    )
+                )
+                current_stage = ProductFlowStage.RENDERING
+                render_result = self._operations.render(
+                    edl, request.output_path, request.output_profile
+                )
+                emit(
+                    ProductFlowEvent(
+                        ProductFlowStage.REVIEW_QC,
+                        "Reviewing delivered output after bounded same-EDL retry",
+                    )
+                )
+                current_stage = ProductFlowStage.REVIEW_QC
+                verdict = self._operations.review(
+                    edl_ref,
+                    render_result,
+                    request.requires_audible_output,
+                    1,
+                )
         except Exception as exc:
             diagnostic = _diagnostic(exc)
             emit(
@@ -706,7 +747,7 @@ class EditingProductFlow:
                 candidate_path,
                 verdict,
                 tuple(events),
-                verdict.correction_route.value,
+                _review_diagnostic(verdict),
             )
 
         artifact = render_result.artifact
