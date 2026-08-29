@@ -186,7 +186,9 @@ _TEXT = {
         "splash": "正在启动视频剪辑智能体…",
         "check_updates": "检查更新",
         "update_available_title": "发现新版本",
-        "update_available_message": "当前版本 v{current}\n最新版本 v{latest}\n\n是否打开更新下载页？",
+        "update_available_message": (
+            "当前版本 v{current}\n最新版本 v{latest}\n\n是否打开更新下载页？"
+        ),
         "up_to_date_title": "已是最新版本",
         "up_to_date_message": "当前版本 v{current} 已是最新版本。",
         "update_check_failed_title": "检查更新失败",
@@ -316,7 +318,10 @@ _TEXT = {
         "splash": "Starting Video Editing Agent…",
         "check_updates": "Check for Updates",
         "update_available_title": "Update Available",
-        "update_available_message": "Current version v{current}\nLatest version v{latest}\n\nOpen the update download page?",
+        "update_available_message": (
+            "Current version v{current}\nLatest version v{latest}\n\n"
+            "Open the update download page?"
+        ),
         "up_to_date_title": "Up to Date",
         "up_to_date_message": "Version v{current} is up to date.",
         "update_check_failed_title": "Update Check Failed",
