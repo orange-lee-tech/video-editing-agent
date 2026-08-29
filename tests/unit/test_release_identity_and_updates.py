@@ -46,9 +46,9 @@ def test_release_version_identity_is_0_1_1_and_packaging_mirrors_it() -> None:
     assert "steps.source.outputs.version" in workflow
     assert "VideoEditingAgent-Setup-0.1.0.exe" not in workflow
 
-    desktop = Path(
-        "src/video_editing_agent/adapters/product/tkinter_app.py"
-    ).read_text(encoding="utf-8")
+    desktop = Path("src/video_editing_agent/adapters/product/tkinter_app.py").read_text(
+        encoding="utf-8"
+    )
     assert "APP_VERSION" in desktop
     assert "check_updates" in desktop
 
