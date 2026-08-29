@@ -1,148 +1,109 @@
 # Current Work Order
 
 **ID:** R0.12-STAGE-A-FINAL-CLOSURE-002  
-**Status:** ACTIVE — FINAL HUMAN GATE PATCH  
+**Status:** ACTIVE — FINAL HUMAN GATE  
 **Phase:** R0.12 — Stage-A final closure  
-**Mode:** BOUNDED INSTALLED-PRODUCT DEFECT REPAIR + REPLACEMENT RC  
+**Mode:** FINAL ORDINARY-USER WINDOWS ACCEPTANCE  
 **Superseded Human candidate:** 80ab920b19c1ed1aebef4fa9b7eab05d6a509f38 / 0.1.0  
-**Updated:** 2026-08-29
+**Accepted replacement source:** 71d7b7b46fa819f87aba785cefcc2bcf97ab7a46 / 0.1.1  
+**Updated:** 2026-08-30
 
 ## Objective
 
-Repair only the release blockers exposed by the installed 0.1.0 ordinary-user Human Gate, add minimum release identity/update discoverability for already distributed installations, then build a replacement Windows RC and repeat the final Human Gate.
+Perform the final ordinary-user Human Gate on the exact 0.1.1 Windows installer that already passed engineering verification.
 
-Do not reopen broad architecture or 2.0 capabilities.
+Do not reopen broad architecture, unrelated polish or 2.0 capabilities unless the Human Gate finds a material release blocker.
 
-## Human evidence
+## Release candidate authority
 
-Planning:
+- Version: **0.1.1**
+- Source: `71d7b7b46fa819f87aba785cefcc2bcf97ab7a46`
+- Windows RC run: `33262066851`
+- Installer: `VideoEditingAgent-Setup-0.1.1.exe`
+- SHA-256: `fc93f83b0543a1163a44796c7f430dcc68ff5f7a5c9112134b84f5dd15cae6ea`
+- Private prerelease tag: `v0.1.1-rc-71d7b7b`
+- Release asset ID: `535433505`
+- Release page: `https://github.com/orange-lee-tech/video-editing-agent/releases/tag/v0.1.1-rc-71d7b7b`
+- Direct asset: `https://github.com/orange-lee-tech/video-editing-agent/releases/download/v0.1.1-rc-71d7b7b/VideoEditingAgent-Setup-0.1.1.exe`
 
-- first run was rejected by factual review for an unsupported portability implication;
-- after restart/network recovery, Planning generated successfully;
-- treat the rejection as expected safety behavior, not as permission to weaken factual review.
+## Engineering verification already complete
 
-Editing:
+The replacement candidate passed:
 
-- real media understanding and public-music preparation progressed successfully;
-- edit decision, retrieval/resolution, EDL/audio/subtitle assembly were reached;
-- the installed application repeatedly flashed terminal windows during media/runtime operations;
-- rendering/review ended in rerender_same_edl rather than a final deliverable PASS;
-- current UI presentation did not expose the underlying renderer diagnostic clearly enough.
+1. repository Quality Gate and regression suite;
+2. Windows packaged windowed-GUI smoke;
+3. exact CPython 3.12.13 packaging environment;
+4. verified Inno Setup 7.1.0 acquisition;
+5. guided 0.1.1 Setup.exe compilation;
+6. Planning-only installation;
+7. installed Planning launcher;
+8. Planning-only → Full upgrade;
+9. Full launcher;
+10. same-version Full repair;
+11. uninstall;
+12. external Workspace preservation;
+13. durable private prerelease publication.
 
-## Mandatory patch items
+The full installer lifecycle reported:
 
-### A. Windows child-process UX
+`Installer lifecycle smoke PASSED.`
 
-Introduce one reusable Windows process-launch policy for external media/runtime tools.
+## Accepted 0.1.1 repair scope
 
-Requirements:
+### Windows child-process UX
 
-- FFmpeg/ffprobe and other child CLI processes launched from the windowed GUI must not create visible console windows;
-- preserve stdout/stderr capture and exit codes;
-- do not use shell=True as a hiding workaround;
-- source/dev CLI behavior may remain diagnosable;
-- tests must prove Windows no-console flags are applied through the shared helper instead of ad-hoc duplication.
+A shared Windows no-console creation policy now applies to FFmpeg/ffprobe/media subprocesses used by the GUI while retaining stdout/stderr and exit-code diagnostics.
 
-Known affected call sites include media ingest, frame extraction, shot decoding, Renderer and rendered-media QC.
+### Same-EDL repair
 
-### B. Renderer/review repair contract
+When Review requests `RERENDER_SAME_EDL`, ProductFlow performs exactly one automatic rerender of the identical canonical EDL and reviews it with `repair_attempt=1`.
 
-Current Review policy permits one rerender_same_edl repair attempt, but the product flow does not execute it.
+### Source-audio robustness
 
-Requirements:
+Selected source clips without audio streams no longer fabricate SOURCE_AUDIO mappings. Original audio remains preserved when real source audio exists.
 
-- when Review returns RERENDER_SAME_EDL, perform exactly one same-EDL rerender using the identical canonical EDL and output spec;
-- review the second render with repair_attempt=1;
-- never regenerate EditPlan/ResolutionDecision/EDL for this route;
-- if the retry fails, surface the exact typed renderer/environment diagnostic and escalate rather than looping.
+### Diagnostics
 
-### C. Source-audio robustness
+The product presentation now distinguishes missing verified output from a post-render rejected candidate and surfaces typed renderer/QC problem details.
 
-Reproduce the real render failure against assets with and without audio streams.
+### Version identity
 
-The current code records ingest audio_channels but constructs SOURCE_AUDIO for every grounded video selection and validates ORIGINAL voice as if each selection must have source audio.
+The installed desktop visibly identifies **v0.1.1**, and packaging/version tests guard against drift.
 
-If reproduction confirms this causes FFmpeg a:0 failures:
+### Update discovery
 
-- only map source audio where the exact underlying asset actually exposes audio;
-- preserve original audio where available;
-- allow silent source clips without fabricating audio;
-- let approved BGM satisfy audible-output intent when applicable;
-- keep canonical evidence explicit and deterministic.
+The application has asynchronous fail-open startup update discovery plus an explicit Check for Updates action.
 
-Do not weaken audio provenance or fabricate speech.
+Stable manifest:
 
-### D. Actionable product diagnostics
+`https://orange-lee-tech.github.io/homepages/video-editing-agent/stable/latest.json`
 
-When render/review cannot deliver:
-
-- distinguish render execution/output-verification failure from post-render QC failure;
-- display the underlying typed diagnostic in the desktop result log/dialog;
-- do not say rendering completed when no verified RenderArtifact exists;
-- keep any real candidate file clearly labelled as candidate/not approved.
-
-### E. Version identity
-
-Establish one authoritative application version source.
-
-Requirements:
-
-- desktop header/about/settings visibly shows version, e.g. v0.1.1;
-- installed window may include the version in its title;
-- installer AppVersion, installer filename/version resource and desktop runtime version must derive from the same source;
-- retain build/source SHA as secondary diagnostic identity, not as the user-facing version;
-- add regression tests against version drift.
-
-The replacement patch version must be greater than 0.1.0.
-
-### F. Update discovery
-
-The private source repository is not a valid unauthenticated update endpoint for ordinary users.
-
-Implement a small provider-neutral update manifest/check seam:
-
-- stable-channel manifest is public and contains version, published_at, release notes, download/distribution URL, installer SHA-256 and mandatory/recommended flag;
-- startup check is asynchronous/non-blocking and rate-limited/cached;
-- provide explicit Check for Updates action;
-- if newer version exists, show current → latest and a clear download/update action;
-- network/manifest failure must never block Planning or Editing;
-- no API keys or GitHub repository credentials may be embedded in the app.
-
-Silent background installation, delta patching and rollback machinery are not required here.
-
-## Verification
-
-Before a new installer is offered to the Product Owner:
-
-1. focused unit/regression tests for A–F;
-2. full repository quality gate;
-3. Windows packaged GUI smoke;
-4. real child-process no-console probe;
-5. representative render with a mixture of source clips with and without audio, if supported by fixtures;
-6. same-EDL retry regression proving one bounded retry;
-7. replacement Windows Release Candidate workflow;
-8. Planning-only → Full upgrade from installed 0.1.0 where practical;
-9. same-version repair/uninstall/Workspace preservation.
+Update-check failure never blocks Planning or Editing.
 
 ## Final Human Gate
 
-Install the replacement version as an ordinary user and verify:
+Use the exact installer above as an ordinary Windows user and verify:
 
-- visible version identity;
-- update-discovery UI is understandable and non-blocking;
-- no terminal windows flash during normal Editing;
-- representative Planning succeeds without weakening factual safety;
-- representative real-footage Editing produces an approved final MP4;
-- actionable diagnostics appear if a deliberate failure is induced;
-- upgrade/uninstall preserve Workspace and original media.
+1. installer opens and Full installation completes normally;
+2. installed application visibly shows **v0.1.1**;
+3. representative Planning succeeds while factual safety remains intact;
+4. representative real-footage Editing produces an approved final MP4;
+5. no terminal/console windows flash during ordinary media processing/rendering;
+6. update-check UI is understandable and non-blocking;
+7. if Editing fails deliberately or naturally, the result exposes an actionable diagnostic rather than a misleading generic message;
+8. uninstall/upgrade behavior does not damage the external Workspace or original media.
+
+Cosmetic wishes and 2.0 capabilities are backlog items, not Stage-A blockers.
 
 ## Exit condition
 
-Only after the replacement installer passes engineering verification and the Product Owner's ordinary-user Human Gate:
+If the Product Owner accepts this exact 0.1.1 installer without a material blocker:
 
-- record exact source SHA, version, workflow run, installer SHA-256 and update-manifest identity;
-- set all Stage-A product gates to PASS;
-- move structural progress 95% → 100%;
-- close this work order.
+- record durable Human evidence;
+- set Planning and Editing product gates to PASS;
+- set Windows release delivery gate to PASS;
+- set Stage-A completion gate to PASS;
+- move structural progress directly **95% → 100%**;
+- close this work order and R0.12.
 
-Do not polish unrelated backlog items before closure.
+If a material blocker appears, freeze unrelated work and repair only the smallest responsible surface.
