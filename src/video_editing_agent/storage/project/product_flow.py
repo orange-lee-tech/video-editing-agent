@@ -1063,8 +1063,16 @@ def build_editing_product_flow(
         edl_ref: EntityRevisionRef,
         render_result: RenderResult,
         requires_audible_output: bool,
+        repair_attempt: int,
     ) -> ReviewVerdict:
-        return review_runtime.review(ReviewRequest(edl_ref, render_result, requires_audible_output))
+        return review_runtime.review(
+            ReviewRequest(
+                edl_ref,
+                render_result,
+                requires_audible_output,
+                repair_attempt=repair_attempt,
+            )
+        )
 
     return EditingProductFlow(
         EditingProductOperations(
