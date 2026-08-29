@@ -228,7 +228,7 @@ def test_editing_flow_replans_once_and_continues_with_later_edit_plan_revision(
         build_edl,
         lambda edl: None,
         lambda edl, path, profile: _render(edl, path),
-        lambda edl_ref, rendered, audible: _review(edl_ref),
+        lambda edl_ref, rendered, audible, repair_attempt: _review(edl_ref),
         recover_edit_plan=recover,
     )
 
@@ -291,7 +291,7 @@ def test_editing_flow_second_unresolved_failure_names_missing_coverage_not_slot_
         lambda plan, decisions, audible: downstream.append("edl") or _edl(plan),
         lambda edl: downstream.append("save"),
         lambda edl, path, profile: downstream.append("render") or _render(edl, path),
-        lambda edl_ref, rendered, audible: _review(edl_ref),
+        lambda edl_ref, rendered, audible, repair_attempt: _review(edl_ref),
         recover_edit_plan=lambda plan, unresolved: recovered,
     )
 
