@@ -61,7 +61,7 @@ class InvalidResponseProvider:
         raise VisualProviderResponseError("invalid schema")
 
 
-def test_transient_failures_retry_with_linear_backoff() -> None:
+def test_transient_failures_retry_with_exponential_backoff() -> None:
     provider = FlakyProvider(failures=2)
     delays: list[float] = []
     wrapped = RetryingVisualUnderstandingPort(
@@ -101,3 +101,36 @@ def test_response_failure_is_not_retried() -> None:
         raise AssertionError("expected VisualProviderResponseError")
 
     assert provider.calls == 1
+
+
+def test_default_retry_budget_waits_through_short_provider_spikes() -> None:
+    provider = FlakyProvider(failures=4)
+    delays: list[float] = []
+    wrapped = RetryingVisualUnderstandingPort(provider, sleeper=delays.append)
+
+    assert wrapped.analyze(request()).summary == "ok"
+    assert provider.calls == 5
+    assert delays == [2.0, 4.0, 8.0, 16.0]
+
+
+def test_exhausted_retry_budget_preserves_transient_type_and_context() -> None:
+    provider = FlakyProvider(failures=5)
+    wrapped = RetryingVisualUnderstandingPort(provider, sleeper=lambda _: None)
+
+    try:
+        wrapped.analyze(request())
+    except VisualProviderTransientError as exc:
+        assert "automatic retry budget exhausted after 5 attempts" in str(exc)
+    else:
+        raise AssertionError("expected VisualProviderTransientError")
+
+    assert provider.calls == 5
+
+
+def test_retry_policy_rejects_local_cap_below_base_delay() -> None:
+    try:
+        VisualRetryPolicy(base_delay_seconds=2.0, max_local_delay_seconds=1.0)
+    except ValueError as exc:
+        assert "must be >= base_delay_seconds" in str(exc)
+    else:
+        raise AssertionError("expected ValueError")
