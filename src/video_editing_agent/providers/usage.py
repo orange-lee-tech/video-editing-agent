@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import math
+import sys
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -16,6 +18,23 @@ class TokenUsage:
     reasoning_tokens: int = 0
     cached_input_tokens: int = 0
     source: str = "reported"
+
+
+@dataclass(frozen=True, slots=True)
+class TokenUsageSnapshot:
+    usage: TokenUsage
+    provider_session_tokens: int
+    process_session_tokens: int
+
+
+TokenUsageSink = Callable[[TokenUsageSnapshot], None]
+_TOKEN_USAGE_LOCAL = threading.local()
+
+
+def set_thread_token_usage_sink(sink: TokenUsageSink | None) -> TokenUsageSink | None:
+    previous = getattr(_TOKEN_USAGE_LOCAL, "sink", None)
+    _TOKEN_USAGE_LOCAL.sink = sink
+    return previous
 
 
 class ChatCompletionTransport(Protocol):
@@ -140,11 +159,12 @@ class ConsoleTokenUsageMeter:
         self._process_total = 0
         self._provider_totals: dict[str, int] = {}
 
-    def record(self, usage: TokenUsage) -> None:
+    def record(self, usage: TokenUsage) -> TokenUsageSnapshot:
         with self._lock:
             self._process_total += usage.total_tokens
             provider_total = self._provider_totals.get(usage.provider, 0) + usage.total_tokens
             self._provider_totals[usage.provider] = provider_total
+            snapshot = TokenUsageSnapshot(usage, provider_total, self._process_total)
             details: list[str] = []
             if usage.cached_input_tokens:
                 details.append(f"cached_in={usage.cached_input_tokens:,}")
@@ -152,14 +172,16 @@ class ConsoleTokenUsageMeter:
                 details.append(f"reasoning={usage.reasoning_tokens:,}")
             suffix = "" if not details else " " + " ".join(details)
             estimate = "≈" if usage.source != "reported" else ""
-            print(
-                f"[AI usage] {usage.provider}/{usage.model} "
-                f"input={estimate}{usage.input_tokens:,} "
-                f"output={estimate}{usage.output_tokens:,} "
-                f"total={estimate}{usage.total_tokens:,}{suffix} "
-                f"provider_session={provider_total:,} process_session={self._process_total:,} "
-                f"source={usage.source}"
-            )
+            if sys.stdout is not None:
+                print(
+                    f"[AI usage] {usage.provider}/{usage.model} "
+                    f"input={estimate}{usage.input_tokens:,} "
+                    f"output={estimate}{usage.output_tokens:,} "
+                    f"total={estimate}{usage.total_tokens:,}{suffix} "
+                    f"provider_session={provider_total:,} process_session={self._process_total:,} "
+                    f"source={usage.source}"
+                )
+            return snapshot
 
 
 _CONSOLE_METER = ConsoleTokenUsageMeter()
@@ -181,7 +203,10 @@ def report_token_usage(
             request_payload=request_payload,
         )
         if usage is not None:
-            _CONSOLE_METER.record(usage)
+            snapshot = _CONSOLE_METER.record(usage)
+            sink = getattr(_TOKEN_USAGE_LOCAL, "sink", None)
+            if sink is not None:
+                sink(snapshot)
     except (TypeError, ValueError):
         return
 
