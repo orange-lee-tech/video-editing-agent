@@ -4,68 +4,77 @@
 **Development stage:** STRUCTURAL_CONSTRUCTION  
 **Structural progress:** 95%  
 **Current phase:** R0.12 — Stage-A final ordinary-user Windows acceptance  
-**Engineering state:** STAGE_A_FINAL_INSTALLER_HUMAN_GATE  
+**Engineering state:** STAGE_A_FINAL_HUMAN_GATE_FAILED_PATCH_ACTIVE  
 **Updated:** 2026-08-29  
-**Active work order:** `R0.12-STAGE-A-FINAL-CLOSURE-002`
+**Active work order:** R0.12-STAGE-A-FINAL-CLOSURE-002
 
 ## Progress truth
 
-Stage-A source construction and replacement installer engineering are complete for the current final candidate.
+The 0.1.0 installer built from source 80ab920b19c1ed1aebef4fa9b7eab05d6a509f38 passed automated Windows lifecycle engineering but failed the real installed-product Human Gate.
 
-Accepted source:
+Planning recovered and completed after the machine restart/network recovery. The first Planning rejection was a factual-safety rejection of an unsupported portability implication and is not itself a release defect.
 
-`80ab920b19c1ed1aebef4fa9b7eab05d6a509f38`
+Editing remains a release blocker because the installed application:
 
-Final replacement Windows RC:
+- repeatedly flashes child terminal windows during media/runtime work;
+- ends the representative real-footage flow in rerender_same_edl rather than final PASS;
+- hides the actionable renderer diagnostic behind a generic correction presentation.
 
-- workflow run `33243959576`;
-- `VideoEditingAgent-Setup-0.1.0.exe`;
-- Setup.exe SHA-256 `15978b647dec198996b747ea41fdb77fce61c8fe59261cd983c26ae0c74e34da`;
-- artifact `VideoEditingAgent-Setup-80ab920b19c1ed1aebef4fa9b7eab05d6a509f38`;
-- artifact ID `9712373668`;
-- all automated build/package/install/upgrade/repair/uninstall lifecycle gates PASS.
+The installed UI also lacks visible version identity and an update-discovery path for already distributed copies.
 
-The earlier RC from `7753e5b...` is historical evidence only and is superseded for final acceptance.
+## Current technical findings
+
+- Internal FFmpeg/ffprobe child processes are launched without a shared Windows no-console policy.
+- Review permits one same-EDL repair attempt, but ProductFlow currently does not execute that retry.
+- Current source-audio construction assumes source audio for each selected video segment even though ingest metadata can identify assets without audio; this is a priority reproduction target for the render failure.
+- Application version 0.1.0 is duplicated between project/package inputs and installer inputs instead of being one authoritative source.
 
 ## Current gates
 
-- Planning source path after Human Gate repair: **ACCEPTED FOR FINAL INSTALLER HUMAN GATE**.
-- Editing visual-first source path after Human Gate repair: **ACCEPTED FOR FINAL INSTALLER HUMAN GATE**.
-- Windowed GUI / diagnostics CLI packaging split: **PASS**.
-- Installer pre-initialization repair: **PASS**.
-- Packaged GUI smoke wait semantics: **PASS**.
-- Review-blocked candidate visibility/correction presentation: **PASS AT SOURCE / FINAL HUMAN CHECK PENDING**.
-- Task-local AI usage telemetry: **PASS AT SOURCE / FINAL HUMAN CHECK PENDING**.
-- Replacement Windows packaging/runtime foundation: **PASS**.
-- Guided Setup.exe engineering lifecycle: **PASS**.
-- Stage-A completion gate: **OPEN ONLY FOR FINAL ORDINARY-USER HUMAN GATE**.
+- Planning installed path: **HUMAN RUN RECOVERED; FINAL PATCH REGRESSION REQUIRED**.
+- Editing visual-first installed path: **HUMAN FAIL — PATCH REQUIRED**.
+- Child-process desktop behavior: **FAIL — TERMINAL FLASHING**.
+- Renderer/review correction behavior: **FAIL — NO DELIVERABLE PASS / DIAGNOSTIC TOO WEAK**.
+- Version visibility: **MISSING**.
+- Update discovery for distributed installs: **MISSING**.
+- Previous 0.1.0 automated installer lifecycle: **ENGINEERING PASS, HUMAN SUPERSEDED**.
+- Stage-A completion gate: **OPEN FOR PATCH + REPLACEMENT RC + FINAL HUMAN GATE**.
 
-Therefore structural progress remains **95%**. The project policy explicitly forbids artificial percentage increments.
+Therefore structural progress remains **95%**.
 
 ## Final path to 100%
 
 ```text
-exact 80ab920... Setup.exe RC
-→ ordinary Windows install
-→ installed Planning Human check
-→ installed visual-first Editing Human check
-→ confirm repaired desktop behavior
-→ uninstall / Workspace preservation observation
+bounded release-blocker patch
+→ replacement version > 0.1.0
+→ CI
+→ Windows Release Candidate workflow
+→ install/upgrade/repair/uninstall PASS
+→ ordinary-user Planning regression
+→ ordinary-user visual-first Editing PASS
+→ confirm no child terminal flashes
+→ confirm visible version/update discovery
 → durable Human evidence
 → Stage-A 100%
 ```
 
-If the Product Owner accepts the exact replacement RC, move directly to 100% and close R0.12 Stage-A.
+## Update-distribution direction
+
+Because the source repository is private, update discovery must not depend on authenticated access to this repository.
+
+Use a public, source-free stable-channel manifest for version metadata and release notice. The desktop app may check it asynchronously at startup and on explicit user request. Offline/update-check failure must never block core work.
+
+A silent self-updater or delta updater remains deferred; the current guided Setup.exe can continue to perform explicit upgrades using the stable AppId.
 
 ## Non-blocking follow-up
 
-Do not reopen these before Stage-A closure:
+Do not broaden this patch into:
 
-- dual-track audio/video speech reconstruction;
+- advanced speech reconstruction;
 - translated/bilingual subtitles;
 - cross-language narration/TTS;
 - Remote Reference URL;
-- Web Setup / delta updates;
-- cosmetic UI backlog that does not prevent ordinary use.
+- delta/Web Setup auto-updater;
+- unrelated cosmetic redesign.
 
-The Inno Setup commercial-use licensing policy remains a release-management item before commercial distribution, not a blocker to the present engineering/Human RC.
+The Inno Setup commercial-use licensing policy remains a release-management item before commercial distribution.
