@@ -4,100 +4,104 @@
 **Status:** ACTIVE — FINAL HUMAN GATE  
 **Phase:** R0.12 — Stage-A final closure  
 **Mode:** FINAL ORDINARY-USER WINDOWS ACCEPTANCE  
-**Superseded Human candidate:** 80ab920b19c1ed1aebef4fa9b7eab05d6a509f38 / 0.1.0  
-**Accepted replacement source:** 71d7b7b46fa819f87aba785cefcc2bcf97ab7a46 / 0.1.1  
+**Superseded candidate:** 0.1.1 / 71d7b7b46fa819f87aba785cefcc2bcf97ab7a46  
+**Accepted replacement source:** eadbaa74c686f9fe526cb1d3eab64dde21c94d84 / 0.1.2  
 **Updated:** 2026-08-30
 
 ## Objective
 
-Perform the final ordinary-user Human Gate on the exact 0.1.1 Windows installer that already passed engineering verification.
+Perform the final ordinary-user Human Gate on the exact 0.1.2 Windows installer that passed engineering verification after the 0.1.1 Human Gate exposed insufficient tolerance for a retryable Gemini HTTP 503 high-demand spike.
 
-Do not reopen broad architecture, unrelated polish or 2.0 capabilities unless the Human Gate finds a material release blocker.
+Do not reopen broad architecture or unrelated 2.0 capabilities.
 
-## Release candidate authority
+## Human evidence retained from 0.1.1
 
-- Version: **0.1.1**
-- Source: `71d7b7b46fa819f87aba785cefcc2bcf97ab7a46`
-- Windows RC run: `33262066851`
-- Installer: `VideoEditingAgent-Setup-0.1.1.exe`
-- SHA-256: `fc93f83b0543a1163a44796c7f430dcc68ff5f7a5c9112134b84f5dd15cae6ea`
-- Private prerelease tag: `v0.1.1-rc-71d7b7b`
-- Release asset ID: `535433505`
-- Release page: `https://github.com/orange-lee-tech/video-editing-agent/releases/tag/v0.1.1-rc-71d7b7b`
-- Direct asset: `https://github.com/orange-lee-tech/video-editing-agent/releases/download/v0.1.1-rc-71d7b7b/VideoEditingAgent-Setup-0.1.1.exe`
+Planning:
 
-## Engineering verification already complete
+- installed Planning completed successfully;
+- the earlier factual-safety review behavior remains accepted.
 
-The replacement candidate passed:
+Editing:
 
-1. repository Quality Gate and regression suite;
-2. Windows packaged windowed-GUI smoke;
-3. exact CPython 3.12.13 packaging environment;
-4. verified Inno Setup 7.1.0 acquisition;
-5. guided 0.1.1 Setup.exe compilation;
-6. Planning-only installation;
-7. installed Planning launcher;
-8. Planning-only → Full upgrade;
-9. Full launcher;
-10. same-version Full repair;
-11. uninstall;
-12. external Workspace preservation;
-13. durable private prerelease publication.
+- local input validation passed;
+- media ingest/understanding began normally;
+- multiple Gemini visual-understanding requests completed successfully;
+- a later request returned retryable HTTP 503 because the model was experiencing high demand;
+- the installed product surfaced a typed `VisualProviderTransientError`.
 
-The full installer lifecycle reported:
+This evidence does not indicate a Renderer or local media-runtime regression.
+
+## 0.1.2 release candidate authority
+
+- Version: **0.1.2**
+- Source: `eadbaa74c686f9fe526cb1d3eab64dde21c94d84`
+- Windows RC run: `33265346143`
+- Installer: `VideoEditingAgent-Setup-0.1.2.exe`
+- SHA-256: `32838e2748ae60f0059d461cccadbc5dc971ae3a9d2fc49922f3d9d8821f8c43`
+- Private prerelease tag: `v0.1.2-rc-eadbaa7`
+- Release asset ID: `535517911`
+- Release page: `https://github.com/orange-lee-tech/video-editing-agent/releases/tag/v0.1.2-rc-eadbaa7`
+- Direct asset: `https://github.com/orange-lee-tech/video-editing-agent/releases/download/v0.1.2-rc-eadbaa7/VideoEditingAgent-Setup-0.1.2.exe`
+
+## Engineering verification complete
+
+0.1.2 passed:
+
+1. repository Quality Gate;
+2. visual transient retry regression tests;
+3. version identity/update tests;
+4. Windows packaged GUI smoke;
+5. exact CPython 3.12.13 packaging environment;
+6. verified Inno Setup 7.1.0 acquisition;
+7. guided Setup.exe compilation;
+8. Planning-only installation;
+9. installed Planning launcher;
+10. Planning-only → Full upgrade;
+11. Full launcher;
+12. same-version Full repair;
+13. uninstall and external Workspace preservation;
+14. durable private prerelease publication.
+
+The installer lifecycle reported:
 
 `Installer lifecycle smoke PASSED.`
 
-## Accepted 0.1.1 repair scope
+## 0.1.2 transient-provider policy
 
-### Windows child-process UX
+Only explicit `VisualProviderTransientError` failures are retried.
 
-A shared Windows no-console creation policy now applies to FFmpeg/ffprobe/media subprocesses used by the GUI while retaining stdout/stderr and exit-code diagnostics.
+Default budget:
 
-### Same-EDL repair
+- attempt 1 fails → wait 2 seconds;
+- attempt 2 fails → wait 4 seconds;
+- attempt 3 fails → wait 8 seconds;
+- attempt 4 fails → wait 16 seconds;
+- attempt 5 failing ends the bounded retry budget.
 
-When Review requests `RERENDER_SAME_EDL`, ProductFlow performs exactly one automatic rerender of the identical canonical EDL and reviews it with `repair_attempt=1`.
+Provider-supplied RetryInfo overrides a shorter local delay.
 
-### Source-audio robustness
+Non-retryable visual response/schema errors are not retried.
 
-Selected source clips without audio streams no longer fabricate SOURCE_AUDIO mappings. Original audio remains preserved when real source audio exists.
-
-### Diagnostics
-
-The product presentation now distinguishes missing verified output from a post-render rejected candidate and surfaces typed renderer/QC problem details.
-
-### Version identity
-
-The installed desktop visibly identifies **v0.1.1**, and packaging/version tests guard against drift.
-
-### Update discovery
-
-The application has asynchronous fail-open startup update discovery plus an explicit Check for Updates action.
-
-Stable manifest:
-
-`https://orange-lee-tech.github.io/homepages/video-editing-agent/stable/latest.json`
-
-Update-check failure never blocks Planning or Editing.
+When all attempts fail, the error remains typed as transient and explicitly says the automatic retry budget was exhausted.
 
 ## Final Human Gate
 
-Use the exact installer above as an ordinary Windows user and verify:
+Install the exact 0.1.2 candidate and verify:
 
-1. installer opens and Full installation completes normally;
-2. installed application visibly shows **v0.1.1**;
-3. representative Planning succeeds while factual safety remains intact;
-4. representative real-footage Editing produces an approved final MP4;
-5. no terminal/console windows flash during ordinary media processing/rendering;
-6. update-check UI is understandable and non-blocking;
-7. if Editing fails deliberately or naturally, the result exposes an actionable diagnostic rather than a misleading generic message;
-8. uninstall/upgrade behavior does not damage the external Workspace or original media.
+1. application visibly shows v0.1.2;
+2. brief representative Planning regression remains acceptable;
+3. representative real-footage Editing progresses through visual understanding and produces an approved final MP4;
+4. no terminal windows flash during normal processing/rendering;
+5. a short provider-demand spike is tolerated without immediate task failure when it clears inside the retry window;
+6. persistent provider unavailability still terminates cleanly with an actionable diagnostic rather than hanging indefinitely;
+7. update-check UI remains non-blocking;
+8. Workspace/original media remain safe.
 
-Cosmetic wishes and 2.0 capabilities are backlog items, not Stage-A blockers.
+Do not require the Product Owner to deliberately reproduce a provider outage if the real provider is healthy during the run. The successful real-footage Editing outcome plus the automated retry regression evidence is sufficient unless another transient failure occurs naturally.
 
 ## Exit condition
 
-If the Product Owner accepts this exact 0.1.1 installer without a material blocker:
+If the exact 0.1.2 installer passes ordinary-user acceptance without a material blocker:
 
 - record durable Human evidence;
 - set Planning and Editing product gates to PASS;
@@ -107,3 +111,5 @@ If the Product Owner accepts this exact 0.1.1 installer without a material block
 - close this work order and R0.12.
 
 If a material blocker appears, freeze unrelated work and repair only the smallest responsible surface.
+
+Broad resumable-task/checkpoint deduplication remains backlog unless Human Gate demonstrates it is required for release closure.
