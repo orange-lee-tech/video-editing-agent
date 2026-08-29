@@ -5,8 +5,10 @@ from fractions import Fraction
 from video_editing_agent.application.use_cases.product_flow import (
     EditingProductResult,
     PlanningProductResult,
+    ProductFlowOutcome,
 )
 from video_editing_agent.domain.common.media_time import MediaTime
+from video_editing_agent.providers.usage import TokenUsageSnapshot
 from video_editing_agent.storage.project.workspace import ProjectWorkspace
 
 _ROLE_ZH = {
@@ -86,6 +88,62 @@ def _motion_label(value: str | None, *, zh: bool) -> str:
     return _MOTION_ZH.get(value.casefold(), value) if zh else value
 
 
+def token_usage_presentation(snapshot: TokenUsageSnapshot, language: str = "en") -> str:
+    usage = snapshot.usage
+    estimated = "≈" if usage.source != "reported" else ""
+    if language == "zh-CN":
+        details = []
+        if usage.cached_input_tokens:
+            details.append(f"缓存输入={usage.cached_input_tokens:,}")
+        if usage.reasoning_tokens:
+            details.append(f"推理={usage.reasoning_tokens:,}")
+        suffix = "" if not details else " " + " ".join(details)
+        return (
+            f"[AI 用量] {usage.provider}/{usage.model} "
+            f"输入={estimated}{usage.input_tokens:,} "
+            f"输出={estimated}{usage.output_tokens:,} "
+            f"合计={estimated}{usage.total_tokens:,}{suffix} "
+            f"该提供方累计={snapshot.provider_session_tokens:,} "
+            f"本次程序累计={snapshot.process_session_tokens:,}"
+        )
+    details = []
+    if usage.cached_input_tokens:
+        details.append(f"cached_in={usage.cached_input_tokens:,}")
+    if usage.reasoning_tokens:
+        details.append(f"reasoning={usage.reasoning_tokens:,}")
+    suffix = "" if not details else " " + " ".join(details)
+    return (
+        f"[AI usage] {usage.provider}/{usage.model} "
+        f"input={estimated}{usage.input_tokens:,} "
+        f"output={estimated}{usage.output_tokens:,} "
+        f"total={estimated}{usage.total_tokens:,}{suffix} "
+        f"provider_session={snapshot.provider_session_tokens:,} "
+        f"process_session={snapshot.process_session_tokens:,}"
+    )
+
+
+def _review_correction_summary(result: EditingProductResult, *, zh: bool) -> str:
+    assert result.review_verdict is not None
+    route = result.review_verdict.correction_route.value
+    if zh:
+        route_text = {
+            "rerender_same_edl": "渲染结果需要按同一剪辑时间线重新渲染。",
+            "return_to_audio_editorial": "音频质量检查未通过，需要重新处理音频后再交付。",
+            "escalate_owner": "成片技术检查未通过，需要检查渲染或运行环境。",
+        }.get(route, "成片质量检查未通过，需要进一步修正。")
+        lines = ["自动剪辑已完成渲染，但最终质量检查未通过。", route_text]
+        if result.output_path is not None:
+            lines.append(f"候选视频（未通过最终检查）: {result.output_path}")
+        return "\n".join(lines)
+    lines = [
+        "Editing rendered a candidate, but final quality review did not pass.",
+        f"Correction route: {route}",
+    ]
+    if result.output_path is not None:
+        lines.append(f"Candidate video (not approved): {result.output_path}")
+    return "\n".join(lines)
+
+
 def planning_presentation(result: PlanningProductResult, language: str = "en") -> str:
     zh = language == "zh-CN"
     if result.script_plan_ref is None or result.shooting_plan_ref is None:
@@ -153,18 +211,14 @@ def planning_presentation(result: PlanningProductResult, language: str = "en") -
 
 def editing_presentation(result: EditingProductResult, language: str = "en") -> str:
     zh = language == "zh-CN"
-    if result.output_path is not None:
+    if result.outcome is ProductFlowOutcome.COMPLETED and result.output_path is not None:
         return (
             f"{'已完成' if zh else 'Completed'}\n"
             f"{'最终视频' if zh else 'Final MP4'}: {result.output_path}"
         )
     if result.review_verdict is not None:
-        if zh:
-            return "成片检查需要进一步修正。"
-        return (
-            f"Review: {result.review_verdict.disposition.value}\n"
-            f"Correction: {result.review_verdict.correction_route.value}"
-        )
+        return _review_correction_summary(result, zh=zh)
     if zh:
-        return "自动剪辑未生成可交付输出。"
+        detail = result.diagnostic or "没有生成可交付输出"
+        return f"自动剪辑失败：{detail}"
     return f"Editing {result.outcome.value}: {result.diagnostic or 'no output'}"
