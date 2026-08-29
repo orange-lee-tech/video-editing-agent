@@ -70,8 +70,8 @@ from video_editing_agent.application.use_cases.product_flow import (
     VoiceMode,
 )
 from video_editing_agent.domain.edl.subtitle import SubtitleStyleProfile
-from video_editing_agent.providers.usage import set_thread_token_usage_sink
 from video_editing_agent.domain.shooting.model import ProductionConstraints
+from video_editing_agent.providers.usage import set_thread_token_usage_sink
 from video_editing_agent.storage.project.workspace import ProjectWorkspace
 
 _TEXT = {
@@ -546,7 +546,8 @@ def launch() -> int:
         widget_class = event.widget.winfo_class()
         if widget_class in {"Text", "Listbox", "TCombobox"}:
             return None
-        selected = notebook.index(notebook.select())
+        notebook_widget: Any = notebook
+        selected = notebook_widget.index(notebook_widget.select())
         if selected >= len(scroll_canvases):
             return None
         scroll_canvases[selected].yview_scroll(-1 if event.delta > 0 else 1, "units")
