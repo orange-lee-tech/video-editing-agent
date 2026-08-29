@@ -4,18 +4,18 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-29
 current_phase: R0.12
-phase_state: STAGE_A_FINAL_INSTALLER_HUMAN_GATE
+phase_state: STAGE_A_FINAL_HUMAN_GATE_FAILED_PATCH_ACTIVE
 active_work_order: R0.12-STAGE-A-FINAL-CLOSURE-002
 active_construction_branch: NONE
 accepted_code_baseline: 80ab920b19c1ed1aebef4fa9b7eab05d6a509f38
 accepted_engineering_baseline: 80ab920b19c1ed1aebef4fa9b7eab05d6a509f38
-current_main_baseline: 80ab920b19c1ed1aebef4fa9b7eab05d6a509f38
+current_main_baseline: 3633bdeded19458a2572dfa3549c40f4eec27f0d
 latest_human_gate_candidate: 80ab920b19c1ed1aebef4fa9b7eab05d6a509f38
 structural_progress_percent: 95
-stage_a_completion_gate: OPEN_FINAL_ORDINARY_USER_HUMAN_GATE
-core_1_planning_product_gate: FINAL_INSTALLER_HUMAN_GATE_PENDING
-core_2_editing_product_gate: ACCEPTED_SOURCE_FINAL_INSTALLER_HUMAN_GATE_PENDING
-windows_release_delivery_gate: ENGINEERING_PASS_FINAL_HUMAN_GATE_PENDING
+stage_a_completion_gate: HUMAN_FAIL_PATCH_REQUIRED
+core_1_planning_product_gate: HUMAN_RUN_RECOVERED_AFTER_NETWORK_RESTART
+core_2_editing_product_gate: HUMAN_FAIL_RENDER_AND_DESKTOP_PROCESS_DEFECTS
+windows_release_delivery_gate: PATCH_AND_REPLACEMENT_RC_REQUIRED
 codex_release: CLOSED
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
@@ -25,82 +25,84 @@ writer: chatgpt
 
 ## Current accepted truth
 
-The accepted post-Human-Gate repaired 1.0 source is:
+The 0.1.0 installer built from:
 
-`80ab920b19c1ed1aebef4fa9b7eab05d6a509f38`.
+80ab920b19c1ed1aebef4fa9b7eab05d6a509f38
 
-This source contains the final ordinary-user desktop/release repairs discovered after the earlier installer candidate, including:
+passed automated Windows lifecycle engineering, but **failed the real ordinary-user Human Gate** on 2026-08-29.
 
-- true windowed GUI executable separated from the console diagnostics CLI;
-- installer pre-initialization defect removal;
-- packaged GUI smoke that waits for real process completion;
-- editable forms during background work from immutable task snapshots;
-- localized task-local AI token usage telemetry;
-- review-blocked rendered output retained and clearly labelled as a candidate rather than final output;
-- clearer localized failure/correction presentation;
-- public-music candidate naming during rights checks;
-- mouse-wheel scrolling on the active product page.
+Do not report Stage-A complete and do not continue distributing this installer as the final acceptance build.
 
-Ordinary repository CI for this source is green.
+## Human Gate observations
 
-## Final Windows release candidate
+### Planning
 
-Windows Release Candidate run `33243959576` completed successfully for exact source SHA:
+The first Planning attempt was rejected by the factual-safety reviewer because the generated proposal implied portability/going-out suitability from only a 350 ml capacity fact. That rejection is expected safety behavior rather than a release defect.
 
-`80ab920b19c1ed1aebef4fa9b7eab05d6a509f38`.
+After the machine restart and restored network conditions, the Product Owner reports that Planning generated successfully.
 
-Final installer:
+### Editing
 
-- file: `VideoEditingAgent-Setup-0.1.0.exe`;
-- SHA-256: `15978b647dec198996b747ea41fdb77fce61c8fe59261cd983c26ae0c74e34da`;
-- artifact: `VideoEditingAgent-Setup-80ab920b19c1ed1aebef4fa9b7eab05d6a509f38`;
-- artifact ID: `9712373668`;
-- artifact ZIP SHA-256: `973487969900b5f52a76b4e76aa216cba29ae955a24e0576937825838c9340da`;
-- Inno Setup: 7.1.0, immutable release asset hash verified and Authenticode signer validated.
+The installed Full product reached real media analysis, public-music rights acquisition, edit decision, real-material resolution, EDL assembly, audio/subtitle preparation and render/review stages.
 
-Automated Windows lifecycle evidence is PASS for:
+Material failures remain:
 
-- exact source checkout;
-- pinned packaging environment;
-- staged package inspection;
-- packaged Doctor/runtime probe;
-- windowed GUI packaged smoke;
-- guided Setup.exe compilation;
-- Planning-only install;
-- Planning-only → Full upgrade;
-- Full installed launcher;
-- same-version repair;
-- deferred 2.0 payload exclusion;
-- external Workspace preservation;
-- uninstall removal of application-owned files.
+1. the ordinary GUI repeatedly flashes child terminal windows during media processing/rendering;
+2. the final Editing run ended in rerender_same_edl instead of a deliverable PASS;
+3. the user-facing correction message does not expose the underlying renderer diagnostic and can misleadingly imply that rendering itself completed successfully;
+4. the current product does not visibly identify its installed version or provide an update-discovery path for already distributed installations.
 
-The previous `7753e5b...` RC remains historical engineering evidence only and is superseded for final acceptance.
+## Code-level findings already established
 
-## Final gate boundary
+- the packaged main GUI is windowed, but internal FFmpeg/ffprobe subprocess calls do not suppress Windows child console creation;
+- multiple media/render/review adapters use ordinary subprocess.run / subprocess.Popen without a shared Windows no-console process policy;
+- rerender_same_edl is emitted only for retryable renderer execution/output-verification failures;
+- the Review contract allows one same-EDL repair attempt, but the current product flow does not actually execute that automatic retry;
+- source-audio assembly currently assumes every grounded video selection has canonical source audio even though ingest metadata records whether an asset has audio channels; this must be reproduced and corrected if it is the observed FFmpeg failure;
+- pyproject.toml and installer build inputs currently duplicate application version 0.1.0, while the GUI displays no version and there is no update manifest/check path.
 
-Structural progress remains **95%** until the Product Owner performs the ordinary-user Human Gate on this exact replacement Setup.exe.
+## Required patch boundary
 
-The remaining gate is deliberately narrow:
+The next patch must remain bounded to final ordinary-user release blockers:
 
-1. install the exact `80ab920...` RC through the normal wizard;
-2. launch without repository/Python/uv knowledge;
-3. confirm installed Planning is ordinary-user acceptable;
-4. confirm representative installed Full visual-first Editing works;
-5. confirm the post-Human-Gate desktop repairs are materially acceptable;
-6. confirm ordinary uninstall behavior and Workspace/original-media preservation.
+- suppress Windows console windows for child media/runtime processes without hiding diagnostics;
+- preserve captured stdout/stderr and typed diagnostics;
+- make same-EDL retry behavior executable and bounded as already defined by Review policy;
+- expose the real renderer/QC diagnostic when Editing cannot deliver;
+- correctly handle selected source clips that have no audio stream, if reproduction confirms the current unconditional source-audio mapping defect;
+- establish one authoritative application version source and display the installed version in the desktop UI;
+- add non-blocking update discovery suitable for a private source repository and already distributed Windows installers;
+- build a replacement installer version greater than 0.1.0 and repeat automated lifecycle + ordinary-user Human Gate.
 
-If that Human Gate passes, Stage-A may move directly from 95% to 100%. Do not invent intermediate percentages.
+Structural progress remains **95%**. A replacement RC and successful Human Gate are required before 100%.
+
+## Update-distribution boundary
+
+The source repository is private, so ordinary users must not need GitHub repository credentials to discover updates.
+
+The stable update path should use a public, source-free release metadata endpoint containing at minimum:
+
+- version;
+- publication timestamp;
+- release notes URL/text;
+- installer/download location or controlled distribution page;
+- installer SHA-256;
+- mandatory/recommended update flag.
+
+The application should check this endpoint asynchronously and fail open when offline. Update-check failure must never block Planning or Editing.
+
+Silent/background self-installation is not required for this patch.
 
 ## Deferred / non-blocking 1.0 items
 
-- source-speech separation/reconstruction;
+- advanced source-speech separation/reconstruction;
 - sentence-preserving dialogue editing;
 - translated/bilingual subtitles;
 - cross-language narration/TTS;
 - Remote Reference URL;
-- Web Setup / delta updater;
+- delta/Web Setup updater;
 - exact UI-language override for a Brief written in another language.
 
 ## Release-management note
 
-The RC uses Inno Setup 7.1.0. Its commercial-use licensing policy must be resolved before commercial distribution. This does not invalidate the engineering RC or final Human Gate.
+The current installer path uses Inno Setup 7.1.0. Its commercial-use licensing policy remains to be resolved before commercial distribution.
