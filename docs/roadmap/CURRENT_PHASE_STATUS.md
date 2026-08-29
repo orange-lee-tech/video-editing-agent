@@ -5,7 +5,8 @@
 **Structural progress:** 95%  
 **Current phase:** R0.12 — Stage-A final ordinary-user Windows acceptance  
 **Engineering state:** STAGE_A_FINAL_INSTALLER_HUMAN_GATE  
-**Updated:** 2026-08-29
+**Updated:** 2026-08-29  
+**Active work order:** `R0.12-STAGE-A-FINAL-CLOSURE-002`
 
 ## Progress truth
 
