@@ -263,8 +263,14 @@ def test_editing_flow_starts_from_local_paths_and_reaches_reviewed_output(tmp_pa
         path.write_bytes(b"rendered")
         return _render(edl, path)
 
-    def review(edl_ref: EntityRevisionRef, rendered: RenderResult, audible: bool) -> ReviewVerdict:
+    def review(
+        edl_ref: EntityRevisionRef,
+        rendered: RenderResult,
+        audible: bool,
+        repair_attempt: int,
+    ) -> ReviewVerdict:
         calls.append("review")
+        assert repair_attempt == 0
         return _review(edl_ref, True)
 
     operations = EditingProductOperations(
@@ -327,7 +333,7 @@ def test_music_preparation_has_distinct_stage_messages_and_warning_severity(
         ),
         lambda edl: None,
         lambda edl, path, profile: _render(edl, path),
-        lambda edl_ref, rendered, audible: _review(edl_ref, True),
+        lambda edl_ref, rendered, audible, repair_attempt: _review(edl_ref, True),
         prepare_music,
         lambda plan, decisions, audible, music: _edl(
             EntityRevisionRef(plan.envelope.id, plan.envelope.revision)
@@ -362,7 +368,7 @@ def test_editing_failure_identifies_stage_reason_and_redacts_secret(tmp_path: Pa
         ),
         lambda edl: None,
         lambda edl, path, profile: _render(edl, path),
-        lambda edl_ref, rendered, audible: _review(edl_ref, True),
+        lambda edl_ref, rendered, audible, repair_attempt: _review(edl_ref, True),
     )
 
     result = EditingProductFlow(operations).run(
@@ -394,7 +400,7 @@ def test_synthetic_voice_without_approved_capability_fails_closed_at_voice_stage
         ),
         lambda edl: None,
         lambda edl, path, profile: _render(edl, path),
-        lambda edl_ref, rendered, audible: _review(edl_ref, True),
+        lambda edl_ref, rendered, audible, repair_attempt: _review(edl_ref, True),
     )
 
     result = EditingProductFlow(operations).run(
@@ -430,7 +436,7 @@ def test_unresolved_edit_slot_fails_closed_before_edl_or_render(tmp_path: Path) 
         ),
         lambda edl: downstream.append("save"),
         lambda edl, path, profile: downstream.append("render") or _render(edl, path),
-        lambda edl_ref, rendered, audible: _review(edl_ref, True),
+        lambda edl_ref, rendered, audible, repair_attempt: _review(edl_ref, True),
     )
 
     result = EditingProductFlow(operations).run(
@@ -466,7 +472,7 @@ def test_review_correction_route_is_surfaced_not_silently_repaired(tmp_path: Pat
         ),
         lambda edl: None,
         lambda edl, path, profile: _render(edl, path),
-        lambda edl_ref, rendered, audible: _review(edl_ref, False),
+        lambda edl_ref, rendered, audible, repair_attempt: _review(edl_ref, False),
     )
 
     result = EditingProductFlow(operations).run(
@@ -486,3 +492,70 @@ def test_review_correction_route_is_surfaced_not_silently_repaired(tmp_path: Pat
     assert result.review_verdict.correction_route is ReviewCorrectionRoute.RETURN_TO_AUDIO_EDITORIAL
     assert result.events[-1].stage is ProductFlowStage.CORRECTION_REQUIRED
     assert result.events[-1].level is ProductFlowEventLevel.WARNING
+
+
+def test_same_edl_renderer_failure_is_retried_once_without_replanning(tmp_path: Path) -> None:
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"original")
+    output = tmp_path / "final.mp4"
+    render_calls: list[EDL] = []
+    review_attempts: list[int] = []
+
+    def render(edl: EDL, path: Path, profile: EditingOutputProfile) -> RenderResult:
+        render_calls.append(edl)
+        if len(render_calls) == 1:
+            return RenderResult(None, ())
+        path.write_bytes(b"rendered")
+        return _render(edl, path)
+
+    def review(
+        edl_ref: EntityRevisionRef,
+        rendered: RenderResult,
+        audible: bool,
+        repair_attempt: int,
+    ) -> ReviewVerdict:
+        review_attempts.append(repair_attempt)
+        if repair_attempt == 0:
+            report = ReviewReport(
+                _envelope("review_retry"),
+                ReviewStage.FINAL_TECHNICAL_QC,
+                edl_ref,
+                False,
+                (),
+            )
+            return ReviewVerdict(
+                ReviewDisposition.CORRECTION_REQUIRED,
+                report,
+                ReviewCorrectionRoute.RERENDER_SAME_EDL,
+                repair_attempt,
+            )
+        return _review(edl_ref, True)
+
+    operations = EditingProductOperations(
+        lambda value, created_by: _brief(),
+        lambda paths: (EntityRevisionRef("ast_flow", 1),),
+        lambda brief_ref, script_ref, shooting_ref, created_by: _edit_plan(brief_ref),
+        lambda plan: (_decision(EntityRevisionRef(plan.envelope.id, plan.envelope.revision)),),
+        lambda plan, decisions, audible: _edl(
+            EntityRevisionRef(plan.envelope.id, plan.envelope.revision)
+        ),
+        lambda edl: None,
+        render,
+        review,
+    )
+
+    result = EditingProductFlow(operations).run(
+        EditingProductRequest(
+            tmp_path,
+            _brief_input(),
+            (source,),
+            output,
+            output_profile=_output_profile(),
+        )
+    )
+
+    assert result.outcome is ProductFlowOutcome.COMPLETED
+    assert review_attempts == [0, 1]
+    assert len(render_calls) == 2
+    assert render_calls[0] is render_calls[1]
+    assert result.output_path == output
