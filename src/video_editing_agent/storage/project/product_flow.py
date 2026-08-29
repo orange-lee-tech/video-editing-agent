@@ -806,13 +806,12 @@ def build_editing_product_flow(
             if decision.decision_type is ResolutionDecisionType.RESOLVED
             for selection in decision.selections
             if (
-                shot_by_ref[selection.shot_ref].asset_ref
-                and (
-                    workspace.assets.load(shot_by_ref[selection.shot_ref].asset_ref).audio_channels
-                    or 0
-                )
-                > 0
+                workspace.assets.load(
+                    shot_by_ref[selection.shot_ref].asset_ref
+                ).audio_channels
+                or 0
             )
+            > 0
         )
         source_mix = build_conservative_source_audio_mix(
             edit_plan,
