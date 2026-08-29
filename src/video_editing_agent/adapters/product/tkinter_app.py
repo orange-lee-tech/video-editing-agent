@@ -29,12 +29,12 @@ from video_editing_agent.adapters.product.presentation import (
 )
 from video_editing_agent.adapters.product.runtime import resolve_product_runtime
 from video_editing_agent.adapters.product.ui_components import create_brand_mark
-from video_editing_agent.adapters.product.update_check import UpdateCheckResult, check_for_update
 from video_editing_agent.adapters.product.ui_theme import (
     DEFAULT_PRODUCT_THEME,
     DEFAULT_PRODUCT_TYPOGRAPHY,
     configure_product_theme,
 )
+from video_editing_agent.adapters.product.update_check import UpdateCheckResult, check_for_update
 from video_editing_agent.adapters.product.ux_support import (
     EtaEstimator,
     ProtectedCredentialStore,
@@ -1050,7 +1050,7 @@ def launch() -> int:
             messagebox.showinfo(text("file"), text("profile_deleted"), parent=root)
 
     def update_language() -> None:
-        root.title(f'{text("window_title")} · v{APP_VERSION}')
+        root.title(f"{text('window_title')} · v{APP_VERSION}")
         planning_nav.configure(text=text("tab_planning"))
         editing_nav.configure(text=text("tab_editing"))
         for label, name in field_labels:
@@ -1058,7 +1058,7 @@ def launch() -> int:
         for widget, key in translated_widgets:
             widget.configure(text=text(key))
         app_title_label.configure(text=text("app_title"))
-        app_subtitle_label.configure(text=f'{text("app_subtitle")} · v{APP_VERSION}')
+        app_subtitle_label.configure(text=f"{text('app_subtitle')} · v{APP_VERSION}")
         for header_button, _body, title_key, expanded in collapsible_sections:
             header_button.configure(text=("▾ " if expanded.get() else "▸ ") + text(title_key))
         for frame in result_frames:
