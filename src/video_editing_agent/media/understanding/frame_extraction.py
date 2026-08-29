@@ -5,8 +5,8 @@ import subprocess
 from dataclasses import dataclass
 from typing import Protocol
 
-from video_editing_agent.system.process import external_process_creationflags
 from video_editing_agent.media.understanding.sampling import FrameSampleSpec, FrameSamplingPlan
+from video_editing_agent.system.process import external_process_creationflags
 
 PNG_MEDIA_TYPE = "image/png"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
