@@ -124,21 +124,38 @@ def token_usage_presentation(snapshot: TokenUsageSnapshot, language: str = "en")
 
 def _review_correction_summary(result: EditingProductResult, *, zh: bool) -> str:
     assert result.review_verdict is not None
-    route = result.review_verdict.correction_route.value
+    verdict = result.review_verdict
+    route = verdict.correction_route.value
+    problems = tuple(finding.problem for finding in verdict.report.findings)
     if zh:
         route_text = {
-            "rerender_same_edl": "渲染结果需要按同一剪辑时间线重新渲染。",
+            "rerender_same_edl": "渲染执行或输出验证失败，系统需要按同一剪辑时间线重新渲染。",
             "return_to_audio_editorial": "音频质量检查未通过，需要重新处理音频后再交付。",
-            "escalate_owner": "成片技术检查未通过，需要检查渲染或运行环境。",
-        }.get(route, "成片质量检查未通过，需要进一步修正。")
-        lines = ["自动剪辑已完成渲染，但最终质量检查未通过。", route_text]
+            "escalate_owner": "成片技术检查未通过，需要检查渲染器或运行环境。",
+        }.get(route, "成片检查未通过，需要进一步修正。")
+        lines = [
+            (
+                "自动剪辑生成了候选视频，但最终检查未通过。"
+                if result.output_path is not None
+                else "自动剪辑未生成通过验证的最终视频。"
+            ),
+            route_text,
+        ]
+        if problems:
+            lines.append("技术详情：" + "；".join(problems))
         if result.output_path is not None:
             lines.append(f"候选视频（未通过最终检查）: {result.output_path}")
         return "\n".join(lines)
     lines = [
-        "Editing rendered a candidate, but final quality review did not pass.",
+        (
+            "Editing produced a candidate, but final review did not pass."
+            if result.output_path is not None
+            else "Editing did not produce a verified final video."
+        ),
         f"Correction route: {route}",
     ]
+    if problems:
+        lines.append("Technical detail: " + "; ".join(problems))
     if result.output_path is not None:
         lines.append(f"Candidate video (not approved): {result.output_path}")
     return "\n".join(lines)
