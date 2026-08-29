@@ -319,8 +319,7 @@ _TEXT = {
         "check_updates": "Check for Updates",
         "update_available_title": "Update Available",
         "update_available_message": (
-            "Current version v{current}\nLatest version v{latest}\n\n"
-            "Open the update download page?"
+            "Current version v{current}\nLatest version v{latest}\n\nOpen the update download page?"
         ),
         "up_to_date_title": "Up to Date",
         "up_to_date_message": "Version v{current} is up to date.",
