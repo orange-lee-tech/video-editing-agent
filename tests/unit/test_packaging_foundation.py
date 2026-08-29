@@ -280,3 +280,16 @@ def test_guided_installer_avoids_preinit_app_constant_and_excluded_directory_ske
     )
     assert "recursesubdirs" in core_source
     assert "createallsubdirs" not in core_source
+
+
+def test_packaging_separates_windowed_gui_from_console_diagnostics_cli() -> None:
+    spec = Path("packaging/video_editing_agent.spec").read_text(encoding="utf-8")
+    package_script = Path("scripts/package_windows.ps1").read_text(encoding="utf-8")
+
+    assert 'name="VideoEditingAgent"' in spec
+    assert 'name="VideoEditingAgent-cli"' in spec
+    assert "console=False" in spec
+    assert "console=True" in spec
+    assert "VideoEditingAgent-cli.exe" in package_script
+    assert "$CliExecutable doctor" in package_script
+    assert "$CliExecutable runtime-probe" in package_script
