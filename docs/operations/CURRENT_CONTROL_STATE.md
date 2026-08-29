@@ -4,18 +4,18 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-29
 current_phase: R0.12
-phase_state: STAGE_A_REPLACEMENT_INSTALLER_RC_REQUIRED
+phase_state: STAGE_A_FINAL_INSTALLER_HUMAN_GATE
 active_work_order: R0.12-STAGE-A-FINAL-CLOSURE-002
 active_construction_branch: NONE
 accepted_code_baseline: 80ab920b19c1ed1aebef4fa9b7eab05d6a509f38
-accepted_engineering_baseline: 7753e5bbee93ca743152a7e2319c3f6739faff60
+accepted_engineering_baseline: 80ab920b19c1ed1aebef4fa9b7eab05d6a509f38
 current_main_baseline: 80ab920b19c1ed1aebef4fa9b7eab05d6a509f38
 latest_human_gate_candidate: 80ab920b19c1ed1aebef4fa9b7eab05d6a509f38
 structural_progress_percent: 95
-stage_a_completion_gate: OPEN_REPLACEMENT_INSTALLER_RC_AND_FINAL_HUMAN_GATE
-core_1_planning_product_gate: POST_HUMAN_GATE_SOURCE_REPAIR_ACCEPTED_INSTALLER_PENDING
-core_2_editing_product_gate: POST_HUMAN_GATE_SOURCE_REPAIR_ACCEPTED_INSTALLER_PENDING
-windows_release_delivery_gate: REPLACEMENT_RC_REQUIRED
+stage_a_completion_gate: OPEN_FINAL_ORDINARY_USER_HUMAN_GATE
+core_1_planning_product_gate: FINAL_INSTALLER_HUMAN_GATE_PENDING
+core_2_editing_product_gate: ACCEPTED_SOURCE_FINAL_INSTALLER_HUMAN_GATE_PENDING
+windows_release_delivery_gate: ENGINEERING_PASS_FINAL_HUMAN_GATE_PENDING
 codex_release: CLOSED
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
@@ -25,19 +25,13 @@ writer: chatgpt
 
 ## Current accepted truth
 
-The previous automated Windows RC was built from:
-
-`7753e5bbee93ca743152a7e2319c3f6739faff60`.
-
-That installer passed its automated lifecycle, but the subsequent ordinary-user desktop Human Gate exposed material usability/packaging defects. Those defects have now been repaired on `main`.
-
-The current accepted source candidate is:
+The accepted post-Human-Gate repaired 1.0 source is:
 
 `80ab920b19c1ed1aebef4fa9b7eab05d6a509f38`.
 
-Ordinary repository CI for this source is green. The latest source repairs include:
+This source contains the final ordinary-user desktop/release repairs discovered after the earlier installer candidate, including:
 
-- split windowed GUI and console diagnostics executable;
+- true windowed GUI executable separated from the console diagnostics CLI;
 - installer pre-initialization defect removal;
 - packaged GUI smoke that waits for real process completion;
 - editable forms during background work from immutable task snapshots;
@@ -47,27 +41,55 @@ Ordinary repository CI for this source is green. The latest source repairs inclu
 - public-music candidate naming during rights checks;
 - mouse-wheel scrolling on the active product page.
 
-## Replacement Windows release candidate required
+Ordinary repository CI for this source is green.
 
-The old Setup.exe hash
+## Final Windows release candidate
 
-`9ba68f361f2d4c7881e1192b82e2fb3d750332d8844796829224a9dd1912033e`
-
-belongs to the superseded `7753e5b...` source and must **not** be used for final Stage-A acceptance.
-
-The next required engineering action is a manual `Windows Release Candidate` workflow run using exact source ref:
+Windows Release Candidate run `33243959576` completed successfully for exact source SHA:
 
 `80ab920b19c1ed1aebef4fa9b7eab05d6a509f38`.
 
-The workflow must again pass staging/package smoke plus install/upgrade/repair/uninstall lifecycle checks and upload a new SHA-addressed Setup.exe artifact.
+Final installer:
+
+- file: `VideoEditingAgent-Setup-0.1.0.exe`;
+- SHA-256: `15978b647dec198996b747ea41fdb77fce61c8fe59261cd983c26ae0c74e34da`;
+- artifact: `VideoEditingAgent-Setup-80ab920b19c1ed1aebef4fa9b7eab05d6a509f38`;
+- artifact ID: `9712373668`;
+- artifact ZIP SHA-256: `973487969900b5f52a76b4e76aa216cba29ae955a24e0576937825838c9340da`;
+- Inno Setup: 7.1.0, immutable release asset hash verified and Authenticode signer validated.
+
+Automated Windows lifecycle evidence is PASS for:
+
+- exact source checkout;
+- pinned packaging environment;
+- staged package inspection;
+- packaged Doctor/runtime probe;
+- windowed GUI packaged smoke;
+- guided Setup.exe compilation;
+- Planning-only install;
+- Planning-only → Full upgrade;
+- Full installed launcher;
+- same-version repair;
+- deferred 2.0 payload exclusion;
+- external Workspace preservation;
+- uninstall removal of application-owned files.
+
+The previous `7753e5b...` RC remains historical engineering evidence only and is superseded for final acceptance.
 
 ## Final gate boundary
 
-Structural progress remains **95%**.
+Structural progress remains **95%** until the Product Owner performs the ordinary-user Human Gate on this exact replacement Setup.exe.
 
-If the replacement Setup.exe built from `80ab920...` passes automated Windows lifecycle verification, the Product Owner should perform one final ordinary-user install/run check on that exact artifact. Only then may Stage-A move directly from 95% to 100%.
+The remaining gate is deliberately narrow:
 
-Do not invent intermediate percentages.
+1. install the exact `80ab920...` RC through the normal wizard;
+2. launch without repository/Python/uv knowledge;
+3. confirm installed Planning is ordinary-user acceptable;
+4. confirm representative installed Full visual-first Editing works;
+5. confirm the post-Human-Gate desktop repairs are materially acceptable;
+6. confirm ordinary uninstall behavior and Workspace/original-media preservation.
+
+If that Human Gate passes, Stage-A may move directly from 95% to 100%. Do not invent intermediate percentages.
 
 ## Deferred / non-blocking 1.0 items
 
@@ -81,4 +103,4 @@ Do not invent intermediate percentages.
 
 ## Release-management note
 
-The Windows RC path currently uses Inno Setup 7.1.0. Its commercial-use licensing policy must be resolved before commercial distribution. This does not invalidate engineering/Human Gate work.
+The RC uses Inno Setup 7.1.0. Its commercial-use licensing policy must be resolved before commercial distribution. This does not invalidate the engineering RC or final Human Gate.
