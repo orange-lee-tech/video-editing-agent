@@ -5,6 +5,7 @@ import subprocess
 from dataclasses import dataclass
 from typing import Protocol
 
+from video_editing_agent.system.process import external_process_creationflags
 from video_editing_agent.media.understanding.sampling import FrameSampleSpec, FrameSamplingPlan
 
 PNG_MEDIA_TYPE = "image/png"
@@ -67,6 +68,7 @@ class FfmpegPngFrameExtractor:
         try:
             completed = subprocess.run(
                 command,
+                creationflags=external_process_creationflags(),
                 check=False,
                 capture_output=True,
             )
