@@ -2,20 +2,20 @@
 
 ---
 schema: video-editing-agent-control-state/v1
-updated: 2026-08-29
+updated: 2026-08-30
 current_phase: R0.12
-phase_state: STAGE_A_FINAL_HUMAN_GATE_FAILED_PATCH_ACTIVE
+phase_state: STAGE_A_FINAL_INSTALLER_HUMAN_GATE
 active_work_order: R0.12-STAGE-A-FINAL-CLOSURE-002
 active_construction_branch: NONE
-accepted_code_baseline: 80ab920b19c1ed1aebef4fa9b7eab05d6a509f38
-accepted_engineering_baseline: 80ab920b19c1ed1aebef4fa9b7eab05d6a509f38
-current_main_baseline: 3633bdeded19458a2572dfa3549c40f4eec27f0d
-latest_human_gate_candidate: 80ab920b19c1ed1aebef4fa9b7eab05d6a509f38
+accepted_code_baseline: 71d7b7b46fa819f87aba785cefcc2bcf97ab7a46
+accepted_engineering_baseline: 71d7b7b46fa819f87aba785cefcc2bcf97ab7a46
+current_main_baseline: c8bbc88309bcb975987a3bce0bf6ad6f73889ede
+latest_human_gate_candidate: 71d7b7b46fa819f87aba785cefcc2bcf97ab7a46
 structural_progress_percent: 95
-stage_a_completion_gate: HUMAN_FAIL_PATCH_REQUIRED
-core_1_planning_product_gate: HUMAN_RUN_RECOVERED_AFTER_NETWORK_RESTART
-core_2_editing_product_gate: HUMAN_FAIL_RENDER_AND_DESKTOP_PROCESS_DEFECTS
-windows_release_delivery_gate: PATCH_AND_REPLACEMENT_RC_REQUIRED
+stage_a_completion_gate: OPEN_FINAL_ORDINARY_USER_HUMAN_GATE
+core_1_planning_product_gate: FINAL_0_1_1_HUMAN_REGRESSION_PENDING
+core_2_editing_product_gate: FINAL_0_1_1_HUMAN_GATE_PENDING
+windows_release_delivery_gate: ENGINEERING_PASS_FINAL_HUMAN_GATE_PENDING
 codex_release: CLOSED
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
@@ -25,73 +25,68 @@ writer: chatgpt
 
 ## Current accepted truth
 
-The 0.1.0 installer built from:
+The installed-product defects found in the 0.1.0 Human Gate were repaired in application source:
 
-80ab920b19c1ed1aebef4fa9b7eab05d6a509f38
+`71d7b7b46fa819f87aba785cefcc2bcf97ab7a46`
 
-passed automated Windows lifecycle engineering, but **failed the real ordinary-user Human Gate** on 2026-08-29.
+Application version: **0.1.1**.
 
-Do not report Stage-A complete and do not continue distributing this installer as the final acceptance build.
+The replacement Windows RC completed engineering verification successfully:
 
-## Human Gate observations
+- Windows Release Candidate run: `33262066851`;
+- exact release source: `71d7b7b46fa819f87aba785cefcc2bcf97ab7a46`;
+- installer: `VideoEditingAgent-Setup-0.1.1.exe`;
+- installer SHA-256: `fc93f83b0543a1163a44796c7f430dcc68ff5f7a5c9112134b84f5dd15cae6ea`;
+- private prerelease tag: `v0.1.1-rc-71d7b7b`;
+- release asset ID: `535433505`;
+- durable release asset: uploaded;
+- installer lifecycle smoke: **PASS**.
 
-### Planning
+The previous 0.1.0 installer remains historical evidence only and must not be used for final Stage-A acceptance.
 
-The first Planning attempt was rejected by the factual-safety reviewer because the generated proposal implied portability/going-out suitability from only a 350 ml capacity fact. That rejection is expected safety behavior rather than a release defect.
+## 0.1.1 repair boundary accepted by engineering
 
-After the machine restart and restored network conditions, the Product Owner reports that Planning generated successfully.
+The replacement candidate includes:
 
-### Editing
+- shared Windows no-console child-process policy for FFmpeg/ffprobe/media subprocesses while preserving diagnostics;
+- one bounded same-EDL automatic rerender attempt;
+- correct handling of selected video clips without source audio;
+- actionable renderer/QC failure presentation;
+- one authoritative user-facing application version, displayed as v0.1.1;
+- asynchronous fail-open update discovery and explicit Check for Updates UI;
+- public source-free stable update metadata at:
+  `https://orange-lee-tech.github.io/homepages/video-editing-agent/stable/latest.json`.
 
-The installed Full product reached real media analysis, public-music rights acquisition, edit decision, real-material resolution, EDL assembly, audio/subtitle preparation and render/review stages.
+## Automated Windows evidence
 
-Material failures remain:
+Run `33262066851` passed:
 
-1. the ordinary GUI repeatedly flashes child terminal windows during media processing/rendering;
-2. the final Editing run ended in rerender_same_edl instead of a deliverable PASS;
-3. the user-facing correction message does not expose the underlying renderer diagnostic and can misleadingly imply that rendering itself completed successfully;
-4. the current product does not visibly identify its installed version or provide an update-discovery path for already distributed installations.
+1. exact selected-source checkout and source recording;
+2. pinned CPython 3.12.13 packaging environment;
+3. Windows onedir build, static inspection, Doctor/runtime probe and packaged windowed-GUI smoke;
+4. verified Inno Setup 7.1.0 acquisition;
+5. guided Setup.exe compilation;
+6. Planning-only installation and launcher assertions;
+7. Planning-only → Full upgrade;
+8. Full launcher assertions;
+9. same-version Full repair;
+10. uninstall and external Workspace preservation;
+11. durable private prerelease publication.
 
-## Code-level findings already established
+The run's ordinary Actions artifact is supplementary. The GitHub Release asset is the durable candidate authority.
 
-- the packaged main GUI is windowed, but internal FFmpeg/ffprobe subprocess calls do not suppress Windows child console creation;
-- multiple media/render/review adapters use ordinary subprocess.run / subprocess.Popen without a shared Windows no-console process policy;
-- rerender_same_edl is emitted only for retryable renderer execution/output-verification failures;
-- the Review contract allows one same-EDL repair attempt, but the current product flow does not actually execute that automatic retry;
-- source-audio assembly currently assumes every grounded video selection has canonical source audio even though ingest metadata records whether an asset has audio channels; this must be reproduced and corrected if it is the observed FFmpeg failure;
-- pyproject.toml and installer build inputs currently duplicate application version 0.1.0, while the GUI displays no version and there is no update manifest/check path.
+## Remaining Stage-A gate
 
-## Required patch boundary
+Only the final ordinary-user Human Gate remains. Test this exact 0.1.1 installer and confirm:
 
-The next patch must remain bounded to final ordinary-user release blockers:
+- v0.1.1 is visibly identifiable;
+- normal Editing does not flash terminal windows;
+- representative Planning still succeeds without weakening factual safety;
+- representative real-footage Editing produces an approved final MP4;
+- update discovery is understandable and non-blocking;
+- Workspace/original media remain safe.
 
-- suppress Windows console windows for child media/runtime processes without hiding diagnostics;
-- preserve captured stdout/stderr and typed diagnostics;
-- make same-EDL retry behavior executable and bounded as already defined by Review policy;
-- expose the real renderer/QC diagnostic when Editing cannot deliver;
-- correctly handle selected source clips that have no audio stream, if reproduction confirms the current unconditional source-audio mapping defect;
-- establish one authoritative application version source and display the installed version in the desktop UI;
-- add non-blocking update discovery suitable for a private source repository and already distributed Windows installers;
-- build a replacement installer version greater than 0.1.0 and repeat automated lifecycle + ordinary-user Human Gate.
-
-Structural progress remains **95%**. A replacement RC and successful Human Gate are required before 100%.
-
-## Update-distribution boundary
-
-The source repository is private, so ordinary users must not need GitHub repository credentials to discover updates.
-
-The stable update path should use a public, source-free release metadata endpoint containing at minimum:
-
-- version;
-- publication timestamp;
-- release notes URL/text;
-- installer/download location or controlled distribution page;
-- installer SHA-256;
-- mandatory/recommended update flag.
-
-The application should check this endpoint asynchronously and fail open when offline. Update-check failure must never block Planning or Editing.
-
-Silent/background self-installation is not required for this patch.
+Structural progress intentionally remains **95%** until that exact Human Gate passes. If it passes without a material blocker, move directly 95% → 100% and close R0.12.
 
 ## Deferred / non-blocking 1.0 items
 
@@ -101,8 +96,8 @@ Silent/background self-installation is not required for this patch.
 - cross-language narration/TTS;
 - Remote Reference URL;
 - delta/Web Setup updater;
-- exact UI-language override for a Brief written in another language.
+- unrelated cosmetic redesign.
 
 ## Release-management note
 
-The current installer path uses Inno Setup 7.1.0. Its commercial-use licensing policy remains to be resolved before commercial distribution.
+The installer uses Inno Setup 7.1.0. Commercial-use licensing policy remains to be resolved before commercial distribution; it does not block the current engineering RC/Human Gate.
