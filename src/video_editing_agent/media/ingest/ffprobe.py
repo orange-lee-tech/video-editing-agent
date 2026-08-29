@@ -8,6 +8,7 @@ from decimal import Decimal, InvalidOperation
 from fractions import Fraction
 from typing import cast
 
+from video_editing_agent.system.process import external_process_creationflags
 from video_editing_agent.domain.common.media_time import MediaTime
 from video_editing_agent.media.ingest.probe import MediaTechnicalMetadata
 
@@ -179,6 +180,7 @@ class FfprobeMediaProbe:
         try:
             completed = subprocess.run(
                 command,
+                creationflags=external_process_creationflags(),
                 check=False,
                 capture_output=True,
                 text=True,
