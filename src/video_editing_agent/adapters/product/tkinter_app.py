@@ -4,6 +4,7 @@ import os
 import queue
 import threading
 import time
+import webbrowser
 from datetime import datetime
 from functools import partial
 from pathlib import Path
@@ -28,6 +29,7 @@ from video_editing_agent.adapters.product.presentation import (
 )
 from video_editing_agent.adapters.product.runtime import resolve_product_runtime
 from video_editing_agent.adapters.product.ui_components import create_brand_mark
+from video_editing_agent.adapters.product.update_check import UpdateCheckResult, check_for_update
 from video_editing_agent.adapters.product.ui_theme import (
     DEFAULT_PRODUCT_THEME,
     DEFAULT_PRODUCT_TYPOGRAPHY,
@@ -182,6 +184,13 @@ _TEXT = {
         "estimating": "正在估算…",
         "running": "任务正在运行",
         "splash": "正在启动视频剪辑智能体…",
+        "check_updates": "检查更新",
+        "update_available_title": "发现新版本",
+        "update_available_message": "当前版本 v{current}\n最新版本 v{latest}\n\n是否打开更新下载页？",
+        "up_to_date_title": "已是最新版本",
+        "up_to_date_message": "当前版本 v{current} 已是最新版本。",
+        "update_check_failed_title": "检查更新失败",
+        "update_check_failed_message": "暂时无法检查更新：{detail}",
     },
     "en": {
         "window_title": "Video Editing Agent",
@@ -305,6 +314,13 @@ _TEXT = {
         "estimating": "Estimating…",
         "running": "Task is running",
         "splash": "Starting Video Editing Agent…",
+        "check_updates": "Check for Updates",
+        "update_available_title": "Update Available",
+        "update_available_message": "Current version v{current}\nLatest version v{latest}\n\nOpen the update download page?",
+        "up_to_date_title": "Up to Date",
+        "up_to_date_message": "Version v{current} is up to date.",
+        "update_check_failed_title": "Update Check Failed",
+        "update_check_failed_message": "Could not check for updates: {detail}",
     },
 }
 
@@ -475,6 +491,54 @@ def launch() -> int:
             return text("api_complete")
         return text("api_partial").format(count=configured)
 
+    update_check_in_flight = False
+
+    def finish_update_check(result: UpdateCheckResult, *, interactive: bool) -> None:
+        nonlocal update_check_in_flight
+        update_check_in_flight = False
+        update_button.configure(state="normal")
+        if result.update_available:
+            manifest = result.manifest
+            assert manifest is not None
+            open_page = messagebox.askyesno(
+                text("update_available_title"),
+                text("update_available_message").format(
+                    current=result.current_version,
+                    latest=manifest.version,
+                ),
+                parent=root,
+            )
+            if open_page:
+                webbrowser.open(manifest.download_url)
+            return
+        if not interactive:
+            return
+        if result.error is not None:
+            messagebox.showwarning(
+                text("update_check_failed_title"),
+                text("update_check_failed_message").format(detail=result.error),
+                parent=root,
+            )
+            return
+        messagebox.showinfo(
+            text("up_to_date_title"),
+            text("up_to_date_message").format(current=result.current_version),
+            parent=root,
+        )
+
+    def begin_update_check(interactive: bool = True) -> None:
+        nonlocal update_check_in_flight
+        if update_check_in_flight:
+            return
+        update_check_in_flight = True
+        update_button.configure(state="disabled")
+
+        def worker() -> None:
+            result = check_for_update()
+            root.after(0, lambda: finish_update_check(result, interactive=interactive))
+
+        threading.Thread(target=worker, name="update-check", daemon=True).start()
+
     header = ttk.Frame(root, style="Header.TFrame", padding=(16, 9))
     header.pack(fill="x", padx=16, pady=(12, 6))
 
@@ -490,6 +554,12 @@ def launch() -> int:
 
     language_button = ttk.Button(header, style="Ghost.TButton")
     language_button.pack(side="right")
+    update_button = ttk.Button(
+        header,
+        command=begin_update_check,
+        style="Ghost.TButton",
+    )
+    update_button.pack(side="right", padx=(0, 4))
     configuration_button = ttk.Button(header, style="Ghost.TButton")
     configuration_button.pack(side="right", padx=(0, 4))
     api_status = ttk.Label(header, style="StatusPill.TLabel")
@@ -997,6 +1067,7 @@ def launch() -> int:
         workspace_label.configure(text=text("workspace"))
         choose_workspace_button.configure(text=text("choose_project"))
         configuration_button.configure(text=text("configuration"))
+        update_button.configure(text=text("check_updates"))
         api_status.configure(text=api_status_text())
 
     def toggle_language() -> None:
@@ -1622,5 +1693,6 @@ def launch() -> int:
         root.update_idletasks()
         root.destroy()
         return 0
+    root.after(1500, lambda: begin_update_check(False))
     root.mainloop()
     return 0
