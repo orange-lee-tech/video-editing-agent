@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import typing
 
+from video_editing_agent.system.process import external_process_creationflags
 from video_editing_agent.domain.common.media_time import MediaTimeRange
 
 RGB24_CHANNELS = 3
@@ -116,6 +117,7 @@ def iter_video_rgb24_frames(
         try:
             process: subprocess.Popen[bytes] = subprocess.Popen(
                 command,
+                creationflags=external_process_creationflags(),
                 stdout=subprocess.PIPE,
                 stderr=stderr_file,
             )
