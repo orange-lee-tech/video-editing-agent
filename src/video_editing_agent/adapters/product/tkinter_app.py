@@ -700,7 +700,7 @@ def launch() -> int:
     def show_placeholder(entry: Any, value: Any, name: str) -> None:
         if not value.get().strip():
             value.set(_PLACEHOLDERS[language.get()][name])
-            entry.configure(foreground="#777777")
+            entry.configure(foreground=current_theme.text_secondary)
 
     def field_value(value: Any) -> str:
         raw = value.get()
@@ -709,14 +709,14 @@ def launch() -> int:
     def set_field(value: Any, content: str) -> None:
         value.set(content)
         entry, _, name = entry_fields[id(value)]
-        entry.configure(foreground="#000000")
+        entry.configure(foreground=current_theme.text_primary)
         if not content:
             show_placeholder(entry, value, name)
 
     def clear_placeholder(_event: Any, entry: Any, value: Any) -> None:
         if is_placeholder_value(value.get(), _PLACEHOLDERS[language.get()]):
             value.set("")
-            entry.configure(foreground="#000000")
+            entry.configure(foreground=current_theme.text_primary)
 
     def restore_placeholder(_event: Any, entry: Any, value: Any, name: str) -> None:
         show_placeholder(entry, value, name)
@@ -1080,6 +1080,34 @@ def launch() -> int:
                 current_form_profile = None
             messagebox.showinfo(text("file"), text("profile_deleted"), parent=root)
 
+    def apply_appearance(mode: AppearanceMode, *, persist: bool = True) -> None:
+        nonlocal appearance_mode, current_theme
+        appearance_mode = mode
+        current_theme = configure_product_theme(
+            root,
+            mode=appearance_mode,
+            language=language.get(),
+        )
+        family = DEFAULT_PRODUCT_TYPOGRAPHY.family_for_language(language.get())
+        recolor_brand_mark(brand_mark, current_theme)
+        for canvas in scroll_canvases:
+            canvas.configure(background=current_theme.app_background)
+        for output in (planning_output, editing_output):
+            output.configure(
+                background=current_theme.surface,
+                foreground=current_theme.text_primary,
+                insertbackground=current_theme.text_primary,
+                selectbackground=current_theme.accent,
+                selectforeground=current_theme.inverse_text,
+                font=(family, DEFAULT_PRODUCT_TYPOGRAPHY.body_size),
+            )
+        if persist:
+            save_appearance_preferences(
+                appearance_path,
+                AppearancePreferences(appearance_mode),
+            )
+        root.update_idletasks()
+
     def update_language() -> None:
         root.title(f"{text('window_title')} · v{APP_VERSION}")
         planning_nav.configure(text=text("tab_planning"))
@@ -1109,6 +1137,7 @@ def launch() -> int:
                 value.set("")
                 show_placeholder(entry, value, name)
         update_language()
+        apply_appearance(appearance_mode, persist=False)
 
     language_button.configure(command=toggle_language)
 
@@ -1116,7 +1145,7 @@ def launch() -> int:
         nonlocal api_settings, current_api_profile
         dialog = tk.Toplevel(root)
         dialog.title(text("settings_title"))
-        dialog.geometry("680x650")
+        dialog.geometry("680x740")
         dialog.transient(root)
         dialog.grab_set()
         dialog.columnconfigure(0, weight=1)
@@ -1131,8 +1160,32 @@ def launch() -> int:
             row=2, column=0, sticky="w", padx=18, pady=(4, 14)
         )
 
+        appearance = ttk.LabelFrame(dialog, text=text("appearance_title"))
+        appearance.grid(row=3, column=0, sticky="ew", padx=18, pady=8)
+        appearance.columnconfigure(1, weight=1)
+        ttk.Label(appearance, text=text("appearance_mode")).grid(
+            row=0, column=0, sticky="w", padx=10, pady=10
+        )
+        appearance_values = {
+            text("appearance_day"): AppearanceMode.DAY,
+            text("appearance_comfort"): AppearanceMode.COMFORT,
+            text("appearance_night"): AppearanceMode.NIGHT,
+        }
+        current_appearance_label = next(
+            label for label, mode in appearance_values.items() if mode is appearance_mode
+        )
+        appearance_choice = tk.StringVar(value=current_appearance_label)
+        ttk.Combobox(
+            appearance,
+            textvariable=appearance_choice,
+            values=tuple(appearance_values),
+            state="readonly",
+            width=18,
+            style="Product.TCombobox",
+        ).grid(row=0, column=1, sticky="w", padx=(4, 10), pady=10)
+
         thinking = ttk.LabelFrame(dialog, text=text("thinking_title"))
-        thinking.grid(row=3, column=0, sticky="ew", padx=18, pady=8)
+        thinking.grid(row=4, column=0, sticky="ew", padx=18, pady=8)
         thinking.columnconfigure(1, weight=1)
         ttk.Label(thinking, text=text("thinking_provider")).grid(
             row=0, column=0, columnspan=2, sticky="w", padx=10, pady=(10, 4)
@@ -1149,7 +1202,7 @@ def launch() -> int:
         )
 
         visual = ttk.LabelFrame(dialog, text=text("visual_title"))
-        visual.grid(row=4, column=0, sticky="ew", padx=18, pady=8)
+        visual.grid(row=5, column=0, sticky="ew", padx=18, pady=8)
         visual.columnconfigure(1, weight=1)
         ttk.Label(visual, text=text("visual_usage"), wraplength=580).grid(
             row=0, column=0, columnspan=2, sticky="w", padx=10, pady=(10, 4)
@@ -1175,11 +1228,11 @@ def launch() -> int:
         )
 
         profiles = ttk.LabelFrame(dialog, text=text("profiles"))
-        profiles.grid(row=5, column=0, sticky="ew", padx=18, pady=8)
+        profiles.grid(row=6, column=0, sticky="ew", padx=18, pady=8)
         profiles.columnconfigure(1, weight=1)
 
         buttons = ttk.Frame(dialog)
-        buttons.grid(row=6, column=0, sticky="e", padx=18, pady=16)
+        buttons.grid(row=7, column=0, sticky="e", padx=18, pady=16)
 
         def save_settings() -> None:
             nonlocal api_settings
@@ -1190,6 +1243,10 @@ def launch() -> int:
             )
             apply_settings_to_environment(api_settings, os.environ)
             api_status.configure(text=api_status_text())
+            apply_appearance(
+                appearance_values.get(appearance_choice.get(), AppearanceMode.DAY),
+                persist=True,
+            )
             dialog.destroy()
             messagebox.showinfo(text("settings_title"), text("settings_applied"), parent=root)
 
