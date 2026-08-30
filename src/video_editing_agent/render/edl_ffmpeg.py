@@ -51,15 +51,22 @@ class FFmpegCompilationResult:
 
 
 _SUPPORTED_OUTPUTS: dict[tuple[str, str, str], str] = {
-    ("mp4", "libx264", "aac"): ".mp4",
-    ("mov", "libx264", "aac"): ".mov",
-    ("matroska", "libx264", "aac"): ".mkv",
+    ("mp4", "libopenh264", "aac"): ".mp4",
+    ("mov", "libopenh264", "aac"): ".mov",
+    ("matroska", "libopenh264", "aac"): ".mkv",
     ("webm", "libvpx-vp9", "libopus"): ".webm",
 }
 
 
 def _seconds(value: MediaTime) -> str:
     return value.to_decimal_seconds_string(fractional_digits=9)
+
+
+def _software_h264_bitrate(width: int, height: int, frames_per_second: int) -> int:
+    """Bound a deterministic OpenH264 target bitrate for ordinary Stage-A outputs."""
+
+    pixels_per_second = width * height * frames_per_second
+    return max(1_000_000, min(12_000_000, pixels_per_second // 10))
 
 
 def _fraction(value: Fraction) -> str:
@@ -506,6 +513,13 @@ def compile_ffmpeg_render(
             str(spec.frames_per_second),
         )
     )
+    if spec.video_codec == "libopenh264":
+        arguments.extend(
+            (
+                "-b:v",
+                str(_software_h264_bitrate(spec.width, spec.height, spec.frames_per_second)),
+            )
+        )
     if audio_outputs:
         arguments.extend(("-c:a", spec.audio_codec))
     if spec.container in {"mp4", "mov"}:
