@@ -245,7 +245,7 @@ def test_semantic_veto_rejects_implied_leak_resistance_without_owner_commit(
         )
 
     assert captured.value.review.violations == (violation,)
-    assert len(review_port.requests) == 3
+    assert len(review_port.requests) == 4
     assert len(planning_port.requests) == 2
     with pytest.raises(KeyError):
         scripts.load(EntityRevisionRef("scp_semantic_review", 1))
