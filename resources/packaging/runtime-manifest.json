@@ -10,6 +10,14 @@
       "platform": "windows", "architecture": "x86_64", "absence_fatal": true
     },
     {
+      "id": "updater", "kind": "executable", "classification": "bundled-required",
+      "capability": "component-update", "version": "1", "location_policy": "install-relative",
+      "provenance": "repository source frozen by pinned PyInstaller; updated only by full installer",
+      "license_state": "reviewed", "inclusion": "include", "hash_policy": "build-generated",
+      "path": "VideoEditingAgent-updater.exe",
+      "platform": "windows", "architecture": "x86_64", "absence_fatal": true
+    },
+    {
       "id": "runtime-manifest", "kind": "resource", "classification": "bundled-required",
       "capability": "install-resources", "version": "1", "location_policy": "install-relative",
       "provenance": "repository-controlled packaging BOM", "license_state": "reviewed",
