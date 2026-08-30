@@ -11,7 +11,11 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from video_editing_agent.application.edl_builder import DeterministicEDLBuilder, EDLBuildRequest
+from video_editing_agent.application.edl_builder import (
+    DeterministicEDLBuilder,
+    EDLBuildDiagnosticCode,
+    EDLBuildRequest,
+)
 from video_editing_agent.application.ports.artifact_store import ArtifactPayload
 from video_editing_agent.application.ports.audio_acquisition import AudioAcquisitionRequest
 from video_editing_agent.application.ports.audio_editorial import AudioMixDecision
@@ -580,11 +584,18 @@ def build_editing_product_flow(
     def _prepared_public_music(
         brief: ProductBriefInput,
         report: Callable[[ProductFlowEventLevel, str], None],
-    ) -> PreparedEditingMusic:
+    ) -> PreparedEditingMusic | None:
         discovery = OpenverseWikimediaAudioProvider(page_size=20)
         candidates = _discover_public_music_candidates(discovery, brief, report)
         if not candidates:
-            raise ValueError("public music discovery returned no candidates")
+            report(
+                ProductFlowEventLevel.WARNING,
+                (
+                    "No public background-music candidates were available; continuing without "
+                    "BGM and relying only on grounded source audio"
+                ),
+            )
+            return None
         verifier = WikimediaAudioRightsVerifier(
             workspace.artifacts,
             clock=capabilities.clock,
@@ -703,10 +714,15 @@ def build_editing_product_flow(
             )
             return PreparedEditingMusic(asset_ref, beat_map, rights_refs)
         detail = _bounded_failure_summary(failures)
-        raise ValueError(
-            "no automatically eligible public background music could be prepared"
-            + (f": {detail}" if detail else "")
+        report(
+            ProductFlowEventLevel.WARNING,
+            (
+                "No automatically eligible public background music could be prepared; "
+                "continuing without BGM and relying only on grounded source audio"
+                + (f": {detail}" if detail else "")
+            ),
         )
+        return None
 
     def prepare_music(
         value: EditingMusicInput | None,
@@ -881,6 +897,19 @@ def build_editing_product_flow(
         )
         if result.edl is None or result.diagnostics:
             codes = ",".join(item.code.value for item in result.diagnostics)
+            if (
+                music is None
+                and requires_audible_output
+                and any(
+                    item.code is EDLBuildDiagnosticCode.AUDIBLE_LANE_QC_FAILED
+                    for item in result.diagnostics
+                )
+            ):
+                raise ValueError(
+                    "automatic public background music was unavailable and the selected footage "
+                    "has no approved audible source lane. Select a local music file and confirm "
+                    "that you have the rights needed to use it, then retry"
+                )
             raise ValueError(f"canonical EDL assembly failed: {codes}")
         return result.edl
 

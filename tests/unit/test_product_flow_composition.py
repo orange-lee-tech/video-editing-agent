@@ -66,6 +66,7 @@ from video_editing_agent.application.use_cases.product_flow import (
     PlanningReferenceInput,
     PlanningReferenceKind,
     ProductBriefInput,
+    ProductFlowEventLevel,
     ProductFlowOutcome,
 )
 from video_editing_agent.application.use_cases.review_runtime import ReviewRequest
@@ -1366,3 +1367,156 @@ def test_visual_input_fails_closed_when_probe_reports_audio(
     assert result.outcome is ProductFlowOutcome.FAILED
     assert result.diagnostic is not None
     assert "did not probe as video" in result.diagnostic
+
+
+def test_public_music_exhaustion_degrades_to_grounded_source_audio(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    class OneCandidateProvider:
+        def __init__(self, *, page_size: int = 20) -> None:
+            assert page_size == 20
+
+        def search_music(self, query: MusicDiscoveryQuery) -> tuple[AudioMaterialCandidate, ...]:
+            del query
+            return (
+                AudioMaterialCandidate(
+                    "wikimedia_commons_via_openverse",
+                    "File:Needs Attribution.wav",
+                    RightsEligibility.UNKNOWN,
+                ),
+            )
+
+    class AttributionVerifier:
+        def __init__(self, artifacts, *, clock) -> None:  # type: ignore[no-untyped-def]
+            del artifacts, clock
+
+        def verify(self, provider_item_id: str) -> WikimediaVerificationResult:
+            assert provider_item_id == "File:Needs Attribution.wav"
+            return WikimediaVerificationResult(
+                None,
+                (
+                    WikimediaRightsDiagnostic(
+                        WikimediaRightsDiagnosticCode.RIGHTS_INELIGIBLE,
+                        "fixture requires attribution",
+                    ),
+                ),
+            )
+
+    monkeypatch.setattr(composition_module, "ReviewApplicationRuntime", FakeReviewRuntime)
+    monkeypatch.setattr(
+        composition_module,
+        "OpenverseWikimediaAudioProvider",
+        OneCandidateProvider,
+    )
+    monkeypatch.setattr(
+        composition_module,
+        "WikimediaAudioRightsVerifier",
+        AttributionVerifier,
+    )
+
+    workspace = ProjectWorkspace.open(tmp_path / "editing-no-public-bgm-project")
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"original-user-media")
+    renderer = FakeRenderer()
+    flow = build_editing_product_flow(
+        workspace,
+        EditingProductCapabilities(
+            FakeMediaProbe(),
+            FakeShotDetector(),
+            ShotDetectionOptions(),
+            FakeUnderstanding(workspace),
+            FakeDirector(),
+            renderer,
+            cast(RenderedMediaQc, UnusedRenderedMediaQc()),
+            edit_plan_id_factory=lambda: "epl_no_public_bgm",
+            edl_id_factory=lambda: "edl_no_public_bgm",
+            clock=lambda: NOW,
+            ffmpeg_executable="ffmpeg",
+            automatic_public_music=True,
+        ),
+    )
+
+    result = flow.run(
+        EditingProductRequest(
+            workspace.root,
+            _brief(),
+            (source,),
+            tmp_path / "output" / "no-public-bgm.mp4",
+            output_profile=EditingOutputProfile("test_320x180_30", 320, 180, 30),
+        )
+    )
+
+    assert result.outcome is ProductFlowOutcome.COMPLETED
+    assert renderer.requests
+    rendered_edl = renderer.requests[0].edl
+    assert not any(segment.track_id == "bgm" for segment in rendered_edl.segments)
+    assert any(segment.track_id == "source_audio" for segment in rendered_edl.segments)
+    assert any(
+        event.level is ProductFlowEventLevel.WARNING and "continuing without BGM" in event.message
+        for event in result.events
+    )
+    assert source.read_bytes() == b"original-user-media"
+
+
+def test_public_music_exhaustion_without_source_audio_requests_local_music(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    class NoAudioProbe(FakeMediaProbe):
+        def probe(self, path: Path) -> MediaTechnicalMetadata:
+            result = super().probe(path)
+            if result.media_kind == "video":
+                return replace(result, audio_channels=0, sample_rate_hz=None)
+            return result
+
+    class EmptyProvider:
+        def __init__(self, *, page_size: int = 20) -> None:
+            assert page_size == 20
+
+        def search_music(self, query: MusicDiscoveryQuery) -> tuple[AudioMaterialCandidate, ...]:
+            del query
+            return ()
+
+    monkeypatch.setattr(composition_module, "ReviewApplicationRuntime", FakeReviewRuntime)
+    monkeypatch.setattr(
+        composition_module,
+        "OpenverseWikimediaAudioProvider",
+        EmptyProvider,
+    )
+
+    workspace = ProjectWorkspace.open(tmp_path / "editing-no-audio-fallback-project")
+    source = tmp_path / "silent-source.mp4"
+    source.write_bytes(b"silent-user-media")
+    flow = build_editing_product_flow(
+        workspace,
+        EditingProductCapabilities(
+            NoAudioProbe(),
+            FakeShotDetector(),
+            ShotDetectionOptions(),
+            FakeUnderstanding(workspace),
+            FakeDirector(),
+            FakeRenderer(),
+            cast(RenderedMediaQc, UnusedRenderedMediaQc()),
+            edit_plan_id_factory=lambda: "epl_no_audio_fallback",
+            edl_id_factory=lambda: "edl_no_audio_fallback",
+            clock=lambda: NOW,
+            ffmpeg_executable="ffmpeg",
+            automatic_public_music=True,
+        ),
+    )
+
+    result = flow.run(
+        EditingProductRequest(
+            workspace.root,
+            _brief(),
+            (source,),
+            tmp_path / "output" / "silent.mp4",
+            output_profile=EditingOutputProfile("test_320x180_30", 320, 180, 30),
+        )
+    )
+
+    assert result.outcome is ProductFlowOutcome.FAILED
+    assert result.diagnostic is not None
+    assert "Select a local music file" in result.diagnostic
+    assert "rights needed to use it" in result.diagnostic
