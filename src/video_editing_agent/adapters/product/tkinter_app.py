@@ -93,9 +93,9 @@ from video_editing_agent.version import APP_VERSION
 
 _TEXT = {
     "zh-CN": {
-        "window_title": "视频剪辑智能体",
-        "app_title": "视频剪辑智能体",
-        "app_subtitle": "AI Director + AI Video Editor",
+        "window_title": "有岐",
+        "app_title": "有岐",
+        "app_subtitle": "创作有岐，表达有路",
         "tab_planning": "拍摄规划",
         "tab_editing": "自动剪辑",
         "planning_goal_title": "内容目标",
@@ -108,7 +108,7 @@ _TEXT = {
         "workspace": "项目工作区",
         "workspace_unselected": "尚未选择项目工作区",
         "workspace_required": "请先选择项目工作区，再开始运行。",
-        "configuration": "配置 ▾",
+        "configuration": "设置",
         "configuration_scope": "配置范围（可同时选择）",
         "form_configuration": "规划 / 剪辑表单",
         "api_configuration": "API / Provider",
@@ -202,8 +202,19 @@ _TEXT = {
         "exported": "已按 UTF-8 导出当前可见输出。",
         "estimating": "正在估算…",
         "running": "任务正在运行",
-        "splash": "正在启动视频剪辑智能体…",
+        "splash": "正在启动有岐…",
         "check_updates": "检查更新",
+        "software_update_title": "软件更新",
+        "software_update_status": "当前版本：v{current}",
+        "declaration": "声明",
+        "declaration_title": "来自开发者的声明",
+        "declaration_ack": "知道了",
+        "declaration_body": (
+            "来自开发者的声明：本软件制作的目标在于尝试一个兼容性良好的框架，并延续开源社区精神也同步开源本软件，"
+            "在2027年以前我们会放上源代码链接，任何人都可以尝试他们期望的目标，如果您有优化建议，可以直接在点击链接后访问开发者主页并发送消息。"
+            "本软件可以检查更新，本声明是一个临时版本，后续也会更新"
+        ),
+        "developer_homepage": "访问开发者主页",
         "update_available_title": "发现新版本",
         "update_available_message": (
             "当前版本 v{current}\n最新版本 v{latest}\n\n当前安装需要完整安装包，是否打开下载页？"
@@ -218,9 +229,9 @@ _TEXT = {
         "update_check_failed_message": "暂时无法检查更新：{detail}",
     },
     "en": {
-        "window_title": "Video Editing Agent",
-        "app_title": "Video Editing Agent",
-        "app_subtitle": "AI Director + AI Video Editor",
+        "window_title": "有岐",
+        "app_title": "有岐",
+        "app_subtitle": "创作有岐，表达有路",
         "tab_planning": "Planning",
         "tab_editing": "Editing",
         "planning_goal_title": "Content Goal",
@@ -233,7 +244,7 @@ _TEXT = {
         "workspace": "Project Workspace",
         "workspace_unselected": "No Project Workspace selected",
         "workspace_required": "Select a Project Workspace before starting.",
-        "configuration": "Configuration ▾",
+        "configuration": "Settings",
         "configuration_scope": "Configuration scope (select either or both)",
         "form_configuration": "Planning / Editing forms",
         "api_configuration": "API / Provider",
@@ -343,8 +354,21 @@ _TEXT = {
         "exported": "The visible output was exported as UTF-8.",
         "estimating": "Estimating…",
         "running": "Task is running",
-        "splash": "Starting Video Editing Agent…",
+        "splash": "Starting 有岐…",
         "check_updates": "Check for Updates",
+        "software_update_title": "Software Update",
+        "software_update_status": "Current version: v{current}",
+        "declaration": "Statement",
+        "declaration_title": "Developer Statement",
+        "declaration_ack": "Got it",
+        "declaration_body": (
+            "Developer statement: this software is intended to explore a framework with good compatibility "
+            "and to continue the open-source community spirit by open-sourcing the software as well. "
+            "Before 2027 we will publish a source-code link so anyone can try the goals they expect. "
+            "If you have suggestions for improvement, you can use the link to visit the developer homepage and send a message. "
+            "The software can check for updates. This statement is temporary and will be updated later."
+        ),
+        "developer_homepage": "Visit developer homepage",
         "update_available_title": "Update Available",
         "update_available_message": (
             "Current version v{current}\nLatest version v{latest}\n\n"
