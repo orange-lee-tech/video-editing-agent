@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+from collections.abc import Callable
 from pathlib import Path
 from urllib.request import Request, urlopen
 
@@ -65,7 +66,7 @@ def download_component(
     component: UpdateComponent,
     destination: Path,
     *,
-    progress: callable | None = None,
+    progress: Callable[[int, int], None] | None = None,
 ) -> None:
     request = Request(
         component.url,
