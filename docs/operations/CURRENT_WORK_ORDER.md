@@ -12,12 +12,13 @@
 
 Prepare the already Human-accepted Stage-A product for a credible 1.0.0 release without reopening core feature construction.
 
-This work order is limited to four Product Owner-approved release-polish items:
+This work order is limited to five Product Owner-approved release-polish items:
 
 1. installer progress must show a useful remaining-time estimate/countdown;
 2. Windows desktop text rendering must be crisp and DPI-aware, with Chinese typography using an appropriate CJK UI font;
 3. the desktop must provide persisted Day / Comfort / Night appearance modes;
-4. routine future updates must use a verified component/file patch path by default, with the full Setup.exe retained only as bootstrap/recovery fallback.
+4. routine future updates must use a verified component/file patch path by default, with the full Setup.exe retained only as bootstrap/recovery fallback;
+5. guided installation must present a bilingual Software License and User Agreement that the user must explicitly accept before installation can continue.
 
 ## Non-goals
 
@@ -31,7 +32,7 @@ Do not add:
 - byte-level binary delta algorithms such as bsdiff;
 - silent background self-update without user consent.
 
-Do not generate or publish a final `1.0.0` installer under this work order until the four scoped items are verified and the Product Owner authorizes release packaging.
+Do not generate or publish a final `1.0.0` installer under this work order until the five scoped items are verified and the Product Owner authorizes release packaging.
 
 ## Acceptance criteria
 
@@ -58,6 +59,14 @@ Do not generate or publish a final `1.0.0` installer under this work order until
 - theme changes apply without changing product data or API secrets;
 - all semantic tokens are switched together, including native Tk text/canvas surfaces;
 - contrast-sensitive text/button states remain readable.
+
+### Installer agreement
+
+- Simplified Chinese and English agreement files are maintained in the repository;
+- the guided installer displays the agreement for the selected language before installation;
+- the user must explicitly accept the agreement before proceeding;
+- the agreement covers software licensing, AI-output limitations, third-party API/network transmission, API charges/credentials, media/music rights, updates, third-party components, warranty disclaimer, liability limits, privacy/local data, prohibited use and termination;
+- silent/unattended engineering smoke may accept the license through installer automation, but ordinary interactive installation must not bypass consent.
 
 ### Component patch updates
 
