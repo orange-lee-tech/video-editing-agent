@@ -49,9 +49,25 @@ Copy-Item -LiteralPath (Join-Path $FfmpegBin "ffmpeg.exe") -Destination $FfmpegO
 Copy-Item -LiteralPath (Join-Path $FfmpegBin "ffprobe.exe") -Destination $FfmpegOwned -Force
 Get-ChildItem -LiteralPath $FfmpegBin -Filter "*.dll" | Copy-Item -Destination $FfmpegOwned -Force
 Copy-Item -LiteralPath (Join-Path $FfmpegRoot.FullName "LICENSE.txt") -Destination $FfmpegOwned -Force
-$Configuration = (& (Join-Path $FfmpegOwned "ffmpeg.exe") -version | Select-String "^configuration:").Line
+$FfmpegExecutable = Join-Path $FfmpegOwned "ffmpeg.exe"
+$FfprobeExecutable = Join-Path $FfmpegOwned "ffprobe.exe"
+$Configuration = (& $FfmpegExecutable -version | Select-String "^configuration:").Line
 if ($Configuration -match "--enable-(gpl|nonfree)") {
     throw "FFmpeg configuration is not LGPL-only"
+}
+if ($Configuration -notmatch "--enable-libopenh264" -or $Configuration -notmatch "--disable-libx264") {
+    throw "Approved FFmpeg payload must enable libopenh264 and keep libx264 disabled"
+}
+$EncoderProbe = Join-Path $Root "ffmpeg-openh264-probe.mp4"
+Remove-Item -LiteralPath $EncoderProbe -Force -ErrorAction SilentlyContinue
+& $FfmpegExecutable -hide_banner -loglevel error -nostdin -y -f lavfi -i "color=c=black:s=320x180:r=30:d=1" -c:v libopenh264 -b:v 1000000 -pix_fmt yuv420p -an $EncoderProbe
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $EncoderProbe -PathType Leaf)) {
+    throw "Approved FFmpeg payload failed the libopenh264 encode probe"
+}
+$ProbeCodec = (& $FfprobeExecutable -v error -select_streams v:0 -show_entries stream=codec_name -of "default=nw=1:nk=1" $EncoderProbe).Trim()
+Remove-Item -LiteralPath $EncoderProbe -Force -ErrorAction SilentlyContinue
+if ($LASTEXITCODE -ne 0 -or $ProbeCodec -ne "h264") {
+    throw "Approved FFmpeg payload did not produce a verified H.264 stream via libopenh264"
 }
 
 if (-not (Test-Path -LiteralPath (Join-Path $TransNet "transnetv2_pytorch"))) {

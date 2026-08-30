@@ -59,6 +59,21 @@ try {
     & $CliExecutable runtime-probe |
         Set-Content -Encoding utf8 (Join-Path $Evidence "packaged-runtime-probe.json")
     if ($LASTEXITCODE -ne 0) { throw "Packaged runtime probe failed" }
+
+    $PackagedFfmpeg = Join-Path $Stage "_internal\\tools\\ffmpeg.exe"
+    $PackagedFfprobe = Join-Path $Stage "_internal\\tools\\ffprobe.exe"
+    $H264Probe = Join-Path $Evidence "packaged-openh264-probe.mp4"
+    Remove-Item -LiteralPath $H264Probe -Force -ErrorAction SilentlyContinue
+    & $PackagedFfmpeg -hide_banner -loglevel error -nostdin -y -f lavfi -i "color=c=black:s=320x180:r=30:d=1" -c:v libopenh264 -b:v 1000000 -pix_fmt yuv420p -an $H264Probe
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $H264Probe -PathType Leaf)) {
+        throw "Packaged FFmpeg libopenh264 encode smoke failed"
+    }
+    $PackagedCodec = (& $PackagedFfprobe -v error -select_streams v:0 -show_entries stream=codec_name -of "default=nw=1:nk=1" $H264Probe).Trim()
+    Remove-Item -LiteralPath $H264Probe -Force -ErrorAction SilentlyContinue
+    if ($LASTEXITCODE -ne 0 -or $PackagedCodec -ne "h264") {
+        throw "Packaged FFmpeg H.264 verification failed"
+    }
+
     $Workspace = Join-Path ([System.IO.Path]::GetTempPath()) "video-editing-agent-packaged-smoke"
     if (Test-Path -LiteralPath $Workspace) {
         Remove-Item -LiteralPath $Workspace -Recurse -Force
@@ -83,6 +98,8 @@ try {
         diagnostics_cli = "PASS"
         doctor = "PASS"
         runtime_payloads = "PASS"
+        h264_encoder = "libopenh264"
+        h264_encode = "PASS"
         shipped_components = @("core", "media-runtime", "transnet-runtime")
         deferred_speech_absent = "PASS"
         external_workspace = "PASS"
