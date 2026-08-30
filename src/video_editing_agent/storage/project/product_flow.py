@@ -130,9 +130,9 @@ def _edl_id() -> str:
 
 
 _OUTPUT_FORMATS: dict[str, tuple[str, str, str]] = {
-    ".mp4": ("mp4", "libx264", "aac"),
-    ".mov": ("mov", "libx264", "aac"),
-    ".mkv": ("matroska", "libx264", "aac"),
+    ".mp4": ("mp4", "libopenh264", "aac"),
+    ".mov": ("mov", "libopenh264", "aac"),
+    ".mkv": ("matroska", "libopenh264", "aac"),
     ".webm": ("webm", "libvpx-vp9", "libopus"),
 }
 
