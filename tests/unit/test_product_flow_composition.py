@@ -66,6 +66,7 @@ from video_editing_agent.application.use_cases.product_flow import (
     PlanningReferenceInput,
     PlanningReferenceKind,
     ProductBriefInput,
+    ProductFlowEventLevel,
     ProductFlowOutcome,
 )
 from video_editing_agent.application.use_cases.review_runtime import ReviewRequest
