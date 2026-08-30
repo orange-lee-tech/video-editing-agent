@@ -12,6 +12,7 @@ from typing import Any, Protocol
 
 from video_editing_agent.application.ports.artifact_store import ArtifactStore
 from video_editing_agent.application.ports.visual_understanding import (
+    VisualProviderQuotaError,
     VisualProviderResponseError,
     VisualProviderTransientError,
     VisualQualityScoreProposal,
@@ -113,22 +114,24 @@ def _parse_retry_delay(value: object) -> float | None:
     return delay if math.isfinite(delay) else None
 
 
-def _http_error_metadata(exc: urllib.error.HTTPError) -> tuple[str | None, float | None]:
+def _http_error_metadata(
+    exc: urllib.error.HTTPError,
+) -> tuple[str | None, float | None, tuple[str, ...]]:
     try:
         body = exc.read()
     except (OSError, ValueError):
-        return None, None
+        return None, None, ()
     if not body:
-        return None, None
+        return None, None, ()
     try:
         decoded: Any = json.loads(body.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError):
-        return None, None
+        return None, None, ()
     if not isinstance(decoded, dict):
-        return None, None
+        return None, None, ()
     error = decoded.get("error")
     if not isinstance(error, dict):
-        return None, None
+        return None, None, ()
 
     detail: str | None = None
     message = error.get("message")
@@ -137,16 +140,28 @@ def _http_error_metadata(exc: urllib.error.HTTPError) -> tuple[str | None, float
         detail = normalized[:500] or None
 
     retry_after_seconds: float | None = None
+    quota_ids: list[str] = []
     details = error.get("details")
     if isinstance(details, list):
         for item in details:
             if not isinstance(item, dict):
                 continue
-            if item.get("@type") != "type.googleapis.com/google.rpc.RetryInfo":
+            item_type = item.get("@type")
+            if item_type == "type.googleapis.com/google.rpc.RetryInfo":
+                if retry_after_seconds is None:
+                    retry_after_seconds = _parse_retry_delay(item.get("retryDelay"))
                 continue
-            retry_after_seconds = _parse_retry_delay(item.get("retryDelay"))
-            if retry_after_seconds is not None:
-                break
+            if item_type != "type.googleapis.com/google.rpc.QuotaFailure":
+                continue
+            violations = item.get("violations")
+            if not isinstance(violations, list):
+                continue
+            for violation in violations:
+                if not isinstance(violation, dict):
+                    continue
+                quota_id = violation.get("quotaId")
+                if isinstance(quota_id, str) and quota_id.strip():
+                    quota_ids.append(quota_id.strip())
 
     if retry_after_seconds is None and isinstance(message, str):
         match = _RETRY_MESSAGE_PATTERN.search(message)
@@ -155,7 +170,7 @@ def _http_error_metadata(exc: urllib.error.HTTPError) -> tuple[str | None, float
             if math.isfinite(candidate):
                 retry_after_seconds = candidate
 
-    return detail, retry_after_seconds
+    return detail, retry_after_seconds, tuple(dict.fromkeys(quota_ids))
 
 
 def _transport_error_detail(exc: urllib.error.URLError) -> str | None:
@@ -205,8 +220,23 @@ class UrllibGeminiGenerateContentTransport(GeminiGenerateContentTransport):
             with urllib.request.urlopen(request, timeout=self._timeout_seconds) as response:
                 response_body = response.read()
         except urllib.error.HTTPError as exc:
-            detail, retry_after_seconds = _http_error_metadata(exc)
+            detail, retry_after_seconds, quota_ids = _http_error_metadata(exc)
             suffix = "" if detail is None else f": {detail}"
+            hard_daily_quota = exc.code == 429 and any(
+                "perday" in quota_id.casefold() for quota_id in quota_ids
+            )
+            if hard_daily_quota:
+                quota_text = ", ".join(quota_ids)
+                raise VisualProviderQuotaError(
+                    (
+                        "Gemini daily request quota is exhausted "
+                        f"({quota_text}){suffix}. Short-term automatic retries cannot resolve a "
+                        "per-day quota; wait for quota reset, enable higher Gemini quota, or "
+                        "switch the Visual API Provider to OpenAI."
+                    ),
+                    quota_ids=quota_ids,
+                    retry_after_seconds=retry_after_seconds,
+                ) from exc
             if exc.code in {408, 409, 429} or 500 <= exc.code <= 599:
                 raise VisualProviderTransientError(
                     f"Gemini request returned retryable HTTP {exc.code}{suffix}",
