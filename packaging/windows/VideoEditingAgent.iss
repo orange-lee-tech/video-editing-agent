@@ -11,7 +11,7 @@
   #define SourceSha "development"
 #endif
 
-#define AppName "Video Editing Agent"
+#define AppName "有岐"
 #define AppPublisher "Orange Lee"
 #define AppExeName "VideoEditingAgent.exe"
 #define AppId "{{9A3F2C7B-7C4D-4BA8-9E79-6D8C1C6B98A4}"
@@ -24,7 +24,7 @@ AppPublisher={#AppPublisher}
 VersionInfoVersion={#AppVersion}
 VersionInfoDescription={#AppName} Windows Installer
 DefaultDirName={localappdata}\Programs\Video Editing Agent
-DefaultGroupName=Video Editing Agent
+DefaultGroupName=有岐
 DisableProgramGroupPage=yes
 DisableWelcomePage=no
 OutputDir={#OutputDir}
@@ -98,8 +98,8 @@ Source: "..\..\resources\legal\USER_AGREEMENT_en.txt"; DestDir: "{app}\licenses"
 Source: "..\..\resources\legal\USER_AGREEMENT_zh-CN.txt"; DestDir: "{app}\licenses"; Components: core; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\Video Editing Agent"; Filename: "{app}\{#AppExeName}"
-Name: "{autodesktop}\Video Editing Agent"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
+Name: "{group}\有岐"; Filename: "{app}\{#AppExeName}"
+Name: "{autodesktop}\有岐"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
