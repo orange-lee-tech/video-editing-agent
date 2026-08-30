@@ -2,16 +2,12 @@ from pathlib import Path
 
 
 def test_visible_brand_is_youqi_while_compatibility_identifiers_stay_stable() -> None:
-    ui = Path("src/video_editing_agent/adapters/product/tkinter_app.py").read_text(
-        encoding="utf-8"
-    )
-    installer = Path("packaging/windows/VideoEditingAgent.iss").read_text(
-        encoding="utf-8"
-    )
+    ui = Path("src/video_editing_agent/adapters/product/tkinter_app.py").read_text(encoding="utf-8")
+    installer = Path("packaging/windows/VideoEditingAgent.iss").read_text(encoding="utf-8")
 
     assert '"app_title": "有岐"' in ui
     assert '"app_subtitle": "创作有岐，表达有路"' in ui
-    assert 'app_subtitle_label.configure(text=f"{text(\'app_subtitle\')} · v{APP_VERSION}")' in ui
+    assert "app_subtitle_label.configure(text=f\"{text('app_subtitle')} · v{APP_VERSION}\")" in ui
     assert '#define AppName "有岐"' in installer
     assert 'Name: "{group}\\有岐"' in installer
     assert '#define AppExeName "VideoEditingAgent.exe"' in installer
@@ -20,12 +16,10 @@ def test_visible_brand_is_youqi_while_compatibility_identifiers_stay_stable() ->
 
 
 def test_header_has_language_settings_declaration_but_no_standalone_update_button() -> None:
-    ui = Path("src/video_editing_agent/adapters/product/tkinter_app.py").read_text(
-        encoding="utf-8"
-    )
+    ui = Path("src/video_editing_agent/adapters/product/tkinter_app.py").read_text(encoding="utf-8")
 
     header_start = ui.index('header = ttk.Frame(root, style="Header.TFrame"')
-    workspace_start = ui.index('workspace_bar = ttk.Frame(', header_start)
+    workspace_start = ui.index("workspace_bar = ttk.Frame(", header_start)
     header = ui[header_start:workspace_start]
 
     assert "language_button = ttk.Button" in header
