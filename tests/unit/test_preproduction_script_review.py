@@ -368,7 +368,7 @@ def test_no_facts_brief_stops_after_two_rejected_full_proposals(tmp_path: Path) 
         )
 
     assert len(planning_port.requests) == 2
-    assert len(review_port.requests) == 3
+    assert len(review_port.requests) == 4
 
 
 def test_review_result_is_veto_only_and_internally_consistent() -> None:
