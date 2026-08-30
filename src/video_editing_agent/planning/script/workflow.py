@@ -248,9 +248,7 @@ def _deterministic_claim_fallback(
     targeted_ids = {
         violation.section_id for violation in review.violations if violation.section_id is not None
     }
-    sanitize_all = force_all or any(
-        violation.section_id is None for violation in review.violations
-    )
+    sanitize_all = force_all or any(violation.section_id is None for violation in review.violations)
     if current_script is not None:
         locked_ids = set(current_script.locked_section_ids)
         if (sanitize_all and locked_ids) or targeted_ids.intersection(locked_ids):
