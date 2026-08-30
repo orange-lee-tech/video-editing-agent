@@ -1,66 +1,88 @@
 # Current Work Order
 
-**ID:** R0.12-STAGE-A-FINAL-CLOSURE-002  
-**Status:** CLOSED — STAGE-A HUMAN PASS  
-**Phase:** R0.12 — Stage-A final closure  
-**Mode:** FINAL ORDINARY-USER WINDOWS ACCEPTANCE  
-**Accepted candidate:** 0.1.5 / e59cab8475a615d29003c03497ddcdaf862476a6  
-**Closed:** 2026-08-30  
-**Updated:** 2026-08-30
+**ID:** R0.13-RELEASE-POLISH-001  
+**Status:** ACTIVE — RELEASE POLISH / COMPATIBILITY  
+**Phase:** R0.13 — 1.0 release polish and update engineering  
+**Mode:** BOUNDED POST-STAGE-A PRODUCTIZATION  
+**Accepted Stage-A baseline:** 0.1.5 / e59cab8475a615d29003c03497ddcdaf862476a6  
+**Opened:** 2026-08-31  
+**Updated:** 2026-08-31
 
-## Closure result
+## Objective
 
-The Product Owner reports that the exact 0.1.5 installed product passed both Stage-A core Human Gates:
+Prepare the already Human-accepted Stage-A product for a credible 1.0.0 release without reopening core feature construction.
 
-- Planning / script generation: **PASS**
-- Automatic Editing / real-footage one-click editing: **PASS**
+This work order is limited to four Product Owner-approved release-polish items:
 
-No material core-product blocker remains open.
+1. installer progress must show a useful remaining-time estimate/countdown;
+2. Windows desktop text rendering must be crisp and DPI-aware, with Chinese typography using an appropriate CJK UI font;
+3. the desktop must provide persisted Day / Comfort / Night appearance modes;
+4. routine future updates must use a verified component/file patch path by default, with the full Setup.exe retained only as bootstrap/recovery fallback.
 
-## Accepted release-candidate authority
+## Non-goals
 
-- Version: **0.1.5**
-- Source: `e59cab8475a615d29003c03497ddcdaf862476a6`
-- Windows RC run: `33316098718`
-- Installer: `VideoEditingAgent-Setup-0.1.5.exe`
-- SHA-256: `45fd1225340e988a030c2acbcb2864092cb61f368f8b98720e24f5a402e76663`
-- Release tag: `v0.1.5-rc-e59cab8`
-- Release asset ID: `536695964`
+Do not add:
 
-## Final engineering blocker closed by 0.1.5
+- advanced speech reconstruction;
+- bilingual/translated subtitles;
+- TTS/narration;
+- Remote Reference URL;
+- new editing effects or creative capabilities;
+- byte-level binary delta algorithms such as bsdiff;
+- silent background self-update without user consent.
 
-The 0.1.4 Human Gate reached final render but exposed a deterministic runtime/Renderer mismatch:
+Do not generate or publish a final `1.0.0` installer under this work order until the four scoped items are verified and the Product Owner authorizes release packaging.
 
-- packaged FFmpeg was the approved BtbN LGPL build;
-- that build explicitly enabled `libopenh264`;
-- that build explicitly disabled `libx264`;
-- the product output contract still requested `libx264`.
+## Acceptance criteria
 
-0.1.5 aligned the Renderer with the actually bundled software H.264 encoder and added real encode verification to both runtime preparation and packaged staging.
+### Installer ETA
 
-The exact bundled FFmpeg was proven to encode H.264 through `libopenh264`, and ffprobe verified the produced stream as H.264 before the RC was accepted for Human testing.
+- the guided Inno Setup UI displays localized estimated remaining time during file installation;
+- the estimate is derived from actual observed progress and elapsed time rather than a fixed fake countdown;
+- early/unstable progress is labeled as estimating;
+- unattended/silent installer behavior remains unchanged.
 
-## Human evidence
+### DPI and typography
 
-Durable Human acceptance is recorded in:
+- the GUI declares Windows DPI awareness before Tk is created;
+- Tk scaling is derived from the actual display DPI;
+- Chinese UI uses `Microsoft YaHei UI` when available; English uses `Segoe UI`;
+- default body/meta sizes are readable at ordinary Windows scaling;
+- static tests lock the DPI bootstrap and typography contract;
+- Windows packaging smoke verifies the GUI still starts.
 
-`docs/validation/R0.12_STAGE_A_FINAL_HUMAN_ACCEPTANCE_0.1.5.md`
+### Appearance modes
 
-## Gate closure
+- modes: `day`, `comfort`, `night`;
+- selection is exposed in Settings and persisted outside project workspaces;
+- theme changes apply without changing product data or API secrets;
+- all semantic tokens are switched together, including native Tk text/canvas surfaces;
+- contrast-sensitive text/button states remain readable.
 
-With the 0.1.5 Human PASS:
+### Component patch updates
 
-- Core 1 Planning gate: **PASS**
-- Core 2 Editing gate: **PASS**
-- Windows release delivery gate: **PASS**
-- Stage-A completion gate: **PASS**
-- Structural progress: **100%**
-- R0.12 final closure work order: **CLOSED**
+- update metadata can describe a full installer plus independently versioned component archives;
+- the application can plan an update by comparing installed component versions/hashes with manifest state;
+- a separate updater process can download, SHA-256 verify, stage, replace and rollback changed application files;
+- the running GUI never overwrites its own executable in-process;
+- failed verification/replacement restores the previous installation;
+- unchanged heavyweight runtimes are not downloaded for an app-core-only patch;
+- full Setup.exe remains available for first install, repair, incompatible layout changes and updater failure.
 
-## Important boundary
+## Required verification
 
-Closing Stage-A does **not** authorize an immediate final `1.0.0` installer.
+- repository Quality Gate;
+- unit tests for theme persistence, DPI bootstrap, update-manifest compatibility and patch planning;
+- updater rollback/integrity tests;
+- Windows packaging staging smoke;
+- real packaged H.264 encode gate remains PASS;
+- guided installer lifecycle remains PASS;
+- one Windows visual compatibility review at 100%, 125%, 150% and 200% scaling before final 1.0.0 authorization.
 
-The Product Owner explicitly requested a discussion of non-blocking release-polish and compatibility topics before final 1.0.0 packaging.
+## Exit condition
 
-Those topics belong to post-Stage-A release engineering / polish unless they reveal a new material regression in an already-accepted core product promise.
+When all four items pass engineering verification and the Product Owner accepts the Windows presentation/update behavior:
+
+- close R0.13;
+- freeze the 1.0 release candidate scope;
+- only then authorize final `1.0.0` packaging.
