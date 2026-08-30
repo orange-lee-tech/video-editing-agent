@@ -536,6 +536,15 @@ def launch() -> int:
 
     update_check_in_flight = False
 
+    def format_patch_size(size_bytes: int) -> str:
+        if size_bytes >= 1024 * 1024 * 1024:
+            return f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
+        if size_bytes >= 1024 * 1024:
+            return f"{size_bytes / (1024 * 1024):.1f} MB"
+        if size_bytes >= 1024:
+            return f"{size_bytes / 1024:.0f} KB"
+        return f"{size_bytes} B"
+
     def finish_update_check(result: UpdateCheckResult, *, interactive: bool) -> None:
         nonlocal update_check_in_flight
         update_check_in_flight = False
@@ -543,6 +552,54 @@ def launch() -> int:
         if result.update_available:
             manifest = result.manifest
             assert manifest is not None
+            install_root = Path(sys.executable).resolve().parent
+            updater = install_root / "VideoEditingAgent-updater.exe"
+            patch_plan = None
+            if updater.is_file():
+                try:
+                    state = load_update_state(default_update_state_path(install_root))
+                    patch_plan = plan_component_update(state, manifest)
+                except ValueError:
+                    patch_plan = None
+
+            if patch_plan is not None and patch_plan.patch_available:
+                apply_patch = messagebox.askyesno(
+                    text("update_available_title"),
+                    text("patch_update_message").format(
+                        current=result.current_version,
+                        latest=manifest.version,
+                        size=format_patch_size(patch_plan.total_size_bytes),
+                    ),
+                    parent=root,
+                )
+                if apply_patch:
+                    try:
+                        subprocess.Popen(
+                            [
+                                str(updater),
+                                "--install-root",
+                                str(install_root),
+                                "--app-exe",
+                                str(install_root / "VideoEditingAgent.exe"),
+                                "--current-version",
+                                result.current_version,
+                                "--wait-pid",
+                                str(os.getpid()),
+                                "--language",
+                                language.get(),
+                            ],
+                            cwd=str(install_root),
+                        )
+                    except OSError as exc:
+                        messagebox.showerror(
+                            text("update_available_title"),
+                            text("patch_update_launch_failed").format(detail=str(exc)),
+                            parent=root,
+                        )
+                        return
+                    root.after(100, root.destroy)
+                return
+
             open_page = messagebox.askyesno(
                 text("update_available_title"),
                 text("update_available_message").format(
