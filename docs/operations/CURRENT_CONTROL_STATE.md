@@ -42,7 +42,8 @@ Approved scope:
 1. installer remaining-time estimate/countdown;
 2. Windows DPI-aware typography and clearer Chinese text;
 3. persisted Day / Comfort / Night appearance modes;
-4. verified component/file patch updates with rollback, while retaining the full Setup.exe as bootstrap/recovery fallback.
+4. verified component/file patch updates with rollback, while retaining the full Setup.exe as bootstrap/recovery fallback;
+5. bilingual installer Software License and User Agreement with explicit interactive acceptance.
 
 ## Release boundary
 
