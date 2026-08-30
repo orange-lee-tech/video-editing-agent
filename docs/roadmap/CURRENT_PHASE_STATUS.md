@@ -23,12 +23,13 @@ R0.13 does not reopen those core gates unless a material regression is demonstra
 
 ## R0.13 scope
 
-The Product Owner approved four release-polish items before final 1.0.0 packaging:
+The Product Owner approved five release-polish items before final 1.0.0 packaging:
 
 1. localized installer remaining-time estimate/countdown;
 2. Windows DPI-aware crisp typography;
 3. persisted Day / Comfort / Night appearance modes;
-4. component/file patch updating so ordinary patch releases do not require redownloading the full runtime bundle.
+4. component/file patch updating so ordinary patch releases do not require redownloading the full runtime bundle;
+5. bilingual installer Software License and User Agreement requiring explicit interactive acceptance.
 
 ## Release boundary
 
