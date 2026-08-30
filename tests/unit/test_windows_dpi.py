@@ -33,9 +33,9 @@ def test_tk_scaling_uses_monitor_dpi() -> None:
 
 
 def test_desktop_entry_enables_dpi_before_product_ui_import() -> None:
-    source = Path(
-        "src/video_editing_agent/adapters/bootstrap/desktop_entry.py"
-    ).read_text(encoding="utf-8")
+    source = Path("src/video_editing_agent/adapters/bootstrap/desktop_entry.py").read_text(
+        encoding="utf-8"
+    )
 
     assert source.index("enable_windows_dpi_awareness()") < source.index(
         "from video_editing_agent.adapters.product.tkinter_app import launch"
