@@ -31,11 +31,15 @@ try {
     $Stage = Join-Path $Dist "VideoEditingAgent"
     $GuiExecutable = Join-Path $Stage "VideoEditingAgent.exe"
     $CliExecutable = Join-Path $Stage "VideoEditingAgent-cli.exe"
+    $UpdaterExecutable = Join-Path $Stage "VideoEditingAgent-updater.exe"
     if (-not (Test-Path -LiteralPath $GuiExecutable -PathType Leaf)) {
         throw "Windowed application executable is missing from staged package"
     }
     if (-not (Test-Path -LiteralPath $CliExecutable -PathType Leaf)) {
         throw "Console diagnostics executable is missing from staged package"
+    }
+    if (-not (Test-Path -LiteralPath $UpdaterExecutable -PathType Leaf)) {
+        throw "Standalone updater executable is missing from staged package"
     }
     New-Item -ItemType Directory -Force -Path $Evidence | Out-Null
     $SourceSha = (git rev-parse HEAD).Trim()
@@ -43,6 +47,28 @@ try {
         --manifest $Manifest --staged-root $Stage `
         --evidence (Join-Path $Evidence "package-evidence.json") --source-sha $SourceSha
     if ($LASTEXITCODE -ne 0) { throw "Static package validation failed" }
+
+    $ApplicationVersion = (uv run python -c "from video_editing_agent.version import APP_VERSION; print(APP_VERSION)").Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($ApplicationVersion)) {
+        throw "Could not resolve application version for update components"
+    }
+    $UpdateComponents = Join-Path $RepoRoot "build\update-components"
+    if (Test-Path -LiteralPath $UpdateComponents) {
+        Remove-Item -LiteralPath $UpdateComponents -Recurse -Force
+    }
+    uv run python tools/maintenance/build_update_components.py `
+        --staged-root $Stage `
+        --output-dir $UpdateComponents `
+        --runtime-manifest $Manifest `
+        --application-version $ApplicationVersion
+    if ($LASTEXITCODE -ne 0) { throw "Update component build failed" }
+    $UpdateState = Join-Path $Stage "_internal\resources\packaging\update-state.json"
+    if (-not (Test-Path -LiteralPath $UpdateState -PathType Leaf)) {
+        throw "Packaged update-state.json is missing"
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $UpdateComponents "update-release-components.json") -PathType Leaf)) {
+        throw "Update release metadata is missing"
+    }
 
     foreach ($DeferredPath in @(
         (Join-Path $Stage "_internal\runtimes\speech"),
@@ -96,6 +122,8 @@ try {
         launcher = "PASS"
         gui_without_console = "PASS"
         diagnostics_cli = "PASS"
+        component_updater = "PASS"
+        component_archives = "PASS"
         doctor = "PASS"
         runtime_payloads = "PASS"
         h264_encoder = "libopenh264"
