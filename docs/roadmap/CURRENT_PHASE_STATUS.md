@@ -8,69 +8,66 @@
 **Updated:** 2026-08-30  
 **Active work order:** R0.12-STAGE-A-FINAL-CLOSURE-002
 
-## Progress truth
+## Current final Human candidate
 
-Installed Planning completed successfully during the 0.1.1 Human Gate.
+Application version **0.1.3**.
 
-The representative Editing run then reached visual-understanding provider work and completed several Gemini calls before a later call returned retryable HTTP 503 due model high demand. This was an external transient condition, but the product's existing automatic transient retry budget was too short to absorb a realistic provider-demand spike.
+Exact application source:
 
-The bounded resilience repair is now version **0.1.2** with exact source:
+`93d8483bb1d10e4bc5903c33f626fdd9f0d0e7ea`
 
-`eadbaa74c686f9fe526cb1d3eab64dde21c94d84`
+Windows Release Candidate run:
 
-Windows Release Candidate run `33265346143` completed successfully.
+`33286816025`
 
-Current final Human candidate:
+Installer:
 
-- `VideoEditingAgent-Setup-0.1.2.exe`
-- SHA-256: `32838e2748ae60f0059d461cccadbc5dc971ae3a9d2fc49922f3d9d8821f8c43`
-- prerelease: `v0.1.2-rc-eadbaa7`
-- exact source: `eadbaa74c686f9fe526cb1d3eab64dde21c94d84`.
+`VideoEditingAgent-Setup-0.1.3.exe`
 
-The 0.1.1 candidate is superseded for final acceptance.
+SHA-256:
 
-## 0.1.2 engineering closure
+`0efa9bd847161b42fc9a2b000ebbc5e6dc18d8f8385fd2f489f96feff1cac9e8`
 
-The replacement candidate preserves all accepted 0.1.1 fixes and additionally proves:
+Release:
 
-- explicit transient visual-provider failures use 5 bounded attempts;
-- local delay sequence without provider guidance is 2 / 4 / 8 / 16 seconds;
-- provider RetryInfo is still respected when longer;
-- non-transient response/schema failures do not enter the retry loop;
-- exhausted retries retain the typed transient failure and provider message;
-- repository Quality Gate passes;
-- Windows packaged GUI smoke passes;
-- guided Setup.exe build passes;
-- Planning-only install passes;
-- Planning-only → Full upgrade passes;
-- Full launcher passes;
-- same-version repair passes;
-- uninstall and Workspace preservation pass;
-- durable private prerelease publication passes.
+`v0.1.3-rc-93d8483`
+
+The repository is now public and this Release asset is directly downloadable.
+
+## Engineering evidence
+
+0.1.3 preserves prior accepted packaging/runtime fixes and additionally repairs the two 0.1.2 Human Gate blockers:
+
+- Planning unsupported-claim repair/review now converges toward a deterministic fact-only fallback instead of preserving claim-bearing context.
+- Gemini hard per-day quota is separated from short transient throttling and produces actionable recovery guidance rather than consuming the bounded transient retry loop.
+
+Disposable automated/Human-Gate test workspaces are cleaned before each run. User workspaces and original media are excluded from this clean policy.
+
+The 0.1.3 Windows RC passed packaged GUI smoke and the full install → upgrade → repair → uninstall lifecycle with Workspace preservation.
 
 ## Current gates
 
-- Planning installed path: **HUMAN PASS ON 0.1.1; 0.1.2 REGRESSION CONFIRMATION PENDING**.
-- Editing visual-first installed path: **FINAL 0.1.2 HUMAN GATE PENDING**.
+- Planning installed path: **FINAL 0.1.3 HUMAN GATE PENDING**.
+- Editing visual-first installed path: **FINAL 0.1.3 HUMAN GATE PENDING**.
 - Windows child-process behavior: **ENGINEERING FIXED; HUMAN CONFIRMATION PENDING**.
 - Renderer/review correction behavior: **ENGINEERING FIXED; HUMAN CONFIRMATION PENDING**.
-- Visual-provider transient resilience: **ENGINEERING FIXED; HUMAN CONFIRMATION PENDING**.
+- Visual-provider transient/quota behavior: **ENGINEERING FIXED; HUMAN CONFIRMATION PENDING**.
 - Version visibility/update discovery: **IMPLEMENTED**.
+- Public update download path: **AVAILABLE**.
 - Windows installer lifecycle: **ENGINEERING PASS**.
 - Stage-A completion gate: **OPEN ONLY FOR FINAL ORDINARY-USER HUMAN GATE**.
 
-Structural progress remains **95%** by policy.
+Structural progress remains **95%**.
 
 ## Final path to 100%
 
 ```text
-install exact 0.1.2 RC
-→ verify visible v0.1.2
-→ brief Planning regression
+install/upgrade to exact 0.1.3 RC
+→ verify visible v0.1.3
+→ representative Planning
 → representative real-footage Editing
 → confirm no terminal flashes
-→ confirm transient provider handling is bounded and usable
-→ confirm update discovery
+→ confirm update path works
 → verify Workspace/original-media safety
 → record durable Human evidence
 → Stage-A gates PASS
@@ -78,16 +75,10 @@ install exact 0.1.2 RC
 → close R0.12
 ```
 
-## Update-distribution status
+## After Stage-A closure
 
-Stable metadata now advertises 0.1.2:
+Do not mix the remaining core Human Gate with a new updater architecture.
 
-`https://orange-lee-tech.github.io/homepages/video-editing-agent/stable/latest.json`
+After R0.12 closes, open a separate release-engineering work order for component-level incremental updates so ordinary patch releases do not require re-downloading the complete Windows runtime bundle.
 
-The manifest remains public and source-free. The installer URL remains a controlled private GitHub Release asset during final testing.
-
-## Non-blocking follow-up
-
-Do not broaden Stage-A closure into advanced speech reconstruction, bilingual/translated subtitles, cross-language narration/TTS, Remote Reference URL, delta/Web Setup updating, broad resumable-task checkpoint architecture or unrelated visual redesign.
-
-Inno Setup commercial-use licensing remains a release-management item before commercial distribution.
+Full Setup.exe remains the recovery/bootstrap path. Complex binary delta/Web Setup machinery is not required to close the current Stage-A Human Gate.
