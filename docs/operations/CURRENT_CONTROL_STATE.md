@@ -43,13 +43,17 @@ Approved scope:
 2. Windows DPI-aware typography and clearer Chinese text;
 3. persisted Day / Comfort / Night appearance modes;
 4. verified component/file patch updates with rollback, while retaining the full Setup.exe as bootstrap/recovery fallback;
-5. bilingual installer Software License and User Agreement with explicit interactive acceptance.
+5. bilingual installer Software License and User Agreement with explicit interactive acceptance;
+6. header consolidation so update checking lives inside Settings plus a sibling Declaration control;
+7. visible product branding as `有岐` with slogan `创作有岐，表达有路`, while compatibility-sensitive internal identifiers remain stable.
 
 ## Release boundary
 
 Final `1.0.0` packaging is not authorized while R0.13 is active.
 
 No advanced creative capability work belongs in this phase.
+
+Execution discipline: direct bounded repository edits are preferred for deterministic work; Codex is reserved for genuinely complex/local Windows iteration. The accepted Planning and Editing paths are protected invariants and any regression blocks R0.13 closure.
 
 ## Required invariants
 
