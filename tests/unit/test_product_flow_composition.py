@@ -1453,8 +1453,7 @@ def test_public_music_exhaustion_degrades_to_grounded_source_audio(
     assert not any(segment.track_id == "bgm" for segment in rendered_edl.segments)
     assert any(segment.track_id == "source_audio" for segment in rendered_edl.segments)
     assert any(
-        event.level is ProductFlowEventLevel.WARNING
-        and "continuing without BGM" in event.message
+        event.level is ProductFlowEventLevel.WARNING and "continuing without BGM" in event.message
         for event in result.events
     )
     assert source.read_bytes() == b"original-user-media"
