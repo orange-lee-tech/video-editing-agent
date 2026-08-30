@@ -5,7 +5,8 @@
 **Phase:** R0.12 — Stage-A final closure  
 **Mode:** FINAL ORDINARY-USER WINDOWS ACCEPTANCE  
 **Accepted candidate:** 0.1.5 / e59cab8475a615d29003c03497ddcdaf862476a6  
-**Closed:** 2026-08-30
+**Closed:** 2026-08-30  
+**Updated:** 2026-08-30
 
 ## Closure result
 
