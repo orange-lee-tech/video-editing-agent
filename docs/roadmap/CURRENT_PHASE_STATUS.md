@@ -1,96 +1,52 @@
 # Current Roadmap Phase Status
 
 **Roadmap V2:** ACTIVE  
-**Development stage:** RELEASE_POLISH_DISCUSSION  
+**Development stage:** RELEASE_ENGINEERING  
 **Structural progress:** 100%  
-**Current phase:** R0.12 — Stage-A final ordinary-user Windows acceptance  
-**Engineering state:** STAGE_A_COMPLETE  
-**Updated:** 2026-08-30  
-**Active work order:** NONE
+**Current phase:** R0.13 — 1.0 release polish and compatibility  
+**Engineering state:** RELEASE_POLISH_ACTIVE  
+**Updated:** 2026-08-31  
+**Active work order:** R0.13-RELEASE-POLISH-001
 
-## Stage-A completion
+## Stage-A baseline
 
-Stage-A is now **100% complete**.
+Stage-A remains **100% complete**.
 
-The final accepted Human candidate is application version **0.1.5** from exact application source:
+Accepted core-product baseline:
 
-`e59cab8475a615d29003c03497ddcdaf862476a6`
+- application version: `0.1.5`;
+- exact source: `e59cab8475a615d29003c03497ddcdaf862476a6`;
+- Planning Human Gate: **PASS**;
+- Automatic Editing Human Gate: **PASS**.
 
-Windows Release Candidate run:
+R0.13 does not reopen those core gates unless a material regression is demonstrated.
 
-`33316098718`
+## R0.13 scope
 
-Installer used for final Human acceptance:
+The Product Owner approved four release-polish items before final 1.0.0 packaging:
 
-`VideoEditingAgent-Setup-0.1.5.exe`
+1. localized installer remaining-time estimate/countdown;
+2. Windows DPI-aware crisp typography;
+3. persisted Day / Comfort / Night appearance modes;
+4. component/file patch updating so ordinary patch releases do not require redownloading the full runtime bundle.
 
-SHA-256:
+## Release boundary
 
-`45fd1225340e988a030c2acbcb2864092cb61f368f8b98720e24f5a402e76663`
+Structural progress remains **100%** because core construction is complete.
 
-## Final Human result
+Final `1.0.0` packaging remains **NOT AUTHORIZED** until R0.13 closes.
 
-The Product Owner reports:
+The full Setup.exe remains the bootstrap/recovery path. Routine future patch updates should use verified changed-component delivery with rollback rather than byte-level binary diff machinery.
 
-- Planning / script generation: **PASS**
-- Automatic Editing / real-footage one-click editing: **PASS**
+## Verification focus
 
-No material core-product blocker remains open.
+R0.13 must preserve:
 
-Durable evidence:
+- Stage-A Planning/Editing behavior;
+- public update discovery;
+- Windows packaged GUI smoke;
+- packaged H.264 encode verification;
+- installer upgrade/repair/uninstall lifecycle;
+- Workspace/original-media safety.
 
-`docs/validation/R0.12_STAGE_A_FINAL_HUMAN_ACCEPTANCE_0.1.5.md`
-
-## Closed gates
-
-- Planning installed path: **PASS**
-- Editing visual-first installed path: **PASS**
-- Windows child-process behavior: **PASS**
-- Renderer/review execution path: **PASS**
-- Visual-provider transient/quota behavior: **PASS**
-- Public-music fallback behavior: **PASS**
-- Version visibility/update discovery: **PASS**
-- Windows installer lifecycle: **PASS**
-- Windows release delivery gate: **PASS**
-- Stage-A completion gate: **PASS**
-
-Structural progress moved directly **95% → 100%** in accordance with repository governance.
-
-## R0.12 status
-
-R0.12 final closure work order `R0.12-STAGE-A-FINAL-CLOSURE-002` is **CLOSED**.
-
-No active construction work order is open.
-
-## What 100% means
-
-Stage-A 100% means the two core product promises have passed both engineering verification and ordinary-user Human acceptance:
-
-1. grounded Planning / script-and-shooting preparation;
-2. automatic visual-first Editing from local user footage through rendered and reviewed final video.
-
-## What 100% does not mean
-
-Stage-A completion is deliberately separated from final commercial/release packaging.
-
-The Product Owner has **not** authorized immediate generation of a final `1.0.0` installer.
-
-Before 1.0.0 packaging, the project will discuss release-polish and compatibility topics such as:
-
-- presentation/cosmetic refinements;
-- compatibility edge cases;
-- update/distribution user experience;
-- component-level incremental update strategy;
-- any other non-core release-polish items identified during discussion.
-
-These items do not reopen Stage-A unless a material regression in an accepted core promise is demonstrated.
-
-## Next decision
-
-Do not create a new implementation work order until the Product Owner and ChatGPT have finished classifying the release-polish / compatibility discussion into:
-
-- release blocker;
-- 1.0 polish;
-- post-1.0 backlog.
-
-No final `1.0.0` package is currently authorized.
+Before final 1.0.0 authorization, Windows presentation must also be reviewed at 100%, 125%, 150% and 200% display scaling.
