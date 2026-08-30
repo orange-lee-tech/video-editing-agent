@@ -287,9 +287,9 @@ def test_unsupported_or_incomplete_execution_fails_closed(
 @pytest.mark.parametrize(
     ("suffix", "container", "video_codec", "audio_codec", "expects_faststart"),
     (
-        (".mp4", "mp4", "libx264", "aac", True),
-        (".mov", "mov", "libx264", "aac", True),
-        (".mkv", "matroska", "libx264", "aac", False),
+        (".mp4", "mp4", "libopenh264", "aac", True),
+        (".mov", "mov", "libopenh264", "aac", True),
+        (".mkv", "matroska", "libopenh264", "aac", False),
         (".webm", "webm", "libvpx-vp9", "libopus", False),
     ),
 )
@@ -322,6 +322,10 @@ def test_supported_output_container_codec_pairs_compile(
     assert arguments[-1].endswith(suffix)
     assert ("-movflags" in arguments) is expects_faststart
     assert arguments[arguments.index("-c:v") + 1] == video_codec
+    if video_codec == "libopenh264":
+        assert arguments[arguments.index("-b:v") + 1] == "1000000"
+    else:
+        assert "-b:v" not in arguments
 
 
 def test_output_container_codec_extension_mismatch_fails_closed(tmp_path: Path) -> None:
@@ -334,7 +338,7 @@ def test_output_container_codec_extension_mismatch_fails_closed(tmp_path: Path) 
             320,
             30,
             "mp4",
-            "libx264",
+            "libopenh264",
             "aac",
         ),
     )
