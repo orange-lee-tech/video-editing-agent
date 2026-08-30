@@ -136,6 +136,7 @@ def main(argv: list[str] | None = None) -> int:
             label.configure(text=message)
             if percent is not None:
                 bar.configure(value=max(0, min(100, percent)))
+
         root.after(0, apply)
 
     def worker() -> None:
@@ -158,14 +159,15 @@ def main(argv: list[str] | None = None) -> int:
             with tempfile.TemporaryDirectory(prefix="video-editing-agent-update-") as raw_temp:
                 temp_root = Path(raw_temp)
                 archives: list[tuple[UpdateComponent, Path]] = []
-                for index, component in enumerate(plan.components):
+                for component in plan.components:
                     archive = temp_root / f"{component.component_id}.zip"
+                    component_id = component.component_id
 
-                    def download_progress(received: int, total: int, *, item=component) -> None:
+                    def download_progress(received: int, total: int) -> None:
                         percent = 0 if total <= 0 else int((received * 100) / total)
                         ui(
                             _text(args.language, "downloading").format(
-                                component=item.component_id,
+                                component=component_id,
                                 percent=min(percent, 100),
                             ),
                             percent,
@@ -204,15 +206,16 @@ def main(argv: list[str] | None = None) -> int:
             subprocess.Popen([str(args.app_exe)], cwd=str(args.install_root))
             root.after(500, root.destroy)
         except Exception as exc:
+            failure_detail = f"{type(exc).__name__}: {exc}"
+
             def fail() -> None:
                 messagebox.showerror(
                     _text(args.language, "title"),
-                    _text(args.language, "failed").format(
-                        detail=f"{type(exc).__name__}: {exc}"
-                    ),
+                    _text(args.language, "failed").format(detail=failure_detail),
                     parent=root,
                 )
                 root.destroy()
+
             root.after(0, fail)
 
     threading.Thread(target=worker, name="component-updater", daemon=True).start()
