@@ -11,12 +11,12 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from video_editing_agent.application.ports.visual_understanding import VisualProviderQuotaError
 from video_editing_agent.application.use_cases.product_flow import (
     ProductFlowEvent,
     ProductFlowEventLevel,
     ProductFlowStage,
 )
-from video_editing_agent.application.ports.visual_understanding import VisualProviderQuotaError
 
 _HTTPS_URL = re.compile(r"https://[^\s<>\"'，。；：！？【】《》]+", re.IGNORECASE)
 _TRAILING_PROSE = ").,;:!?]}，。；：！？】》"
@@ -335,8 +335,8 @@ def localized_error(error: BaseException, language: str) -> tuple[str, str]:
             "或在“设置 → 视觉 API 提供方”切换到 OpenAI 后重试。"
             if language == "zh-CN"
             else "The Gemini daily request quota is exhausted and short retries cannot recover it. "
-            "Wait for quota reset, raise the Gemini quota, or switch Settings → Visual API Provider "
-            "to OpenAI before retrying."
+            "Wait for quota reset, raise the Gemini quota, or switch the Visual API Provider "
+            "in Settings to OpenAI before retrying."
         )
     elif "429" in lowered or "quota" in lowered or "rate limit" in lowered:
         primary = (
