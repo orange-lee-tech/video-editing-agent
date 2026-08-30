@@ -133,12 +133,16 @@ def load_component_patch(
                     _required_int(raw_file, "size_bytes"),
                 )
                 if str(record.relative_path) in _FORBIDDEN_PATCH_TARGETS:
-                    raise ValueError(f"component patch targets protected updater state: {record.relative_path}")
+                    raise ValueError(
+                        f"component patch targets protected updater state: {record.relative_path}"
+                    )
                 member_name = f"payload/{record.relative_path.as_posix()}"
                 try:
                     info = package.getinfo(member_name)
                 except KeyError as exc:
-                    raise ValueError(f"component payload is missing: {record.relative_path}") from exc
+                    raise ValueError(
+                        f"component payload is missing: {record.relative_path}"
+                    ) from exc
                 if info.file_size != record.size_bytes:
                     raise ValueError(f"component payload size mismatch: {record.relative_path}")
                 digest = hashlib.sha256(package.read(member_name)).hexdigest()
