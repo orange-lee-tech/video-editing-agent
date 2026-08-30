@@ -1,0 +1,25 @@
+name: Release 0.1.5 Once
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    if: ${{ github.repository == 'orange-lee-tech/video-editing-agent' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch exact 0.1.5 source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run windows-release-candidate.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main \
+            -f source_ref="e59cab8475a615d29003c03497ddcdaf862476a6"
+          echo "Dispatched Windows RC for e59cab8475a615d29003c03497ddcdaf862476a6"
