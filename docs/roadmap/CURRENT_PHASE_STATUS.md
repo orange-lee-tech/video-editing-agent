@@ -10,45 +10,42 @@
 
 ## Current final Human candidate
 
-Application version **0.1.3**.
+Application version **0.1.4**.
 
 Exact application source:
 
-`93d8483bb1d10e4bc5903c33f626fdd9f0d0e7ea`
+`08667fc1e64003869a3176b6d953bedcd1e4d1b1`
 
 Windows Release Candidate run:
 
-`33286816025`
+`33312835714`
 
 Installer:
 
-`VideoEditingAgent-Setup-0.1.3.exe`
+`VideoEditingAgent-Setup-0.1.4.exe`
 
 SHA-256:
 
-`0efa9bd847161b42fc9a2b000ebbc5e6dc18d8f8385fd2f489f96feff1cac9e8`
+`c3cdd132b7a6b4c836e921b9e6e451680f00c7ac8eb0cc05e4277a964f77e7e9`
 
 Release:
 
-`v0.1.3-rc-93d8483`
+`v0.1.4-rc-08667fc`
 
-The repository is now public and this Release asset is directly downloadable.
+## Why 0.1.4 exists
 
-## Engineering evidence
+0.1.3 Human testing reached public-music preparation after visual understanding succeeded. Forty public candidates were exhausted without one usable automatic BGM: rights verification failed for 26, 13 did not meet the attribution-free automatic rights gate, and one approved candidate failed acquisition.
 
-0.1.3 preserves prior accepted packaging/runtime fixes and additionally repairs the two 0.1.2 Human Gate blockers:
+The product previously treated that public-music supply failure as fatal.
 
-- Planning unsupported-claim repair/review now converges toward a deterministic fact-only fallback instead of preserving claim-bearing context.
-- Gemini hard per-day quota is separated from short transient throttling and produces actionable recovery guidance rather than consuming the bounded transient retry loop.
-
-Disposable automated/Human-Gate test workspaces are cleaned before each run. User workspaces and original media are excluded from this clean policy.
-
-The 0.1.3 Windows RC passed packaged GUI smoke and the full install → upgrade → repair → uninstall lifecycle with Workspace preservation.
+0.1.4 preserves the same strict rights gate but safely degrades to grounded source audio when automatic public BGM is unavailable. If no approved audible lane exists at all, it still fails closed and asks the user to choose local music and attest rights.
 
 ## Current gates
 
-- Planning installed path: **FINAL 0.1.3 HUMAN GATE PENDING**.
-- Editing visual-first installed path: **FINAL 0.1.3 HUMAN GATE PENDING**.
+- Planning installed path: **FINAL 0.1.4 HUMAN GATE PENDING**.
+- Editing visual-first installed path: **FINAL 0.1.4 HUMAN GATE PENDING**.
+- Public-music rights policy: **UNCHANGED / FAIL CLOSED**.
+- Public-music supply resilience: **ENGINEERING FIXED; HUMAN CONFIRMATION PENDING**.
 - Windows child-process behavior: **ENGINEERING FIXED; HUMAN CONFIRMATION PENDING**.
 - Renderer/review correction behavior: **ENGINEERING FIXED; HUMAN CONFIRMATION PENDING**.
 - Visual-provider transient/quota behavior: **ENGINEERING FIXED; HUMAN CONFIRMATION PENDING**.
@@ -62,12 +59,13 @@ Structural progress remains **95%**.
 ## Final path to 100%
 
 ```text
-install/upgrade to exact 0.1.3 RC
-→ verify visible v0.1.3
+upgrade to exact 0.1.4 RC
+→ verify visible v0.1.4
 → representative Planning
 → representative real-footage Editing
+→ public BGM either succeeds or safely degrades to grounded source audio
+→ render/QC approved MP4
 → confirm no terminal flashes
-→ confirm update path works
 → verify Workspace/original-media safety
 → record durable Human evidence
 → Stage-A gates PASS
@@ -75,10 +73,4 @@ install/upgrade to exact 0.1.3 RC
 → close R0.12
 ```
 
-## After Stage-A closure
-
-Do not mix the remaining core Human Gate with a new updater architecture.
-
-After R0.12 closes, open a separate release-engineering work order for component-level incremental updates so ordinary patch releases do not require re-downloading the complete Windows runtime bundle.
-
-Full Setup.exe remains the recovery/bootstrap path. Complex binary delta/Web Setup machinery is not required to close the current Stage-A Human Gate.
+Component-level incremental updating remains a separate release-engineering follow-up after core Human acceptance.
