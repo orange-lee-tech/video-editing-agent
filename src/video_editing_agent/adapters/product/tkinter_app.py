@@ -41,7 +41,6 @@ from video_editing_agent.adapters.product.ui_components import create_brand_mark
 from video_editing_agent.adapters.product.ui_theme import (
     DEFAULT_PRODUCT_TYPOGRAPHY,
     configure_product_theme,
-    theme_tokens,
 )
 from video_editing_agent.adapters.product.update_check import UpdateCheckResult, check_for_update
 from video_editing_agent.adapters.product.update_state import (
@@ -362,11 +361,12 @@ _TEXT = {
         "declaration_title": "Developer Statement",
         "declaration_ack": "Got it",
         "declaration_body": (
-            "Developer statement: this software is intended to explore a framework with good compatibility "
-            "and to continue the open-source community spirit by open-sourcing the software as well. "
-            "Before 2027 we will publish a source-code link so anyone can try the goals they expect. "
-            "If you have suggestions for improvement, you can use the link to visit the developer homepage and send a message. "
-            "The software can check for updates. This statement is temporary and will be updated later."
+            "Developer statement: this software is intended to explore a framework with good "
+            "compatibility and to continue the open-source community spirit by open-sourcing "
+            "the software as well. Before 2027 we will publish a source-code link so anyone "
+            "can try the goals they expect. If you have suggestions for improvement, you can "
+            "use the link to visit the developer homepage and send a message. The software "
+            "can check for updates. This statement is temporary and will be updated later."
         ),
         "developer_homepage": "Visit developer homepage",
         "update_available_title": "Update Available",
