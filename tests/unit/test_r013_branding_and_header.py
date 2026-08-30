@@ -31,9 +31,7 @@ def test_header_has_language_settings_declaration_but_no_standalone_update_butto
 
 
 def test_declaration_uses_exact_product_owner_statement_and_one_ack_button() -> None:
-    ui = Path("src/video_editing_agent/adapters/product/tkinter_app.py").read_text(
-        encoding="utf-8"
-    )
+    ui = Path("src/video_editing_agent/adapters/product/tkinter_app.py").read_text(encoding="utf-8")
 
     assert "来自开发者的声明：本软件制作的目标在于尝试一个兼容性良好的框架" in ui
     assert "在2027年以前我们会放上源代码链接" in ui
