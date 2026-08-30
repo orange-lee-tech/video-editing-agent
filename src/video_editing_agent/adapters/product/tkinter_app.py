@@ -15,6 +15,12 @@ from video_editing_agent.adapters.product.api_settings import (
     apply_settings_to_environment,
     settings_from_environment,
 )
+from video_editing_agent.adapters.product.appearance_settings import (
+    AppearanceMode,
+    AppearancePreferences,
+    load_appearance_preferences,
+    save_appearance_preferences,
+)
 from video_editing_agent.adapters.product.composition import editing_flow, planning_flow
 from video_editing_agent.adapters.product.controller import (
     BriefForm,
@@ -28,11 +34,11 @@ from video_editing_agent.adapters.product.presentation import (
     token_usage_presentation,
 )
 from video_editing_agent.adapters.product.runtime import resolve_product_runtime
-from video_editing_agent.adapters.product.ui_components import create_brand_mark
+from video_editing_agent.adapters.product.ui_components import create_brand_mark, recolor_brand_mark
 from video_editing_agent.adapters.product.ui_theme import (
-    DEFAULT_PRODUCT_THEME,
     DEFAULT_PRODUCT_TYPOGRAPHY,
     configure_product_theme,
+    theme_tokens,
 )
 from video_editing_agent.adapters.product.update_check import UpdateCheckResult, check_for_update
 from video_editing_agent.adapters.product.ux_support import (
@@ -75,6 +81,7 @@ from video_editing_agent.domain.edl.subtitle import SubtitleStyleProfile
 from video_editing_agent.domain.shooting.model import ProductionConstraints
 from video_editing_agent.providers.usage import set_thread_token_usage_sink
 from video_editing_agent.storage.project.workspace import ProjectWorkspace
+from video_editing_agent.system.windows_dpi import configure_tk_scaling
 from video_editing_agent.version import APP_VERSION
 
 _TEXT = {
