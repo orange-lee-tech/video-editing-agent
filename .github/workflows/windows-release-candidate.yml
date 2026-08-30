@@ -214,7 +214,7 @@ jobs:
           else {
             gh release create $tag $installer `
               --target $sha `
-              --title "Video Editing Agent $version RC ($short)" `
+              --title "有岐 $version RC ($short)" `
               --notes "R0.13 Windows release candidate with full-installer recovery and component patch assets. Source: $sha" `
               --prerelease
             if ($LASTEXITCODE -eq 0) {
