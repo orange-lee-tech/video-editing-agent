@@ -47,8 +47,8 @@ ChangesEnvironment=no
 MinVersion=10.0
 
 [Languages]
-Name: "en"; MessagesFile: "compiler:Default.isl"
-Name: "zhcn"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "en"; MessagesFile: "compiler:Default.isl"; LicenseFile: "..\..\resources\legal\USER_AGREEMENT_en.txt"
+Name: "zhcn"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"; LicenseFile: "..\..\resources\legal\USER_AGREEMENT_zh-CN.txt"
 
 [CustomMessages]
 en.FullInstall=Planning + Automatic Editing
@@ -94,6 +94,8 @@ Source: "{#StageRoot}\*"; DestDir: "{app}"; Components: core; Flags: ignoreversi
 ; runtimes merely because the product supports automatic editing.
 Source: "{#StageRoot}\_internal\tools\*"; DestDir: "{app}\_internal\tools"; Components: editing; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#StageRoot}\_internal\runtimes\transnet\*"; DestDir: "{app}\_internal\runtimes\transnet"; Components: editing; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\resources\legal\USER_AGREEMENT_en.txt"; DestDir: "{app}\licenses"; Components: core; Flags: ignoreversion
+Source: "..\..\resources\legal\USER_AGREEMENT_zh-CN.txt"; DestDir: "{app}\licenses"; Components: core; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\Video Editing Agent"; Filename: "{app}\{#AppExeName}"
