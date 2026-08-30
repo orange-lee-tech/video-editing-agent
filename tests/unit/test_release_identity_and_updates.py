@@ -14,7 +14,7 @@ from video_editing_agent.adapters.product.update_check import (
 from video_editing_agent.version import APP_VERSION
 
 
-def _manifest(version: str = "0.1.5") -> str:
+def _manifest(version: str = "0.1.6") -> str:
     return json.dumps(
         {
             "version": version,
@@ -27,8 +27,8 @@ def _manifest(version: str = "0.1.5") -> str:
     )
 
 
-def test_release_version_identity_is_0_1_4_and_packaging_mirrors_it() -> None:
-    assert APP_VERSION == "0.1.4"
+def test_release_version_identity_is_0_1_5_and_packaging_mirrors_it() -> None:
+    assert APP_VERSION == "0.1.5"
 
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
     assert pyproject["project"]["version"] == APP_VERSION
@@ -54,8 +54,8 @@ def test_release_version_identity_is_0_1_4_and_packaging_mirrors_it() -> None:
 
 
 def test_update_manifest_parses_and_reports_newer_version() -> None:
-    manifest = parse_update_manifest(_manifest("0.1.5"))
-    result = UpdateCheckResult("0.1.4", manifest)
+    manifest = parse_update_manifest(_manifest("0.1.6"))
+    result = UpdateCheckResult("0.1.5", manifest)
 
     assert result.update_available is True
     assert manifest.installer_sha256 == "a" * 64
@@ -68,7 +68,7 @@ def test_update_check_is_fail_open_and_does_not_raise(monkeypatch) -> None:
 
     monkeypatch.setattr(update_check, "urlopen", fail)
 
-    result = check_for_update(current_version="0.1.4")
+    result = check_for_update(current_version="0.1.5")
 
     assert result.update_available is False
     assert result.manifest is None
@@ -85,7 +85,7 @@ def test_update_check_accepts_valid_public_manifest_without_credentials(monkeypa
             return None
 
         def read(self, _limit: int) -> bytes:
-            return _manifest("0.1.5").encode("utf-8")
+            return _manifest("0.1.6").encode("utf-8")
 
     captured = {}
 
@@ -96,7 +96,7 @@ def test_update_check_accepts_valid_public_manifest_without_credentials(monkeypa
 
     monkeypatch.setattr(update_check, "urlopen", fake_urlopen)
 
-    result = check_for_update(current_version="0.1.4", timeout_seconds=1.5)
+    result = check_for_update(current_version="0.1.5", timeout_seconds=1.5)
 
     assert result.error is None
     assert result.update_available is True
