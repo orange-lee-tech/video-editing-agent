@@ -25,6 +25,7 @@ from video_editing_agent.adapters.product.ux_support import (
     serialize_profile,
     write_utf8_export,
 )
+from video_editing_agent.application.ports.visual_understanding import VisualProviderQuotaError
 from video_editing_agent.application.use_cases.product_flow import (
     ProductFlowEvent,
     ProductFlowEventLevel,
@@ -117,7 +118,7 @@ def test_stable_stage_and_quota_error_present_localized_primary_text() -> None:
     primary, detail = localized_error(
         RuntimeError("Gemini HTTP 429 quota exceeded; model=gemini-2.5-flash"), "zh-CN"
     )
-    assert "配额限制" in primary
+    assert "请求限制" in primary
     assert "Gemini HTTP 429" in detail
     assert "API key" not in primary
 
@@ -162,3 +163,17 @@ def test_launcher_smoke_catalog_is_complete_and_uses_real_unicode_chinese() -> N
     assert set(_TEXT["zh-CN"]) == set(_TEXT["en"])
     assert _TEXT["zh-CN"]["field_subtitle_style"] == "字幕样式"
     assert "\\u" not in "".join(_TEXT["zh-CN"].values())
+
+
+def test_hard_daily_quota_error_tells_user_how_to_recover() -> None:
+    primary, detail = localized_error(
+        VisualProviderQuotaError(
+            "Gemini daily request quota is exhausted",
+            quota_ids=("GenerateRequestsPerDayPerProjectPerModel-FreeTier",),
+        ),
+        "zh-CN",
+    )
+
+    assert "当日请求额度已耗尽" in primary
+    assert "OpenAI" in primary
+    assert "Gemini daily request quota is exhausted" in detail

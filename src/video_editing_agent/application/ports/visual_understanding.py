@@ -35,6 +35,21 @@ class VisualProviderResponseError(VisualProviderError):
     """A non-retryable provider response/schema failure."""
 
 
+class VisualProviderQuotaError(VisualProviderError):
+    """A provider quota that automatic short-term retries cannot safely resolve."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        quota_ids: tuple[str, ...] = (),
+        retry_after_seconds: float | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.quota_ids = quota_ids
+        self.retry_after_seconds = retry_after_seconds
+
+
 @dataclass(frozen=True, slots=True, init=False)
 class VisualFrameReference:
     artifact_ref: StoredArtifactRef

@@ -155,8 +155,8 @@ def test_script_repair_reframes_unsupported_commute_convenience_as_neutral_obser
 
     assert "remove the unsupported semantic property itself" in instruction
     assert "non-claim framing or a neutral observable action/state" in instruction
-    assert "placing, carrying, or taking out the product" in instruction
-    assert "must not say or imply that doing so is easy, convenient, adequate" in instruction
+    assert "remove that context/action entirely" in instruction
+    assert "neutral product-only view" in instruction
     assert (
         "Do not turn a neutral action into a demonstration of the unsupported result" in instruction
     )

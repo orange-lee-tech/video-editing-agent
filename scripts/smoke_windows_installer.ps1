@@ -17,6 +17,13 @@ $FailureEvidence = Join-Path $EvidenceRoot "installer-smoke-failure.json"
 $ProgressLog = Join-Path $EvidenceRoot "installer-smoke-progress.log"
 $CurrentPhase = "initializing"
 
+# Test-only paths are disposable. Always start from clean state so stale files cannot
+# masquerade as evidence from the current installer candidate.
+foreach ($DisposablePath in @($InstallRoot, $Workspace, $SmokeLogRoot)) {
+    if (Test-Path -LiteralPath $DisposablePath) {
+        Remove-Item -LiteralPath $DisposablePath -Recurse -Force
+    }
+}
 New-Item -ItemType Directory -Force -Path $EvidenceRoot, $SmokeLogRoot | Out-Null
 Remove-Item -LiteralPath $FailureEvidence, $ProgressLog -Force -ErrorAction SilentlyContinue
 
