@@ -133,7 +133,7 @@ end;
 procedure InitializeWizard;
 begin
   InstallEtaLabel := TNewStaticText.Create(WizardForm);
-  InstallEtaLabel.Parent := WizardForm.InstallingPage.Surface;
+  InstallEtaLabel.Parent := WizardForm.InstallingPage;
   InstallEtaLabel.Left := WizardForm.ProgressGauge.Left;
   InstallEtaLabel.Top :=
     WizardForm.ProgressGauge.Top + WizardForm.ProgressGauge.Height + ScaleY(8);
