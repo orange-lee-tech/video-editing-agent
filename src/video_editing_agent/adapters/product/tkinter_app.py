@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 import queue
+import subprocess
+import sys
 import threading
 import time
 import webbrowser
@@ -21,6 +23,7 @@ from video_editing_agent.adapters.product.appearance_settings import (
     load_appearance_preferences,
     save_appearance_preferences,
 )
+from video_editing_agent.adapters.product.component_update import plan_component_update
 from video_editing_agent.adapters.product.composition import editing_flow, planning_flow
 from video_editing_agent.adapters.product.controller import (
     BriefForm,
@@ -41,6 +44,10 @@ from video_editing_agent.adapters.product.ui_theme import (
     theme_tokens,
 )
 from video_editing_agent.adapters.product.update_check import UpdateCheckResult, check_for_update
+from video_editing_agent.adapters.product.update_state import (
+    default_update_state_path,
+    load_update_state,
+)
 from video_editing_agent.adapters.product.ux_support import (
     EtaEstimator,
     ProtectedCredentialStore,
