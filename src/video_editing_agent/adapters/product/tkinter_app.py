@@ -559,6 +559,18 @@ def launch() -> int:
         return text("api_partial").format(count=configured)
 
     update_check_in_flight = False
+    update_control_widgets: list[Any] = []
+
+    def set_update_controls_state(state: str) -> None:
+        alive: list[Any] = []
+        for widget in update_control_widgets:
+            try:
+                if bool(widget.winfo_exists()):
+                    widget.configure(state=state)
+                    alive.append(widget)
+            except tk.TclError:
+                continue
+        update_control_widgets[:] = alive
 
     def format_patch_size(size_bytes: int) -> str:
         if size_bytes >= 1024 * 1024 * 1024:
@@ -572,7 +584,7 @@ def launch() -> int:
     def finish_update_check(result: UpdateCheckResult, *, interactive: bool) -> None:
         nonlocal update_check_in_flight
         update_check_in_flight = False
-        update_button.configure(state="normal")
+        set_update_controls_state("normal")
         if result.update_available:
             manifest = result.manifest
             assert manifest is not None
@@ -655,7 +667,7 @@ def launch() -> int:
         if update_check_in_flight:
             return
         update_check_in_flight = True
-        update_button.configure(state="disabled")
+        set_update_controls_state("disabled")
 
         def worker() -> None:
             result = check_for_update()
@@ -678,12 +690,8 @@ def launch() -> int:
 
     language_button = ttk.Button(header, style="Ghost.TButton")
     language_button.pack(side="right")
-    update_button = ttk.Button(
-        header,
-        command=begin_update_check,
-        style="Ghost.TButton",
-    )
-    update_button.pack(side="right", padx=(0, 4))
+    declaration_button = ttk.Button(header, style="Ghost.TButton")
+    declaration_button.pack(side="right", padx=(0, 4))
     configuration_button = ttk.Button(header, style="Ghost.TButton")
     configuration_button.pack(side="right", padx=(0, 4))
     api_status = ttk.Label(header, style="StatusPill.TLabel")
@@ -1224,7 +1232,7 @@ def launch() -> int:
         workspace_label.configure(text=text("workspace"))
         choose_workspace_button.configure(text=text("choose_project"))
         configuration_button.configure(text=text("configuration"))
-        update_button.configure(text=text("check_updates"))
+        declaration_button.configure(text=text("declaration"))
         api_status.configure(text=api_status_text())
 
     def toggle_language() -> None:
@@ -1239,11 +1247,50 @@ def launch() -> int:
 
     language_button.configure(command=toggle_language)
 
+    def open_declaration() -> None:
+        dialog = tk.Toplevel(root)
+        dialog.title(text("declaration_title"))
+        dialog.geometry("660x380")
+        dialog.resizable(False, False)
+        dialog.transient(root)
+        dialog.grab_set()
+        dialog.columnconfigure(0, weight=1)
+        dialog.rowconfigure(0, weight=1)
+
+        body = ttk.Label(
+            dialog,
+            text=text("declaration_body"),
+            wraplength=600,
+            justify="left",
+        )
+        body.grid(row=0, column=0, sticky="nsew", padx=28, pady=(26, 14))
+
+        homepage = ttk.Label(
+            dialog,
+            text=text("developer_homepage"),
+            foreground=current_theme.accent,
+            cursor="hand2",
+        )
+        homepage.grid(row=1, column=0, sticky="w", padx=28, pady=(0, 18))
+        homepage.bind(
+            "<Button-1>",
+            lambda _event: webbrowser.open("https://github.com/orange-lee-tech"),
+        )
+
+        ttk.Button(
+            dialog,
+            text=text("declaration_ack"),
+            command=dialog.destroy,
+            style="Primary.TButton",
+        ).grid(row=2, column=0, sticky="e", padx=28, pady=(0, 24))
+
+    declaration_button.configure(command=open_declaration)
+
     def open_settings() -> None:
         nonlocal api_settings, current_api_profile
         dialog = tk.Toplevel(root)
         dialog.title(text("settings_title"))
-        dialog.geometry("680x740")
+        dialog.geometry("680x820")
         dialog.transient(root)
         dialog.grab_set()
         dialog.columnconfigure(0, weight=1)
@@ -1329,8 +1376,26 @@ def launch() -> int:
         profiles.grid(row=6, column=0, sticky="ew", padx=18, pady=8)
         profiles.columnconfigure(1, weight=1)
 
+        update_frame = ttk.LabelFrame(dialog, text=text("software_update_title"))
+        update_frame.grid(row=7, column=0, sticky="ew", padx=18, pady=8)
+        update_frame.columnconfigure(0, weight=1)
+        ttk.Label(
+            update_frame,
+            text=text("software_update_status").format(current=APP_VERSION),
+        ).grid(row=0, column=0, sticky="w", padx=10, pady=10)
+        settings_update_button = ttk.Button(
+            update_frame,
+            text=text("check_updates"),
+            command=begin_update_check,
+            style="Secondary.TButton",
+        )
+        settings_update_button.grid(row=0, column=1, sticky="e", padx=10, pady=10)
+        update_control_widgets.append(settings_update_button)
+        if update_check_in_flight:
+            settings_update_button.configure(state="disabled")
+
         buttons = ttk.Frame(dialog)
-        buttons.grid(row=7, column=0, sticky="e", padx=18, pady=16)
+        buttons.grid(row=8, column=0, sticky="e", padx=18, pady=16)
 
         def save_settings() -> None:
             nonlocal api_settings
