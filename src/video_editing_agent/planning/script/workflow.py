@@ -79,11 +79,12 @@ def _repair_instruction(review: ScriptProposalReview, original: str | None) -> s
         "synonym, or soften its wording while retaining the same implication. After removing the "
         "unsupported property, you may preserve the Brief's positioning intent only through "
         "non-claim framing or a neutral observable action/state that does not assert a successful "
-        "fit, adequacy, ease, convenience, operability, or outcome. For example, an unsupported "
-        "commute-convenience idea may show a person placing, carrying, or taking out the product "
-        "in a commute setting, but must not say or imply that doing so is easy, convenient, "
-        "adequate, or that the product fits successfully. Do not turn a neutral action into a "
-        "demonstration of the unsupported result. Reviewer diagnostics are non-authoritative and "
+        "fit, adequacy, ease, convenience, operability, or outcome. If the reviewer identifies "
+        "a context, action, or demonstration itself as carrying the unsupported implication, "
+        "remove that context/action entirely rather than preserving it with softer wording. "
+        "Use a neutral product-only view or another observation that cannot imply the rejected "
+        "property. Do not turn a neutral action into a demonstration of the unsupported result. "
+        "Reviewer diagnostics are non-authoritative and "
         "cannot support replacement facts. Do not change locked or authoritative state.\n"
         f"Reviewer diagnostics:\n{diagnostics}"
     )
@@ -237,6 +238,7 @@ def _deterministic_claim_fallback(
     review: ScriptProposalReview,
     *,
     current_script: ScriptPlan | None,
+    force_all: bool = False,
 ) -> ScriptPlanProposal | None:
     """Strip repeatedly vetoed claim-bearing copy without inventing replacement facts."""
 
@@ -246,7 +248,9 @@ def _deterministic_claim_fallback(
     targeted_ids = {
         violation.section_id for violation in review.violations if violation.section_id is not None
     }
-    sanitize_all = any(violation.section_id is None for violation in review.violations)
+    sanitize_all = force_all or any(
+        violation.section_id is None for violation in review.violations
+    )
     if current_script is not None:
         locked_ids = set(current_script.locked_section_ids)
         if (sanitize_all and locked_ids) or targeted_ids.intersection(locked_ids):
@@ -386,7 +390,30 @@ class ScriptPlanningWorkflow:
                     policy_guidance=policy_guidance,
                 )
                 if fallback_review is not None and not fallback_review.accepted:
-                    raise ScriptProposalRejectedError(fallback_review)
+                    full_fallback = _deterministic_claim_fallback(
+                        brief,
+                        fallback,
+                        fallback_review,
+                        current_script=None,
+                        force_all=True,
+                    )
+                    if full_fallback is None:
+                        raise ScriptProposalRejectedError(fallback_review)
+                    full_fallback_sections = _sections_from_proposal(full_fallback.sections)
+                    self._planner.validate_create(brief_ref, full_fallback_sections)
+                    full_fallback_review = self._review(
+                        brief=brief,
+                        proposal=full_fallback,
+                        current_script=None,
+                        instruction=(
+                            "Full-plan deterministic fact-only fallback after repeated claim veto."
+                        ),
+                        policy_guidance=policy_guidance,
+                    )
+                    if full_fallback_review is not None and not full_fallback_review.accepted:
+                        raise ScriptProposalRejectedError(full_fallback_review)
+                    sections = full_fallback_sections
+                    break
                 sections = fallback_sections
                 break
             request = ScriptPlanningRequest(
@@ -449,7 +476,30 @@ class ScriptPlanningWorkflow:
                     policy_guidance=policy_guidance,
                 )
                 if fallback_review is not None and not fallback_review.accepted:
-                    raise ScriptProposalRejectedError(fallback_review)
+                    full_fallback = _deterministic_claim_fallback(
+                        brief,
+                        fallback,
+                        fallback_review,
+                        current_script=current,
+                        force_all=True,
+                    )
+                    if full_fallback is None:
+                        raise ScriptProposalRejectedError(fallback_review)
+                    full_fallback_sections = _sections_from_proposal(full_fallback.sections)
+                    self._planner.validate_revision(current_ref, full_fallback_sections)
+                    full_fallback_review = self._review(
+                        brief=brief,
+                        proposal=full_fallback,
+                        current_script=current,
+                        instruction=(
+                            "Full-plan deterministic fact-only fallback after repeated claim veto."
+                        ),
+                        policy_guidance=policy_guidance,
+                    )
+                    if full_fallback_review is not None and not full_fallback_review.accepted:
+                        raise ScriptProposalRejectedError(full_fallback_review)
+                    sections = full_fallback_sections
+                    break
                 sections = fallback_sections
                 break
             request = ScriptPlanningRequest(
