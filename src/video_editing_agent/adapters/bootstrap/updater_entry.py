@@ -32,7 +32,7 @@ _WAIT_TIMEOUT = 258
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Video Editing Agent component updater")
+    parser = argparse.ArgumentParser(description="有岐 component updater")
     parser.add_argument("--install-root", type=Path, required=True)
     parser.add_argument("--app-exe", type=Path, required=True)
     parser.add_argument("--current-version", required=True)
@@ -95,7 +95,7 @@ def download_component(
 def _text(language: str, key: str) -> str:
     catalog = {
         "zh-CN": {
-            "title": "视频剪辑智能体更新",
+            "title": "有岐更新",
             "checking": "正在检查补丁…",
             "downloading": "正在下载 {component}：{percent}%",
             "applying": "正在安装 {component}：{current}/{total}",
@@ -104,7 +104,7 @@ def _text(language: str, key: str) -> str:
             "full": "此版本需要完整安装包，无法使用当前补丁更新器。",
         },
         "en": {
-            "title": "Video Editing Agent Update",
+            "title": "有岐 Update",
             "checking": "Checking patch update…",
             "downloading": "Downloading {component}: {percent}%",
             "applying": "Installing {component}: {current}/{total}",
