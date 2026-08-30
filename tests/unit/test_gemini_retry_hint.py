@@ -110,9 +110,7 @@ def test_gemini_daily_quota_is_classified_as_hard_quota(
                                     "generativelanguage.googleapis.com/"
                                     "generate_content_free_tier_requests"
                                 ),
-                                "quotaId": (
-                                    "GenerateRequestsPerDayPerProjectPerModel-FreeTier"
-                                ),
+                                "quotaId": ("GenerateRequestsPerDayPerProjectPerModel-FreeTier"),
                                 "quotaValue": "20",
                             }
                         ],
@@ -145,7 +143,5 @@ def test_gemini_daily_quota_is_classified_as_hard_quota(
     with pytest.raises(VisualProviderQuotaError, match="daily request quota") as captured:
         transport.generate_content("gemini-3.6-flash", {"contents": []})
 
-    assert captured.value.quota_ids == (
-        "GenerateRequestsPerDayPerProjectPerModel-FreeTier",
-    )
+    assert captured.value.quota_ids == ("GenerateRequestsPerDayPerProjectPerModel-FreeTier",)
     assert captured.value.retry_after_seconds == pytest.approx(59.0)
