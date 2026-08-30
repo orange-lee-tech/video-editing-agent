@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import zipfile
 from collections import defaultdict
@@ -134,8 +133,7 @@ def build_components(
                 + "\n",
             )
             by_relative = {
-                str(record.relative_path): path
-                for path, record in grouped[component.component_id]
+                str(record.relative_path): path for path, record in grouped[component.component_id]
             }
             for record in component.files:
                 package.write(
