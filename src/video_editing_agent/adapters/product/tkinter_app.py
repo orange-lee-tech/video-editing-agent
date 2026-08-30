@@ -413,9 +413,15 @@ def launch() -> int:
     import tkinter as tk
     from tkinter import filedialog, messagebox, ttk
 
+    profile_root = default_profile_root()
+    profile_root.mkdir(parents=True, exist_ok=True)
+    appearance_path = profile_root / "appearance.json"
+    appearance_mode = load_appearance_preferences(appearance_path).mode
+
     root = tk.Tk()
+    configure_tk_scaling(root)
     root.withdraw()
-    configure_product_theme(root)
+    current_theme = configure_product_theme(root, mode=appearance_mode, language="zh-CN")
     splash = tk.Toplevel(root)
     splash.overrideredirect(True)
     splash.resizable(False, False)
@@ -426,6 +432,7 @@ def launch() -> int:
         height=56,
         highlightthickness=0,
         borderwidth=0,
+        background=current_theme.surface,
     )
     splash_icon.pack(pady=(14, 4))
 
@@ -450,7 +457,7 @@ def launch() -> int:
             y1 * pixel,
             x2 * pixel,
             y2 * pixel,
-            fill="#202020",
+            fill=current_theme.text_primary,
             outline="",
         )
 
@@ -479,9 +486,7 @@ def launch() -> int:
     root.minsize(min(720, window_width), min(540, window_height))
     language = tk.StringVar(value="zh-CN")
     startup_milestone(2)
-    profile_root = default_profile_root()
     credential_store = ProtectedCredentialStore(profile_root)
-    profile_root.mkdir(parents=True, exist_ok=True)
     timing_path = profile_root / "timing-history.json"
     timing_history = load_timing_history(timing_path)
     startup_milestone(3)
