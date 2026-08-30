@@ -14,9 +14,11 @@ that runtime.
 - Revision `n8.1.2-44-g7c533d0f86`, LGPL shared Windows x64 asset.
 - Archive SHA-256 `d311c8c7b86e06b54588e442652f963bae165bd4d8393e73cc9ebb445b025547`.
 - Runtime validation rejects `--enable-gpl` and `--enable-nonfree`.
+- The exact build configuration enables `libopenh264` and disables `libx264`.
+- Stage-A H.264 rendering uses the bundled software `libopenh264` encoder; packaging performs a real encode + ffprobe verification before release.
 - The distributor-provided `LICENSE.txt` is included alongside this notice.
 
-Codec and patent review remains separate from FFmpeg copyright licensing.
+OpenH264 is a separately licensed codec implementation bundled by the selected FFmpeg distribution; codec/patent review remains separate from FFmpeg copyright licensing and remains a release-management obligation.
 
 ## TransNetV2 CPU runtime
 
