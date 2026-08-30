@@ -4,75 +4,89 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-30
 current_phase: R0.12
-phase_state: STAGE_A_FINAL_INSTALLER_HUMAN_GATE
-active_work_order: R0.12-STAGE-A-FINAL-CLOSURE-002
+phase_state: STAGE_A_COMPLETE
+active_work_order: NONE
 active_construction_branch: NONE
-accepted_code_baseline: 08667fc1e64003869a3176b6d953bedcd1e4d1b1
-accepted_engineering_baseline: 08667fc1e64003869a3176b6d953bedcd1e4d1b1
-current_main_baseline: 857001fe28b0d30f594abd3fa304aac163ccb060
-latest_human_gate_candidate: 08667fc1e64003869a3176b6d953bedcd1e4d1b1
-structural_progress_percent: 95
-stage_a_completion_gate: OPEN_FINAL_ORDINARY_USER_HUMAN_GATE
-core_1_planning_product_gate: FINAL_0_1_4_HUMAN_GATE_PENDING
-core_2_editing_product_gate: FINAL_0_1_4_HUMAN_GATE_PENDING
-windows_release_delivery_gate: ENGINEERING_PASS_FINAL_HUMAN_GATE_PENDING
+accepted_code_baseline: e59cab8475a615d29003c03497ddcdaf862476a6
+accepted_engineering_baseline: e59cab8475a615d29003c03497ddcdaf862476a6
+current_main_baseline: 5715e2edb68af28611a4ee842730d04755f24e81
+latest_human_gate_candidate: e59cab8475a615d29003c03497ddcdaf862476a6
+structural_progress_percent: 100
+stage_a_completion_gate: PASS
+core_1_planning_product_gate: PASS
+core_2_editing_product_gate: PASS
+windows_release_delivery_gate: PASS
 codex_release: CLOSED
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
-development_stage: STRUCTURAL_CONSTRUCTION
+development_stage: RELEASE_POLISH_DISCUSSION
 writer: chatgpt
 ---
 
 ## Current accepted truth
 
-The 0.1.3 Human Gate reached automatic public-music preparation after successful visual understanding, but failed because all 40 discovered candidates were unusable in automatic mode:
+Stage-A is **complete at 100%**.
 
-- 26 current-source rights verification failures;
-- 13 candidates requiring attribution or otherwise failing the attribution-free automatic gate;
-- 1 rights-approved candidate whose acquisition failed.
+The final accepted implementation baseline is exact application source:
 
-This exposed a product-resilience defect: public BGM supply failure could terminate the entire one-click Editing flow even when grounded source audio could still produce an intentional audible output.
+`e59cab8475a615d29003c03497ddcdaf862476a6`
 
-The bounded repair is version **0.1.4** from exact source:
+Accepted application version: **0.1.5**.
 
-`08667fc1e64003869a3176b6d953bedcd1e4d1b1`
+Final Windows RC:
 
-Windows Release Candidate run `33312835714` completed **SUCCESS**.
+- run: `33316098718`;
+- installer: `VideoEditingAgent-Setup-0.1.5.exe`;
+- SHA-256: `45fd1225340e988a030c2acbcb2864092cb61f368f8b98720e24f5a402e76663`;
+- release tag: `v0.1.5-rc-e59cab8`.
 
-Release authority:
+## Final Human Gate
 
-- installer: `VideoEditingAgent-Setup-0.1.4.exe`;
-- SHA-256: `c3cdd132b7a6b4c836e921b9e6e451680f00c7ac8eb0cc05e4277a964f77e7e9`;
-- prerelease tag: `v0.1.4-rc-08667fc`;
-- release asset ID: `536627232`;
-- installer lifecycle smoke: **PASS**;
-- public Release asset: available.
+The Product Owner reports both Stage-A core product paths passed:
 
-## 0.1.4 public-music fallback
+- Planning / script generation: **PASS**
+- Automatic Editing / real-footage one-click editing: **PASS**
 
-The strict rights policy remains unchanged.
+Durable Human evidence:
 
-If automatic public BGM cannot be prepared:
+`docs/validation/R0.12_STAGE_A_FINAL_HUMAN_ACCEPTANCE_0.1.5.md`
 
-- do not accept UNKNOWN, INELIGIBLE, attribution-required or otherwise non-automatic music;
-- emit a warning and continue with `music=None`;
-- preserve grounded source-audio lanes;
-- if the final EDL still has approved audible source audio, continue through render/review;
-- if no approved audible lane remains, fail closed with an actionable instruction to select a local music file and attest rights.
+## Gate state
 
-This preserves rights safety while preventing a remote public-music supply failure from unnecessarily killing an otherwise renderable edit.
+- Stage-A completion gate: **PASS**
+- Core 1 Planning product gate: **PASS**
+- Core 2 Editing product gate: **PASS**
+- Windows release delivery gate: **PASS**
+- Structural progress: **100%**
+- R0.12 final closure work order: **CLOSED**
+- Active work order: **NONE**
 
-## Remaining Stage-A gate
+## Accepted renderer/runtime closure
 
-Test the exact 0.1.4 installer and verify:
+The final installed Editing blocker was the mismatch between a Renderer requesting `libx264` and an approved bundled LGPL FFmpeg build that explicitly disabled `libx264` while enabling `libopenh264`.
 
-- visible v0.1.4;
-- representative Planning completes;
-- representative real-footage Editing proceeds beyond public-music failure;
-- if public BGM is unavailable but source audio exists, the run continues without BGM;
-- final render/QC produces an approved MP4;
-- no terminal windows flash;
-- update discovery reaches the public 0.1.4 download;
-- Workspace/original media remain safe.
+0.1.5 resolved this by:
 
-Structural progress remains **95%** until this exact Human Gate passes.
+- using bundled software `libopenh264` for the Stage-A H.264 baseline;
+- keeping hardware encoders optional rather than required;
+- adding a bounded deterministic target bitrate;
+- requiring a real H.264 encode plus ffprobe verification during runtime preparation;
+- repeating the real H.264 encode verification against packaged staging.
+
+The final Human Editing run then passed.
+
+## Current project mode
+
+The project is no longer in Stage-A structural construction.
+
+Current mode is **release-polish discussion before final 1.0.0 packaging**.
+
+No implementation work order is active while the Product Owner and ChatGPT classify proposed cosmetic, compatibility and release-experience items.
+
+## Important release boundary
+
+Stage-A 100% does **not** authorize an immediate final `1.0.0` installer.
+
+The Product Owner explicitly requested that 1.0.0 packaging wait until release-polish and compatibility topics have been discussed and classified.
+
+Do not open construction work or produce a final 1.0.0 package until that discussion yields an approved bounded release-polish scope.
