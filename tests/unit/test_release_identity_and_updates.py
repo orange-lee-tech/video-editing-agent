@@ -102,3 +102,37 @@ def test_update_check_accepts_valid_public_manifest_without_credentials(monkeypa
     assert result.update_available is True
     assert captured["timeout"] == 1.5
     assert captured["request"].get_header("Authorization") is None
+
+
+def test_update_manifest_parses_component_patches() -> None:
+    payload = json.loads(_manifest("1.0.1"))
+    payload["layout_version"] = 1
+    payload["minimum_updater_version"] = 1
+    payload["components"] = [
+        {
+            "id": "app-core",
+            "version": "1.0.1",
+            "url": "https://example.invalid/app-core.zip",
+            "sha256": "b" * 64,
+            "size_bytes": 123456,
+        }
+    ]
+
+    manifest = parse_update_manifest(json.dumps(payload))
+
+    assert manifest.layout_version == 1
+    assert manifest.minimum_updater_version == 1
+    assert len(manifest.components) == 1
+    assert manifest.components[0].component_id == "app-core"
+    assert manifest.components[0].size_bytes == 123456
+
+
+def test_installer_requires_bilingual_user_agreement_and_eta() -> None:
+    installer = Path("packaging/windows/VideoEditingAgent.iss").read_text(encoding="utf-8")
+
+    assert 'LicenseFile: "..\\..\\resources\\legal\\USER_AGREEMENT_en.txt"' in installer
+    assert 'LicenseFile: "..\\..\\resources\\legal\\USER_AGREEMENT_zh-CN.txt"' in installer
+    assert "CurInstallProgressChanged" in installer
+    assert "InstallEtaRemaining" in installer
+    assert Path("resources/legal/USER_AGREEMENT_en.txt").is_file()
+    assert Path("resources/legal/USER_AGREEMENT_zh-CN.txt").is_file()
