@@ -16,6 +16,7 @@ from video_editing_agent.application.use_cases.product_flow import (
     ProductFlowEventLevel,
     ProductFlowStage,
 )
+from video_editing_agent.application.ports.visual_understanding import VisualProviderQuotaError
 
 _HTTPS_URL = re.compile(r"https://[^\s<>\"'，。；：！？【】《》]+", re.IGNORECASE)
 _TRAILING_PROSE = ").,;:!?]}，。；：！？】》"
@@ -328,12 +329,21 @@ def format_product_event(event: ProductFlowEvent, language: str) -> str:
 def localized_error(error: BaseException, language: str) -> tuple[str, str]:
     detail = str(error).strip()
     lowered = detail.casefold()
-    if "429" in lowered or "quota" in lowered or "rate limit" in lowered:
+    if isinstance(error, VisualProviderQuotaError):
         primary = (
-            "视觉理解服务当前达到请求/配额限制，本次任务已停止。请稍后重试或检查 API 用量。"
+            "Gemini 当日请求额度已耗尽，短时间自动重试无法恢复。请等待额度重置、提高 Gemini 额度，"
+            "或在“设置 → 视觉 API 提供方”切换到 OpenAI 后重试。"
             if language == "zh-CN"
-            else "The visual-understanding service reached a request or quota limit. "
-            "This run stopped; retry later or check API usage."
+            else "The Gemini daily request quota is exhausted and short retries cannot recover it. "
+            "Wait for quota reset, raise the Gemini quota, or switch Settings → Visual API Provider "
+            "to OpenAI before retrying."
+        )
+    elif "429" in lowered or "quota" in lowered or "rate limit" in lowered:
+        primary = (
+            "视觉理解服务当前达到短时请求限制，本次任务已停止。请按错误提示等待后重试。"
+            if language == "zh-CN"
+            else "The visual-understanding service reached a short-term request limit. "
+            "Wait for the provider retry window and try again."
         )
     elif isinstance(error, (ValueError, FileNotFoundError)):
         primary = (
