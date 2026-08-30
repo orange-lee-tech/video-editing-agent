@@ -163,7 +163,12 @@ def main(argv: list[str] | None = None) -> int:
                     archive = temp_root / f"{component.component_id}.zip"
                     component_id = component.component_id
 
-                    def download_progress(received: int, total: int) -> None:
+                    def download_progress(
+                        received: int,
+                        total: int,
+                        *,
+                        component_id: str = component_id,
+                    ) -> None:
                         percent = 0 if total <= 0 else int((received * 100) / total)
                         ui(
                             _text(args.language, "downloading").format(
