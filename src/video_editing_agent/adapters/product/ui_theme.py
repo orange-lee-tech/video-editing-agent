@@ -133,6 +133,61 @@ def configure_product_theme(
     root.option_add("*TCombobox*Listbox.selectBackground", tokens.accent)
     root.option_add("*TCombobox*Listbox.selectForeground", tokens.inverse_text)
 
+    style.configure("TFrame", background=tokens.surface)
+    style.configure(
+        "TLabel",
+        background=tokens.surface,
+        foreground=tokens.text_primary,
+        font=(family, type_scale.body_size),
+    )
+    style.configure(
+        "TLabelframe",
+        background=tokens.surface,
+        foreground=tokens.text_primary,
+        bordercolor=tokens.border,
+    )
+    style.configure(
+        "TLabelframe.Label",
+        background=tokens.surface,
+        foreground=tokens.text_primary,
+        font=(family, type_scale.body_size, "bold"),
+    )
+    style.configure(
+        "TEntry",
+        fieldbackground=tokens.surface,
+        foreground=tokens.text_primary,
+        insertcolor=tokens.text_primary,
+        font=(family, type_scale.body_size),
+    )
+    style.configure(
+        "TButton",
+        background=tokens.surface_subtle,
+        foreground=tokens.text_primary,
+        font=(family, type_scale.body_size),
+    )
+    style.map("TButton", background=[("active", tokens.border)])
+    style.configure(
+        "TCheckbutton",
+        background=tokens.surface,
+        foreground=tokens.text_primary,
+        font=(family, type_scale.body_size),
+    )
+    style.configure(
+        "TCombobox",
+        fieldbackground=tokens.surface,
+        background=tokens.surface,
+        foreground=tokens.text_primary,
+        arrowcolor=tokens.text_secondary,
+        font=(family, type_scale.body_size),
+    )
+    style.map(
+        "TCombobox",
+        fieldbackground=[("readonly", tokens.surface)],
+        foreground=[("readonly", tokens.text_primary)],
+        selectbackground=[("readonly", tokens.surface)],
+        selectforeground=[("readonly", tokens.text_primary)],
+    )
+
     style.configure("App.TFrame", background=tokens.app_background)
     style.configure("Header.TFrame", background=tokens.surface)
     style.configure("Card.TFrame", background=tokens.surface)
