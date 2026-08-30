@@ -18,7 +18,7 @@ class OutputSpec:
     height: int
     frames_per_second: int
     container: str = "mp4"
-    video_codec: str = "libx264"
+    video_codec: str = "libopenh264"
     audio_codec: str = "aac"
 
     def __post_init__(self) -> None:
