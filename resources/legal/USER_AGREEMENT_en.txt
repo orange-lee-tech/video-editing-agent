@@ -1,11 +1,11 @@
-Video Editing Agent Software License and User Agreement
+有岐 Software License and User Agreement
 Version: General Pre-1.0 Release Text
 Updated: 2026-08-31
 
 IMPORTANT:
-Please read this Agreement carefully before installing or using Video Editing Agent (the "Software"). By continuing installation, selecting "I accept", or using the Software, you acknowledge that you have read, understood, and agreed to this Agreement. If you do not agree, do not install or use the Software.
+Please read this Agreement carefully before installing or using 有岐 (the "Software"). By continuing installation, selecting "I accept", or using the Software, you acknowledge that you have read, understood, and agreed to this Agreement. If you do not agree, do not install or use the Software.
 
-This Agreement is between the user ("you") and the publisher of the Video Editing Agent project (the "Provider"). This is a general agreement used before the final 1.0 release. If a separate privacy policy, commercial license, or service-specific terms are later published and expressly made applicable, those terms will apply as stated.
+This Agreement is between the user ("you") and the publisher of the 有岐 project (the "Provider"). This is a general agreement used before the final 1.0 release. If a separate privacy policy, commercial license, or service-specific terms are later published and expressly made applicable, those terms will apply as stated.
 
 1. License
 Subject to this Agreement, the Provider grants you a limited, non-exclusive, revocable, non-transferable license to install and use the Software. You may not use the Software to infringe intellectual property, privacy, publicity, trade-secret, or other lawful rights. Third-party and open-source components remain subject to their own licenses, which control for those components if inconsistent with this Agreement.
