@@ -85,7 +85,7 @@ def test_update_check_accepts_valid_public_manifest_without_credentials(monkeypa
             return None
 
         def read(self, _limit: int) -> bytes:
-            return _manifest("0.1.3").encode("utf-8")
+            return _manifest("0.1.4").encode("utf-8")
 
     captured = {}
 
