@@ -206,8 +206,12 @@ _TEXT = {
         "check_updates": "检查更新",
         "update_available_title": "发现新版本",
         "update_available_message": (
-            "当前版本 v{current}\n最新版本 v{latest}\n\n是否打开更新下载页？"
+            "当前版本 v{current}\n最新版本 v{latest}\n\n当前安装需要完整安装包，是否打开下载页？"
         ),
+        "patch_update_message": (
+            "当前版本 v{current}\n最新版本 v{latest}\n补丁大小约 {size}\n\n是否更新并重启？"
+        ),
+        "patch_update_launch_failed": "补丁更新器无法启动：{detail}",
         "up_to_date_title": "已是最新版本",
         "up_to_date_message": "当前版本 v{current} 已是最新版本。",
         "update_check_failed_title": "检查更新失败",
@@ -343,8 +347,14 @@ _TEXT = {
         "check_updates": "Check for Updates",
         "update_available_title": "Update Available",
         "update_available_message": (
-            "Current version v{current}\nLatest version v{latest}\n\nOpen the update download page?"
+            "Current version v{current}\nLatest version v{latest}\n\n"
+            "This installation requires the full installer. Open the download page?"
         ),
+        "patch_update_message": (
+            "Current version v{current}\nLatest version v{latest}\n"
+            "Patch size: about {size}\n\nUpdate and restart?"
+        ),
+        "patch_update_launch_failed": "Could not start the patch updater: {detail}",
         "up_to_date_title": "Up to Date",
         "up_to_date_message": "Version v{current} is up to date.",
         "update_check_failed_title": "Update Check Failed",
