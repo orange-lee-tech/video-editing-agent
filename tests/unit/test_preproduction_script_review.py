@@ -670,3 +670,75 @@ def test_deepseek_reviewer_respects_explicit_non_thinking_configuration(
     assert review.accepted
     assert transport.payloads[0]["thinking"] == {"type": "disabled"}
     assert transport.payloads[0]["max_tokens"] == 1_000
+
+
+def test_repeated_commute_claim_uses_full_plan_fact_only_fallback(tmp_path: Path) -> None:
+    briefs, scripts = repositories(tmp_path / "project.sqlite3")
+    brief = BriefService(
+        briefs,
+        brief_id_factory=lambda: "brf_commute_gate",
+        clock=lambda: NOW,
+    ).create(
+        BriefContent(
+            title="通勤水瓶",
+            objective="展示日常通勤场景",
+            audience="上班族",
+            platform="短视频",
+            core_message="便携",
+            authoritative_facts=(AuthoritativeFact("fact_capacity", "容量350ml"),),
+        )
+    )
+    unsafe = ScriptPlanProposal(
+        (
+            NarrativeSectionProposal(
+                "hook",
+                "hook",
+                "展示通勤携带",
+                spoken_content="带着它去通勤。",
+                visual_requirement="人在通勤途中手持并携带水瓶。",
+                protected_fact_ids=("fact_capacity",),
+            ),
+            NarrativeSectionProposal(
+                "body",
+                "body",
+                "展示容量",
+                spoken_content="容量350ml",
+                protected_fact_ids=("fact_capacity",),
+            ),
+        )
+    )
+    violation = ScriptProposalViolation(
+        code="unsupported_claim",
+        section_id="hook",
+        reason="Carrying during a commute implies unsupported portability or commute suitability.",
+    )
+    planning_port = CountingPlanningPort(unsafe)
+    review_port = StaticReviewPort(
+        [
+            ScriptProposalReview(False, (violation,)),
+            ScriptProposalReview(False, (violation,)),
+            ScriptProposalReview(False, (violation,)),
+            ScriptProposalReview(True),
+        ]
+    )
+
+    script = workflow(briefs, scripts, planning_port, review_port).generate(
+        EntityRevisionRef(brief.envelope.id, brief.envelope.revision)
+    )
+
+    assert len(planning_port.requests) == 2
+    assert len(review_port.requests) == 4
+    rendered = " ".join(
+        value
+        for section in script.sections
+        for value in (
+            section.information_goal,
+            section.spoken_content,
+            section.visual_requirement,
+            section.on_screen_text_intent,
+        )
+        if value
+    )
+    assert "通勤途中" not in rendered
+    assert "便携" not in rendered
+    assert "容量350ml" in rendered
