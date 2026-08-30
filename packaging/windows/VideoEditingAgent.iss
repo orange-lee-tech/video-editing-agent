@@ -124,9 +124,8 @@ begin
   Minutes := Seconds div 60;
   Remainder := Seconds mod 60;
   if Minutes > 0 then
-    Result := FmtMessage(
-      CustomMessage('InstallEtaMinuteSecond'),
-      [IntToStr(Minutes), IntToStr(Remainder)])
+    Result := FmtMessage(CustomMessage('InstallEtaMinuteSecond'), [
+      IntToStr(Minutes), IntToStr(Remainder)])
   else
     Result := FmtMessage(CustomMessage('InstallEtaSecond'), [IntToStr(Remainder)]);
 end;
@@ -183,7 +182,6 @@ begin
     SmoothedRemainingSeconds :=
       ((SmoothedRemainingSeconds * 2) + RawRemainingSeconds) div 3;
 
-  InstallEtaLabel.Caption := FmtMessage(
-    CustomMessage('InstallEtaRemaining'),
-    [FormatInstallRemaining(SmoothedRemainingSeconds)]);
+  InstallEtaLabel.Caption := FmtMessage(CustomMessage('InstallEtaRemaining'), [
+    FormatInstallRemaining(SmoothedRemainingSeconds)]);
 end;
