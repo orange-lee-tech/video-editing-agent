@@ -16,7 +16,10 @@ def enable_windows_dpi_awareness() -> str:
         return "not-windows"
 
     try:
-        user32 = ctypes.windll.user32
+        windll = getattr(ctypes, "windll", None)
+        if windll is None:
+            return "unavailable"
+        user32 = windll.user32
         setter = getattr(user32, "SetProcessDpiAwarenessContext", None)
         if setter is not None and setter(ctypes.c_void_p(_PER_MONITOR_AWARE_V2)):
             return "per-monitor-v2"
@@ -24,7 +27,10 @@ def enable_windows_dpi_awareness() -> str:
         pass
 
     try:
-        shcore = ctypes.windll.shcore
+        windll = getattr(ctypes, "windll", None)
+        if windll is None:
+            return "unavailable"
+        shcore = windll.shcore
         setter = getattr(shcore, "SetProcessDpiAwareness", None)
         if setter is not None and setter(_PROCESS_PER_MONITOR_DPI_AWARE) in {0, 0x80070005}:
             return "per-monitor"
@@ -32,7 +38,10 @@ def enable_windows_dpi_awareness() -> str:
         pass
 
     try:
-        user32 = ctypes.windll.user32
+        windll = getattr(ctypes, "windll", None)
+        if windll is None:
+            return "unavailable"
+        user32 = windll.user32
         setter = getattr(user32, "SetProcessDPIAware", None)
         if setter is not None and setter():
             return "system"
