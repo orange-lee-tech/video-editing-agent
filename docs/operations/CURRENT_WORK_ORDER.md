@@ -4,112 +4,92 @@
 **Status:** ACTIVE — FINAL HUMAN GATE  
 **Phase:** R0.12 — Stage-A final closure  
 **Mode:** FINAL ORDINARY-USER WINDOWS ACCEPTANCE  
-**Superseded candidate:** 0.1.1 / 71d7b7b46fa819f87aba785cefcc2bcf97ab7a46  
-**Accepted replacement source:** eadbaa74c686f9fe526cb1d3eab64dde21c94d84 / 0.1.2  
+**Accepted candidate:** 0.1.3 / 93d8483bb1d10e4bc5903c33f626fdd9f0d0e7ea  
 **Updated:** 2026-08-30
 
 ## Objective
 
-Perform the final ordinary-user Human Gate on the exact 0.1.2 Windows installer that passed engineering verification after the 0.1.1 Human Gate exposed insufficient tolerance for a retryable Gemini HTTP 503 high-demand spike.
+Run one final ordinary-user Human Gate on the exact 0.1.3 Windows RC. Do not broaden this gate into incremental-updater construction.
 
-Do not reopen broad architecture or unrelated 2.0 capabilities.
+The repository is public. The 0.1.3 Release asset is therefore a valid public download target.
 
-## Human evidence retained from 0.1.1
+## Release authority
 
-Planning:
+- Version: **0.1.3**
+- Source: `93d8483bb1d10e4bc5903c33f626fdd9f0d0e7ea`
+- Windows RC run: `33286816025`
+- Installer: `VideoEditingAgent-Setup-0.1.3.exe`
+- SHA-256: `0efa9bd847161b42fc9a2b000ebbc5e6dc18d8f8385fd2f489f96feff1cac9e8`
+- Release tag: `v0.1.3-rc-93d8483`
+- Release asset ID: `536028836`
+- Direct asset: `https://github.com/orange-lee-tech/video-editing-agent/releases/download/v0.1.3-rc-93d8483/VideoEditingAgent-Setup-0.1.3.exe`
 
-- installed Planning completed successfully;
-- the earlier factual-safety review behavior remains accepted.
+## What 0.1.3 closes
 
-Editing:
+- Planning unsupported-claim repair/review conflict.
+- One full-plan deterministic fact-only fallback after repeated claim veto.
+- Gemini hard per-day quota classification and actionable recovery guidance.
+- Disposable Human-Gate/test Workspace clean-before-run.
+- All prior 0.1.1/0.1.2 Windows packaging/runtime fixes remain included.
 
-- local input validation passed;
-- media ingest/understanding began normally;
-- multiple Gemini visual-understanding requests completed successfully;
-- a later request returned retryable HTTP 503 because the model was experiencing high demand;
-- the installed product surfaced a typed `VisualProviderTransientError`.
+## Engineering verification
 
-This evidence does not indicate a Renderer or local media-runtime regression.
-
-## 0.1.2 release candidate authority
-
-- Version: **0.1.2**
-- Source: `eadbaa74c686f9fe526cb1d3eab64dde21c94d84`
-- Windows RC run: `33265346143`
-- Installer: `VideoEditingAgent-Setup-0.1.2.exe`
-- SHA-256: `32838e2748ae60f0059d461cccadbc5dc971ae3a9d2fc49922f3d9d8821f8c43`
-- Private prerelease tag: `v0.1.2-rc-eadbaa7`
-- Release asset ID: `535517911`
-- Release page: `https://github.com/orange-lee-tech/video-editing-agent/releases/tag/v0.1.2-rc-eadbaa7`
-- Direct asset: `https://github.com/orange-lee-tech/video-editing-agent/releases/download/v0.1.2-rc-eadbaa7/VideoEditingAgent-Setup-0.1.2.exe`
-
-## Engineering verification complete
-
-0.1.2 passed:
+The 0.1.3 RC passed:
 
 1. repository Quality Gate;
-2. visual transient retry regression tests;
-3. version identity/update tests;
-4. Windows packaged GUI smoke;
-5. exact CPython 3.12.13 packaging environment;
-6. verified Inno Setup 7.1.0 acquisition;
-7. guided Setup.exe compilation;
-8. Planning-only installation;
-9. installed Planning launcher;
-10. Planning-only → Full upgrade;
-11. Full launcher;
-12. same-version Full repair;
-13. uninstall and external Workspace preservation;
-14. durable private prerelease publication.
+2. packaged windowed-GUI smoke;
+3. exact packaging environment;
+4. Inno Setup verification;
+5. guided Setup.exe build;
+6. Planning-only install;
+7. Planning-only → Full upgrade;
+8. Full launcher;
+9. same-version repair;
+10. uninstall;
+11. external Workspace preservation;
+12. public GitHub Release publication.
 
-The installer lifecycle reported:
+## Product Owner action
 
-`Installer lifecycle smoke PASSED.`
+Use this exact 0.1.3 installer and perform only two representative product tasks:
 
-## 0.1.2 transient-provider policy
+### Planning
 
-Only explicit `VisualProviderTransientError` failures are retried.
+Use the same or equivalent brief that previously triggered unsupported portability/commute claims.
 
-Default budget:
+Accept if:
 
-- attempt 1 fails → wait 2 seconds;
-- attempt 2 fails → wait 4 seconds;
-- attempt 3 fails → wait 8 seconds;
-- attempt 4 fails → wait 16 seconds;
-- attempt 5 failing ends the bounded retry budget.
+- the product returns a usable ScriptPlan/ShootingPlan;
+- unsupported claims are removed rather than merely reworded;
+- no manual engineering intervention is required.
 
-Provider-supplied RetryInfo overrides a shorter local delay.
+### Editing
 
-Non-retryable visual response/schema errors are not retried.
+Use a clean disposable Human-Gate project/workspace and representative real footage.
 
-When all attempts fail, the error remains typed as transient and explicitly says the automatic retry budget was exhausted.
+Use any configured visual provider with usable quota. If Gemini daily quota is exhausted, either wait for reset or switch Settings → Visual API Provider to OpenAI; provider quota exhaustion is not itself evidence that local editing is broken.
 
-## Final Human Gate
+Accept if:
 
-Install the exact 0.1.2 candidate and verify:
+- visual understanding proceeds when the selected provider is available;
+- no terminal windows flash;
+- the run reaches an approved final MP4;
+- Workspace/original media remain safe.
 
-1. application visibly shows v0.1.2;
-2. brief representative Planning regression remains acceptable;
-3. representative real-footage Editing progresses through visual understanding and produces an approved final MP4;
-4. no terminal windows flash during normal processing/rendering;
-5. a short provider-demand spike is tolerated without immediate task failure when it clears inside the retry window;
-6. persistent provider unavailability still terminates cleanly with an actionable diagnostic rather than hanging indefinitely;
-7. update-check UI remains non-blocking;
-8. Workspace/original media remain safe.
-
-Do not require the Product Owner to deliberately reproduce a provider outage if the real provider is healthy during the run. The successful real-footage Editing outcome plus the automated retry regression evidence is sufficient unless another transient failure occurs naturally.
+Also verify that an older installed version detects 0.1.3 and opens a working public download.
 
 ## Exit condition
 
-If the exact 0.1.2 installer passes ordinary-user acceptance without a material blocker:
+If both Planning and Editing pass without a material product blocker:
 
 - record durable Human evidence;
-- set Planning and Editing product gates to PASS;
-- set Windows release delivery gate to PASS;
-- set Stage-A completion gate to PASS;
-- move structural progress directly **95% → 100%**;
-- close this work order and R0.12.
+- set Planning gate PASS;
+- set Editing gate PASS;
+- set Windows release delivery gate PASS;
+- set Stage-A completion gate PASS;
+- move structural progress **95% → 100%**;
+- close R0.12.
 
-If a material blocker appears, freeze unrelated work and repair only the smallest responsible surface.
+Immediately after Stage-A closure, open a separate release-engineering work order for component-level incremental updates.
 
-Broad resumable-task/checkpoint deduplication remains backlog unless Human Gate demonstrates it is required for release closure.
+Do not require full binary-delta/Web Setup machinery before closing the current core Human Gate.
