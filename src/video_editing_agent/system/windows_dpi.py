@@ -4,7 +4,6 @@ import ctypes
 import os
 from typing import Any
 
-
 _PER_MONITOR_AWARE_V2 = -4
 _PROCESS_PER_MONITOR_DPI_AWARE = 2
 
