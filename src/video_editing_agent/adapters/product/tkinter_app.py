@@ -558,7 +558,7 @@ def launch() -> int:
     header = ttk.Frame(root, style="Header.TFrame", padding=(16, 9))
     header.pack(fill="x", padx=16, pady=(12, 6))
 
-    brand_mark = create_brand_mark(header, size=38)
+    brand_mark = create_brand_mark(header, size=38, tokens=current_theme)
     brand_mark.pack(side="left", padx=(0, 10))
 
     identity = ttk.Frame(header, style="Header.TFrame")
@@ -606,7 +606,12 @@ def launch() -> int:
     scroll_canvases: list[Any] = []
 
     def scrollable_page(page: Any) -> Any:
-        canvas = tk.Canvas(page, highlightthickness=0, borderwidth=0)
+        canvas = tk.Canvas(
+            page,
+            highlightthickness=0,
+            borderwidth=0,
+            background=current_theme.app_background,
+        )
         scrollbar = ttk.Scrollbar(page, orient="vertical", command=canvas.yview)
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True)
@@ -836,11 +841,11 @@ def launch() -> int:
             borderwidth=0,
             padx=12,
             pady=10,
-            background=DEFAULT_PRODUCT_THEME.surface,
-            foreground=DEFAULT_PRODUCT_THEME.text_primary,
-            insertbackground=DEFAULT_PRODUCT_THEME.text_primary,
+            background=current_theme.surface,
+            foreground=current_theme.text_primary,
+            insertbackground=current_theme.text_primary,
             font=(
-                DEFAULT_PRODUCT_TYPOGRAPHY.ui_family,
+                DEFAULT_PRODUCT_TYPOGRAPHY.family_for_language(language.get()),
                 DEFAULT_PRODUCT_TYPOGRAPHY.body_size,
             ),
         )
