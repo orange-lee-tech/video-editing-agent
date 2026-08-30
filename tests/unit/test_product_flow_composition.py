@@ -1457,3 +1457,66 @@ def test_public_music_exhaustion_degrades_to_grounded_source_audio(
         for event in result.events
     )
     assert source.read_bytes() == b"original-user-media"
+
+
+def test_public_music_exhaustion_without_source_audio_requests_local_music(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    class NoAudioProbe(FakeMediaProbe):
+        def probe(self, path: Path) -> MediaTechnicalMetadata:
+            result = super().probe(path)
+            if result.media_kind == "video":
+                return replace(result, audio_channels=0, sample_rate_hz=None)
+            return result
+
+    class EmptyProvider:
+        def __init__(self, *, page_size: int = 20) -> None:
+            assert page_size == 20
+
+        def search_music(self, query: MusicDiscoveryQuery) -> tuple[AudioMaterialCandidate, ...]:
+            del query
+            return ()
+
+    monkeypatch.setattr(composition_module, "ReviewApplicationRuntime", FakeReviewRuntime)
+    monkeypatch.setattr(
+        composition_module,
+        "OpenverseWikimediaAudioProvider",
+        EmptyProvider,
+    )
+
+    workspace = ProjectWorkspace.open(tmp_path / "editing-no-audio-fallback-project")
+    source = tmp_path / "silent-source.mp4"
+    source.write_bytes(b"silent-user-media")
+    flow = build_editing_product_flow(
+        workspace,
+        EditingProductCapabilities(
+            NoAudioProbe(),
+            FakeShotDetector(),
+            ShotDetectionOptions(),
+            FakeUnderstanding(workspace),
+            FakeDirector(),
+            FakeRenderer(),
+            cast(RenderedMediaQc, UnusedRenderedMediaQc()),
+            edit_plan_id_factory=lambda: "epl_no_audio_fallback",
+            edl_id_factory=lambda: "edl_no_audio_fallback",
+            clock=lambda: NOW,
+            ffmpeg_executable="ffmpeg",
+            automatic_public_music=True,
+        ),
+    )
+
+    result = flow.run(
+        EditingProductRequest(
+            workspace.root,
+            _brief(),
+            (source,),
+            tmp_path / "output" / "silent.mp4",
+            output_profile=EditingOutputProfile("test_320x180_30", 320, 180, 30),
+        )
+    )
+
+    assert result.outcome is ProductFlowOutcome.FAILED
+    assert result.diagnostic is not None
+    assert "Select a local music file" in result.diagnostic
+    assert "rights needed to use it" in result.diagnostic
