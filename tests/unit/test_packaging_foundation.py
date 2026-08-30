@@ -271,7 +271,8 @@ def test_guided_installer_avoids_preinit_app_constant_and_excluded_directory_ske
 
     assert "DisableWelcomePage=no" in installer
     assert "ExpandConstant('{app}" not in installer
-    assert "[Code]" not in installer
+    assert "CurInstallProgressChanged" in installer
+    assert "InstallEtaRemaining" in installer
 
     core_source = next(
         line
