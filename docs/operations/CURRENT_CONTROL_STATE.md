@@ -8,9 +8,9 @@ phase_state: RELEASE_POLISH_ACTIVE
 active_work_order: R0.13-RELEASE-POLISH-001
 active_construction_branch: work/r013-release-polish
 accepted_code_baseline: e59cab8475a615d29003c03497ddcdaf862476a6
-accepted_engineering_baseline: 6a6bb6fb84345a3c974168f0b4fa0d013af2fc92
-current_main_baseline: 39aaf883bf5e5d1f549acaec4c2e70c6fe6e0f36
-latest_human_gate_candidate: 6a6bb6fb84345a3c974168f0b4fa0d013af2fc92
+accepted_engineering_baseline: 111b50f13d1b19670dfe0e0a68bfa2da00212a5f
+current_main_baseline: 7ffbf2d3b27833003c6b9b9a74a7be6959cddd0f
+latest_human_gate_candidate: 111b50f13d1b19670dfe0e0a68bfa2da00212a5f
 structural_progress_percent: 100
 stage_a_completion_gate: PASS
 core_1_planning_product_gate: PASS
@@ -72,10 +72,12 @@ Byte-level binary delta algorithms are out of scope; component/file replacement 
 
 ## Current R0.13 engineering candidate
 
-Version `0.1.6`, exact source `6a6bb6fb84345a3c974168f0b4fa0d013af2fc92`, completed Windows RC run `33325249400` with **SUCCESS**.
+Version `0.1.6`, exact source `111b50f13d1b19670dfe0e0a68bfa2da00212a5f`, completed Windows RC run `33379570088` with **SUCCESS**.
 
 Installer SHA-256:
 
-`fb44abd8818ded1e899757e8ba33132ebffe88cc409578d29a1fba9081da4787`
+`f6a90b2a8b484806e893d0bbcc369adf5ced83425a14e887bc6f65954528796b`
 
-Engineering verification is complete. R0.13 remains open only for Product Owner visual/interaction acceptance, including display-scaling review, before any final 1.0.0 authorization.
+This candidate supersedes the earlier `6a6bb6f` Human-review candidate after Product Owner feedback found three UI regressions: inaccessible profile Import / Export / Save / Delete actions in the fixed-height Settings dialog, premature developer-homepage exposure, and appearance selection that did not visibly apply on selection. The remediation preserves both form/API profile actions in a resizable scrollable Settings surface, replaces developer-homepage navigation with the temporary-closure notice, and applies Day / Comfort / Night preview immediately with cancel restore and persisted apply behavior.
+
+Engineering verification is complete for the remediated candidate. R0.13 remains open only for Product Owner visual/interaction acceptance, including display-scaling review, before any final 1.0.0 authorization.
