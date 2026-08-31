@@ -1,7 +1,7 @@
 # Current Work Order
 
 **ID:** R0.13-RELEASE-POLISH-001  
-**Status:** ACTIVE — RELEASE POLISH / COMPATIBILITY  
+**Status:** ACTIVE — ENGINEERING PASS / HUMAN REVIEW PENDING  
 **Phase:** R0.13 — 1.0 release polish and update engineering  
 **Mode:** BOUNDED POST-STAGE-A PRODUCTIZATION  
 **Accepted Stage-A baseline:** 0.1.5 / e59cab8475a615d29003c03497ddcdaf862476a6  
@@ -117,3 +117,16 @@ When all seven items pass engineering verification and the Product Owner accepts
 - close R0.13;
 - freeze the 1.0 release candidate scope;
 - only then authorize final `1.0.0` packaging.
+
+
+## Current engineering candidate
+
+R0.13 engineering implementation is complete for candidate:
+
+- version: `0.1.6`;
+- source: `6a6bb6fb84345a3c974168f0b4fa0d013af2fc92`;
+- Windows RC: `33325249400` — **SUCCESS**;
+- installer SHA-256: `fb44abd8818ded1e899757e8ba33132ebffe88cc409578d29a1fba9081da4787`;
+- installer + component patch assets: published on prerelease `v0.1.6-rc-6a6bb6f`.
+
+Do not close this work order until the Product Owner reviews the installer/UI/theme/branding/update experience and accepts the Windows presentation at the required scaling levels.
