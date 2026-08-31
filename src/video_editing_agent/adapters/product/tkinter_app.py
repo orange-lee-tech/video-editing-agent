@@ -1276,6 +1276,7 @@ def launch() -> int:
             cursor="hand2",
         )
         homepage.grid(row=1, column=0, sticky="w", padx=28, pady=(0, 18))
+
         def show_developer_homepage_notice(_event: Any = None) -> None:
             messagebox.showinfo(
                 text("developer_homepage"),
@@ -1343,7 +1344,7 @@ def launch() -> int:
                 return None
             widget_class = event.widget.winfo_class()
             if widget_class in {"Text", "Listbox", "TCombobox"}:
-                return None
+                return "break"
             settings_canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")
             return "break"
 
