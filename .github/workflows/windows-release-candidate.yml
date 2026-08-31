@@ -176,7 +176,7 @@ jobs:
           compression-level: 9
           retention-days: 7
 
-      - name: Publish durable private prerelease installer
+      - name: Publish durable prerelease installer and component patches
         shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
@@ -196,18 +196,34 @@ jobs:
           $releaseExists = $LASTEXITCODE -eq 0
           $ErrorActionPreference = "Stop"
 
+          $componentRoot = ".\\build\\update-components"
+          $componentArchives = @(
+            Get-ChildItem -LiteralPath $componentRoot -Filter "VideoEditingAgent-Update-*.zip" |
+              Sort-Object Name |
+              ForEach-Object { $_.FullName }
+          )
+          $componentMetadata = Join-Path $componentRoot "update-release-components.json"
+          if ($componentArchives.Count -lt 3 -or -not (Test-Path -LiteralPath $componentMetadata -PathType Leaf)) {
+            throw "Component patch release assets are incomplete"
+          }
+
           if ($releaseExists) {
-            gh release upload $tag $installer --clobber
+            $assets = @($installer) + $componentArchives + @($componentMetadata)
+            gh release upload $tag @assets --clobber
           }
           else {
             gh release create $tag $installer `
               --target $sha `
-              --title "Video Editing Agent $version RC ($short)" `
-              --notes "Stage-A replacement Windows release candidate. Source: $sha" `
+              --title "有岐 $version RC ($short)" `
+              --notes "R0.13 Windows release candidate with full-installer recovery and component patch assets. Source: $sha" `
               --prerelease
+            if ($LASTEXITCODE -eq 0) {
+              $patchAssets = $componentArchives + @($componentMetadata)
+              gh release upload $tag @patchAssets --clobber
+            }
           }
           if ($LASTEXITCODE -ne 0) {
-            throw "Could not publish private prerelease asset"
+            throw "Could not publish prerelease installer/component assets"
           }
           gh release view $tag --json url,tagName,name
       - name: Upload release-candidate installer and compact evidence
@@ -221,6 +237,8 @@ jobs:
             build/installer/inno-tool-evidence.json
             build/installer/installer-smoke.json
             build/packaging/evidence
+            build/update-components/update-release-components.json
+            build/update-components/VideoEditingAgent-Update-*.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 14

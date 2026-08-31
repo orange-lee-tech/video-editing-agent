@@ -3,15 +3,19 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from video_editing_agent.adapters.product.ui_theme import DEFAULT_PRODUCT_THEME
+from video_editing_agent.adapters.product.ui_theme import DEFAULT_PRODUCT_THEME, ProductThemeTokens
 
 
-def create_brand_mark(parent: Any, *, size: int = 40) -> Any:
+def create_brand_mark(
+    parent: Any,
+    *,
+    size: int = 40,
+    tokens: ProductThemeTokens = DEFAULT_PRODUCT_THEME,
+) -> Any:
     """Create the dependency-free product mark used by the desktop shell."""
 
     import tkinter as tk
 
-    tokens = DEFAULT_PRODUCT_THEME
     canvas = tk.Canvas(
         parent,
         width=size,
@@ -44,6 +48,7 @@ def create_brand_mark(parent: Any, *, size: int = 40) -> Any:
             offset_y + y2 * unit,
             fill=tokens.text_primary,
             outline="",
+            tags=("brand-ink",),
         )
     return canvas
 
@@ -109,3 +114,8 @@ def create_header_action(
         command=command,
         style="Primary.TButton" if primary else "Secondary.TButton",
     )
+
+
+def recolor_brand_mark(canvas: Any, tokens: ProductThemeTokens) -> None:
+    canvas.configure(background=tokens.surface)
+    canvas.itemconfigure("brand-ink", fill=tokens.text_primary)

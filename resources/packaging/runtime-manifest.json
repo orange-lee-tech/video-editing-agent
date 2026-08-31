@@ -1,12 +1,20 @@
 {
   "schema": "video-editing-agent/runtime-manifest/v1",
-  "application_version": "0.1.5",
+  "application_version": "0.1.6",
   "components": [
     {
       "id": "application", "kind": "executable", "classification": "bundled-required",
       "capability": "host-runtime", "version": "0.1.0", "location_policy": "install-relative",
       "provenance": "repository source frozen by pinned PyInstaller", "license_state": "reviewed",
       "inclusion": "include", "hash_policy": "build-generated", "path": "VideoEditingAgent.exe",
+      "platform": "windows", "architecture": "x86_64", "absence_fatal": true
+    },
+    {
+      "id": "updater", "kind": "executable", "classification": "bundled-required",
+      "capability": "component-update", "version": "1", "location_policy": "install-relative",
+      "provenance": "repository source frozen by pinned PyInstaller; updated only by full installer",
+      "license_state": "reviewed", "inclusion": "include", "hash_policy": "build-generated",
+      "path": "VideoEditingAgent-updater.exe",
       "platform": "windows", "architecture": "x86_64", "absence_fatal": true
     },
     {

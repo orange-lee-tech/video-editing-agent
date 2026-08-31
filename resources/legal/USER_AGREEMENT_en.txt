@@ -1,0 +1,60 @@
+有岐 Software License and User Agreement
+Version: General Pre-1.0 Release Text
+Updated: 2026-08-31
+
+IMPORTANT:
+Please read this Agreement carefully before installing or using 有岐 (the "Software"). By continuing installation, selecting "I accept", or using the Software, you acknowledge that you have read, understood, and agreed to this Agreement. If you do not agree, do not install or use the Software.
+
+This Agreement is between the user ("you") and the publisher of the 有岐 project (the "Provider"). This is a general agreement used before the final 1.0 release. If a separate privacy policy, commercial license, or service-specific terms are later published and expressly made applicable, those terms will apply as stated.
+
+1. License
+Subject to this Agreement, the Provider grants you a limited, non-exclusive, revocable, non-transferable license to install and use the Software. You may not use the Software to infringe intellectual property, privacy, publicity, trade-secret, or other lawful rights. Third-party and open-source components remain subject to their own licenses, which control for those components if inconsistent with this Agreement.
+
+2. AI Features and Outputs
+The Software includes AI-assisted understanding, planning, review, directing, and editing features. AI outputs are probabilistic and may be inaccurate, incomplete, outdated, inappropriate, or inconsistent with your intent. The Provider does not guarantee viral performance, commercial results, platform recommendations, legal compliance, copyright clearance, or any other particular outcome. You are responsible for appropriate human review before publication, distribution, commercial use, or reliance on the output.
+
+3. Third-Party APIs, Network Transmission, and External Services
+To provide visual understanding, reasoning, planning, editing decisions, public-music discovery, and software updates, the Software may connect to third-party network services.
+When you configure and use a third-party API such as DeepSeek, Gemini, OpenAI, or another supported provider, the Software may transmit data reasonably necessary to perform your request, including text you enter, task instructions, facts, prompts, frames or thumbnails extracted from media you select, technical media metadata, intermediate context, and authentication information such as an API key.
+Third-party providers independently determine their data handling, retention, training policies, privacy rules, content rules, availability, pricing, regional restrictions, and security measures. The Provider does not control or guarantee those practices. You must review and comply with the applicable third-party terms and confirm that you are authorized to submit the relevant data.
+To the maximum extent permitted by law, the Provider is not responsible for failures directly caused by third-party outages, rate limits, quota exhaustion, pricing changes, account restrictions, policy changes, network failures, or third-party data processing.
+Do not submit confidential, regulated, sensitive personal, trade-secret, or otherwise specially protected information to a third-party API unless you have confirmed that applicable law, organizational policy, and the provider's terms allow that transmission.
+
+4. API Keys, Accounts, and Fees
+The Software does not generally include third-party API credits. Charges, quotas, taxes, and account status are governed by your relationship with the relevant provider. You are responsible for protecting API keys and credentials. When you explicitly save an API profile, the Software may use operating-system-provided local credential protection, but no device environment can be guaranteed absolutely secure.
+
+5. Your Media, Music, and Intellectual Property
+You retain rights you lawfully hold in your original media, project files, and outputs. You are responsible for ensuring that you have the rights needed to analyze, edit, copy, adapt, publish, or commercially use any video, image, music, text, trademark, likeness, or other material you select.
+Automated rights checks for public music or other external materials are technical assistance only, are not legal advice, and do not guarantee the absence of disputes. A rights-attestation checkbox records your own representation and does not obtain a license for you. Do not knowingly use the Software to create or distribute unlawful, infringing, or fraudulent content.
+
+6. Privacy, Local Data, and Logs
+The Software primarily uses a local project workspace. Project files, original media, and outputs are ordinarily stored at locations you select. The Software may keep local run logs, error information, technical metadata, and model-usage information for operation, diagnostics, and quality review.
+Except for network features you choose to use, this Agreement does not transfer ownership of your local files to the Provider. You are responsible for device security, storage capacity, backups, local access control, and protection of important media.
+Update checks may contact Provider-maintained update metadata and download sources.
+
+7. Updates and Compatibility
+The Provider may publish security updates, bug fixes, component patches, compatibility updates, or feature updates. Routine updates may replace only changed components. Major layout changes, repair installation, updater failure, or incompatible states may require a full installer.
+Updates may change third-party components, system requirements, interface behavior, or configuration formats. The Provider will use reasonable efforts to maintain compatibility but cannot guarantee permanent compatibility with every historical environment, driver, third-party service, or nonstandard system configuration. Back up important work before critical production use or major updates.
+
+8. Prohibited Use
+You may not use the Software to violate applicable law; maliciously bypass rights checks, security controls, access controls, or update-integrity verification; distribute malware; perform unauthorized access, fraud, harassment, or other abuse; or falsely represent that you are the Provider or have endorsement, authorization, or partnership that does not exist.
+
+9. Disclaimer of Warranties
+To the maximum extent permitted by applicable law, the Software is provided "as is" and "as available". The Provider does not warrant that the Software will be error-free, uninterrupted, permanently compatible with all devices or third-party services, or that outputs will always be accurate, complete, safe, merchantable, or fit for a particular purpose. Nothing in this Agreement excludes rights or liabilities that cannot lawfully be excluded.
+
+10. Limitation of Liability
+To the maximum extent permitted by applicable law, the Provider is not liable beyond mandatory legal requirements for indirect damages, lost profits, business interruption, lost data, reputational loss, lost opportunity, or third-party claims arising from use or inability to use the Software.
+Responsibility for losses caused by failure to back up data, misconfigured APIs, unauthorized media use, ignored warnings, breach of third-party terms, or failure to review output remains with the responsible party as provided by law. Nothing in this Agreement excludes liability for intentional misconduct, gross negligence, or other liability that applicable law does not permit to be excluded.
+
+11. Changes and Termination
+The Provider may update this Agreement for legal, compliance, security, functional, or business reasons. Material changes may be presented in the installer, application, update page, or release notes. Where renewed consent is legally required, the Software may require acceptance again during installation or upgrade.
+The Provider may terminate or limit the license for material breach where permitted by law. You may terminate by stopping use and uninstalling the Software; obligations already incurred remain unaffected.
+
+12. Governing Law and Disputes
+This Agreement is generally governed by the laws of the People's Republic of China, subject to mandatory consumer-protection or other non-waivable rules that apply. The parties should first attempt good-faith resolution. If unresolved, either party may seek relief before a court or other dispute-resolution body with lawful jurisdiction.
+
+13. Miscellaneous
+If any provision is held invalid or unenforceable, the remaining provisions remain effective. Headings are for convenience only. This Agreement works together with the licenses applicable to third-party and open-source components.
+Before final commercial release, the Provider may add legal-entity information, contact information, privacy-policy links, commercial licensing scope, and consumer-specific provisions.
+
+By continuing installation, you agree to this Agreement.

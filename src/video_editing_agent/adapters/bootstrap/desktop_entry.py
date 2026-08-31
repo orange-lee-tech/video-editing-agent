@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import sys
 
+from video_editing_agent.system.windows_dpi import enable_windows_dpi_awareness
+
 
 def main() -> int:
     if len(sys.argv) > 1 and sys.argv[1] == "runtime-probe":
@@ -12,6 +14,7 @@ def main() -> int:
         from video_editing_agent.adapters.cli.entrypoint import main as cli_main
 
         return cli_main(sys.argv[1:])
+    enable_windows_dpi_awareness()
     from video_editing_agent.adapters.product.tkinter_app import launch
 
     return launch()

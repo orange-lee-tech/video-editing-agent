@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 import queue
+import subprocess
+import sys
 import threading
 import time
 import webbrowser
@@ -15,6 +17,13 @@ from video_editing_agent.adapters.product.api_settings import (
     apply_settings_to_environment,
     settings_from_environment,
 )
+from video_editing_agent.adapters.product.appearance_settings import (
+    AppearanceMode,
+    AppearancePreferences,
+    load_appearance_preferences,
+    save_appearance_preferences,
+)
+from video_editing_agent.adapters.product.component_update import plan_component_update
 from video_editing_agent.adapters.product.composition import editing_flow, planning_flow
 from video_editing_agent.adapters.product.controller import (
     BriefForm,
@@ -28,13 +37,16 @@ from video_editing_agent.adapters.product.presentation import (
     token_usage_presentation,
 )
 from video_editing_agent.adapters.product.runtime import resolve_product_runtime
-from video_editing_agent.adapters.product.ui_components import create_brand_mark
+from video_editing_agent.adapters.product.ui_components import create_brand_mark, recolor_brand_mark
 from video_editing_agent.adapters.product.ui_theme import (
-    DEFAULT_PRODUCT_THEME,
     DEFAULT_PRODUCT_TYPOGRAPHY,
     configure_product_theme,
 )
 from video_editing_agent.adapters.product.update_check import UpdateCheckResult, check_for_update
+from video_editing_agent.adapters.product.update_state import (
+    default_update_state_path,
+    load_update_state,
+)
 from video_editing_agent.adapters.product.ux_support import (
     EtaEstimator,
     ProtectedCredentialStore,
@@ -75,13 +87,14 @@ from video_editing_agent.domain.edl.subtitle import SubtitleStyleProfile
 from video_editing_agent.domain.shooting.model import ProductionConstraints
 from video_editing_agent.providers.usage import set_thread_token_usage_sink
 from video_editing_agent.storage.project.workspace import ProjectWorkspace
+from video_editing_agent.system.windows_dpi import configure_tk_scaling
 from video_editing_agent.version import APP_VERSION
 
 _TEXT = {
     "zh-CN": {
-        "window_title": "视频剪辑智能体",
-        "app_title": "视频剪辑智能体",
-        "app_subtitle": "AI Director + AI Video Editor",
+        "window_title": "有岐",
+        "app_title": "有岐",
+        "app_subtitle": "创作有岐，表达有路",
         "tab_planning": "拍摄规划",
         "tab_editing": "自动剪辑",
         "planning_goal_title": "内容目标",
@@ -94,7 +107,7 @@ _TEXT = {
         "workspace": "项目工作区",
         "workspace_unselected": "尚未选择项目工作区",
         "workspace_required": "请先选择项目工作区，再开始运行。",
-        "configuration": "配置 ▾",
+        "configuration": "设置",
         "configuration_scope": "配置范围（可同时选择）",
         "form_configuration": "规划 / 剪辑表单",
         "api_configuration": "API / Provider",
@@ -147,7 +160,12 @@ _TEXT = {
         "switch_language": "English",
         "settings": "设置",
         "profiles": "配置文件",
-        "settings_title": "配置与 API 设置",
+        "settings_title": "设置",
+        "appearance_title": "外观",
+        "appearance_mode": "界面模式",
+        "appearance_day": "白天模式",
+        "appearance_comfort": "护眼模式",
+        "appearance_night": "夜间模式",
         "settings_intro": "本软件不附赠 API 密钥。请使用你自己的 API 服务。",
         "settings_no_video": ("这些 API 仅用于理解、推理、规划和剪辑决策，不用于视频生成。"),
         "settings_session": ("当前 Stage A 仅在本次应用会话中使用密钥；不会写入项目、仓库或日志。"),
@@ -164,7 +182,7 @@ _TEXT = {
         "api_key": "API 密钥",
         "save_settings": "应用设置",
         "cancel": "取消",
-        "settings_applied": "API 设置已应用到本次会话。",
+        "settings_applied": "设置已应用。外观偏好会在下次启动时保留。",
         "api_none": "API：未配置",
         "api_partial": "API：已配置 {count}/2",
         "api_complete": "API：2/2 已配置",
@@ -183,21 +201,37 @@ _TEXT = {
         "exported": "已按 UTF-8 导出当前可见输出。",
         "estimating": "正在估算…",
         "running": "任务正在运行",
-        "splash": "正在启动视频剪辑智能体…",
+        "splash": "正在启动有岐…",
         "check_updates": "检查更新",
+        "software_update_title": "软件更新",
+        "software_update_status": "当前版本：v{current}",
+        "declaration": "声明",
+        "declaration_title": "来自开发者的声明",
+        "declaration_ack": "知道了",
+        "declaration_body": (
+            "来自开发者的声明：本软件制作的目标在于尝试一个兼容性良好的框架，并延续开源社区精神也同步开源本软件，"
+            "在2027年以前我们会放上源代码链接，任何人都可以尝试他们期望的目标，如果您有优化建议，可以直接在点击链接后访问开发者主页并发送消息。"
+            "本软件可以检查更新，本声明是一个临时版本，后续也会更新"
+        ),
+        "developer_homepage": "访问开发者主页",
+        "developer_homepage_closed": "开发者已经暂时关闭，2027年以前会打开",
         "update_available_title": "发现新版本",
         "update_available_message": (
-            "当前版本 v{current}\n最新版本 v{latest}\n\n是否打开更新下载页？"
+            "当前版本 v{current}\n最新版本 v{latest}\n\n当前安装需要完整安装包，是否打开下载页？"
         ),
+        "patch_update_message": (
+            "当前版本 v{current}\n最新版本 v{latest}\n补丁大小约 {size}\n\n是否更新并重启？"
+        ),
+        "patch_update_launch_failed": "补丁更新器无法启动：{detail}",
         "up_to_date_title": "已是最新版本",
         "up_to_date_message": "当前版本 v{current} 已是最新版本。",
         "update_check_failed_title": "检查更新失败",
         "update_check_failed_message": "暂时无法检查更新：{detail}",
     },
     "en": {
-        "window_title": "Video Editing Agent",
-        "app_title": "Video Editing Agent",
-        "app_subtitle": "AI Director + AI Video Editor",
+        "window_title": "有岐",
+        "app_title": "有岐",
+        "app_subtitle": "创作有岐，表达有路",
         "tab_planning": "Planning",
         "tab_editing": "Editing",
         "planning_goal_title": "Content Goal",
@@ -210,7 +244,7 @@ _TEXT = {
         "workspace": "Project Workspace",
         "workspace_unselected": "No Project Workspace selected",
         "workspace_required": "Select a Project Workspace before starting.",
-        "configuration": "Configuration ▾",
+        "configuration": "Settings",
         "configuration_scope": "Configuration scope (select either or both)",
         "form_configuration": "Planning / Editing forms",
         "api_configuration": "API / Provider",
@@ -265,7 +299,12 @@ _TEXT = {
         "switch_language": "简体中文",
         "settings": "Settings",
         "profiles": "Profiles",
-        "settings_title": "Configuration & API Settings",
+        "settings_title": "Settings",
+        "appearance_title": "Appearance",
+        "appearance_mode": "Interface mode",
+        "appearance_day": "Day",
+        "appearance_comfort": "Comfort",
+        "appearance_night": "Night",
         "settings_intro": (
             "This application does not include API keys. Use your own API services."
         ),
@@ -296,7 +335,7 @@ _TEXT = {
         "api_key": "API Key",
         "save_settings": "Apply Settings",
         "cancel": "Cancel",
-        "settings_applied": "API settings were applied to this session.",
+        "settings_applied": "Settings applied. Appearance will be kept for the next launch.",
         "api_none": "API: not configured",
         "api_partial": "API: {count}/2 configured",
         "api_complete": "API: 2/2 configured",
@@ -315,12 +354,35 @@ _TEXT = {
         "exported": "The visible output was exported as UTF-8.",
         "estimating": "Estimating…",
         "running": "Task is running",
-        "splash": "Starting Video Editing Agent…",
+        "splash": "Starting 有岐…",
         "check_updates": "Check for Updates",
+        "software_update_title": "Software Update",
+        "software_update_status": "Current version: v{current}",
+        "declaration": "Statement",
+        "declaration_title": "Developer Statement",
+        "declaration_ack": "Got it",
+        "declaration_body": (
+            "Developer statement: this software is intended to explore a framework with good "
+            "compatibility and to continue the open-source community spirit by open-sourcing "
+            "the software as well. Before 2027 we will publish a source-code link so anyone "
+            "can try the goals they expect. If you have suggestions for improvement, you can "
+            "use the link to visit the developer homepage and send a message. The software "
+            "can check for updates. This statement is temporary and will be updated later."
+        ),
+        "developer_homepage": "Visit developer homepage",
+        "developer_homepage_closed": (
+            "The developer page is temporarily closed and will reopen before 2027."
+        ),
         "update_available_title": "Update Available",
         "update_available_message": (
-            "Current version v{current}\nLatest version v{latest}\n\nOpen the update download page?"
+            "Current version v{current}\nLatest version v{latest}\n\n"
+            "This installation requires the full installer. Open the download page?"
         ),
+        "patch_update_message": (
+            "Current version v{current}\nLatest version v{latest}\n"
+            "Patch size: about {size}\n\nUpdate and restart?"
+        ),
+        "patch_update_launch_failed": "Could not start the patch updater: {detail}",
         "up_to_date_title": "Up to Date",
         "up_to_date_message": "Version v{current} is up to date.",
         "update_check_failed_title": "Update Check Failed",
@@ -406,9 +468,15 @@ def launch() -> int:
     import tkinter as tk
     from tkinter import filedialog, messagebox, ttk
 
+    profile_root = default_profile_root()
+    profile_root.mkdir(parents=True, exist_ok=True)
+    appearance_path = profile_root / "appearance.json"
+    appearance_mode = load_appearance_preferences(appearance_path).mode
+
     root = tk.Tk()
+    configure_tk_scaling(root)
     root.withdraw()
-    configure_product_theme(root)
+    current_theme = configure_product_theme(root, mode=appearance_mode, language="zh-CN")
     splash = tk.Toplevel(root)
     splash.overrideredirect(True)
     splash.resizable(False, False)
@@ -419,6 +487,7 @@ def launch() -> int:
         height=56,
         highlightthickness=0,
         borderwidth=0,
+        background=current_theme.surface,
     )
     splash_icon.pack(pady=(14, 4))
 
@@ -443,7 +512,7 @@ def launch() -> int:
             y1 * pixel,
             x2 * pixel,
             y2 * pixel,
-            fill="#202020",
+            fill=current_theme.text_primary,
             outline="",
         )
 
@@ -472,9 +541,7 @@ def launch() -> int:
     root.minsize(min(720, window_width), min(540, window_height))
     language = tk.StringVar(value="zh-CN")
     startup_milestone(2)
-    profile_root = default_profile_root()
     credential_store = ProtectedCredentialStore(profile_root)
-    profile_root.mkdir(parents=True, exist_ok=True)
     timing_path = profile_root / "timing-history.json"
     timing_history = load_timing_history(timing_path)
     startup_milestone(3)
@@ -496,14 +563,83 @@ def launch() -> int:
         return text("api_partial").format(count=configured)
 
     update_check_in_flight = False
+    update_control_widgets: list[Any] = []
+
+    def set_update_controls_state(state: str) -> None:
+        alive: list[Any] = []
+        for widget in update_control_widgets:
+            try:
+                if bool(widget.winfo_exists()):
+                    widget.configure(state=state)
+                    alive.append(widget)
+            except tk.TclError:
+                continue
+        update_control_widgets[:] = alive
+
+    def format_patch_size(size_bytes: int) -> str:
+        if size_bytes >= 1024 * 1024 * 1024:
+            return f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
+        if size_bytes >= 1024 * 1024:
+            return f"{size_bytes / (1024 * 1024):.1f} MB"
+        if size_bytes >= 1024:
+            return f"{size_bytes / 1024:.0f} KB"
+        return f"{size_bytes} B"
 
     def finish_update_check(result: UpdateCheckResult, *, interactive: bool) -> None:
         nonlocal update_check_in_flight
         update_check_in_flight = False
-        update_button.configure(state="normal")
+        set_update_controls_state("normal")
         if result.update_available:
             manifest = result.manifest
             assert manifest is not None
+            install_root = Path(sys.executable).resolve().parent
+            updater = install_root / "VideoEditingAgent-updater.exe"
+            patch_plan = None
+            if updater.is_file():
+                try:
+                    state = load_update_state(default_update_state_path(install_root))
+                    patch_plan = plan_component_update(state, manifest)
+                except ValueError:
+                    patch_plan = None
+
+            if patch_plan is not None and patch_plan.patch_available:
+                apply_patch = messagebox.askyesno(
+                    text("update_available_title"),
+                    text("patch_update_message").format(
+                        current=result.current_version,
+                        latest=manifest.version,
+                        size=format_patch_size(patch_plan.total_size_bytes),
+                    ),
+                    parent=root,
+                )
+                if apply_patch:
+                    try:
+                        subprocess.Popen(
+                            [
+                                str(updater),
+                                "--install-root",
+                                str(install_root),
+                                "--app-exe",
+                                str(install_root / "VideoEditingAgent.exe"),
+                                "--current-version",
+                                result.current_version,
+                                "--wait-pid",
+                                str(os.getpid()),
+                                "--language",
+                                language.get(),
+                            ],
+                            cwd=str(install_root),
+                        )
+                    except OSError as exc:
+                        messagebox.showerror(
+                            text("update_available_title"),
+                            text("patch_update_launch_failed").format(detail=str(exc)),
+                            parent=root,
+                        )
+                        return
+                    root.after(100, root.destroy)
+                return
+
             open_page = messagebox.askyesno(
                 text("update_available_title"),
                 text("update_available_message").format(
@@ -535,7 +671,7 @@ def launch() -> int:
         if update_check_in_flight:
             return
         update_check_in_flight = True
-        update_button.configure(state="disabled")
+        set_update_controls_state("disabled")
 
         def worker() -> None:
             result = check_for_update()
@@ -546,7 +682,7 @@ def launch() -> int:
     header = ttk.Frame(root, style="Header.TFrame", padding=(16, 9))
     header.pack(fill="x", padx=16, pady=(12, 6))
 
-    brand_mark = create_brand_mark(header, size=38)
+    brand_mark = create_brand_mark(header, size=38, tokens=current_theme)
     brand_mark.pack(side="left", padx=(0, 10))
 
     identity = ttk.Frame(header, style="Header.TFrame")
@@ -558,12 +694,8 @@ def launch() -> int:
 
     language_button = ttk.Button(header, style="Ghost.TButton")
     language_button.pack(side="right")
-    update_button = ttk.Button(
-        header,
-        command=begin_update_check,
-        style="Ghost.TButton",
-    )
-    update_button.pack(side="right", padx=(0, 4))
+    declaration_button = ttk.Button(header, style="Ghost.TButton")
+    declaration_button.pack(side="right", padx=(0, 4))
     configuration_button = ttk.Button(header, style="Ghost.TButton")
     configuration_button.pack(side="right", padx=(0, 4))
     api_status = ttk.Label(header, style="StatusPill.TLabel")
@@ -594,7 +726,12 @@ def launch() -> int:
     scroll_canvases: list[Any] = []
 
     def scrollable_page(page: Any) -> Any:
-        canvas = tk.Canvas(page, highlightthickness=0, borderwidth=0)
+        canvas = tk.Canvas(
+            page,
+            highlightthickness=0,
+            borderwidth=0,
+            background=current_theme.app_background,
+        )
         scrollbar = ttk.Scrollbar(page, orient="vertical", command=canvas.yview)
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True)
@@ -673,7 +810,7 @@ def launch() -> int:
     def show_placeholder(entry: Any, value: Any, name: str) -> None:
         if not value.get().strip():
             value.set(_PLACEHOLDERS[language.get()][name])
-            entry.configure(foreground="#777777")
+            entry.configure(foreground=current_theme.text_secondary)
 
     def field_value(value: Any) -> str:
         raw = value.get()
@@ -682,14 +819,14 @@ def launch() -> int:
     def set_field(value: Any, content: str) -> None:
         value.set(content)
         entry, _, name = entry_fields[id(value)]
-        entry.configure(foreground="#000000")
+        entry.configure(foreground=current_theme.text_primary)
         if not content:
             show_placeholder(entry, value, name)
 
     def clear_placeholder(_event: Any, entry: Any, value: Any) -> None:
         if is_placeholder_value(value.get(), _PLACEHOLDERS[language.get()]):
             value.set("")
-            entry.configure(foreground="#000000")
+            entry.configure(foreground=current_theme.text_primary)
 
     def restore_placeholder(_event: Any, entry: Any, value: Any, name: str) -> None:
         show_placeholder(entry, value, name)
@@ -824,11 +961,11 @@ def launch() -> int:
             borderwidth=0,
             padx=12,
             pady=10,
-            background=DEFAULT_PRODUCT_THEME.surface,
-            foreground=DEFAULT_PRODUCT_THEME.text_primary,
-            insertbackground=DEFAULT_PRODUCT_THEME.text_primary,
+            background=current_theme.surface,
+            foreground=current_theme.text_primary,
+            insertbackground=current_theme.text_primary,
             font=(
-                DEFAULT_PRODUCT_TYPOGRAPHY.ui_family,
+                DEFAULT_PRODUCT_TYPOGRAPHY.family_for_language(language.get()),
                 DEFAULT_PRODUCT_TYPOGRAPHY.body_size,
             ),
         )
@@ -1053,6 +1190,42 @@ def launch() -> int:
                 current_form_profile = None
             messagebox.showinfo(text("file"), text("profile_deleted"), parent=root)
 
+    def apply_appearance(mode: AppearanceMode, *, persist: bool = True) -> None:
+        nonlocal appearance_mode, current_theme
+        appearance_mode = mode
+        current_theme = configure_product_theme(
+            root,
+            mode=appearance_mode,
+            language=language.get(),
+        )
+        family = DEFAULT_PRODUCT_TYPOGRAPHY.family_for_language(language.get())
+        for entry, value, name in entry_fields.values():
+            entry.configure(
+                foreground=(
+                    current_theme.text_secondary
+                    if value.get() == _PLACEHOLDERS[language.get()][name]
+                    else current_theme.text_primary
+                )
+            )
+        recolor_brand_mark(brand_mark, current_theme)
+        for canvas in scroll_canvases:
+            canvas.configure(background=current_theme.app_background)
+        for output in (planning_output, editing_output):
+            output.configure(
+                background=current_theme.surface,
+                foreground=current_theme.text_primary,
+                insertbackground=current_theme.text_primary,
+                selectbackground=current_theme.accent,
+                selectforeground=current_theme.inverse_text,
+                font=(family, DEFAULT_PRODUCT_TYPOGRAPHY.body_size),
+            )
+        if persist:
+            save_appearance_preferences(
+                appearance_path,
+                AppearancePreferences(appearance_mode),
+            )
+        root.update_idletasks()
+
     def update_language() -> None:
         root.title(f"{text('window_title')} · v{APP_VERSION}")
         planning_nav.configure(text=text("tab_planning"))
@@ -1071,7 +1244,7 @@ def launch() -> int:
         workspace_label.configure(text=text("workspace"))
         choose_workspace_button.configure(text=text("choose_project"))
         configuration_button.configure(text=text("configuration"))
-        update_button.configure(text=text("check_updates"))
+        declaration_button.configure(text=text("declaration"))
         api_status.configure(text=api_status_text())
 
     def toggle_language() -> None:
@@ -1082,30 +1255,157 @@ def launch() -> int:
                 value.set("")
                 show_placeholder(entry, value, name)
         update_language()
+        apply_appearance(appearance_mode, persist=False)
 
     language_button.configure(command=toggle_language)
 
-    def open_settings() -> None:
-        nonlocal api_settings, current_api_profile
+    def open_declaration() -> None:
         dialog = tk.Toplevel(root)
-        dialog.title(text("settings_title"))
-        dialog.geometry("680x650")
+        dialog.title(text("declaration_title"))
+        dialog.geometry("660x380")
+        dialog.resizable(False, False)
         dialog.transient(root)
         dialog.grab_set()
         dialog.columnconfigure(0, weight=1)
+        dialog.rowconfigure(0, weight=1)
 
-        ttk.Label(dialog, text=text("settings_intro"), wraplength=610).grid(
+        body = ttk.Label(
+            dialog,
+            text=text("declaration_body"),
+            wraplength=600,
+            justify="left",
+        )
+        body.grid(row=0, column=0, sticky="nsew", padx=28, pady=(26, 14))
+
+        homepage = ttk.Label(
+            dialog,
+            text=text("developer_homepage"),
+            foreground=current_theme.accent,
+            cursor="hand2",
+        )
+        homepage.grid(row=1, column=0, sticky="w", padx=28, pady=(0, 18))
+
+        def show_developer_homepage_notice(_event: Any = None) -> None:
+            messagebox.showinfo(
+                text("developer_homepage"),
+                text("developer_homepage_closed"),
+                parent=dialog,
+            )
+
+        homepage.bind("<Button-1>", show_developer_homepage_notice)
+
+        ttk.Button(
+            dialog,
+            text=text("declaration_ack"),
+            command=dialog.destroy,
+            style="Primary.TButton",
+        ).grid(row=2, column=0, sticky="e", padx=28, pady=(0, 24))
+
+    declaration_button.configure(command=open_declaration)
+
+    def open_settings() -> None:
+        nonlocal api_settings, current_api_profile
+        original_appearance_mode = appearance_mode
+        dialog = tk.Toplevel(root)
+        dialog.title(text("settings_title"))
+        dialog.geometry("700x760")
+        dialog.minsize(620, 520)
+        dialog.transient(root)
+        dialog.grab_set()
+        dialog.configure(background=current_theme.app_background)
+        dialog.columnconfigure(0, weight=1)
+        dialog.rowconfigure(0, weight=1)
+
+        settings_canvas = tk.Canvas(
+            dialog,
+            highlightthickness=0,
+            borderwidth=0,
+            background=current_theme.app_background,
+        )
+        settings_scrollbar = ttk.Scrollbar(
+            dialog,
+            orient="vertical",
+            command=settings_canvas.yview,
+        )
+        settings_canvas.configure(yscrollcommand=settings_scrollbar.set)
+        settings_canvas.grid(row=0, column=0, sticky="nsew")
+        settings_scrollbar.grid(row=0, column=1, sticky="ns")
+
+        settings_content = ttk.Frame(settings_canvas, style="App.TFrame")
+        settings_content.columnconfigure(0, weight=1)
+        settings_window = settings_canvas.create_window(
+            (0, 0),
+            window=settings_content,
+            anchor="nw",
+        )
+        settings_content.bind(
+            "<Configure>",
+            lambda _event: settings_canvas.configure(scrollregion=settings_canvas.bbox("all")),
+        )
+        settings_canvas.bind(
+            "<Configure>",
+            lambda event: settings_canvas.itemconfigure(settings_window, width=event.width),
+        )
+
+        def scroll_settings(event: Any) -> str | None:
+            if getattr(event, "delta", 0) == 0:
+                return None
+            widget_class = event.widget.winfo_class()
+            if widget_class in {"Text", "Listbox", "TCombobox"}:
+                return "break"
+            settings_canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")
+            return "break"
+
+        dialog.bind("<MouseWheel>", scroll_settings, add="+")
+
+        ttk.Label(settings_content, text=text("settings_intro"), wraplength=610).grid(
             row=0, column=0, sticky="w", padx=18, pady=(18, 4)
         )
-        ttk.Label(dialog, text=text("settings_no_video"), wraplength=610).grid(
+        ttk.Label(settings_content, text=text("settings_no_video"), wraplength=610).grid(
             row=1, column=0, sticky="w", padx=18, pady=4
         )
-        ttk.Label(dialog, text=text("settings_session"), wraplength=610).grid(
+        ttk.Label(settings_content, text=text("settings_session"), wraplength=610).grid(
             row=2, column=0, sticky="w", padx=18, pady=(4, 14)
         )
 
-        thinking = ttk.LabelFrame(dialog, text=text("thinking_title"))
-        thinking.grid(row=3, column=0, sticky="ew", padx=18, pady=8)
+        appearance = ttk.LabelFrame(settings_content, text=text("appearance_title"))
+        appearance.grid(row=3, column=0, sticky="ew", padx=18, pady=8)
+        appearance.columnconfigure(1, weight=1)
+        ttk.Label(appearance, text=text("appearance_mode")).grid(
+            row=0, column=0, sticky="w", padx=10, pady=10
+        )
+        appearance_values = {
+            text("appearance_day"): AppearanceMode.DAY,
+            text("appearance_comfort"): AppearanceMode.COMFORT,
+            text("appearance_night"): AppearanceMode.NIGHT,
+        }
+        current_appearance_label = next(
+            label for label, mode in appearance_values.items() if mode is appearance_mode
+        )
+        appearance_choice = tk.StringVar(value=current_appearance_label)
+        appearance_combo = ttk.Combobox(
+            appearance,
+            textvariable=appearance_choice,
+            values=tuple(appearance_values),
+            state="readonly",
+            width=18,
+            style="Product.TCombobox",
+        )
+        appearance_combo.grid(row=0, column=1, sticky="w", padx=(4, 10), pady=10)
+
+        def preview_appearance(_event: Any = None) -> None:
+            selected_mode = appearance_values.get(
+                appearance_choice.get(),
+                original_appearance_mode,
+            )
+            apply_appearance(selected_mode, persist=False)
+            dialog.configure(background=current_theme.app_background)
+            settings_canvas.configure(background=current_theme.app_background)
+
+        appearance_combo.bind("<<ComboboxSelected>>", preview_appearance)
+
+        thinking = ttk.LabelFrame(settings_content, text=text("thinking_title"))
+        thinking.grid(row=4, column=0, sticky="ew", padx=18, pady=8)
         thinking.columnconfigure(1, weight=1)
         ttk.Label(thinking, text=text("thinking_provider")).grid(
             row=0, column=0, columnspan=2, sticky="w", padx=10, pady=(10, 4)
@@ -1121,8 +1421,8 @@ def launch() -> int:
             row=2, column=1, sticky="ew", padx=(4, 10), pady=(8, 10)
         )
 
-        visual = ttk.LabelFrame(dialog, text=text("visual_title"))
-        visual.grid(row=4, column=0, sticky="ew", padx=18, pady=8)
+        visual = ttk.LabelFrame(settings_content, text=text("visual_title"))
+        visual.grid(row=5, column=0, sticky="ew", padx=18, pady=8)
         visual.columnconfigure(1, weight=1)
         ttk.Label(visual, text=text("visual_usage"), wraplength=580).grid(
             row=0, column=0, columnspan=2, sticky="w", padx=10, pady=(10, 4)
@@ -1147,12 +1447,37 @@ def launch() -> int:
             row=3, column=0, columnspan=2, sticky="w", padx=10, pady=(6, 10)
         )
 
-        profiles = ttk.LabelFrame(dialog, text=text("profiles"))
-        profiles.grid(row=5, column=0, sticky="ew", padx=18, pady=8)
+        profiles = ttk.LabelFrame(settings_content, text=text("profiles"))
+        profiles.grid(row=6, column=0, sticky="ew", padx=18, pady=8)
         profiles.columnconfigure(1, weight=1)
 
-        buttons = ttk.Frame(dialog)
-        buttons.grid(row=6, column=0, sticky="e", padx=18, pady=16)
+        update_frame = ttk.LabelFrame(settings_content, text=text("software_update_title"))
+        update_frame.grid(row=7, column=0, sticky="ew", padx=18, pady=8)
+        update_frame.columnconfigure(0, weight=1)
+        ttk.Label(
+            update_frame,
+            text=text("software_update_status").format(current=APP_VERSION),
+        ).grid(row=0, column=0, sticky="w", padx=10, pady=10)
+        settings_update_button = ttk.Button(
+            update_frame,
+            text=text("check_updates"),
+            command=begin_update_check,
+            style="Secondary.TButton",
+        )
+        settings_update_button.grid(row=0, column=1, sticky="e", padx=10, pady=10)
+        update_control_widgets.append(settings_update_button)
+        if update_check_in_flight:
+            settings_update_button.configure(state="disabled")
+
+        buttons = ttk.Frame(settings_content)
+        buttons.grid(row=8, column=0, sticky="e", padx=18, pady=16)
+
+        def cancel_settings() -> None:
+            if appearance_mode != original_appearance_mode:
+                apply_appearance(original_appearance_mode, persist=False)
+            dialog.destroy()
+
+        dialog.protocol("WM_DELETE_WINDOW", cancel_settings)
 
         def save_settings() -> None:
             nonlocal api_settings
@@ -1163,6 +1488,10 @@ def launch() -> int:
             )
             apply_settings_to_environment(api_settings, os.environ)
             api_status.configure(text=api_status_text())
+            apply_appearance(
+                appearance_values.get(appearance_choice.get(), AppearanceMode.DAY),
+                persist=True,
+            )
             dialog.destroy()
             messagebox.showinfo(text("settings_title"), text("settings_applied"), parent=root)
 
@@ -1267,7 +1596,7 @@ def launch() -> int:
                     command=partial(run_profile_action, action),
                 ).pack(side="left", padx=(0, 6))
 
-        ttk.Button(buttons, text=text("cancel"), command=dialog.destroy).pack(
+        ttk.Button(buttons, text=text("cancel"), command=cancel_settings).pack(
             side="right", padx=(8, 0)
         )
         ttk.Button(buttons, text=text("save_settings"), command=save_settings).pack(side="right")

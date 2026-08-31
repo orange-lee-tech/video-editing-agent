@@ -14,7 +14,7 @@ from video_editing_agent.adapters.product.update_check import (
 from video_editing_agent.version import APP_VERSION
 
 
-def _manifest(version: str = "0.1.6") -> str:
+def _manifest(version: str = "0.1.7") -> str:
     return json.dumps(
         {
             "version": version,
@@ -27,8 +27,8 @@ def _manifest(version: str = "0.1.6") -> str:
     )
 
 
-def test_release_version_identity_is_0_1_5_and_packaging_mirrors_it() -> None:
-    assert APP_VERSION == "0.1.5"
+def test_release_version_identity_is_0_1_6_and_packaging_mirrors_it() -> None:
+    assert APP_VERSION == "0.1.6"
 
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
     assert pyproject["project"]["version"] == APP_VERSION
@@ -54,8 +54,8 @@ def test_release_version_identity_is_0_1_5_and_packaging_mirrors_it() -> None:
 
 
 def test_update_manifest_parses_and_reports_newer_version() -> None:
-    manifest = parse_update_manifest(_manifest("0.1.6"))
-    result = UpdateCheckResult("0.1.5", manifest)
+    manifest = parse_update_manifest(_manifest("0.1.7"))
+    result = UpdateCheckResult("0.1.6", manifest)
 
     assert result.update_available is True
     assert manifest.installer_sha256 == "a" * 64
@@ -68,7 +68,7 @@ def test_update_check_is_fail_open_and_does_not_raise(monkeypatch) -> None:
 
     monkeypatch.setattr(update_check, "urlopen", fail)
 
-    result = check_for_update(current_version="0.1.5")
+    result = check_for_update(current_version="0.1.6")
 
     assert result.update_available is False
     assert result.manifest is None
@@ -85,7 +85,7 @@ def test_update_check_accepts_valid_public_manifest_without_credentials(monkeypa
             return None
 
         def read(self, _limit: int) -> bytes:
-            return _manifest("0.1.6").encode("utf-8")
+            return _manifest("0.1.7").encode("utf-8")
 
     captured = {}
 
@@ -96,9 +96,43 @@ def test_update_check_accepts_valid_public_manifest_without_credentials(monkeypa
 
     monkeypatch.setattr(update_check, "urlopen", fake_urlopen)
 
-    result = check_for_update(current_version="0.1.5", timeout_seconds=1.5)
+    result = check_for_update(current_version="0.1.6", timeout_seconds=1.5)
 
     assert result.error is None
     assert result.update_available is True
     assert captured["timeout"] == 1.5
     assert captured["request"].get_header("Authorization") is None
+
+
+def test_update_manifest_parses_component_patches() -> None:
+    payload = json.loads(_manifest("1.0.1"))
+    payload["layout_version"] = 1
+    payload["minimum_updater_version"] = 1
+    payload["components"] = [
+        {
+            "id": "app-core",
+            "version": "1.0.1",
+            "url": "https://example.invalid/app-core.zip",
+            "sha256": "b" * 64,
+            "size_bytes": 123456,
+        }
+    ]
+
+    manifest = parse_update_manifest(json.dumps(payload))
+
+    assert manifest.layout_version == 1
+    assert manifest.minimum_updater_version == 1
+    assert len(manifest.components) == 1
+    assert manifest.components[0].component_id == "app-core"
+    assert manifest.components[0].size_bytes == 123456
+
+
+def test_installer_requires_bilingual_user_agreement_and_eta() -> None:
+    installer = Path("packaging/windows/VideoEditingAgent.iss").read_text(encoding="utf-8")
+
+    assert 'LicenseFile: "..\\..\\resources\\legal\\USER_AGREEMENT_en.txt"' in installer
+    assert 'LicenseFile: "..\\..\\resources\\legal\\USER_AGREEMENT_zh-CN.txt"' in installer
+    assert "CurInstallProgressChanged" in installer
+    assert "InstallEtaRemaining" in installer
+    assert Path("resources/legal/USER_AGREEMENT_en.txt").is_file()
+    assert Path("resources/legal/USER_AGREEMENT_zh-CN.txt").is_file()
