@@ -124,9 +124,14 @@ When all seven items pass engineering verification and the Product Owner accepts
 R0.13 engineering implementation is complete for candidate:
 
 - version: `0.1.6`;
-- source: `6a6bb6fb84345a3c974168f0b4fa0d013af2fc92`;
-- Windows RC: `33325249400` — **SUCCESS**;
-- installer SHA-256: `fb44abd8818ded1e899757e8ba33132ebffe88cc409578d29a1fba9081da4787`;
-- installer + component patch assets: published on prerelease `v0.1.6-rc-6a6bb6f`.
+- source: `111b50f13d1b19670dfe0e0a68bfa2da00212a5f`;
+- Windows RC: `33379570088` — **SUCCESS**;
+- installer SHA-256: `f6a90b2a8b484806e893d0bbcc369adf5ced83425a14e887bc6f65954528796b`;
+- installer + component patch assets: published on prerelease `v0.1.6-rc-111b50f`.
+
+The Human review must explicitly re-check the three remediated regressions in addition to the existing release-polish review:
+- Settings exposes both form and API profile Import / Export / Save / Delete actions and remains usable when content exceeds the window height;
+- activating the developer-homepage link shows `开发者已经暂时关闭，2027年以前会打开` and does not open the personal page;
+- Day / Comfort / Night selection changes the visible theme immediately; Cancel/window-close restores the prior mode and Apply persists the selected mode.
 
 Do not close this work order until the Product Owner reviews the installer/UI/theme/branding/update experience and accepts the Windows presentation at the required scaling levels.
