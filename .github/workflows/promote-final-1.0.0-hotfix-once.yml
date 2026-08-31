@@ -1,0 +1,72 @@
+name: Promote Final 1.0.0 Hotfix Once
+
+on:
+  push:
+    paths:
+      - ".github/workflows/promote-final-1.0.0-hotfix-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository with tags
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download verified RC assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p promoted-assets
+          gh release download v1.0.0-rc-fc6391b \
+            --repo "${{ github.repository }}" \
+            --dir promoted-assets
+
+      - name: Verify exact RC asset hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd promoted-assets
+          echo "dd47f88953d134dac522990db80fc719367a7abe627203b142fe681cb786e5a8  VideoEditingAgent-Setup-1.0.0.exe" | sha256sum -c -
+          echo "d6a0a2ef9195e42ab909edcd995504ab15739488c5ca2046d05e3d0c6ecc339a  update-release-components.json" | sha256sum -c -
+          echo "3b1fb213975aacace68792b3fc2675c7926cc60a5c0ca9717b96573ba1692dfd  VideoEditingAgent-Update-app-core-1.0.0.zip" | sha256sum -c -
+          echo "5398de8c4f004cd1de6c155b83f9aa77fdd5c9caa2889ae7d8371029da8defc4  VideoEditingAgent-Update-media-runtime-1.0.0.zip" | sha256sum -c -
+          echo "2c619e53a1f94d12e0281f92f686eb0b224bff4677a918b50fe342e7f1af0aa1  VideoEditingAgent-Update-transnet-runtime-1.0.0.zip" | sha256sum -c -
+
+      - name: Move stable tag to Human-accepted exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f v1.0.0 fc6391b846432586a41311a295251e8860cdf9fa
+          git push origin refs/tags/v1.0.0 --force
+
+      - name: Replace stable assets byte-for-byte from verified RC
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload v1.0.0 promoted-assets/* \
+            --repo "${{ github.repository }}" \
+            --clobber
+          gh release edit v1.0.0 \
+            --repo "${{ github.repository }}" \
+            --title "有岐 1.0.0" \
+            --notes "Final Human-accepted 有岐 1.0.0. Core Planning and Automatic Editing gates remain PASS. Final presentation hotfix source: fc6391b846432586a41311a295251e8860cdf9fa. Windows RC and install/upgrade/repair/uninstall lifecycle passed in run 33401022544. Stable assets are byte-for-byte copies of v1.0.0-rc-fc6391b." \
+            --latest
+
+      - name: Verify stable release asset digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          digest="$(gh api repos/${{ github.repository }}/releases/tags/v1.0.0 --jq '.assets[] | select(.name=="VideoEditingAgent-Setup-1.0.0.exe") | .digest')"
+          test "$digest" = "sha256:dd47f88953d134dac522990db80fc719367a7abe627203b142fe681cb786e5a8"
