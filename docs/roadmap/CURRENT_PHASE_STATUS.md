@@ -4,7 +4,7 @@
 **Development stage:** RELEASE_ENGINEERING  
 **Structural progress:** 100%  
 **Current phase:** R0.13 — 1.0 release polish and compatibility  
-**Engineering state:** RELEASE_POLISH_ACTIVE  
+**Engineering state:** RELEASE_POLISH_ENGINEERING_PASS_HUMAN_REVIEW_PENDING  
 **Updated:** 2026-08-31  
 **Active work order:** R0.13-RELEASE-POLISH-001
 
@@ -53,3 +53,12 @@ R0.13 must preserve:
 - Workspace/original-media safety.
 
 Before final 1.0.0 authorization, Windows presentation must also be reviewed at 100%, 125%, 150% and 200% display scaling.
+
+
+## Current 0.1.6 engineering RC
+
+Exact candidate: `6a6bb6fb84345a3c974168f0b4fa0d013af2fc92`  
+Windows RC: `33325249400` — **SUCCESS**  
+Installer SHA-256: `fb44abd8818ded1e899757e8ba33132ebffe88cc409578d29a1fba9081da4787`
+
+The seven-item R0.13 implementation has passed repository and Windows engineering verification. Remaining work is Product Owner visual/interaction review only; R0.13 and final 1.0.0 packaging remain open/not authorized until that review is accepted.
