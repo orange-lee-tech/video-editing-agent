@@ -1199,6 +1199,14 @@ def launch() -> int:
             language=language.get(),
         )
         family = DEFAULT_PRODUCT_TYPOGRAPHY.family_for_language(language.get())
+        for entry, value, name in entry_fields.values():
+            entry.configure(
+                foreground=(
+                    current_theme.text_secondary
+                    if value.get() == _PLACEHOLDERS[language.get()][name]
+                    else current_theme.text_primary
+                )
+            )
         recolor_brand_mark(brand_mark, current_theme)
         for canvas in scroll_canvases:
             canvas.configure(background=current_theme.app_background)
