@@ -1,0 +1,25 @@
+name: R0.13 Windows RC Probe Once 5
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    if: ${{ github.repository == 'orange-lee-tech/video-editing-agent' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch exact R0.13 branch workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run windows-release-candidate.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref work/r013-release-polish \
+            -f source_ref="111b50f13d1b19670dfe0e0a68bfa2da00212a5f"
+          echo "Dispatched branch Windows RC for 111b50f13d1b19670dfe0e0a68bfa2da00212a5f"
