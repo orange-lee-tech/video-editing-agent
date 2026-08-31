@@ -5,7 +5,7 @@
   #define OutputDir "..\..\build\installer"
 #endif
 #ifndef AppVersion
-  #define AppVersion "0.1.6"
+  #define AppVersion "1.0.0"
 #endif
 #ifndef SourceSha
   #define SourceSha "development"
