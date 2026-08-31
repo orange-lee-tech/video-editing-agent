@@ -214,6 +214,7 @@ _TEXT = {
             "本软件可以检查更新，本声明是一个临时版本，后续也会更新"
         ),
         "developer_homepage": "访问开发者主页",
+        "developer_homepage_closed": "开发者已经暂时关闭，2027年以前会打开",
         "update_available_title": "发现新版本",
         "update_available_message": (
             "当前版本 v{current}\n最新版本 v{latest}\n\n当前安装需要完整安装包，是否打开下载页？"
@@ -369,6 +370,9 @@ _TEXT = {
             "can check for updates. This statement is temporary and will be updated later."
         ),
         "developer_homepage": "Visit developer homepage",
+        "developer_homepage_closed": (
+            "The developer page is temporarily closed and will reopen before 2027."
+        ),
         "update_available_title": "Update Available",
         "update_available_message": (
             "Current version v{current}\nLatest version v{latest}\n\n"
@@ -1272,10 +1276,14 @@ def launch() -> int:
             cursor="hand2",
         )
         homepage.grid(row=1, column=0, sticky="w", padx=28, pady=(0, 18))
-        homepage.bind(
-            "<Button-1>",
-            lambda _event: webbrowser.open("https://github.com/orange-lee-tech"),
-        )
+        def show_developer_homepage_notice(_event: Any = None) -> None:
+            messagebox.showinfo(
+                text("developer_homepage"),
+                text("developer_homepage_closed"),
+                parent=dialog,
+            )
+
+        homepage.bind("<Button-1>", show_developer_homepage_notice)
 
         ttk.Button(
             dialog,
@@ -1288,24 +1296,70 @@ def launch() -> int:
 
     def open_settings() -> None:
         nonlocal api_settings, current_api_profile
+        original_appearance_mode = appearance_mode
         dialog = tk.Toplevel(root)
         dialog.title(text("settings_title"))
-        dialog.geometry("680x820")
+        dialog.geometry("700x760")
+        dialog.minsize(620, 520)
         dialog.transient(root)
         dialog.grab_set()
+        dialog.configure(background=current_theme.app_background)
         dialog.columnconfigure(0, weight=1)
+        dialog.rowconfigure(0, weight=1)
 
-        ttk.Label(dialog, text=text("settings_intro"), wraplength=610).grid(
+        settings_canvas = tk.Canvas(
+            dialog,
+            highlightthickness=0,
+            borderwidth=0,
+            background=current_theme.app_background,
+        )
+        settings_scrollbar = ttk.Scrollbar(
+            dialog,
+            orient="vertical",
+            command=settings_canvas.yview,
+        )
+        settings_canvas.configure(yscrollcommand=settings_scrollbar.set)
+        settings_canvas.grid(row=0, column=0, sticky="nsew")
+        settings_scrollbar.grid(row=0, column=1, sticky="ns")
+
+        settings_content = ttk.Frame(settings_canvas, style="App.TFrame")
+        settings_content.columnconfigure(0, weight=1)
+        settings_window = settings_canvas.create_window(
+            (0, 0),
+            window=settings_content,
+            anchor="nw",
+        )
+        settings_content.bind(
+            "<Configure>",
+            lambda _event: settings_canvas.configure(scrollregion=settings_canvas.bbox("all")),
+        )
+        settings_canvas.bind(
+            "<Configure>",
+            lambda event: settings_canvas.itemconfigure(settings_window, width=event.width),
+        )
+
+        def scroll_settings(event: Any) -> str | None:
+            if getattr(event, "delta", 0) == 0:
+                return None
+            widget_class = event.widget.winfo_class()
+            if widget_class in {"Text", "Listbox", "TCombobox"}:
+                return None
+            settings_canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")
+            return "break"
+
+        dialog.bind("<MouseWheel>", scroll_settings, add="+")
+
+        ttk.Label(settings_content, text=text("settings_intro"), wraplength=610).grid(
             row=0, column=0, sticky="w", padx=18, pady=(18, 4)
         )
-        ttk.Label(dialog, text=text("settings_no_video"), wraplength=610).grid(
+        ttk.Label(settings_content, text=text("settings_no_video"), wraplength=610).grid(
             row=1, column=0, sticky="w", padx=18, pady=4
         )
-        ttk.Label(dialog, text=text("settings_session"), wraplength=610).grid(
+        ttk.Label(settings_content, text=text("settings_session"), wraplength=610).grid(
             row=2, column=0, sticky="w", padx=18, pady=(4, 14)
         )
 
-        appearance = ttk.LabelFrame(dialog, text=text("appearance_title"))
+        appearance = ttk.LabelFrame(settings_content, text=text("appearance_title"))
         appearance.grid(row=3, column=0, sticky="ew", padx=18, pady=8)
         appearance.columnconfigure(1, weight=1)
         ttk.Label(appearance, text=text("appearance_mode")).grid(
@@ -1320,16 +1374,28 @@ def launch() -> int:
             label for label, mode in appearance_values.items() if mode is appearance_mode
         )
         appearance_choice = tk.StringVar(value=current_appearance_label)
-        ttk.Combobox(
+        appearance_combo = ttk.Combobox(
             appearance,
             textvariable=appearance_choice,
             values=tuple(appearance_values),
             state="readonly",
             width=18,
             style="Product.TCombobox",
-        ).grid(row=0, column=1, sticky="w", padx=(4, 10), pady=10)
+        )
+        appearance_combo.grid(row=0, column=1, sticky="w", padx=(4, 10), pady=10)
 
-        thinking = ttk.LabelFrame(dialog, text=text("thinking_title"))
+        def preview_appearance(_event: Any = None) -> None:
+            selected_mode = appearance_values.get(
+                appearance_choice.get(),
+                original_appearance_mode,
+            )
+            apply_appearance(selected_mode, persist=False)
+            dialog.configure(background=current_theme.app_background)
+            settings_canvas.configure(background=current_theme.app_background)
+
+        appearance_combo.bind("<<ComboboxSelected>>", preview_appearance)
+
+        thinking = ttk.LabelFrame(settings_content, text=text("thinking_title"))
         thinking.grid(row=4, column=0, sticky="ew", padx=18, pady=8)
         thinking.columnconfigure(1, weight=1)
         ttk.Label(thinking, text=text("thinking_provider")).grid(
@@ -1346,7 +1412,7 @@ def launch() -> int:
             row=2, column=1, sticky="ew", padx=(4, 10), pady=(8, 10)
         )
 
-        visual = ttk.LabelFrame(dialog, text=text("visual_title"))
+        visual = ttk.LabelFrame(settings_content, text=text("visual_title"))
         visual.grid(row=5, column=0, sticky="ew", padx=18, pady=8)
         visual.columnconfigure(1, weight=1)
         ttk.Label(visual, text=text("visual_usage"), wraplength=580).grid(
@@ -1372,11 +1438,11 @@ def launch() -> int:
             row=3, column=0, columnspan=2, sticky="w", padx=10, pady=(6, 10)
         )
 
-        profiles = ttk.LabelFrame(dialog, text=text("profiles"))
+        profiles = ttk.LabelFrame(settings_content, text=text("profiles"))
         profiles.grid(row=6, column=0, sticky="ew", padx=18, pady=8)
         profiles.columnconfigure(1, weight=1)
 
-        update_frame = ttk.LabelFrame(dialog, text=text("software_update_title"))
+        update_frame = ttk.LabelFrame(settings_content, text=text("software_update_title"))
         update_frame.grid(row=7, column=0, sticky="ew", padx=18, pady=8)
         update_frame.columnconfigure(0, weight=1)
         ttk.Label(
@@ -1394,8 +1460,15 @@ def launch() -> int:
         if update_check_in_flight:
             settings_update_button.configure(state="disabled")
 
-        buttons = ttk.Frame(dialog)
+        buttons = ttk.Frame(settings_content)
         buttons.grid(row=8, column=0, sticky="e", padx=18, pady=16)
+
+        def cancel_settings() -> None:
+            if appearance_mode != original_appearance_mode:
+                apply_appearance(original_appearance_mode, persist=False)
+            dialog.destroy()
+
+        dialog.protocol("WM_DELETE_WINDOW", cancel_settings)
 
         def save_settings() -> None:
             nonlocal api_settings
@@ -1514,7 +1587,7 @@ def launch() -> int:
                     command=partial(run_profile_action, action),
                 ).pack(side="left", padx=(0, 6))
 
-        ttk.Button(buttons, text=text("cancel"), command=dialog.destroy).pack(
+        ttk.Button(buttons, text=text("cancel"), command=cancel_settings).pack(
             side="right", padx=(8, 0)
         )
         ttk.Button(buttons, text=text("save_settings"), command=save_settings).pack(side="right")
