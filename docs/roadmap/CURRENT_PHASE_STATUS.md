@@ -57,8 +57,10 @@ Before final 1.0.0 authorization, Windows presentation must also be reviewed at 
 
 ## Current 0.1.6 engineering RC
 
-Exact candidate: `6a6bb6fb84345a3c974168f0b4fa0d013af2fc92`  
-Windows RC: `33325249400` — **SUCCESS**  
-Installer SHA-256: `fb44abd8818ded1e899757e8ba33132ebffe88cc409578d29a1fba9081da4787`
+Exact candidate: `111b50f13d1b19670dfe0e0a68bfa2da00212a5f`  
+Windows RC: `33379570088` — **SUCCESS**  
+Installer SHA-256: `f6a90b2a8b484806e893d0bbcc369adf5ced83425a14e887bc6f65954528796b`
 
-The seven-item R0.13 implementation has passed repository and Windows engineering verification. Remaining work is Product Owner visual/interaction review only; R0.13 and final 1.0.0 packaging remain open/not authorized until that review is accepted.
+This is the remediated Human-review candidate after three observed UI regressions in the earlier 0.1.6 RC: Settings must retain Import / Export / Save / Delete profile actions, developer-homepage activation must show the temporary-closure notice instead of exposing the page, and Day / Comfort / Night selection must visibly preview immediately. The remediated candidate passed repository and Windows staging / Setup.exe / install-upgrade-repair-uninstall engineering verification.
+
+Remaining work is Product Owner visual/interaction review only; R0.13 and final 1.0.0 packaging remain open/not authorized until that review is accepted.
