@@ -4,12 +4,12 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-31
 current_phase: R0.13
-phase_state: RELEASE_POLISH_ACTIVE
-active_work_order: R0.13-RELEASE-POLISH-001
-active_construction_branch: work/r013-release-polish
-accepted_code_baseline: e59cab8475a615d29003c03497ddcdaf862476a6
+phase_state: CLOSED_HUMAN_PASS_1_0_AUTHORIZED
+active_work_order: NONE
+active_construction_branch: main
+accepted_code_baseline: 35d99730d250d09c23a955c8df682c037335f58c
 accepted_engineering_baseline: 111b50f13d1b19670dfe0e0a68bfa2da00212a5f
-current_main_baseline: 7ffbf2d3b27833003c6b9b9a74a7be6959cddd0f
+current_main_baseline: 35d99730d250d09c23a955c8df682c037335f58c
 latest_human_gate_candidate: 111b50f13d1b19670dfe0e0a68bfa2da00212a5f
 structural_progress_percent: 100
 stage_a_completion_gate: PASS
@@ -19,7 +19,7 @@ windows_release_delivery_gate: PASS
 codex_release: CLOSED
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
-development_stage: RELEASE_ENGINEERING
+development_stage: RELEASE_FINALIZATION
 writer: chatgpt
 ---
 
@@ -31,7 +31,7 @@ Stage-A remains complete at **100%** with accepted core baseline:
 
 R0.13 is a bounded post-Stage-A release-engineering phase. It does not reopen Planning or Editing unless a material regression appears.
 
-## Active R0.13 work
+## Closed R0.13 work
 
 Work order:
 
@@ -49,7 +49,7 @@ Approved scope:
 
 ## Release boundary
 
-Final `1.0.0` packaging is not authorized while R0.13 is active.
+Final `1.0.0` packaging is **AUTHORIZED** by the Product Owner Human Gate PASS on 2026-08-31. Stable publication must still come from an exact version-frozen `1.0.0` source that passes the repository Quality Gate and the full Windows installer lifecycle.
 
 No advanced creative capability work belongs in this phase.
 
@@ -80,4 +80,4 @@ Installer SHA-256:
 
 This candidate supersedes the earlier `6a6bb6f` Human-review candidate after Product Owner feedback found three UI regressions: inaccessible profile Import / Export / Save / Delete actions in the fixed-height Settings dialog, premature developer-homepage exposure, and appearance selection that did not visibly apply on selection. The remediation preserves both form/API profile actions in a resizable scrollable Settings surface, replaces developer-homepage navigation with the temporary-closure notice, and applies Day / Comfort / Night preview immediately with cancel restore and persisted apply behavior.
 
-Engineering verification is complete for the remediated candidate. R0.13 remains open only for Product Owner visual/interaction acceptance, including display-scaling review, before any final 1.0.0 authorization.
+Engineering verification is complete for the remediated candidate. The Product Owner reports all R0.13 visual/interaction review items **PASS**, including the required Windows display-scaling review, and explicitly authorizes final `1.0.0`. R0.13 is closed. The remaining work is release finalization only: synchronize the `1.0.0` release identity, re-run exact-source engineering/package verification, and publish the stable release without adding new product scope.

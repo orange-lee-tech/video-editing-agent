@@ -1,12 +1,12 @@
 # Current Roadmap Phase Status
 
 **Roadmap V2:** ACTIVE  
-**Development stage:** RELEASE_ENGINEERING  
+**Development stage:** RELEASE_FINALIZATION  
 **Structural progress:** 100%  
 **Current phase:** R0.13 — 1.0 release polish and compatibility  
-**Engineering state:** RELEASE_POLISH_ENGINEERING_PASS_HUMAN_REVIEW_PENDING  
+**Engineering state:** R0.13_CLOSED_HUMAN_PASS_1_0_AUTHORIZED  
 **Updated:** 2026-08-31  
-**Active work order:** R0.13-RELEASE-POLISH-001
+**Active work order:** NONE
 
 ## Stage-A baseline
 
@@ -37,7 +37,7 @@ The Product Owner approved seven release-polish items before final 1.0.0 packagi
 
 Structural progress remains **100%** because core construction is complete.
 
-Final `1.0.0` packaging remains **NOT AUTHORIZED** until R0.13 closes.
+R0.13 is now **CLOSED** and final `1.0.0` packaging is **AUTHORIZED** by the Product Owner. Stable publication remains gated on an exact version-frozen `1.0.0` source passing the repository Quality Gate and full Windows installer lifecycle.
 
 The full Setup.exe remains the bootstrap/recovery path. Routine future patch updates should use verified changed-component delivery with rollback rather than byte-level binary diff machinery.
 
@@ -63,4 +63,4 @@ Installer SHA-256: `f6a90b2a8b484806e893d0bbcc369adf5ced83425a14e887bc6f65954528
 
 This is the remediated Human-review candidate after three observed UI regressions in the earlier 0.1.6 RC: Settings must retain Import / Export / Save / Delete profile actions, developer-homepage activation must show the temporary-closure notice instead of exposing the page, and Day / Comfort / Night selection must visibly preview immediately. The remediated candidate passed repository and Windows staging / Setup.exe / install-upgrade-repair-uninstall engineering verification.
 
-Remaining work is Product Owner visual/interaction review only; R0.13 and final 1.0.0 packaging remain open/not authorized until that review is accepted.
+The Product Owner reports all required visual/interaction review items **PASS**, including the required Windows display-scaling review. R0.13 is closed and final `1.0.0` packaging is authorized. Remaining activity is release finalization only; no new creative capability scope is opened.

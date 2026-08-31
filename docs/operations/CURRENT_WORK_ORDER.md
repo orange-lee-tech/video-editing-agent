@@ -1,7 +1,7 @@
 # Current Work Order
 
 **ID:** R0.13-RELEASE-POLISH-001  
-**Status:** ACTIVE — ENGINEERING PASS / HUMAN REVIEW PENDING  
+**Status:** CLOSED — ENGINEERING PASS / HUMAN PASS / 1.0.0 AUTHORIZED  
 **Phase:** R0.13 — 1.0 release polish and update engineering  
 **Mode:** BOUNDED POST-STAGE-A PRODUCTIZATION  
 **Accepted Stage-A baseline:** 0.1.5 / e59cab8475a615d29003c03497ddcdaf862476a6  
@@ -34,7 +34,7 @@ Do not add:
 - byte-level binary delta algorithms such as bsdiff;
 - silent background self-update without user consent.
 
-Do not generate or publish a final `1.0.0` installer under this work order until the seven scoped items are verified and the Product Owner authorizes release packaging.
+The seven scoped items are verified and the Product Owner has authorized final `1.0.0` packaging. Stable publication still requires exact-source `1.0.0` version freeze plus repository and Windows installer verification; no additional feature work is authorized.
 
 ## Acceptance criteria
 
@@ -134,4 +134,4 @@ The Human review must explicitly re-check the three remediated regressions in ad
 - activating the developer-homepage link shows `开发者已经暂时关闭，2027年以前会打开` and does not open the personal page;
 - Day / Comfort / Night selection changes the visible theme immediately; Cancel/window-close restores the prior mode and Apply persists the selected mode.
 
-Do not close this work order until the Product Owner reviews the installer/UI/theme/branding/update experience and accepts the Windows presentation at the required scaling levels.
+The Product Owner reports all listed Human Review items **PASS**, including the required Windows presentation/scaling review. This work order is closed. Final `1.0.0` release finalization may proceed without reopening R0.13 unless a new material regression appears.
