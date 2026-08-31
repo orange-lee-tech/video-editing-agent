@@ -7,6 +7,10 @@ def test_visible_brand_is_youqi_while_compatibility_identifiers_stay_stable() ->
 
     assert '"app_title": "有岐"' in ui
     assert '"app_subtitle": "创作有岐，表达有路"' in ui
+    assert '"window_title": "Youqi"' in ui
+    assert '"app_title": "Youqi"' in ui
+    assert '"app_subtitle": "Create your way, express your path"' in ui
+    assert '"splash": "Starting Youqi…"' in ui
     assert "app_subtitle_label.configure(text=f\"{text('app_subtitle')} · v{APP_VERSION}\")" in ui
     assert '#define AppName "有岐"' in installer
     assert 'Name: "{group}\\有岐"' in installer
@@ -26,6 +30,8 @@ def test_header_has_language_settings_declaration_but_no_standalone_update_butto
     assert "configuration_button = ttk.Button" in header
     assert "declaration_button = ttk.Button" in header
     assert "update_button = ttk.Button" not in header
+    assert "StatusPill.TLabel" not in header
+    assert "api_status" not in header
     assert 'text("check_updates")' in ui
     assert "settings_update_button = ttk.Button" in ui
 
@@ -92,3 +98,9 @@ def test_appearance_refreshes_entry_foregrounds_including_placeholders() -> None
     assert "current_theme.text_secondary" in appearance
     assert "current_theme.text_primary" in appearance
     assert "_PLACEHOLDERS[language.get()][name]" in appearance
+
+
+def test_local_reference_picker_is_aligned_with_reference_field() -> None:
+    ui = Path("src/video_editing_agent/adapters/product/tkinter_app.py").read_text(encoding="utf-8")
+
+    assert 'choose_reference.grid(row=1, column=2, sticky="ew", padx=(10, 0), pady=5)' in ui

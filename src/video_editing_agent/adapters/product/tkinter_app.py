@@ -229,9 +229,9 @@ _TEXT = {
         "update_check_failed_message": "暂时无法检查更新：{detail}",
     },
     "en": {
-        "window_title": "有岐",
-        "app_title": "有岐",
-        "app_subtitle": "创作有岐，表达有路",
+        "window_title": "Youqi",
+        "app_title": "Youqi",
+        "app_subtitle": "Create your way, express your path",
         "tab_planning": "Planning",
         "tab_editing": "Editing",
         "planning_goal_title": "Content Goal",
@@ -354,7 +354,7 @@ _TEXT = {
         "exported": "The visible output was exported as UTF-8.",
         "estimating": "Estimating…",
         "running": "Task is running",
-        "splash": "Starting 有岐…",
+        "splash": "Starting Youqi…",
         "check_updates": "Check for Updates",
         "software_update_title": "Software Update",
         "software_update_status": "Current version: v{current}",
@@ -552,16 +552,6 @@ def launch() -> int:
     def text(key: str) -> str:
         return _TEXT[language.get()][key]
 
-    def api_status_text() -> str:
-        configured = sum(
-            bool(value.strip()) for value in (api_settings.thinking_key, api_settings.visual_key)
-        )
-        if configured == 0:
-            return text("api_none")
-        if configured == 2:
-            return text("api_complete")
-        return text("api_partial").format(count=configured)
-
     update_check_in_flight = False
     update_control_widgets: list[Any] = []
 
@@ -698,9 +688,6 @@ def launch() -> int:
     declaration_button.pack(side="right", padx=(0, 4))
     configuration_button = ttk.Button(header, style="Ghost.TButton")
     configuration_button.pack(side="right", padx=(0, 4))
-    api_status = ttk.Label(header, style="StatusPill.TLabel")
-    api_status.pack(side="right", padx=(0, 10))
-
     workspace_bar = ttk.Frame(root, style="Header.TFrame", padding=(12, 8))
     workspace_bar.pack(fill="x", padx=16, pady=(0, 6))
     workspace_label = ttk.Label(workspace_bar, style="Body.TLabel")
@@ -1245,7 +1232,6 @@ def launch() -> int:
         choose_workspace_button.configure(text=text("choose_project"))
         configuration_button.configure(text=text("configuration"))
         declaration_button.configure(text=text("declaration"))
-        api_status.configure(text=api_status_text())
 
     def toggle_language() -> None:
         old_language = language.get()
@@ -1487,7 +1473,6 @@ def launch() -> int:
                 visual_provider=visual_provider.get().casefold(),
             )
             apply_settings_to_environment(api_settings, os.environ)
-            api_status.configure(text=api_status_text())
             apply_appearance(
                 appearance_values.get(appearance_choice.get(), AppearanceMode.DAY),
                 persist=True,
@@ -1864,7 +1849,7 @@ def launch() -> int:
         ),
         style="Secondary.TButton",
     )
-    choose_reference.grid(row=2, column=2, padx=(10, 0))
+    choose_reference.grid(row=1, column=2, sticky="ew", padx=(10, 0), pady=5)
     translated_widgets.append((choose_reference, "choose_local_reference"))
 
     start_planning = ttk.Button(
