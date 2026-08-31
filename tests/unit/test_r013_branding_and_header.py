@@ -79,3 +79,16 @@ def test_appearance_selection_previews_immediately_and_cancel_restores_previous_
     assert 'dialog.protocol("WM_DELETE_WINDOW", cancel_settings)' in settings
     assert "apply_appearance(" in settings
     assert "persist=True" in settings
+
+
+def test_appearance_refreshes_entry_foregrounds_including_placeholders() -> None:
+    ui = Path("src/video_editing_agent/adapters/product/tkinter_app.py").read_text(encoding="utf-8")
+
+    appearance_start = ui.index("def apply_appearance(")
+    language_start = ui.index("def update_language()", appearance_start)
+    appearance = ui[appearance_start:language_start]
+
+    assert "for entry, value, name in entry_fields.values()" in appearance
+    assert "current_theme.text_secondary" in appearance
+    assert "current_theme.text_primary" in appearance
+    assert "_PLACEHOLDERS[language.get()][name]" in appearance
