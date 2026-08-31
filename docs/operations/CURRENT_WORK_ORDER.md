@@ -1,7 +1,7 @@
 # Current Work Order
 
 **ID:** R0.13-RELEASE-POLISH-001  
-**Status:** CLOSED — 1.0.0 STABLE RELEASED  
+**Status:** ACTIVE  
 **Phase:** R0.13 — 1.0 release polish and update engineering  
 **Mode:** BOUNDED POST-STAGE-A PRODUCTIZATION  
 **Accepted Stage-A baseline:** 0.1.5 / e59cab8475a615d29003c03497ddcdaf862476a6  
@@ -34,7 +34,7 @@ Do not add:
 - byte-level binary delta algorithms such as bsdiff;
 - silent background self-update without user consent.
 
-The seven scoped items are verified, the Product Owner authorized final `1.0.0` packaging, and stable publication is complete from an exact-source `1.0.0` build that passed repository and Windows installer verification. No additional feature work is authorized under this closed work order.
+The original seven-item release-polish scope remains frozen. This work order is temporarily reopened only for three bounded 1.0.0 presentation regressions found during final Human acceptance. No new creative capability work is authorized, and the accepted Planning/Editing core gates remain PASS.
 
 ## Acceptance criteria
 
@@ -149,3 +149,24 @@ The Product Owner reports all listed Human Review items **PASS**, including the 
 - direct installer: https://github.com/orange-lee-tech/video-editing-agent/releases/download/v1.0.0/VideoEditingAgent-Setup-1.0.0.exe
 
 Promotion to stable reused the already verified RC assets byte-for-byte; it did not rebuild application binaries after Human Gate acceptance.
+
+
+## 1.0.0 presentation hotfix candidate
+
+The Product Owner confirms the two core functions **PASS**. The remaining acceptance surface is presentation-only.
+
+Observed defects and repairs:
+
+1. local-reference chooser was placed on grid row 2 while `reference_local` is row 1; it is now aligned to row 1 with the same vertical spacing as the field;
+2. English mode now presents `Youqi` and `Create your way, express your path`, including the splash title, while Chinese branding remains unchanged;
+3. the top-header API status pill was removed from the visible header, eliminating the compressed stray `/` and restoring the intended Language / Settings / Statement header surface.
+
+Evidence:
+
+- exact source: `fc6391b846432586a41311a295251e8860cdf9fa`;
+- application version: `1.0.0` (unchanged);
+- repository Quality Gate: `33400752251` — **SUCCESS**;
+- Windows RC / install-upgrade-repair-uninstall lifecycle: `33401022544` — **SUCCESS**;
+- prerelease tag: `v1.0.0-rc-fc6391b`.
+
+Stop gate: await Product Owner visual re-check of exactly these three presentation items. Do not reopen Planning/Editing and do not replace the stable `v1.0.0` assets until this Human Review passes.

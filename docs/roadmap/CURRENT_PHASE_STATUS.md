@@ -1,12 +1,12 @@
 # Current Roadmap Phase Status
 
 **Roadmap V2:** ACTIVE  
-**Development stage:** RELEASED  
+**Development stage:** RELEASE_HOTFIX_REVIEW  
 **Structural progress:** 100%  
 **Current phase:** R0.13 — 1.0 release polish and compatibility  
-**Engineering state:** R0.13_CLOSED_1_0_0_RELEASED  
+**Engineering state:** R0.13_1_0_0_HOTFIX_HUMAN_REVIEW  
 **Updated:** 2026-08-31  
-**Active work order:** NONE
+**Active work order:** R0.13-RELEASE-POLISH-001
 
 ## Stage-A baseline
 
@@ -37,7 +37,7 @@ The Product Owner approved seven release-polish items before final 1.0.0 packagi
 
 Structural progress remains **100%** because core construction is complete.
 
-R0.13 is **CLOSED**. Final `1.0.0` packaging was authorized by the Product Owner, the exact version-frozen source passed the repository Quality Gate and full Windows installer lifecycle, and stable `v1.0.0` publication is complete.
+R0.13 is temporarily **REOPENED only for a bounded 1.0.0 presentation hotfix Human Review**. Planning and Editing remain accepted PASS. The application version stays `1.0.0`; stable assets must not be re-promoted until the new presentation candidate is visually accepted.
 
 The full Setup.exe remains the bootstrap/recovery path. Routine future patch updates should use verified changed-component delivery with rollback rather than byte-level binary diff machinery.
 
@@ -79,3 +79,21 @@ Stable release page: https://github.com/orange-lee-tech/video-editing-agent/rele
 Direct installer: https://github.com/orange-lee-tech/video-editing-agent/releases/download/v1.0.0/VideoEditingAgent-Setup-1.0.0.exe
 
 The stable installer and component patch assets are byte-for-byte copies of the exact 1.0.0 RC assets that passed the Windows install / upgrade / repair / uninstall lifecycle gate. No product-source rebuild occurred during promotion from RC to stable.
+
+
+## 1.0.0 presentation hotfix candidate
+
+The Product Owner confirms both core functions **PASS**. Final presentation review found three non-core regressions, now repaired without changing the release version:
+
+- local-reference picker aligned to the actual local-reference field;
+- English visible brand localized to `Youqi` with slogan `Create your way, express your path`;
+- clipped header API-status pill removed, eliminating the stray `/` glyph.
+
+Exact source: `fc6391b846432586a41311a295251e8860cdf9fa`  
+Version: `1.0.0`  
+Quality Gate: run `33400752251` — **SUCCESS**  
+Windows RC: run `33401022544` — **SUCCESS**  
+Installer lifecycle: **PASS**  
+Prerelease: `v1.0.0-rc-fc6391b`
+
+Remaining gate: Product Owner visual re-check of these three presentation items. Core Planning/Editing are not reopened.

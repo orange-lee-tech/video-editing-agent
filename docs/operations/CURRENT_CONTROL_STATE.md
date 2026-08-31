@@ -4,13 +4,13 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-31
 current_phase: R0.13
-phase_state: CLOSED_1_0_0_RELEASED
-active_work_order: NONE
+phase_state: HOTFIX_1_0_0_HUMAN_REVIEW
+active_work_order: R0.13-RELEASE-POLISH-001
 active_construction_branch: main
 accepted_code_baseline: 35d99730d250d09c23a955c8df682c037335f58c
 accepted_engineering_baseline: 111b50f13d1b19670dfe0e0a68bfa2da00212a5f
 current_main_baseline: 35d99730d250d09c23a955c8df682c037335f58c
-latest_human_gate_candidate: 111b50f13d1b19670dfe0e0a68bfa2da00212a5f
+latest_human_gate_candidate: fc6391b846432586a41311a295251e8860cdf9fa
 structural_progress_percent: 100
 stage_a_completion_gate: PASS
 core_1_planning_product_gate: PASS
@@ -19,7 +19,7 @@ windows_release_delivery_gate: PASS
 codex_release: CLOSED
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
-development_stage: RELEASED
+development_stage: RELEASE_HOTFIX_REVIEW
 stable_release_tag: v1.0.0
 stable_release_source: 16b60bb953a987d9201227805a5b2c9b2968943f
 stable_installer_sha256: 2432b2d1794ea65498359eeff0941cd1487ca28c3517cdb53c4cc92c3f2a1c71
@@ -92,3 +92,16 @@ Release: https://github.com/orange-lee-tech/video-editing-agent/releases/tag/v1.
 Installer: https://github.com/orange-lee-tech/video-editing-agent/releases/download/v1.0.0/VideoEditingAgent-Setup-1.0.0.exe
 
 The stable assets were promoted byte-for-byte from the verified 1.0.0 RC after Human Gate acceptance; no product binary rebuild occurred during promotion.
+
+
+## 1.0.0 presentation hotfix review
+
+The Product Owner reports both core product functions **PASS** and those core gates remain closed/accepted. During final 1.0.0 presentation acceptance, three bounded desktop defects were observed: the local-reference picker was attached to the wrong grid row, English mode left the visible product brand/slogan in Chinese, and the header API-status pill could collapse to a stray `/` glyph.
+
+Exact hotfix source: `fc6391b846432586a41311a295251e8860cdf9fa`  
+Application version: `1.0.0` (unchanged)  
+Repository Quality Gate: **PASS**, run `33400752251`  
+Windows RC / installer lifecycle: **PASS**, run `33401022544`  
+Human-review prerelease: `v1.0.0-rc-fc6391b`
+
+The previously published stable `v1.0.0` asset remains historical release evidence but is **not the current Human-review candidate**. Do not replace/promote stable assets until the Product Owner visually rechecks these three presentation fixes. No Planning/Editing capability is reopened.
