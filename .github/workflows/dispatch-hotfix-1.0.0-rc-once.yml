@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   dispatch:
-    if: github.event.head_commit.message == 'ci: dispatch 1.0.0 hotfix rc once'
+    if: "${{ github.event.head_commit.message == 'ci: dispatch 1.0.0 hotfix rc once' }}"
     runs-on: ubuntu-latest
     steps:
       - name: Dispatch exact-source Windows RC
