@@ -1,0 +1,24 @@
+name: Dispatch 1.0.0 Hotfix RC Once
+
+on:
+  push:
+    paths:
+      - ".github/workflows/dispatch-hotfix-1.0.0-rc-once.yml"
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    if: github.event.head_commit.message == 'ci: dispatch 1.0.0 hotfix rc once'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch exact-source Windows RC
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh workflow run windows-release-candidate.yml
+          --repo ${{ github.repository }}
+          --ref main
+          -f source_ref=fc6391b846432586a41311a295251e8860cdf9fa
