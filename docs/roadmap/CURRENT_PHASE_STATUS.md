@@ -1,12 +1,12 @@
 # Current Roadmap Phase Status
 
 **Roadmap V2:** ACTIVE  
-**Development stage:** RELEASE_HOTFIX_REVIEW  
+**Development stage:** RELEASED  
 **Structural progress:** 100%  
 **Current phase:** R0.13 — 1.0 release polish and compatibility  
-**Engineering state:** R0.13_1_0_0_HOTFIX_HUMAN_REVIEW  
+**Engineering state:** R0.13_CLOSED_1_0_0_RELEASED  
 **Updated:** 2026-08-31  
-**Active work order:** R0.13-RELEASE-POLISH-001
+**Active work order:** NONE
 
 ## Stage-A baseline
 
@@ -37,7 +37,7 @@ The Product Owner approved seven release-polish items before final 1.0.0 packagi
 
 Structural progress remains **100%** because core construction is complete.
 
-R0.13 is temporarily **REOPENED only for a bounded 1.0.0 presentation hotfix Human Review**. Planning and Editing remain accepted PASS. The application version stays `1.0.0`; stable assets must not be re-promoted until the new presentation candidate is visually accepted.
+R0.13 is **CLOSED**. Planning and Editing remain accepted PASS. The Product Owner accepted the bounded presentation hotfix, the application version remains `1.0.0`, and the verified hotfix RC assets have been promoted to the stable `v1.0.0` release.
 
 The full Setup.exe remains the bootstrap/recovery path. Routine future patch updates should use verified changed-component delivery with rollback rather than byte-level binary diff machinery.
 
@@ -69,16 +69,16 @@ The Product Owner reports all required visual/interaction review items **PASS**,
 ## Final stable 1.0.0 release
 
 Stable release: `v1.0.0` — **PUBLISHED**  
-Exact release source: `16b60bb953a987d9201227805a5b2c9b2968943f`  
-Final Windows verification run: `33392322759` — **SUCCESS**  
+Exact release source: `fc6391b846432586a41311a295251e8860cdf9fa`  
+Final Windows verification run: `33401022544` — **SUCCESS**  
 Installer lifecycle: **PASS**  
 Installer: `VideoEditingAgent-Setup-1.0.0.exe`  
-Installer SHA-256: `2432b2d1794ea65498359eeff0941cd1487ca28c3517cdb53c4cc92c3f2a1c71`
+Installer SHA-256: `dd47f88953d134dac522990db80fc719367a7abe627203b142fe681cb786e5a8`
 
 Stable release page: https://github.com/orange-lee-tech/video-editing-agent/releases/tag/v1.0.0  
 Direct installer: https://github.com/orange-lee-tech/video-editing-agent/releases/download/v1.0.0/VideoEditingAgent-Setup-1.0.0.exe
 
-The stable installer and component patch assets are byte-for-byte copies of the exact 1.0.0 RC assets that passed the Windows install / upgrade / repair / uninstall lifecycle gate. No product-source rebuild occurred during promotion from RC to stable.
+The final stable installer and component patch assets are byte-for-byte copies of `v1.0.0-rc-fc6391b`, which passed the Windows install / upgrade / repair / uninstall lifecycle gate. Promotion run `33406476432` succeeded, `v1.0.0` now resolves to `fc6391b846432586a41311a295251e8860cdf9fa`, and no product-source rebuild occurred during promotion.
 
 
 ## 1.0.0 presentation hotfix candidate
@@ -96,4 +96,4 @@ Windows RC: run `33401022544` — **SUCCESS**
 Installer lifecycle: **PASS**  
 Prerelease: `v1.0.0-rc-fc6391b`
 
-Remaining gate: Product Owner visual re-check of these three presentation items. Core Planning/Editing are not reopened.
+Human Gate: **PASS** for all three presentation items. Core Planning/Editing were not reopened. This candidate is now the final stable `1.0.0` source.

@@ -1,7 +1,7 @@
 # Current Work Order
 
 **ID:** R0.13-RELEASE-POLISH-001  
-**Status:** ACTIVE  
+**Status:** CLOSED — 1.0.0 STABLE RELEASED  
 **Phase:** R0.13 — 1.0 release polish and update engineering  
 **Mode:** BOUNDED POST-STAGE-A PRODUCTIZATION  
 **Accepted Stage-A baseline:** 0.1.5 / e59cab8475a615d29003c03497ddcdaf862476a6  
@@ -140,15 +140,15 @@ The Product Owner reports all listed Human Review items **PASS**, including the 
 ## Final release evidence
 
 - stable tag: `v1.0.0`;
-- exact release source: `16b60bb953a987d9201227805a5b2c9b2968943f`;
-- final Windows verification run: `33392322759` — **SUCCESS**;
+- exact release source: `fc6391b846432586a41311a295251e8860cdf9fa`;
+- final Windows verification run: `33401022544` — **SUCCESS**;
 - install / upgrade / repair / uninstall lifecycle: **PASS**;
 - installer: `VideoEditingAgent-Setup-1.0.0.exe`;
-- installer SHA-256: `2432b2d1794ea65498359eeff0941cd1487ca28c3517cdb53c4cc92c3f2a1c71`;
+- installer SHA-256: `dd47f88953d134dac522990db80fc719367a7abe627203b142fe681cb786e5a8`;
 - stable release: https://github.com/orange-lee-tech/video-editing-agent/releases/tag/v1.0.0
 - direct installer: https://github.com/orange-lee-tech/video-editing-agent/releases/download/v1.0.0/VideoEditingAgent-Setup-1.0.0.exe
 
-Promotion to stable reused the already verified RC assets byte-for-byte; it did not rebuild application binaries after Human Gate acceptance.
+Final promotion to stable reused the already verified `v1.0.0-rc-fc6391b` assets byte-for-byte; it did not rebuild application binaries after Human Gate acceptance. Promotion run `33406476432` succeeded and moved the stable `v1.0.0` tag to exact source `fc6391b846432586a41311a295251e8860cdf9fa`.
 
 
 ## 1.0.0 presentation hotfix candidate
@@ -169,4 +169,4 @@ Evidence:
 - Windows RC / install-upgrade-repair-uninstall lifecycle: `33401022544` — **SUCCESS**;
 - prerelease tag: `v1.0.0-rc-fc6391b`.
 
-Stop gate: await Product Owner visual re-check of exactly these three presentation items. Do not reopen Planning/Editing and do not replace the stable `v1.0.0` assets until this Human Review passes.
+Human Gate: **PASS**. The Product Owner confirms all three presentation fixes are resolved. Planning/Editing remain inherited PASS, the stable `v1.0.0` assets have been replaced by the verified hotfix RC assets, and R0.13 is closed.

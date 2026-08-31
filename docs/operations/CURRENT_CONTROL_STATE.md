@@ -4,8 +4,8 @@
 schema: video-editing-agent-control-state/v1
 updated: 2026-08-31
 current_phase: R0.13
-phase_state: HOTFIX_1_0_0_HUMAN_REVIEW
-active_work_order: R0.13-RELEASE-POLISH-001
+phase_state: CLOSED_1_0_0_RELEASED
+active_work_order: NONE
 active_construction_branch: main
 accepted_code_baseline: 35d99730d250d09c23a955c8df682c037335f58c
 accepted_engineering_baseline: 111b50f13d1b19670dfe0e0a68bfa2da00212a5f
@@ -19,10 +19,10 @@ windows_release_delivery_gate: PASS
 codex_release: CLOSED
 foreman: v2-trigger-first
 disclosure_policy: trigger-first
-development_stage: RELEASE_HOTFIX_REVIEW
+development_stage: RELEASED
 stable_release_tag: v1.0.0
-stable_release_source: 16b60bb953a987d9201227805a5b2c9b2968943f
-stable_installer_sha256: 2432b2d1794ea65498359eeff0941cd1487ca28c3517cdb53c4cc92c3f2a1c71
+stable_release_source: fc6391b846432586a41311a295251e8860cdf9fa
+stable_installer_sha256: dd47f88953d134dac522990db80fc719367a7abe627203b142fe681cb786e5a8
 writer: chatgpt
 ---
 
@@ -52,7 +52,7 @@ Approved scope:
 
 ## Release boundary
 
-Final `1.0.0` was authorized by the Product Owner Human Gate PASS on 2026-08-31 and is now **PUBLISHED** as stable `v1.0.0`. Exact release source `16b60bb953a987d9201227805a5b2c9b2968943f` passed the repository Quality Gate and the full Windows installer lifecycle.
+Final `1.0.0` is **PUBLISHED and FINAL** after the Product Owner accepted the bounded presentation hotfix on 2026-08-31. The stable `v1.0.0` tag now resolves to exact source `fc6391b846432586a41311a295251e8860cdf9fa`; that source passed the repository Quality Gate and full Windows installer lifecycle before byte-for-byte promotion of the verified RC assets.
 
 No advanced creative capability work belongs in this phase.
 
@@ -83,7 +83,7 @@ Installer SHA-256:
 
 This candidate supersedes the earlier `6a6bb6f` Human-review candidate after Product Owner feedback found three UI regressions: inaccessible profile Import / Export / Save / Delete actions in the fixed-height Settings dialog, premature developer-homepage exposure, and appearance selection that did not visibly apply on selection. The remediation preserves both form/API profile actions in a resizable scrollable Settings surface, replaces developer-homepage navigation with the temporary-closure notice, and applies Day / Comfort / Night preview immediately with cancel restore and persisted apply behavior.
 
-Engineering verification is complete for the remediated candidate. The Product Owner reports all R0.13 visual/interaction review items **PASS**, including the required Windows display-scaling review, and explicitly authorized final `1.0.0`. R0.13 is closed and stable `v1.0.0` is published. Final Windows verification run `33392322759` passed, including install / upgrade / repair / uninstall lifecycle validation. The stable installer SHA-256 is `2432b2d1794ea65498359eeff0941cd1487ca28c3517cdb53c4cc92c3f2a1c71`.
+Engineering verification is complete. The Product Owner reports all R0.13 visual/interaction review items **PASS**, including the final three presentation-hotfix checks. R0.13 is closed and stable `v1.0.0` is final. Final hotfix Windows verification run `33401022544` passed install / upgrade / repair / uninstall lifecycle validation. The final stable installer SHA-256 is `dd47f88953d134dac522990db80fc719367a7abe627203b142fe681cb786e5a8`.
 
 
 ## Stable release
@@ -91,7 +91,7 @@ Engineering verification is complete for the remediated candidate. The Product O
 Release: https://github.com/orange-lee-tech/video-editing-agent/releases/tag/v1.0.0  
 Installer: https://github.com/orange-lee-tech/video-editing-agent/releases/download/v1.0.0/VideoEditingAgent-Setup-1.0.0.exe
 
-The stable assets were promoted byte-for-byte from the verified 1.0.0 RC after Human Gate acceptance; no product binary rebuild occurred during promotion.
+The final stable assets were promoted byte-for-byte from `v1.0.0-rc-fc6391b` after Human Gate acceptance; no product binary rebuild occurred during promotion. Stable promotion run `33406476432` passed, and `v1.0.0` now resolves to exact source `fc6391b846432586a41311a295251e8860cdf9fa`.
 
 
 ## 1.0.0 presentation hotfix review
@@ -104,4 +104,4 @@ Repository Quality Gate: **PASS**, run `33400752251`
 Windows RC / installer lifecycle: **PASS**, run `33401022544`  
 Human-review prerelease: `v1.0.0-rc-fc6391b`
 
-The previously published stable `v1.0.0` asset remains historical release evidence but is **not the current Human-review candidate**. Do not replace/promote stable assets until the Product Owner visually rechecks these three presentation fixes. No Planning/Editing capability is reopened.
+The Product Owner visually rechecked all three presentation fixes and reports **PASS**. The verified RC assets were promoted to the stable `v1.0.0` release without rebuilding. No Planning/Editing capability was reopened.
