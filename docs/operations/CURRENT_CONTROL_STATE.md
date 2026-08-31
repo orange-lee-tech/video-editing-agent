@@ -8,9 +8,9 @@ phase_state: RELEASE_POLISH_ACTIVE
 active_work_order: R0.13-RELEASE-POLISH-001
 active_construction_branch: work/r013-release-polish
 accepted_code_baseline: e59cab8475a615d29003c03497ddcdaf862476a6
-accepted_engineering_baseline: e59cab8475a615d29003c03497ddcdaf862476a6
-current_main_baseline: fa3b1b50cd9b0896dec7c6cacebbc66ea994c9d5
-latest_human_gate_candidate: e59cab8475a615d29003c03497ddcdaf862476a6
+accepted_engineering_baseline: 6a6bb6fb84345a3c974168f0b4fa0d013af2fc92
+current_main_baseline: 39aaf883bf5e5d1f549acaec4c2e70c6fe6e0f36
+latest_human_gate_candidate: 6a6bb6fb84345a3c974168f0b4fa0d013af2fc92
 structural_progress_percent: 100
 stage_a_completion_gate: PASS
 core_1_planning_product_gate: PASS
@@ -68,3 +68,14 @@ R0.13 changes must preserve:
 - explicit user consent for applying an update.
 
 Byte-level binary delta algorithms are out of scope; component/file replacement with cryptographic verification and rollback is the chosen 1.0 update strategy.
+
+
+## Current R0.13 engineering candidate
+
+Version `0.1.6`, exact source `6a6bb6fb84345a3c974168f0b4fa0d013af2fc92`, completed Windows RC run `33325249400` with **SUCCESS**.
+
+Installer SHA-256:
+
+`fb44abd8818ded1e899757e8ba33132ebffe88cc409578d29a1fba9081da4787`
+
+Engineering verification is complete. R0.13 remains open only for Product Owner visual/interaction acceptance, including display-scaling review, before any final 1.0.0 authorization.
