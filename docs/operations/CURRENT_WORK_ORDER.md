@@ -1,7 +1,7 @@
 # Current Work Order
 
 **ID:** R0.13-RELEASE-POLISH-001  
-**Status:** CLOSED — ENGINEERING PASS / HUMAN PASS / 1.0.0 AUTHORIZED  
+**Status:** CLOSED — 1.0.0 STABLE RELEASED  
 **Phase:** R0.13 — 1.0 release polish and update engineering  
 **Mode:** BOUNDED POST-STAGE-A PRODUCTIZATION  
 **Accepted Stage-A baseline:** 0.1.5 / e59cab8475a615d29003c03497ddcdaf862476a6  
@@ -34,7 +34,7 @@ Do not add:
 - byte-level binary delta algorithms such as bsdiff;
 - silent background self-update without user consent.
 
-The seven scoped items are verified and the Product Owner has authorized final `1.0.0` packaging. Stable publication still requires exact-source `1.0.0` version freeze plus repository and Windows installer verification; no additional feature work is authorized.
+The seven scoped items are verified, the Product Owner authorized final `1.0.0` packaging, and stable publication is complete from an exact-source `1.0.0` build that passed repository and Windows installer verification. No additional feature work is authorized under this closed work order.
 
 ## Acceptance criteria
 
@@ -135,3 +135,17 @@ The Human review must explicitly re-check the three remediated regressions in ad
 - Day / Comfort / Night selection changes the visible theme immediately; Cancel/window-close restores the prior mode and Apply persists the selected mode.
 
 The Product Owner reports all listed Human Review items **PASS**, including the required Windows presentation/scaling review. This work order is closed. Final `1.0.0` release finalization may proceed without reopening R0.13 unless a new material regression appears.
+
+
+## Final release evidence
+
+- stable tag: `v1.0.0`;
+- exact release source: `16b60bb953a987d9201227805a5b2c9b2968943f`;
+- final Windows verification run: `33392322759` — **SUCCESS**;
+- install / upgrade / repair / uninstall lifecycle: **PASS**;
+- installer: `VideoEditingAgent-Setup-1.0.0.exe`;
+- installer SHA-256: `2432b2d1794ea65498359eeff0941cd1487ca28c3517cdb53c4cc92c3f2a1c71`;
+- stable release: https://github.com/orange-lee-tech/video-editing-agent/releases/tag/v1.0.0
+- direct installer: https://github.com/orange-lee-tech/video-editing-agent/releases/download/v1.0.0/VideoEditingAgent-Setup-1.0.0.exe
+
+Promotion to stable reused the already verified RC assets byte-for-byte; it did not rebuild application binaries after Human Gate acceptance.
