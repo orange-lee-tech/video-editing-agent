@@ -1,0 +1,215 @@
+name: Windows Update Trust Smoke
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/security-windows-smoke.yml"
+      - "scripts/sign_windows_artifacts.ps1"
+      - "src/video_editing_agent/adapters/product/update_trust.py"
+      - "src/video_editing_agent/adapters/product/component_update.py"
+      - "tests/unit/test_update_channel_trust.py"
+  workflow_dispatch:
+
+jobs:
+  authenticode-trust:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Create ephemeral trusted code-signing identities
+        id: certs
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $env:RUNNER_TEMP "vea-security-smoke"
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          $passwordText = "security-ci-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          $password = ConvertTo-SecureString $passwordText -AsPlainText -Force
+          $subject = "CN=VideoEditingAgent Security CI"
+
+          $cert1 = New-SelfSignedCertificate `
+            -Type CodeSigningCert `
+            -Subject $subject `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -KeyAlgorithm RSA `
+            -KeyLength 2048 `
+            -HashAlgorithm SHA256 `
+            -NotAfter (Get-Date).AddDays(2)
+          $cert2 = New-SelfSignedCertificate `
+            -Type CodeSigningCert `
+            -Subject $subject `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -KeyAlgorithm RSA `
+            -KeyLength 2048 `
+            -HashAlgorithm SHA256 `
+            -NotAfter (Get-Date).AddDays(2)
+
+          $pfx1 = Join-Path $root "signer-one.pfx"
+          $pfx2 = Join-Path $root "signer-two.pfx"
+          $cer1 = Join-Path $root "signer-one.cer"
+          $cer2 = Join-Path $root "signer-two.cer"
+          Export-PfxCertificate -Cert $cert1 -FilePath $pfx1 -Password $password | Out-Null
+          Export-PfxCertificate -Cert $cert2 -FilePath $pfx2 -Password $password | Out-Null
+          Export-Certificate -Cert $cert1 -FilePath $cer1 | Out-Null
+          Export-Certificate -Cert $cert2 -FilePath $cer2 | Out-Null
+
+          foreach ($cer in @($cer1, $cer2)) {
+            Import-Certificate -FilePath $cer -CertStoreLocation "Cert:\CurrentUser\Root" | Out-Null
+            Import-Certificate -FilePath $cer -CertStoreLocation "Cert:\CurrentUser\TrustedPublisher" | Out-Null
+          }
+
+          "root=$root" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "pfx1=$pfx1" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "pfx2=$pfx2" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "password=$passwordText" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "TEST_CERT_THUMBPRINT_1=$($cert1.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "TEST_CERT_THUMBPRINT_2=$($cert2.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Prepare disposable PE fixtures and installer evidence
+        id: fixtures
+        shell: powershell
+        env:
+          ROOT: ${{ steps.certs.outputs.root }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $primary = Join-Path $env:ROOT "VideoEditingAgent.exe"
+          $alternate = Join-Path $env:ROOT "VideoEditingAgent-alt.exe"
+          $installer = Join-Path $env:ROOT "VideoEditingAgent-Setup-9.9.9.exe"
+          Copy-Item -LiteralPath "$env:SystemRoot\System32\where.exe" -Destination $primary
+          Copy-Item -LiteralPath "$env:SystemRoot\System32\where.exe" -Destination $alternate
+          Copy-Item -LiteralPath "$env:SystemRoot\System32\where.exe" -Destination $installer
+          [ordered]@{
+            schema = "video-editing-agent-installer-evidence/v1"
+            installer_path = $installer
+            installer_sha256 = "pre-sign-placeholder"
+          } | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $env:ROOT "installer-evidence.json")
+          "primary=$primary" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "alternate=$alternate" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "installer=$installer" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Sign primary product and installer with signer one
+        shell: powershell
+        env:
+          ROOT: ${{ steps.certs.outputs.root }}
+          PFX: ${{ steps.certs.outputs.pfx1 }}
+          PASSWORD: ${{ steps.certs.outputs.password }}
+          PRIMARY: ${{ steps.fixtures.outputs.primary }}
+          INSTALLER: ${{ steps.fixtures.outputs.installer }}
+        run: |
+          & .\scripts\sign_windows_artifacts.ps1 `
+            -PfxPath $env:PFX `
+            -PfxPassword $env:PASSWORD `
+            -File @($env:PRIMARY, $env:INSTALLER) `
+            -TimestampUrl "" `
+            -EvidencePath (Join-Path $env:ROOT "signer-one-evidence.json")
+
+      - name: Sign alternate product with same-subject signer two
+        shell: powershell
+        env:
+          ROOT: ${{ steps.certs.outputs.root }}
+          PFX: ${{ steps.certs.outputs.pfx2 }}
+          PASSWORD: ${{ steps.certs.outputs.password }}
+          ALTERNATE: ${{ steps.fixtures.outputs.alternate }}
+        run: |
+          & .\scripts\sign_windows_artifacts.ps1 `
+            -PfxPath $env:PFX `
+            -PfxPassword $env:PASSWORD `
+            -File @($env:ALTERNATE) `
+            -TimestampUrl "" `
+            -EvidencePath (Join-Path $env:ROOT "signer-two-evidence.json")
+
+      - name: Verify actual Authenticode signer identity and mismatch rejection
+        shell: powershell
+        env:
+          ROOT: ${{ steps.certs.outputs.root }}
+        run: |
+          $env:PYTHONPATH = (Resolve-Path ".\src").Path
+          @'
+          from pathlib import Path
+          import os
+
+          from video_editing_agent.adapters.product.update_trust import (
+              WindowsAuthenticodeTrust,
+              enforce_replacement_trust,
+          )
+
+          root = Path(os.environ["ROOT"])
+          primary = root / "VideoEditingAgent.exe"
+          alternate = root / "VideoEditingAgent-alt.exe"
+          trust = WindowsAuthenticodeTrust()
+          signer_one = trust.publisher_of(primary)
+          signer_two = trust.publisher_of(alternate)
+          if signer_one is None or signer_two is None:
+              raise SystemExit("signed PE did not resolve an Authenticode signer")
+          if signer_one.subject != signer_two.subject:
+              raise SystemExit("test certificates unexpectedly have different display subjects")
+          if signer_one.certificate_sha256 == signer_two.certificate_sha256:
+              raise SystemExit("independent same-subject certificates have identical fingerprints")
+          try:
+              enforce_replacement_trust(
+                  alternate,
+                  destination=primary,
+                  previous_publisher=signer_one,
+                  trust=trust,
+              )
+          except ValueError as exc:
+              if "does not match" not in str(exc):
+                  raise
+          else:
+              raise SystemExit("same-subject different-certificate replacement was accepted")
+          print("Authenticode signer identity is bound to the actual certificate fingerprint")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw "Windows Authenticode identity smoke failed" }
+
+      - name: Verify final signed installer evidence
+        shell: powershell
+        env:
+          ROOT: ${{ steps.certs.outputs.root }}
+          INSTALLER: ${{ steps.fixtures.outputs.installer }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $evidence = Get-Content -LiteralPath (Join-Path $env:ROOT "installer-evidence.json") -Raw |
+            ConvertFrom-Json
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $env:INSTALLER).Hash.ToLowerInvariant()
+          if ($evidence.installer_sha256 -ne $actual) {
+            throw "installer-evidence.json retained a pre-sign SHA-256"
+          }
+          if ($evidence.artifact_state -ne "final-signed") {
+            throw "installer evidence is not marked final-signed"
+          }
+          if ($evidence.authenticode_status -ne "Valid") {
+            throw "installer evidence does not record valid Authenticode"
+          }
+          if ($evidence.signer_certificate_sha256 -notmatch '^[0-9a-f]{64}$') {
+            throw "installer evidence has no signer certificate SHA-256"
+          }
+
+      - name: Remove ephemeral certificates and files
+        if: always()
+        shell: powershell
+        env:
+          ROOT: ${{ steps.certs.outputs.root }}
+        run: |
+          foreach ($thumbprint in @($env:TEST_CERT_THUMBPRINT_1, $env:TEST_CERT_THUMBPRINT_2)) {
+            if (-not $thumbprint) { continue }
+            foreach ($store in @(
+              "Cert:\CurrentUser\My",
+              "Cert:\CurrentUser\Root",
+              "Cert:\CurrentUser\TrustedPublisher"
+            )) {
+              Get-ChildItem -LiteralPath $store -ErrorAction SilentlyContinue |
+                Where-Object { $_.Thumbprint -eq $thumbprint } |
+                Remove-Item -Force -ErrorAction SilentlyContinue
+            }
+          }
+          if ($env:ROOT -and (Test-Path -LiteralPath $env:ROOT)) {
+            Remove-Item -LiteralPath $env:ROOT -Recurse -Force -ErrorAction SilentlyContinue
+          }

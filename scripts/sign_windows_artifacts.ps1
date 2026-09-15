@@ -87,7 +87,12 @@ $signtool = Resolve-SignTool
 $evidence = @()
 foreach ($item in $File) {
     $resolved = (Resolve-Path -LiteralPath $item -ErrorAction Stop).Path
-    & $signtool sign /fd SHA256 /td SHA256 /tr $TimestampUrl /f $PfxPath /p $PfxPassword $resolved
+    $arguments = @("sign", "/fd", "SHA256", "/f", $PfxPath, "/p", $PfxPassword)
+    if (-not [string]::IsNullOrWhiteSpace($TimestampUrl)) {
+        $arguments += @("/td", "SHA256", "/tr", $TimestampUrl)
+    }
+    $arguments += $resolved
+    & $signtool @arguments
     if ($LASTEXITCODE -ne 0) {
         throw "signtool failed for $resolved with exit code $LASTEXITCODE"
     }
