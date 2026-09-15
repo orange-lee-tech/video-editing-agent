@@ -39,25 +39,14 @@ jobs:
           $passwordText = "security-ci-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
           $subject = "CN=VideoEditingAgent Security CI"
 
-          function New-EphemeralCodeSigningCertificate(
-            [string]$Subject,
-            [string]$PfxPath,
-            [string]$CerPath,
-            [string]$Password
-          ) {
-            Write-Host "Generating certificate $PfxPath"
+          function New-TestCertificate([string]$PfxPath, [string]$CerPath) {
             $rsa = [System.Security.Cryptography.RSA]::Create(2048)
             try {
               $request = [System.Security.Cryptography.X509Certificates.CertificateRequest]::new(
-                $Subject,
+                $subject,
                 $rsa,
                 [System.Security.Cryptography.HashAlgorithmName]::SHA256,
                 [System.Security.Cryptography.RSASignaturePadding]::Pkcs1
-              )
-              $request.CertificateExtensions.Add(
-                [System.Security.Cryptography.X509Certificates.X509BasicConstraintsExtension]::new(
-                  $false, $false, 0, $true
-                )
               )
               $request.CertificateExtensions.Add(
                 [System.Security.Cryptography.X509Certificates.X509KeyUsageExtension]::new(
@@ -66,17 +55,10 @@ jobs:
                 )
               )
               $oids = [System.Security.Cryptography.OidCollection]::new()
-              [void]$oids.Add(
-                [System.Security.Cryptography.Oid]::new("1.3.6.1.5.5.7.3.3", "Code Signing")
-              )
+              [void]$oids.Add([System.Security.Cryptography.Oid]::new("1.3.6.1.5.5.7.3.3"))
               $request.CertificateExtensions.Add(
                 [System.Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension]::new(
                   $oids, $true
-                )
-              )
-              $request.CertificateExtensions.Add(
-                [System.Security.Cryptography.X509Certificates.X509SubjectKeyIdentifierExtension]::new(
-                  $request.PublicKey, $false
                 )
               )
               $certificate = $request.CreateSelfSigned(
@@ -88,7 +70,7 @@ jobs:
                   $PfxPath,
                   $certificate.Export(
                     [System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx,
-                    $Password
+                    $passwordText
                   )
                 )
                 [IO.File]::WriteAllBytes(
@@ -99,36 +81,29 @@ jobs:
                 )
                 return $certificate.Thumbprint
               }
-              finally {
-                $certificate.Dispose()
-              }
+              finally { $certificate.Dispose() }
             }
-            finally {
-              $rsa.Dispose()
-            }
-          }
-
-          function Add-TestCertificateToStore([string]$CerPath, [string]$StoreName) {
-            Write-Host "Trusting $CerPath in CurrentUser/$StoreName"
-            & certutil.exe -user -f -addstore $StoreName $CerPath
-            if ($LASTEXITCODE -ne 0) {
-              throw "certutil failed to add $CerPath to CurrentUser/$StoreName"
-            }
+            finally { $rsa.Dispose() }
           }
 
           $pfx1 = Join-Path $root "signer-one.pfx"
           $pfx2 = Join-Path $root "signer-two.pfx"
           $cer1 = Join-Path $root "signer-one.cer"
           $cer2 = Join-Path $root "signer-two.cer"
-          $thumbprint1 = New-EphemeralCodeSigningCertificate $subject $pfx1 $cer1 $passwordText
-          $thumbprint2 = New-EphemeralCodeSigningCertificate $subject $pfx2 $cer2 $passwordText
+          $thumbprint1 = New-TestCertificate $pfx1 $cer1
+          $thumbprint2 = New-TestCertificate $pfx2 $cer2
           if ($thumbprint1 -eq $thumbprint2) {
             throw "Independent ephemeral signing certificates unexpectedly share a thumbprint"
           }
 
           foreach ($cer in @($cer1, $cer2)) {
-            Add-TestCertificateToStore $cer "Root"
-            Add-TestCertificateToStore $cer "TrustedPublisher"
+            foreach ($store in @("TrustedPeople", "TrustedPublisher")) {
+              Write-Host "Trusting $cer in CurrentUser/$store"
+              & certutil.exe -user -f -addstore $store $cer
+              if ($LASTEXITCODE -ne 0) {
+                throw "certutil failed to add $cer to CurrentUser/$store"
+              }
+            }
           }
 
           "root=$root" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -265,8 +240,8 @@ jobs:
         run: |
           foreach ($thumbprint in @($env:TEST_CERT_THUMBPRINT_1, $env:TEST_CERT_THUMBPRINT_2)) {
             if (-not $thumbprint) { continue }
-            foreach ($storeName in @("Root", "TrustedPublisher")) {
-              & certutil.exe -user -delstore $storeName $thumbprint 2>$null | Out-Null
+            foreach ($store in @("TrustedPeople", "TrustedPublisher")) {
+              & certutil.exe -user -delstore $store $thumbprint 2>$null | Out-Null
             }
           }
           if ($env:ROOT -and (Test-Path -LiteralPath $env:ROOT)) {
