@@ -193,19 +193,14 @@ jobs:
           import os
 
           from video_editing_agent.adapters.product.update_trust import (
-              WindowsAuthenticodeTrust,
               _authenticode_signer_identity,
+              _win_verify_trust,
               enforce_replacement_trust,
           )
 
           root = Path(os.environ["ROOT"])
           primary = root / "VideoEditingAgent.exe"
           alternate = root / "VideoEditingAgent-alt.exe"
-
-          trust = WindowsAuthenticodeTrust()
-          system_binary = Path(os.environ["WINDIR"]) / "System32" / "where.exe"
-          if trust.publisher_of(system_binary) is None:
-              raise SystemExit("known trusted Windows PE did not pass WinVerifyTrust")
 
           signer_one = _authenticode_signer_identity(primary)
           signer_two = _authenticode_signer_identity(alternate)
@@ -238,6 +233,21 @@ jobs:
                   raise
           else:
               raise SystemExit("same-subject different-certificate replacement was accepted")
+
+          sdk_root = Path(os.environ["ProgramFiles(x86)"]) / "Windows Kits" / "10" / "bin"
+          candidates = sorted(
+              (path for path in sdk_root.rglob("signtool.exe") if path.parent.name.casefold() == "x64"),
+              reverse=True,
+          )
+          if not candidates:
+              raise SystemExit("Windows SDK signtool.exe trust baseline is unavailable")
+          trusted_tool = candidates[0]
+          if _authenticode_signer_identity(trusted_tool) is None:
+              raise SystemExit("Windows SDK signtool.exe has no embedded signer identity")
+          trust_status = _win_verify_trust(trusted_tool)
+          if trust_status != 0:
+              raise SystemExit(f"WinVerifyTrust rejected signed Windows SDK tool: 0x{trust_status:08X}")
+
           print("WinVerifyTrust baseline and actual signer certificate fingerprint binding passed")
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw "Windows Authenticode identity smoke failed" }
