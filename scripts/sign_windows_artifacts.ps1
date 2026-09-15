@@ -99,7 +99,7 @@ foreach ($item in $File) {
 
     $signature = Get-AuthenticodeSignature -LiteralPath $resolved
     if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
-        throw "Authenticode verification failed for $resolved: $($signature.Status)"
+        throw "Authenticode verification failed for ${resolved}: $($signature.Status)"
     }
     if ($null -eq $signature.SignerCertificate) {
         throw "Authenticode signer certificate is missing for $resolved"
