@@ -99,8 +99,11 @@ jobs:
               if isinstance(item, dict) and isinstance(item.get("name"), str)
           }
           missing = sorted(required - set(by_name))
-          if missing:
-              raise SystemExit(f"RC release is missing required sealed assets: {missing}")
+          extra = sorted(set(by_name) - required)
+          if missing or extra:
+              raise SystemExit(
+                  f"RC sealed asset set mismatch; missing={missing}, extra={extra}"
+              )
           for name in sorted(required):
               digest = by_name[name].get("digest")
               if not isinstance(digest, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", digest) is None:
@@ -153,7 +156,6 @@ jobs:
           import hashlib
           import json
           import os
-          import re
           import subprocess
           import sys
           from pathlib import Path
@@ -175,7 +177,10 @@ jobs:
               if isinstance(item.get("digest"), str)
               and item["digest"].startswith("sha256:")
           }
-          for path in sorted(item for item in root.iterdir() if item.is_file()):
+          files = sorted(item for item in root.iterdir() if item.is_file())
+          if len(files) != 6:
+              raise SystemExit(f"expected exactly 6 downloaded assets, got {len(files)}")
+          for path in files:
               expected = digests.get(path.name)
               if expected is None:
                   raise SystemExit(f"downloaded unexpected or unverified asset: {path.name}")
@@ -202,7 +207,8 @@ jobs:
           parse_update_manifest(manifest_path.read_text(encoding="utf-8"))
           print("Signed stable manifest verified with the production embedded key")
 
-      - name: Publish immutable-byte stable release
+      - name: Create sealed stable draft
+        id: draft
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.candidate.outputs.version }}
@@ -212,6 +218,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo "attempted=true" >> "$GITHUB_OUTPUT"
           mapfile -t assets < <(find build/stable-promotion -maxdepth 1 -type f -print | sort)
           if [ "${#assets[@]}" -ne 6 ]; then
             echo "Expected exactly 6 sealed promotion assets, got ${#assets[@]}" >&2
@@ -220,9 +227,10 @@ jobs:
           gh release create "$STABLE_TAG" "${assets[@]}" \
             --target "$SOURCE_SHA" \
             --title "有岐 $VERSION" \
-            --notes "Stable promotion of reviewed $RC_TAG. Assets are byte-for-byte copies of the sealed RC; update-channel-manifest.json is Ed25519-signed and product executables are Authenticode-signed. Source: $SOURCE_SHA"
+            --notes "Stable promotion of reviewed $RC_TAG. Assets are byte-for-byte copies of the sealed RC; update-channel-manifest.json is Ed25519-signed and product executables are Authenticode-signed. Source: $SOURCE_SHA" \
+            --draft
 
-      - name: Verify stable assets are byte-for-byte RC copies
+      - name: Verify stable draft before publication
         env:
           GH_TOKEN: ${{ github.token }}
           RC_TAG: ${{ inputs.rc_tag }}
@@ -248,7 +256,29 @@ jobs:
           rc_assets = {item["name"]: item.get("digest") for item in rc["assets"]}
           stable_assets = {item["name"]: item.get("digest") for item in stable["assets"]}
           if stable_assets != rc_assets:
-              raise SystemExit("stable release assets are not byte-for-byte identical to the RC")
-          if stable.get("draft") or stable.get("prerelease"):
-              raise SystemExit("promoted stable release has incorrect release state")
-          print("Stable release matches reviewed RC asset digests exactly")
+              raise SystemExit("stable draft assets are not byte-for-byte identical to the RC")
+          if not stable.get("draft") or stable.get("prerelease"):
+              raise SystemExit("stable release must remain a non-prerelease draft during verification")
+          print("Stable draft matches reviewed RC asset digests exactly")
+
+      - name: Publish verified stable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STABLE_TAG: ${{ steps.candidate.outputs.stable_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release edit "$STABLE_TAG" --draft=false
+
+      - name: Clean up failed stable draft
+        if: failure() && steps.draft.outputs.attempted == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STABLE_TAG: ${{ steps.candidate.outputs.stable_tag }}
+        shell: bash
+        run: |
+          set +e
+          is_draft=$(gh release view "$STABLE_TAG" --json isDraft --jq '.isDraft' 2>/dev/null)
+          if [ "$is_draft" = "true" ]; then
+            gh release delete "$STABLE_TAG" --cleanup-tag --yes
+          fi
