@@ -10,9 +10,14 @@ on:
       - "tests/unit/test_update_channel_trust.py"
   workflow_dispatch:
 
+concurrency:
+  group: windows-update-trust-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   authenticode-trust:
     runs-on: windows-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -26,56 +31,119 @@ jobs:
 
       - name: Create ephemeral trusted code-signing identities
         id: certs
-        shell: powershell
+        shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
           $root = Join-Path $env:RUNNER_TEMP "vea-security-smoke"
           New-Item -ItemType Directory -Force -Path $root | Out-Null
           $passwordText = "security-ci-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
-          $password = ConvertTo-SecureString $passwordText -AsPlainText -Force
           $subject = "CN=VideoEditingAgent Security CI"
 
-          $cert1 = New-SelfSignedCertificate `
-            -Type CodeSigningCert `
-            -Subject $subject `
-            -CertStoreLocation "Cert:\CurrentUser\My" `
-            -KeyAlgorithm RSA `
-            -KeyLength 2048 `
-            -HashAlgorithm SHA256 `
-            -NotAfter (Get-Date).AddDays(2)
-          $cert2 = New-SelfSignedCertificate `
-            -Type CodeSigningCert `
-            -Subject $subject `
-            -CertStoreLocation "Cert:\CurrentUser\My" `
-            -KeyAlgorithm RSA `
-            -KeyLength 2048 `
-            -HashAlgorithm SHA256 `
-            -NotAfter (Get-Date).AddDays(2)
+          function New-EphemeralCodeSigningCertificate(
+            [string]$Subject,
+            [string]$PfxPath,
+            [string]$Password
+          ) {
+            $rsa = [System.Security.Cryptography.RSA]::Create(2048)
+            try {
+              $request = [System.Security.Cryptography.X509Certificates.CertificateRequest]::new(
+                $Subject,
+                $rsa,
+                [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+                [System.Security.Cryptography.RSASignaturePadding]::Pkcs1
+              )
+              $request.CertificateExtensions.Add(
+                [System.Security.Cryptography.X509Certificates.X509BasicConstraintsExtension]::new(
+                  $false, $false, 0, $true
+                )
+              )
+              $request.CertificateExtensions.Add(
+                [System.Security.Cryptography.X509Certificates.X509KeyUsageExtension]::new(
+                  [System.Security.Cryptography.X509Certificates.X509KeyUsageFlags]::DigitalSignature,
+                  $true
+                )
+              )
+              $oids = [System.Security.Cryptography.OidCollection]::new()
+              [void]$oids.Add(
+                [System.Security.Cryptography.Oid]::new("1.3.6.1.5.5.7.3.3", "Code Signing")
+              )
+              $request.CertificateExtensions.Add(
+                [System.Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension]::new(
+                  $oids, $true
+                )
+              )
+              $request.CertificateExtensions.Add(
+                [System.Security.Cryptography.X509Certificates.X509SubjectKeyIdentifierExtension]::new(
+                  $request.PublicKey, $false
+                )
+              )
+              $certificate = $request.CreateSelfSigned(
+                [DateTimeOffset]::UtcNow.AddHours(-1),
+                [DateTimeOffset]::UtcNow.AddDays(2)
+              )
+              try {
+                [IO.File]::WriteAllBytes(
+                  $PfxPath,
+                  $certificate.Export(
+                    [System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx,
+                    $Password
+                  )
+                )
+                $publicBytes = $certificate.Export(
+                  [System.Security.Cryptography.X509Certificates.X509ContentType]::Cert
+                )
+                $publicCertificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new(
+                  $publicBytes
+                )
+                try {
+                  foreach ($storeName in @("Root", "TrustedPublisher")) {
+                    $store = [System.Security.Cryptography.X509Certificates.X509Store]::new(
+                      $storeName,
+                      [System.Security.Cryptography.X509Certificates.StoreLocation]::CurrentUser
+                    )
+                    try {
+                      $store.Open(
+                        [System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite
+                      )
+                      $store.Add($publicCertificate)
+                    }
+                    finally {
+                      $store.Close()
+                    }
+                  }
+                  return $publicCertificate.Thumbprint
+                }
+                finally {
+                  $publicCertificate.Dispose()
+                }
+              }
+              finally {
+                $certificate.Dispose()
+              }
+            }
+            finally {
+              $rsa.Dispose()
+            }
+          }
 
           $pfx1 = Join-Path $root "signer-one.pfx"
           $pfx2 = Join-Path $root "signer-two.pfx"
-          $cer1 = Join-Path $root "signer-one.cer"
-          $cer2 = Join-Path $root "signer-two.cer"
-          Export-PfxCertificate -Cert $cert1 -FilePath $pfx1 -Password $password | Out-Null
-          Export-PfxCertificate -Cert $cert2 -FilePath $pfx2 -Password $password | Out-Null
-          Export-Certificate -Cert $cert1 -FilePath $cer1 | Out-Null
-          Export-Certificate -Cert $cert2 -FilePath $cer2 | Out-Null
-
-          foreach ($cer in @($cer1, $cer2)) {
-            Import-Certificate -FilePath $cer -CertStoreLocation "Cert:\CurrentUser\Root" | Out-Null
-            Import-Certificate -FilePath $cer -CertStoreLocation "Cert:\CurrentUser\TrustedPublisher" | Out-Null
+          $thumbprint1 = New-EphemeralCodeSigningCertificate $subject $pfx1 $passwordText
+          $thumbprint2 = New-EphemeralCodeSigningCertificate $subject $pfx2 $passwordText
+          if ($thumbprint1 -eq $thumbprint2) {
+            throw "Independent ephemeral signing certificates unexpectedly share a thumbprint"
           }
 
           "root=$root" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "pfx1=$pfx1" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "pfx2=$pfx2" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "password=$passwordText" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "TEST_CERT_THUMBPRINT_1=$($cert1.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "TEST_CERT_THUMBPRINT_2=$($cert2.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "TEST_CERT_THUMBPRINT_1=$thumbprint1" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "TEST_CERT_THUMBPRINT_2=$thumbprint2" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Prepare disposable PE fixtures and installer evidence
         id: fixtures
-        shell: powershell
+        shell: pwsh
         env:
           ROOT: ${{ steps.certs.outputs.root }}
         run: |
@@ -96,7 +164,7 @@ jobs:
           "installer=$installer" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Sign primary product and installer with signer one
-        shell: powershell
+        shell: pwsh
         env:
           ROOT: ${{ steps.certs.outputs.root }}
           PFX: ${{ steps.certs.outputs.pfx1 }}
@@ -112,7 +180,7 @@ jobs:
             -EvidencePath (Join-Path $env:ROOT "signer-one-evidence.json")
 
       - name: Sign alternate product with same-subject signer two
-        shell: powershell
+        shell: pwsh
         env:
           ROOT: ${{ steps.certs.outputs.root }}
           PFX: ${{ steps.certs.outputs.pfx2 }}
@@ -127,7 +195,7 @@ jobs:
             -EvidencePath (Join-Path $env:ROOT "signer-two-evidence.json")
 
       - name: Verify actual Authenticode signer identity and mismatch rejection
-        shell: powershell
+        shell: pwsh
         env:
           ROOT: ${{ steps.certs.outputs.root }}
         run: |
@@ -170,7 +238,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Windows Authenticode identity smoke failed" }
 
       - name: Verify final signed installer evidence
-        shell: powershell
+        shell: pwsh
         env:
           ROOT: ${{ steps.certs.outputs.root }}
           INSTALLER: ${{ steps.fixtures.outputs.installer }}
@@ -194,20 +262,30 @@ jobs:
 
       - name: Remove ephemeral certificates and files
         if: always()
-        shell: powershell
+        shell: pwsh
         env:
           ROOT: ${{ steps.certs.outputs.root }}
         run: |
           foreach ($thumbprint in @($env:TEST_CERT_THUMBPRINT_1, $env:TEST_CERT_THUMBPRINT_2)) {
             if (-not $thumbprint) { continue }
-            foreach ($store in @(
-              "Cert:\CurrentUser\My",
-              "Cert:\CurrentUser\Root",
-              "Cert:\CurrentUser\TrustedPublisher"
-            )) {
-              Get-ChildItem -LiteralPath $store -ErrorAction SilentlyContinue |
-                Where-Object { $_.Thumbprint -eq $thumbprint } |
-                Remove-Item -Force -ErrorAction SilentlyContinue
+            foreach ($storeName in @("Root", "TrustedPublisher")) {
+              $store = [System.Security.Cryptography.X509Certificates.X509Store]::new(
+                $storeName,
+                [System.Security.Cryptography.X509Certificates.StoreLocation]::CurrentUser
+              )
+              try {
+                $store.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
+                foreach ($certificate in @($store.Certificates.Find(
+                  [System.Security.Cryptography.X509Certificates.X509FindType]::FindByThumbprint,
+                  $thumbprint,
+                  $false
+                ))) {
+                  $store.Remove($certificate)
+                }
+              }
+              finally {
+                $store.Close()
+              }
             }
           }
           if ($env:ROOT -and (Test-Path -LiteralPath $env:ROOT)) {
