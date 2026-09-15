@@ -45,6 +45,34 @@ function Get-CertificateSha256([System.Security.Cryptography.X509Certificates.X5
     return (($digest | ForEach-Object { $_.ToString("x2") }) -join "")
 }
 
+function Update-InstallerEvidence(
+    [string]$ArtifactPath,
+    [System.Collections.IDictionary]$ArtifactEvidence
+) {
+    $leaf = Split-Path -Leaf $ArtifactPath
+    if ($leaf -notmatch '^VideoEditingAgent-Setup-\d+\.\d+\.\d+\.exe$') {
+        return
+    }
+    $installerEvidencePath = Join-Path (Split-Path -Parent $ArtifactPath) "installer-evidence.json"
+    if (-not (Test-Path -LiteralPath $installerEvidencePath -PathType Leaf)) {
+        throw "Installer evidence is missing after Setup.exe signing: $installerEvidencePath"
+    }
+    $installerEvidence = Get-Content -LiteralPath $installerEvidencePath -Raw | ConvertFrom-Json
+    $installerEvidence.installer_sha256 = $ArtifactEvidence["file_sha256"]
+    $installerEvidence | Add-Member -NotePropertyName authenticode_status `
+        -NotePropertyValue $ArtifactEvidence["authenticode_status"] -Force
+    $installerEvidence | Add-Member -NotePropertyName signer_subject `
+        -NotePropertyValue $ArtifactEvidence["signer_subject"] -Force
+    $installerEvidence | Add-Member -NotePropertyName signer_certificate_sha256 `
+        -NotePropertyValue $ArtifactEvidence["signer_certificate_sha256"] -Force
+    $installerEvidence | Add-Member -NotePropertyName timestamp_status `
+        -NotePropertyValue $ArtifactEvidence["timestamp_status"] -Force
+    $installerEvidence | Add-Member -NotePropertyName artifact_state `
+        -NotePropertyValue "final-signed" -Force
+    $installerEvidence | ConvertTo-Json -Depth 6 |
+        Set-Content -Encoding utf8 $installerEvidencePath
+}
+
 if (-not (Test-Path -LiteralPath $PfxPath -PathType Leaf)) {
     throw "Code-signing PFX is missing: $PfxPath"
 }
@@ -72,7 +100,7 @@ foreach ($item in $File) {
         throw "Authenticode signer certificate is missing for $resolved"
     }
     $certificateSha256 = Get-CertificateSha256 $signature.SignerCertificate
-    $evidence += [ordered]@{
+    $artifactEvidence = [ordered]@{
         path = $resolved
         file_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $resolved).Hash.ToLowerInvariant()
         authenticode_status = [string]$signature.Status
@@ -80,6 +108,8 @@ foreach ($item in $File) {
         signer_certificate_sha256 = $certificateSha256
         timestamp_status = if ($signature.TimeStamperCertificate) { "present" } else { "missing" }
     }
+    $evidence += $artifactEvidence
+    Update-InstallerEvidence $resolved $artifactEvidence
 }
 
 if ($EvidencePath) {
