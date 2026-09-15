@@ -10,7 +10,7 @@ UPDATE_SIGNATURE_KEY_ID = "vea-update-manifest-v1"
 # Production public key for VideoEditingAgent-updater.exe. The matching seed is a
 # release secret (UPDATE_MANIFEST_SIGNING_KEY) and must never be committed.
 UPDATE_MANIFEST_PUBLIC_KEY = bytes.fromhex(
-    "ef69d6406c43ac83fea6c8d10845359d0f75f105789d05f6ec85f00408a141d9"
+    "150c646efb4a725d9dc737bfc6021ea6dced3b9a66a7d2fb9dca93034e232b77"
 )
 
 
