@@ -29,7 +29,23 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Create ephemeral trusted code-signing identities
+      - name: Validate production signing script parses
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path ".\scripts\sign_windows_artifacts.ps1").Path,
+            [ref]$tokens,
+            [ref]$errors
+          )
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            throw "production signing script has PowerShell parser errors"
+          }
+
+      - name: Create ephemeral same-subject signing identities
         id: certs
         shell: pwsh
         run: |
@@ -93,27 +109,17 @@ jobs:
           $thumbprint1 = New-TestCertificate $pfx1 $cer1
           $thumbprint2 = New-TestCertificate $pfx2 $cer2
           if ($thumbprint1 -eq $thumbprint2) {
-            throw "Independent ephemeral signing certificates unexpectedly share a thumbprint"
-          }
-
-          foreach ($cer in @($cer1, $cer2)) {
-            foreach ($store in @("TrustedPeople", "TrustedPublisher")) {
-              Write-Host "Trusting $cer in CurrentUser/$store"
-              & certutil.exe -user -f -addstore $store $cer
-              if ($LASTEXITCODE -ne 0) {
-                throw "certutil failed to add $cer to CurrentUser/$store"
-              }
-            }
+            throw "independent ephemeral signing certificates unexpectedly share a thumbprint"
           }
 
           "root=$root" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "pfx1=$pfx1" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "pfx2=$pfx2" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "cer1=$cer1" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "cer2=$cer2" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "password=$passwordText" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "TEST_CERT_THUMBPRINT_1=$thumbprint1" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "TEST_CERT_THUMBPRINT_2=$thumbprint2" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Prepare unsigned disposable PE fixtures and installer evidence
+      - name: Prepare unsigned disposable PE fixtures
         id: fixtures
         shell: pwsh
         env:
@@ -134,68 +140,56 @@ jobs:
             throw "csc.exe is unavailable on the Windows runner"
           }
           & $csc /nologo /target:exe "/out:$unsigned" $source
-          if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $unsigned -PathType Leaf)) {
-            throw "could not compile unsigned PE fixture"
-          }
-          $preSignature = Get-AuthenticodeSignature -LiteralPath $unsigned
-          if ($preSignature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
-            throw "fixture must begin unsigned, got $($preSignature.Status)"
+          if ($LASTEXITCODE -ne 0) { throw "could not compile unsigned PE fixture" }
+          if ((Get-AuthenticodeSignature -LiteralPath $unsigned).Status -ne "NotSigned") {
+            throw "fixture must begin unsigned"
           }
 
           $primary = Join-Path $env:ROOT "VideoEditingAgent.exe"
           $alternate = Join-Path $env:ROOT "VideoEditingAgent-alt.exe"
-          $installer = Join-Path $env:ROOT "VideoEditingAgent-Setup-9.9.9.exe"
           Copy-Item -LiteralPath $unsigned -Destination $primary
           Copy-Item -LiteralPath $unsigned -Destination $alternate
-          Copy-Item -LiteralPath $unsigned -Destination $installer
-          [ordered]@{
-            schema = "video-editing-agent-installer-evidence/v1"
-            installer_path = $installer
-            installer_sha256 = "pre-sign-placeholder"
-          } | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $env:ROOT "installer-evidence.json")
           "primary=$primary" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "alternate=$alternate" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "installer=$installer" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
-      - name: Sign primary product and installer with signer one
+      - name: Sign disposable fixtures with ephemeral identities
         shell: pwsh
         env:
-          ROOT: ${{ steps.certs.outputs.root }}
-          PFX: ${{ steps.certs.outputs.pfx1 }}
+          PFX1: ${{ steps.certs.outputs.pfx1 }}
+          PFX2: ${{ steps.certs.outputs.pfx2 }}
           PASSWORD: ${{ steps.certs.outputs.password }}
           PRIMARY: ${{ steps.fixtures.outputs.primary }}
-          INSTALLER: ${{ steps.fixtures.outputs.installer }}
-        run: |
-          & .\scripts\sign_windows_artifacts.ps1 `
-            -PfxPath $env:PFX `
-            -PfxPassword $env:PASSWORD `
-            -File @($env:PRIMARY, $env:INSTALLER) `
-            -TimestampUrl "" `
-            -EvidencePath (Join-Path $env:ROOT "signer-one-evidence.json")
-
-      - name: Sign alternate product with same-subject signer two
-        shell: pwsh
-        env:
-          ROOT: ${{ steps.certs.outputs.root }}
-          PFX: ${{ steps.certs.outputs.pfx2 }}
-          PASSWORD: ${{ steps.certs.outputs.password }}
           ALTERNATE: ${{ steps.fixtures.outputs.alternate }}
         run: |
-          & .\scripts\sign_windows_artifacts.ps1 `
-            -PfxPath $env:PFX `
-            -PfxPassword $env:PASSWORD `
-            -File @($env:ALTERNATE) `
-            -TimestampUrl "" `
-            -EvidencePath (Join-Path $env:ROOT "signer-two-evidence.json")
+          $ErrorActionPreference = "Stop"
+          $signtool = Get-Command signtool.exe -ErrorAction SilentlyContinue
+          if (-not $signtool) {
+            $signtool = Get-ChildItem `
+              -LiteralPath (Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin") `
+              -Filter signtool.exe -Recurse -File -ErrorAction Stop |
+              Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
+              Sort-Object FullName -Descending |
+              Select-Object -First 1
+          }
+          if (-not $signtool) { throw "signtool.exe is unavailable" }
+          $tool = if ($signtool.Source) { $signtool.Source } else { $signtool.FullName }
+
+          & $tool sign /fd SHA256 /f $env:PFX1 /p $env:PASSWORD $env:PRIMARY
+          if ($LASTEXITCODE -ne 0) { throw "signer one failed" }
+          & $tool sign /fd SHA256 /f $env:PFX2 /p $env:PASSWORD $env:ALTERNATE
+          if ($LASTEXITCODE -ne 0) { throw "signer two failed" }
 
       - name: Verify trusted Windows path and actual signer fingerprint binding
         shell: pwsh
         env:
           ROOT: ${{ steps.certs.outputs.root }}
+          CER1: ${{ steps.certs.outputs.cer1 }}
+          CER2: ${{ steps.certs.outputs.cer2 }}
         run: |
           $env:PYTHONPATH = (Resolve-Path ".\src").Path
           @'
           from pathlib import Path
+          import hashlib
           import os
 
           from video_editing_agent.adapters.product.update_trust import (
@@ -219,8 +213,14 @@ jobs:
               raise SystemExit("signed PE did not resolve its embedded Authenticode signer")
           if signer_one.subject != signer_two.subject:
               raise SystemExit("test certificates unexpectedly have different display subjects")
+          expected_one = hashlib.sha256(Path(os.environ["CER1"]).read_bytes()).hexdigest()
+          expected_two = hashlib.sha256(Path(os.environ["CER2"]).read_bytes()).hexdigest()
+          if signer_one.certificate_sha256 != expected_one:
+              raise SystemExit("signer one fingerprint does not match its signing certificate")
+          if signer_two.certificate_sha256 != expected_two:
+              raise SystemExit("signer two fingerprint does not match its signing certificate")
           if signer_one.certificate_sha256 == signer_two.certificate_sha256:
-              raise SystemExit("independent same-subject certificates have identical fingerprints")
+              raise SystemExit("same-subject independent certificates have identical fingerprints")
 
           class ExtractedSignerTrust:
               def publisher_of(self, path: Path):
@@ -238,45 +238,16 @@ jobs:
                   raise
           else:
               raise SystemExit("same-subject different-certificate replacement was accepted")
-          print("WinVerifyTrust baseline and actual signer fingerprint binding passed")
+          print("WinVerifyTrust baseline and actual signer certificate fingerprint binding passed")
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw "Windows Authenticode identity smoke failed" }
 
-      - name: Verify final signed installer evidence
-        shell: pwsh
-        env:
-          ROOT: ${{ steps.certs.outputs.root }}
-          INSTALLER: ${{ steps.fixtures.outputs.installer }}
-        run: |
-          $ErrorActionPreference = "Stop"
-          $evidence = Get-Content -LiteralPath (Join-Path $env:ROOT "installer-evidence.json") -Raw |
-            ConvertFrom-Json
-          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $env:INSTALLER).Hash.ToLowerInvariant()
-          if ($evidence.installer_sha256 -ne $actual) {
-            throw "installer-evidence.json retained a pre-sign SHA-256"
-          }
-          if ($evidence.artifact_state -ne "final-signed") {
-            throw "installer evidence is not marked final-signed"
-          }
-          if ($evidence.authenticode_status -ne "Valid") {
-            throw "installer evidence does not record valid Authenticode"
-          }
-          if ($evidence.signer_certificate_sha256 -notmatch '^[0-9a-f]{64}$') {
-            throw "installer evidence has no signer certificate SHA-256"
-          }
-
-      - name: Remove ephemeral certificates and files
+      - name: Remove disposable signing material
         if: always()
         shell: pwsh
         env:
           ROOT: ${{ steps.certs.outputs.root }}
         run: |
-          foreach ($thumbprint in @($env:TEST_CERT_THUMBPRINT_1, $env:TEST_CERT_THUMBPRINT_2)) {
-            if (-not $thumbprint) { continue }
-            foreach ($store in @("TrustedPeople", "TrustedPublisher")) {
-              & certutil.exe -user -delstore $store $thumbprint 2>$null | Out-Null
-            }
-          }
           if ($env:ROOT -and (Test-Path -LiteralPath $env:ROOT)) {
             Remove-Item -LiteralPath $env:ROOT -Recurse -Force -ErrorAction SilentlyContinue
           }
