@@ -42,8 +42,10 @@ jobs:
           function New-EphemeralCodeSigningCertificate(
             [string]$Subject,
             [string]$PfxPath,
+            [string]$CerPath,
             [string]$Password
           ) {
+            Write-Host "Generating certificate $PfxPath"
             $rsa = [System.Security.Cryptography.RSA]::Create(2048)
             try {
               $request = [System.Security.Cryptography.X509Certificates.CertificateRequest]::new(
@@ -89,33 +91,13 @@ jobs:
                     $Password
                   )
                 )
-                $publicBytes = $certificate.Export(
-                  [System.Security.Cryptography.X509Certificates.X509ContentType]::Cert
+                [IO.File]::WriteAllBytes(
+                  $CerPath,
+                  $certificate.Export(
+                    [System.Security.Cryptography.X509Certificates.X509ContentType]::Cert
+                  )
                 )
-                $publicCertificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new(
-                  $publicBytes
-                )
-                try {
-                  foreach ($storeName in @("Root", "TrustedPublisher")) {
-                    $store = [System.Security.Cryptography.X509Certificates.X509Store]::new(
-                      $storeName,
-                      [System.Security.Cryptography.X509Certificates.StoreLocation]::CurrentUser
-                    )
-                    try {
-                      $store.Open(
-                        [System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite
-                      )
-                      $store.Add($publicCertificate)
-                    }
-                    finally {
-                      $store.Close()
-                    }
-                  }
-                  return $publicCertificate.Thumbprint
-                }
-                finally {
-                  $publicCertificate.Dispose()
-                }
+                return $certificate.Thumbprint
               }
               finally {
                 $certificate.Dispose()
@@ -126,12 +108,27 @@ jobs:
             }
           }
 
+          function Add-TestCertificateToStore([string]$CerPath, [string]$StoreName) {
+            Write-Host "Trusting $CerPath in CurrentUser/$StoreName"
+            & certutil.exe -user -f -addstore $StoreName $CerPath
+            if ($LASTEXITCODE -ne 0) {
+              throw "certutil failed to add $CerPath to CurrentUser/$StoreName"
+            }
+          }
+
           $pfx1 = Join-Path $root "signer-one.pfx"
           $pfx2 = Join-Path $root "signer-two.pfx"
-          $thumbprint1 = New-EphemeralCodeSigningCertificate $subject $pfx1 $passwordText
-          $thumbprint2 = New-EphemeralCodeSigningCertificate $subject $pfx2 $passwordText
+          $cer1 = Join-Path $root "signer-one.cer"
+          $cer2 = Join-Path $root "signer-two.cer"
+          $thumbprint1 = New-EphemeralCodeSigningCertificate $subject $pfx1 $cer1 $passwordText
+          $thumbprint2 = New-EphemeralCodeSigningCertificate $subject $pfx2 $cer2 $passwordText
           if ($thumbprint1 -eq $thumbprint2) {
             throw "Independent ephemeral signing certificates unexpectedly share a thumbprint"
+          }
+
+          foreach ($cer in @($cer1, $cer2)) {
+            Add-TestCertificateToStore $cer "Root"
+            Add-TestCertificateToStore $cer "TrustedPublisher"
           }
 
           "root=$root" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -269,23 +266,7 @@ jobs:
           foreach ($thumbprint in @($env:TEST_CERT_THUMBPRINT_1, $env:TEST_CERT_THUMBPRINT_2)) {
             if (-not $thumbprint) { continue }
             foreach ($storeName in @("Root", "TrustedPublisher")) {
-              $store = [System.Security.Cryptography.X509Certificates.X509Store]::new(
-                $storeName,
-                [System.Security.Cryptography.X509Certificates.StoreLocation]::CurrentUser
-              )
-              try {
-                $store.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
-                foreach ($certificate in @($store.Certificates.Find(
-                  [System.Security.Cryptography.X509Certificates.X509FindType]::FindByThumbprint,
-                  $thumbprint,
-                  $false
-                ))) {
-                  $store.Remove($certificate)
-                }
-              }
-              finally {
-                $store.Close()
-              }
+              & certutil.exe -user -delstore $storeName $thumbprint 2>$null | Out-Null
             }
           }
           if ($env:ROOT -and (Test-Path -LiteralPath $env:ROOT)) {
