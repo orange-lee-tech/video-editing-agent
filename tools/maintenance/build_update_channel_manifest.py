@@ -18,7 +18,9 @@ _SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Build and sign the stable update-channel manifest")
+    parser = argparse.ArgumentParser(
+        description="Build and sign the stable update-channel manifest"
+    )
     parser.add_argument("--version", required=True)
     parser.add_argument("--published-at", required=True)
     parser.add_argument("--installer", type=Path, required=True)
@@ -62,7 +64,11 @@ def build_signed_manifest(
         raise ValueError("component metadata application_version does not match version")
     layout_version = metadata.get("layout_version")
     minimum_updater_version = metadata.get("minimum_updater_version")
-    if isinstance(layout_version, bool) or not isinstance(layout_version, int) or layout_version < 1:
+    if (
+        isinstance(layout_version, bool)
+        or not isinstance(layout_version, int)
+        or layout_version < 1
+    ):
         raise ValueError("component metadata layout_version must be >= 1")
     if (
         isinstance(minimum_updater_version, bool)
@@ -89,7 +95,11 @@ def build_signed_manifest(
             for value in (component_id, component_version, filename, expected_sha)
         ):
             raise ValueError("component metadata contains a blank identity field")
-        if isinstance(expected_size, bool) or not isinstance(expected_size, int) or expected_size < 1:
+        if (
+            isinstance(expected_size, bool)
+            or not isinstance(expected_size, int)
+            or expected_size < 1
+        ):
             raise ValueError(f"component {component_id} has invalid size_bytes")
         archive = component_root / filename
         if not archive.is_file():

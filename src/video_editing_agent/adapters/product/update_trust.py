@@ -164,9 +164,10 @@ def enforce_replacement_trust(
         != previous_publisher.certificate_sha256.casefold()
     ):
         raise ValueError(
-            f"replacement {destination.name} signer certificate {new_publisher.certificate_sha256!r} "
-            f"({new_publisher.subject}) does not match installed signer certificate "
-            f"{previous_publisher.certificate_sha256!r} ({previous_publisher.subject})"
+            f"replacement {destination.name} signer certificate "
+            f"{new_publisher.certificate_sha256!r} ({new_publisher.subject}) does not match "
+            f"installed signer certificate {previous_publisher.certificate_sha256!r} "
+            f"({previous_publisher.subject})"
         )
 
 
