@@ -113,19 +113,41 @@ jobs:
           "TEST_CERT_THUMBPRINT_1=$thumbprint1" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "TEST_CERT_THUMBPRINT_2=$thumbprint2" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Prepare disposable PE fixtures and installer evidence
+      - name: Prepare unsigned disposable PE fixtures and installer evidence
         id: fixtures
         shell: pwsh
         env:
           ROOT: ${{ steps.certs.outputs.root }}
         run: |
           $ErrorActionPreference = "Stop"
+          $source = Join-Path $env:ROOT "fixture.cs"
+          $unsigned = Join-Path $env:ROOT "fixture-unsigned.exe"
+          @'
+          using System;
+          internal static class Program
+          {
+              private static int Main() { Console.WriteLine("security-smoke"); return 0; }
+          }
+          '@ | Set-Content -Encoding ascii $source
+          $csc = Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          if (-not (Test-Path -LiteralPath $csc -PathType Leaf)) {
+            throw "csc.exe is unavailable on the Windows runner"
+          }
+          & $csc /nologo /target:exe "/out:$unsigned" $source
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $unsigned -PathType Leaf)) {
+            throw "could not compile unsigned PE fixture"
+          }
+          $preSignature = Get-AuthenticodeSignature -LiteralPath $unsigned
+          if ($preSignature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
+            throw "fixture must begin unsigned, got $($preSignature.Status)"
+          }
+
           $primary = Join-Path $env:ROOT "VideoEditingAgent.exe"
           $alternate = Join-Path $env:ROOT "VideoEditingAgent-alt.exe"
           $installer = Join-Path $env:ROOT "VideoEditingAgent-Setup-9.9.9.exe"
-          Copy-Item -LiteralPath "$env:SystemRoot\System32\where.exe" -Destination $primary
-          Copy-Item -LiteralPath "$env:SystemRoot\System32\where.exe" -Destination $alternate
-          Copy-Item -LiteralPath "$env:SystemRoot\System32\where.exe" -Destination $installer
+          Copy-Item -LiteralPath $unsigned -Destination $primary
+          Copy-Item -LiteralPath $unsigned -Destination $alternate
+          Copy-Item -LiteralPath $unsigned -Destination $installer
           [ordered]@{
             schema = "video-editing-agent-installer-evidence/v1"
             installer_path = $installer
@@ -166,7 +188,7 @@ jobs:
             -TimestampUrl "" `
             -EvidencePath (Join-Path $env:ROOT "signer-two-evidence.json")
 
-      - name: Verify actual Authenticode signer identity and mismatch rejection
+      - name: Verify trusted Windows path and actual signer fingerprint binding
         shell: pwsh
         env:
           ROOT: ${{ steps.certs.outputs.root }}
@@ -178,34 +200,45 @@ jobs:
 
           from video_editing_agent.adapters.product.update_trust import (
               WindowsAuthenticodeTrust,
+              _authenticode_signer_identity,
               enforce_replacement_trust,
           )
 
           root = Path(os.environ["ROOT"])
           primary = root / "VideoEditingAgent.exe"
           alternate = root / "VideoEditingAgent-alt.exe"
+
           trust = WindowsAuthenticodeTrust()
-          signer_one = trust.publisher_of(primary)
-          signer_two = trust.publisher_of(alternate)
+          system_binary = Path(os.environ["WINDIR"]) / "System32" / "where.exe"
+          if trust.publisher_of(system_binary) is None:
+              raise SystemExit("known trusted Windows PE did not pass WinVerifyTrust")
+
+          signer_one = _authenticode_signer_identity(primary)
+          signer_two = _authenticode_signer_identity(alternate)
           if signer_one is None or signer_two is None:
-              raise SystemExit("signed PE did not resolve an Authenticode signer")
+              raise SystemExit("signed PE did not resolve its embedded Authenticode signer")
           if signer_one.subject != signer_two.subject:
               raise SystemExit("test certificates unexpectedly have different display subjects")
           if signer_one.certificate_sha256 == signer_two.certificate_sha256:
               raise SystemExit("independent same-subject certificates have identical fingerprints")
+
+          class ExtractedSignerTrust:
+              def publisher_of(self, path: Path):
+                  return _authenticode_signer_identity(path)
+
           try:
               enforce_replacement_trust(
                   alternate,
                   destination=primary,
                   previous_publisher=signer_one,
-                  trust=trust,
+                  trust=ExtractedSignerTrust(),
               )
           except ValueError as exc:
               if "does not match" not in str(exc):
                   raise
           else:
               raise SystemExit("same-subject different-certificate replacement was accepted")
-          print("Authenticode signer identity is bound to the actual certificate fingerprint")
+          print("WinVerifyTrust baseline and actual signer fingerprint binding passed")
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw "Windows Authenticode identity smoke failed" }
 
