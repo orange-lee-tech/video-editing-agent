@@ -10,6 +10,7 @@ _Q = 2**255 - 19
 _L = 2**252 + 27742317777372353535851937790883648493
 _D = -121665 * pow(121666, _Q - 2, _Q) % _Q
 _I = pow(2, (_Q - 1) // 4, _Q)
+_IDENTITY = (0, 1)
 
 
 def _inv(x: int) -> int:
@@ -41,7 +42,7 @@ def _edwards(p: tuple[int, int], q: tuple[int, int]) -> tuple[int, int]:
 
 def _scalarmult(point: tuple[int, int], scalar: int) -> tuple[int, int]:
     if scalar == 0:
-        return (0, 1)
+        return _IDENTITY
     q = _scalarmult(point, scalar // 2)
     q = _edwards(q, q)
     if scalar & 1:
@@ -69,19 +70,35 @@ def _decodeint(s: bytes) -> int:
 
 
 def _decodepoint(s: bytes) -> tuple[int, int]:
+    if len(s) != 32:
+        raise ValueError("ed25519 point encoding must be 32 bytes")
+    sign = _bit(s, _B - 1)
     y = _decodeint(s) & (2**255 - 1)
+    if y >= _Q:
+        raise ValueError("ed25519 point encoding is non-canonical")
     x = _xrecover(y)
-    if x & 1 != _bit(s, _B - 1):
+    if x == 0 and sign:
+        raise ValueError("ed25519 point encoding has an invalid sign bit")
+    if x & 1 != sign:
         x = _Q - x
     point = (x, y)
     if not _isoncurve(point):
         raise ValueError("ed25519 public key is not a valid curve point")
+    if _encodepoint(point) != s:
+        raise ValueError("ed25519 point encoding is non-canonical")
     return point
 
 
 def _isoncurve(point: tuple[int, int]) -> bool:
     x, y = point
     return (-x * x + y * y - 1 - _D * x * x * y * y) % _Q == 0
+
+
+def _require_prime_order(point: tuple[int, int], *, label: str) -> None:
+    if _scalarmult(point, 8) == _IDENTITY:
+        raise ValueError(f"ed25519 {label} is a small-order point")
+    if _scalarmult(point, _L) != _IDENTITY:
+        raise ValueError(f"ed25519 {label} is not in the prime-order subgroup")
 
 
 def _hint(message: bytes) -> int:
@@ -119,12 +136,14 @@ def verify(public: bytes, message: bytes, signature: bytes) -> None:
     if len(signature) != 64:
         raise ValueError("ed25519 signature must be 64 bytes")
     point_a = _decodepoint(public)
+    _require_prime_order(point_a, label="public key")
     r = signature[:32]
     s = _decodeint(signature[32:])
     if s >= _L:
         raise ValueError("ed25519 signature scalar is out of range")
     point_r = _decodepoint(r)
-    k = _hint(r + public + message)
+    _require_prime_order(point_r, label="R point")
+    k = _hint(r + public + message) % _L
     left = _scalarmult(_B_POINT, s)
     right = _edwards(point_r, _scalarmult(point_a, k))
     if left != right:

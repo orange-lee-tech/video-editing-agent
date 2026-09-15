@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import ctypes
+import hashlib
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
@@ -22,6 +24,8 @@ CERT_QUERY_OBJECT_FILE = 1
 CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED_EMBED = 0x00000400
 CERT_QUERY_FORMAT_FLAG_BINARY = 2
 CERT_NAME_SIMPLE_DISPLAY_TYPE = 4
+CERT_FIND_SUBJECT_CERT = 0x000B0000
+CMSG_SIGNER_CERT_INFO_PARAM = 7
 TRUST_E_NOSIGNATURE = 0x800B0100
 CRYPT_E_NO_MATCH = 0x80092009
 
@@ -67,6 +71,16 @@ class GUID(ctypes.Structure):
     ]
 
 
+class CERT_CONTEXT(ctypes.Structure):
+    _fields_ = [
+        ("dwCertEncodingType", ctypes.c_uint32),
+        ("pbCertEncoded", ctypes.POINTER(ctypes.c_ubyte)),
+        ("cbCertEncoded", ctypes.c_uint32),
+        ("pCertInfo", ctypes.c_void_p),
+        ("hCertStore", ctypes.c_void_p),
+    ]
+
+
 WINTRUST_ACTION_GENERIC_VERIFY_V2 = GUID(
     0x00AAC56B,
     0xCD44,
@@ -75,12 +89,25 @@ WINTRUST_ACTION_GENERIC_VERIFY_V2 = GUID(
 )
 
 
+@dataclass(frozen=True, slots=True)
+class SignerIdentity:
+    certificate_sha256: str
+    subject: str
+
+    def __post_init__(self) -> None:
+        fingerprint = self.certificate_sha256.casefold()
+        if len(fingerprint) != 64 or any(ch not in "0123456789abcdef" for ch in fingerprint):
+            raise ValueError("signer certificate SHA-256 fingerprint is invalid")
+        if not self.subject.strip():
+            raise ValueError("signer certificate subject must not be blank")
+
+
 class ReplacementTrust(Protocol):
-    def publisher_of(self, path: Path) -> str | None: ...
+    def publisher_of(self, path: Path) -> SignerIdentity | None: ...
 
 
 class UnsignedReplacementTrust:
-    def publisher_of(self, path: Path) -> str | None:
+    def publisher_of(self, path: Path) -> SignerIdentity | None:
         del path
         return None
 
@@ -100,7 +127,7 @@ def default_replacement_trust() -> ReplacementTrust:
 
 
 class WindowsAuthenticodeTrust:
-    def publisher_of(self, path: Path) -> str | None:
+    def publisher_of(self, path: Path) -> SignerIdentity | None:
         if not looks_like_pe(path):
             return None
         status = _win_verify_trust(path)
@@ -108,17 +135,17 @@ class WindowsAuthenticodeTrust:
             return None
         if status != 0:
             raise ValueError(f"Authenticode verification failed: 0x{status & 0xFFFFFFFF:08X}")
-        name = _leaf_publisher_name(path)
-        if name is None or not name.strip():
-            raise ValueError("Authenticode signature did not include a publisher")
-        return name.strip()
+        identity = _authenticode_signer_identity(path)
+        if identity is None:
+            raise ValueError("Authenticode signature did not resolve its signer certificate")
+        return identity
 
 
 def enforce_replacement_trust(
     staged: Path,
     *,
     destination: Path,
-    previous_publisher: str | None,
+    previous_publisher: SignerIdentity | None,
     trust: ReplacementTrust,
 ) -> None:
     if not looks_like_pe(staged):
@@ -131,10 +158,15 @@ def enforce_replacement_trust(
         return
     if new_publisher is None:
         raise ValueError(f"replacement {destination.name} is not Authenticode-signed")
-    if previous_publisher and new_publisher.casefold() != previous_publisher.casefold():
+    if (
+        previous_publisher
+        and new_publisher.certificate_sha256.casefold()
+        != previous_publisher.certificate_sha256.casefold()
+    ):
         raise ValueError(
-            f"replacement {destination.name} publisher {new_publisher!r} does not match "
-            f"installed publisher {previous_publisher!r}"
+            f"replacement {destination.name} signer certificate {new_publisher.certificate_sha256!r} "
+            f"({new_publisher.subject}) does not match installed signer certificate "
+            f"{previous_publisher.certificate_sha256!r} ({previous_publisher.subject})"
         )
 
 
@@ -161,7 +193,7 @@ def _win_verify_trust(path: Path) -> int:
     return status & 0xFFFFFFFF
 
 
-def _leaf_publisher_name(path: Path) -> str | None:
+def _authenticode_signer_identity(path: Path) -> SignerIdentity | None:
     windll = getattr(ctypes, "windll", None)
     if windll is None:
         return None
@@ -186,23 +218,72 @@ def _leaf_publisher_name(path: Path) -> str | None:
         None,
     ):
         return None
+    context = ctypes.c_void_p()
     try:
-        crypt32.CertEnumCertificatesInStore.restype = ctypes.c_void_p
-        context = crypt32.CertEnumCertificatesInStore(store, None)
-        if not context:
+        signer_info_size = ctypes.c_uint32()
+        crypt32.CryptMsgGetParam.restype = ctypes.c_int
+        if not crypt32.CryptMsgGetParam(
+            message,
+            CMSG_SIGNER_CERT_INFO_PARAM,
+            0,
+            None,
+            ctypes.byref(signer_info_size),
+        ):
             return None
+        signer_info = ctypes.create_string_buffer(signer_info_size.value)
+        if not crypt32.CryptMsgGetParam(
+            message,
+            CMSG_SIGNER_CERT_INFO_PARAM,
+            0,
+            signer_info,
+            ctypes.byref(signer_info_size),
+        ):
+            return None
+
+        crypt32.CertFindCertificateInStore.restype = ctypes.c_void_p
+        context = ctypes.c_void_p(
+            crypt32.CertFindCertificateInStore(
+                store,
+                encoding.value,
+                0,
+                CERT_FIND_SUBJECT_CERT,
+                ctypes.cast(signer_info, ctypes.c_void_p),
+                None,
+            )
+        )
+        if not context.value:
+            return None
+
+        cert_context = ctypes.cast(context, ctypes.POINTER(CERT_CONTEXT)).contents
+        encoded = ctypes.string_at(cert_context.pbCertEncoded, cert_context.cbCertEncoded)
+        fingerprint = hashlib.sha256(encoded).hexdigest()
+
         crypt32.CertGetNameStringW.restype = ctypes.c_uint32
         length = crypt32.CertGetNameStringW(
-            context, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, None, None, 0
+            context,
+            CERT_NAME_SIMPLE_DISPLAY_TYPE,
+            0,
+            None,
+            None,
+            0,
         )
         if length <= 1:
-            crypt32.CertFreeCertificateContext(context)
             return None
         buffer = ctypes.create_unicode_buffer(length)
-        crypt32.CertGetNameStringW(context, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, None, buffer, length)
-        crypt32.CertFreeCertificateContext(context)
-        return buffer.value
+        crypt32.CertGetNameStringW(
+            context,
+            CERT_NAME_SIMPLE_DISPLAY_TYPE,
+            0,
+            None,
+            buffer,
+            length,
+        )
+        if not buffer.value.strip():
+            return None
+        return SignerIdentity(fingerprint, buffer.value.strip())
     finally:
+        if context.value:
+            crypt32.CertFreeCertificateContext(context)
         if store:
             crypt32.CertCloseStore(store, 0)
         if message:
