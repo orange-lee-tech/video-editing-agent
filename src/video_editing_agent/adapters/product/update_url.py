@@ -4,6 +4,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+from http.client import HTTPMessage
+from typing import IO
 from urllib.parse import urljoin
 from urllib.request import Request
 
@@ -81,10 +83,10 @@ class _AllowlistedHTTPSRedirectHandler(urllib.request.HTTPRedirectHandler):
     def redirect_request(
         self,
         req: Request,
-        fp: object,
+        fp: IO[bytes],
         code: int,
         msg: str,
-        headers: object,
+        headers: HTTPMessage,
         newurl: str,
     ) -> Request | None:
         if code not in {301, 302, 303, 307, 308}:

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from typing import cast
 
 from video_editing_agent.adapters.product import update_ed25519
 
@@ -66,4 +65,4 @@ def verify_manifest_signature(
 
 def signed_manifest_text(payload: Mapping[str, object], seed: bytes) -> str:
     document = sign_manifest_payload(payload, seed)
-    return json.dumps(cast(dict[str, object], document), ensure_ascii=False, indent=2) + "\n"
+    return json.dumps(document, ensure_ascii=False, indent=2) + "\n"

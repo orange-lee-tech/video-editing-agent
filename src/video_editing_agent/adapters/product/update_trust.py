@@ -199,9 +199,7 @@ def _leaf_publisher_name(path: Path) -> str | None:
             crypt32.CertFreeCertificateContext(context)
             return None
         buffer = ctypes.create_unicode_buffer(length)
-        crypt32.CertGetNameStringW(
-            context, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, None, buffer, length
-        )
+        crypt32.CertGetNameStringW(context, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, None, buffer, length)
         crypt32.CertFreeCertificateContext(context)
         return buffer.value
     finally:

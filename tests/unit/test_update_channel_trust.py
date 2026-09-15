@@ -6,8 +6,10 @@ from pathlib import Path
 import pytest
 
 from video_editing_agent.adapters.product import update_check, update_ed25519
-from video_editing_agent.adapters.product.component_update import apply_component_archives
-from video_editing_agent.adapters.product.update_check import check_for_update, parse_update_manifest
+from video_editing_agent.adapters.product.update_check import (
+    check_for_update,
+    parse_update_manifest,
+)
 from video_editing_agent.adapters.product.update_signature import (
     UPDATE_MANIFEST_PUBLIC_KEY,
     signed_manifest_text,
