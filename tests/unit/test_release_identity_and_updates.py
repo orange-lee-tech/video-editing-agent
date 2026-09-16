@@ -54,7 +54,7 @@ def test_release_version_identity_is_1_0_0_and_packaging_mirrors_it() -> None:
     assert 'StringStruct("ProductName", "有岐")' in version_info
 
     spec = Path("packaging/video_editing_agent.spec").read_text(encoding="utf-8")
-    assert 'packaging/windows/VideoEditingAgent.version' in spec
+    assert "packaging/windows/VideoEditingAgent.version" in spec
     assert spec.count("version=version_info") == 3
 
     workflow = Path(".github/workflows/windows-release-candidate.yml").read_text(encoding="utf-8")
