@@ -168,6 +168,16 @@ Active upstream governance:
 - [`docs/upstream/UPSTREAM_COMPONENTS_V2.md`](docs/upstream/UPSTREAM_COMPONENTS_V2.md)
 - [`docs/upstream/UPSTREAM_POLICY_V2.md`](docs/upstream/UPSTREAM_POLICY_V2.md)
 
+## Code signing policy
+
+The project maintains a public [Code signing policy](CODE_SIGNING_POLICY.md) for official Windows releases.
+
+Upon approval of the project's SignPath Foundation application, production Windows releases will use **Free code signing provided by SignPath.io, certificate by SignPath Foundation**. The policy documents the signing-team roles, MFA requirement, trusted GitHub Actions build boundary, manual approval requirement, third-party binary boundary, artifact metadata, and incident rules.
+
+The current `v1.0.0` release predates SignPath Foundation signing and is not represented as SignPath-signed.
+
+Privacy and external-provider behavior are documented in [`PRIVACY.md`](PRIVACY.md).
+
 ## License
 
 Project-authored material in this repository is licensed under the **Apache License, Version 2.0** (`Apache-2.0`). See [`LICENSE`](LICENSE), [`NOTICE`](NOTICE), and [`LICENSE_STATUS.md`](LICENSE_STATUS.md).
