@@ -127,11 +127,13 @@ def test_update_manifest_parses_component_patches() -> None:
     assert manifest.components[0].size_bytes == 123456
 
 
-def test_installer_requires_bilingual_user_agreement_and_eta() -> None:
+def test_installer_shows_bilingual_user_terms_without_clickthrough_and_eta() -> None:
     installer = Path("packaging/windows/VideoEditingAgent.iss").read_text(encoding="utf-8")
 
-    assert 'LicenseFile: "..\\..\\resources\\legal\\USER_AGREEMENT_en.txt"' in installer
-    assert 'LicenseFile: "..\\..\\resources\\legal\\USER_AGREEMENT_zh-CN.txt"' in installer
+    assert 'InfoBeforeFile: "..\\..\\resources\\legal\\USER_AGREEMENT_en.txt"' in installer
+    assert 'InfoBeforeFile: "..\\..\\resources\\legal\\USER_AGREEMENT_zh-CN.txt"' in installer
+    assert 'LicenseFile: "..\\..\\resources\\legal\\USER_AGREEMENT_en.txt"' not in installer
+    assert 'LicenseFile: "..\\..\\resources\\legal\\USER_AGREEMENT_zh-CN.txt"' not in installer
     assert "CurInstallProgressChanged" in installer
     assert "InstallEtaRemaining" in installer
     assert Path("resources/legal/USER_AGREEMENT_en.txt").is_file()
