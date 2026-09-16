@@ -1,8 +1,8 @@
 # Privacy Policy
 
-**Last updated: August 30, 2026**
+**Last updated: September 16, 2026**
 
-This Privacy Policy applies to the **video-editing-agent** project maintained by **orange-lee-tech** and available at:
+This Privacy Policy applies to the **video-editing-agent / 有岐** project maintained by **orange-lee-tech** and available at:
 
 - https://github.com/orange-lee-tech/video-editing-agent
 - https://github.com/orange-lee-tech
@@ -30,43 +30,61 @@ Some features may rely on third-party AI models, APIs, or other services configu
 
 The handling of information by a third-party provider is governed by that provider's own privacy policy, terms, retention rules, and security practices. Users should review those policies before enabling or using an external provider.
 
+Providers currently supported or referenced by the application include:
+
+- **DeepSeek API** — API documentation and applicable Open Platform terms are published at <https://api-docs.deepseek.com/>; DeepSeek's privacy policy is published by DeepSeek at <https://platform.deepseek.com/downloads/DeepSeek%20Privacy%20Policy.pdf>.
+- **Google Gemini API** — Gemini API documentation and data-handling guidance are published at <https://ai.google.dev/gemini-api/docs/>; Google's privacy policy is at <https://policies.google.com/privacy>.
+- **OpenAI API** — API/service data is governed by the applicable OpenAI customer/service agreements and data controls; OpenAI privacy and data-use information is published at <https://openai.com/policies/privacy-policy/> and <https://help.openai.com/en/articles/10306912>.
+
+Provider terms and privacy practices can change independently of this project. The user is responsible for reviewing the current provider terms that apply to the account and service tier they choose.
+
 ## 4. API keys and credentials
 
 Users are responsible for protecting credentials they configure for third-party services. Credentials should not be committed to the public GitHub repository or otherwise shared publicly.
 
 The project is designed to avoid treating user credentials as project content. Any storage or transmission of credentials required by a configured provider should be limited to what is necessary to enable that provider.
 
-## 5. Data collection by the project maintainer
+The application does not bundle developer-owned production API credentials for these optional providers.
+
+## 5. Public update channel and GitHub infrastructure
+
+When the user invokes the software update check, the application retrieves public update metadata from project-controlled public web infrastructure and may subsequently open or download an official GitHub Release artifact.
+
+The update check sends a normal HTTPS request containing standard network information and a product/version User-Agent. It does **not** upload the user's source media, project database, editing instructions, API keys, or rendered output as part of the update check.
+
+GitHub and GitHub Pages may process ordinary connection metadata such as IP address, request information, and browser/network metadata under GitHub's own privacy terms. GitHub's privacy statement is published at <https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement>.
+
+## 6. Data collection by the project maintainer
 
 The project is currently distributed through GitHub and is designed primarily for local execution. The project maintainer does not intentionally operate a centralized service for collecting users' source media, project files, or rendered videos as part of normal local use.
 
 GitHub itself may collect information when users visit or interact with GitHub-hosted project pages. That activity is governed by GitHub's own privacy policies.
 
-## 6. Data retention and deletion
+## 7. Data retention and deletion
 
 Local project data remains under the user's control and may be deleted using the user's operating system or the application's available project-management functions.
 
 For data transmitted to an external provider, retention and deletion are subject to that provider's policies and the user's account settings with that provider.
 
-## 7. Sharing of information
+## 8. Sharing of information
 
 The project maintainer does not sell users' personal information.
 
 Information may be shared with external providers only when required by functionality the user chooses to invoke, or when disclosure is required by applicable law.
 
-## 8. Security
+## 9. Security
 
 Reasonable efforts are made to keep local/private media, credentials, toolchains, and generated private artifacts out of the public source repository. However, no software or transmission method can guarantee absolute security. Users should avoid submitting secrets or sensitive personal information to public GitHub issues, discussions, or pull requests.
 
-## 9. Children's privacy
+## 10. Children's privacy
 
 The project is not specifically directed to children and is not intended to knowingly collect children's personal information through a developer-operated service.
 
-## 10. Changes to this policy
+## 11. Changes to this policy
 
 This Privacy Policy may be updated as the project, supported providers, or data flows evolve. Material changes will be reflected in this file and its Git history.
 
-## 11. Contact
+## 12. Contact
 
 For privacy-related questions about this project, contact the maintainer through the **orange-lee-tech** GitHub account:
 
