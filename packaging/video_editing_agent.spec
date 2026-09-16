@@ -2,6 +2,7 @@ from pathlib import Path
 
 repo = Path(SPECPATH).parent
 payloads = repo / "build/runtime-payloads"
+version_info = str(repo / "packaging/windows/VideoEditingAgent.version")
 
 a = Analysis(
     [str(repo / "src/video_editing_agent/adapters/bootstrap/desktop_entry.py")],
@@ -45,6 +46,7 @@ gui_exe = EXE(
     [],
     exclude_binaries=True,
     name="VideoEditingAgent",
+    version=version_info,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -57,6 +59,7 @@ cli_exe = EXE(
     [],
     exclude_binaries=True,
     name="VideoEditingAgent-cli",
+    version=version_info,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -71,6 +74,7 @@ updater_exe = EXE(
     [],
     exclude_binaries=False,
     name="VideoEditingAgent-updater",
+    version=version_info,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
