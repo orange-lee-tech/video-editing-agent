@@ -114,7 +114,8 @@ Retired documents live under [`docs/archive/`](docs/archive/) and are provenance
 - `.github/` — CI and reproducible probe/maintenance workflows.
 - `docs/` — product/architecture/roadmap/ADR/validation/log/operations control plane.
 - `docs/archive/` — retired documentation preserved for provenance only.
-- `LICENSES/` — third-party license-text staging/retention policy, not the project license.
+- `LICENSE` / `NOTICE` — repository-wide Apache-2.0 license and attribution notice for project-authored material.
+- `LICENSES/` — third-party license-text staging/retention policy; third-party material remains under its own terms.
 - `scripts/` — repository/developer helper scripts and historical standalone probes.
 - `src/` — production Python package.
 - `tests/` — unit/integration/contract tests and redistributable fixtures.
@@ -167,8 +168,8 @@ Active upstream governance:
 - [`docs/upstream/UPSTREAM_COMPONENTS_V2.md`](docs/upstream/UPSTREAM_COMPONENTS_V2.md)
 - [`docs/upstream/UPSTREAM_POLICY_V2.md`](docs/upstream/UPSTREAM_POLICY_V2.md)
 
-## License status
+## License
 
-A repository-wide open-source license has not yet been selected. All rights are reserved by default until an explicit project license is adopted.
+Project-authored material in this repository is licensed under the **Apache License, Version 2.0** (`Apache-2.0`). See [`LICENSE`](LICENSE), [`NOTICE`](NOTICE), and [`LICENSE_STATUS.md`](LICENSE_STATUS.md).
 
-See [`LICENSE_STATUS.md`](LICENSE_STATUS.md) and [`LICENSES/README.md`](LICENSES/README.md).
+Bundled and referenced third-party components remain under their respective licenses and review gates; see [`LICENSES/README.md`](LICENSES/README.md) and the runtime third-party notices.

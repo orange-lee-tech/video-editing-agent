@@ -16,6 +16,8 @@ a = Analysis(
             str(repo / "resources/packaging/runtime-manifest.schema.json"),
             "resources/packaging",
         ),
+        (str(repo / "LICENSE"), "licenses"),
+        (str(repo / "NOTICE"), "licenses"),
         (str(repo / "resources/licenses/THIRD_PARTY_RUNTIME_NOTICES.md"), "licenses"),
         (str(payloads / "ffmpeg-owned"), "tools"),
         (str(payloads / "python-stdlib"), "runtimes/python-stdlib"),

@@ -1,3 +1,8 @@
-﻿No third-party source code has been migrated into this repository as of Repository Bootstrap v0.1.
+有岐 (video-editing-agent)
+Copyright 2026 李雨橙, 刘蕾, 周行健
 
-See `docs/upstream/UPSTREAM_COMPONENTS.md` for upstream references and reuse status.
+Project-authored source code, documentation, build scripts, and project binaries are licensed under the Apache License, Version 2.0. See the top-level LICENSE file.
+
+This product also redistributes reviewed third-party software and runtime material under their respective licenses. Applicable third-party notices are maintained in LICENSES/, resources/licenses/THIRD_PARTY_RUNTIME_NOTICES.md, and the runtime packaging manifest.
+
+The Apache License does not grant rights to third-party components beyond the permissions provided by their own licenses, and it does not grant trademark rights except as stated in the License.
