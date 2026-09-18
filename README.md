@@ -1,12 +1,14 @@
 # video-editing-agent
 
+**Last updated:** 2026-09-18
+
 A **local-first, evidence-grounded AI Director + AI Video Editor** for user-supplied footage.
 
 Initial product focus: Windows desktop, commercial short-form video, ecommerce/product advertising and Vlog, primarily under 60 seconds.
 
 ## Two core product functions
 
-The project is not considered structurally complete until both of these are genuinely usable by an ordinary Windows user.
+The Stage-A structural-completion contract required both of these to be genuinely usable by an ordinary Windows user; that gate is now accepted.
 
 ### 1. Planning
 
