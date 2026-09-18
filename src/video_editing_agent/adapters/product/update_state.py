@@ -8,7 +8,7 @@ from pathlib import Path, PurePosixPath
 
 UPDATE_STATE_SCHEMA = "video-editing-agent/update-state/v1"
 UPDATE_LAYOUT_VERSION = 1
-UPDATER_PROTOCOL_VERSION = 1
+UPDATER_PROTOCOL_VERSION = 2
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 

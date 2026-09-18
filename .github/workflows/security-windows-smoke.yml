@@ -1,0 +1,263 @@
+name: Windows Update Trust Smoke
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/security-windows-smoke.yml"
+      - "scripts/sign_windows_artifacts.ps1"
+      - "src/video_editing_agent/adapters/product/update_trust.py"
+      - "src/video_editing_agent/adapters/product/component_update.py"
+      - "tests/unit/test_update_channel_trust.py"
+  workflow_dispatch:
+
+concurrency:
+  group: windows-update-trust-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  authenticode-trust:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate production signing script parses
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path ".\scripts\sign_windows_artifacts.ps1").Path,
+            [ref]$tokens,
+            [ref]$errors
+          )
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            throw "production signing script has PowerShell parser errors"
+          }
+
+      - name: Create ephemeral same-subject signing identities
+        id: certs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $env:RUNNER_TEMP "vea-security-smoke"
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          $passwordText = "security-ci-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          $subject = "CN=VideoEditingAgent Security CI"
+
+          function New-TestCertificate([string]$PfxPath, [string]$CerPath) {
+            $rsa = [System.Security.Cryptography.RSA]::Create(2048)
+            try {
+              $request = [System.Security.Cryptography.X509Certificates.CertificateRequest]::new(
+                $subject,
+                $rsa,
+                [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+                [System.Security.Cryptography.RSASignaturePadding]::Pkcs1
+              )
+              $request.CertificateExtensions.Add(
+                [System.Security.Cryptography.X509Certificates.X509KeyUsageExtension]::new(
+                  [System.Security.Cryptography.X509Certificates.X509KeyUsageFlags]::DigitalSignature,
+                  $true
+                )
+              )
+              $oids = [System.Security.Cryptography.OidCollection]::new()
+              [void]$oids.Add([System.Security.Cryptography.Oid]::new("1.3.6.1.5.5.7.3.3"))
+              $request.CertificateExtensions.Add(
+                [System.Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension]::new(
+                  $oids, $true
+                )
+              )
+              $certificate = $request.CreateSelfSigned(
+                [DateTimeOffset]::UtcNow.AddHours(-1),
+                [DateTimeOffset]::UtcNow.AddDays(2)
+              )
+              try {
+                [IO.File]::WriteAllBytes(
+                  $PfxPath,
+                  $certificate.Export(
+                    [System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx,
+                    $passwordText
+                  )
+                )
+                [IO.File]::WriteAllBytes(
+                  $CerPath,
+                  $certificate.Export(
+                    [System.Security.Cryptography.X509Certificates.X509ContentType]::Cert
+                  )
+                )
+                return $certificate.Thumbprint
+              }
+              finally { $certificate.Dispose() }
+            }
+            finally { $rsa.Dispose() }
+          }
+
+          $pfx1 = Join-Path $root "signer-one.pfx"
+          $pfx2 = Join-Path $root "signer-two.pfx"
+          $cer1 = Join-Path $root "signer-one.cer"
+          $cer2 = Join-Path $root "signer-two.cer"
+          $thumbprint1 = New-TestCertificate $pfx1 $cer1
+          $thumbprint2 = New-TestCertificate $pfx2 $cer2
+          if ($thumbprint1 -eq $thumbprint2) {
+            throw "independent ephemeral signing certificates unexpectedly share a thumbprint"
+          }
+
+          "root=$root" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "pfx1=$pfx1" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "pfx2=$pfx2" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "cer1=$cer1" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "cer2=$cer2" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "password=$passwordText" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Prepare unsigned disposable PE fixtures
+        id: fixtures
+        shell: pwsh
+        env:
+          ROOT: ${{ steps.certs.outputs.root }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $source = Join-Path $env:ROOT "fixture.cs"
+          $unsigned = Join-Path $env:ROOT "fixture-unsigned.exe"
+          @'
+          using System;
+          internal static class Program
+          {
+              private static int Main() { Console.WriteLine("security-smoke"); return 0; }
+          }
+          '@ | Set-Content -Encoding ascii $source
+          $csc = Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          if (-not (Test-Path -LiteralPath $csc -PathType Leaf)) {
+            throw "csc.exe is unavailable on the Windows runner"
+          }
+          & $csc /nologo /target:exe "/out:$unsigned" $source
+          if ($LASTEXITCODE -ne 0) { throw "could not compile unsigned PE fixture" }
+          if ((Get-AuthenticodeSignature -LiteralPath $unsigned).Status -ne "NotSigned") {
+            throw "fixture must begin unsigned"
+          }
+
+          $primary = Join-Path $env:ROOT "VideoEditingAgent.exe"
+          $alternate = Join-Path $env:ROOT "VideoEditingAgent-alt.exe"
+          Copy-Item -LiteralPath $unsigned -Destination $primary
+          Copy-Item -LiteralPath $unsigned -Destination $alternate
+          "primary=$primary" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "alternate=$alternate" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Sign disposable fixtures with ephemeral identities
+        shell: pwsh
+        env:
+          PFX1: ${{ steps.certs.outputs.pfx1 }}
+          PFX2: ${{ steps.certs.outputs.pfx2 }}
+          PASSWORD: ${{ steps.certs.outputs.password }}
+          PRIMARY: ${{ steps.fixtures.outputs.primary }}
+          ALTERNATE: ${{ steps.fixtures.outputs.alternate }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $signtool = Get-Command signtool.exe -ErrorAction SilentlyContinue
+          if (-not $signtool) {
+            $signtool = Get-ChildItem `
+              -LiteralPath (Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin") `
+              -Filter signtool.exe -Recurse -File -ErrorAction Stop |
+              Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
+              Sort-Object FullName -Descending |
+              Select-Object -First 1
+          }
+          if (-not $signtool) { throw "signtool.exe is unavailable" }
+          $tool = if ($signtool.Source) { $signtool.Source } else { $signtool.FullName }
+
+          & $tool sign /fd SHA256 /f $env:PFX1 /p $env:PASSWORD $env:PRIMARY
+          if ($LASTEXITCODE -ne 0) { throw "signer one failed" }
+          & $tool sign /fd SHA256 /f $env:PFX2 /p $env:PASSWORD $env:ALTERNATE
+          if ($LASTEXITCODE -ne 0) { throw "signer two failed" }
+
+      - name: Verify trusted Windows path and actual signer fingerprint binding
+        shell: pwsh
+        env:
+          ROOT: ${{ steps.certs.outputs.root }}
+          CER1: ${{ steps.certs.outputs.cer1 }}
+          CER2: ${{ steps.certs.outputs.cer2 }}
+        run: |
+          $env:PYTHONPATH = (Resolve-Path ".\src").Path
+          @'
+          from pathlib import Path
+          import hashlib
+          import os
+
+          from video_editing_agent.adapters.product.update_trust import (
+              _authenticode_signer_identity,
+              _win_verify_trust,
+              enforce_replacement_trust,
+          )
+
+          root = Path(os.environ["ROOT"])
+          primary = root / "VideoEditingAgent.exe"
+          alternate = root / "VideoEditingAgent-alt.exe"
+
+          signer_one = _authenticode_signer_identity(primary)
+          signer_two = _authenticode_signer_identity(alternate)
+          if signer_one is None or signer_two is None:
+              raise SystemExit("signed PE did not resolve its embedded Authenticode signer")
+          if signer_one.subject != signer_two.subject:
+              raise SystemExit("test certificates unexpectedly have different display subjects")
+          expected_one = hashlib.sha256(Path(os.environ["CER1"]).read_bytes()).hexdigest()
+          expected_two = hashlib.sha256(Path(os.environ["CER2"]).read_bytes()).hexdigest()
+          if signer_one.certificate_sha256 != expected_one:
+              raise SystemExit("signer one fingerprint does not match its signing certificate")
+          if signer_two.certificate_sha256 != expected_two:
+              raise SystemExit("signer two fingerprint does not match its signing certificate")
+          if signer_one.certificate_sha256 == signer_two.certificate_sha256:
+              raise SystemExit("same-subject independent certificates have identical fingerprints")
+
+          class ExtractedSignerTrust:
+              def publisher_of(self, path: Path):
+                  return _authenticode_signer_identity(path)
+
+          try:
+              enforce_replacement_trust(
+                  alternate,
+                  destination=primary,
+                  previous_publisher=signer_one,
+                  trust=ExtractedSignerTrust(),
+              )
+          except ValueError as exc:
+              if "does not match" not in str(exc):
+                  raise
+          else:
+              raise SystemExit("same-subject different-certificate replacement was accepted")
+
+          sdk_root = Path(os.environ["ProgramFiles(x86)"]) / "Windows Kits" / "10" / "bin"
+          candidates = sorted(
+              (path for path in sdk_root.rglob("signtool.exe") if path.parent.name.casefold() == "x64"),
+              reverse=True,
+          )
+          if not candidates:
+              raise SystemExit("Windows SDK signtool.exe trust baseline is unavailable")
+          trusted_tool = candidates[0]
+          if _authenticode_signer_identity(trusted_tool) is None:
+              raise SystemExit("Windows SDK signtool.exe has no embedded signer identity")
+          trust_status = _win_verify_trust(trusted_tool)
+          if trust_status != 0:
+              raise SystemExit(f"WinVerifyTrust rejected signed Windows SDK tool: 0x{trust_status:08X}")
+
+          print("WinVerifyTrust baseline and actual signer certificate fingerprint binding passed")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw "Windows Authenticode identity smoke failed" }
+
+      - name: Remove disposable signing material
+        if: always()
+        shell: pwsh
+        env:
+          ROOT: ${{ steps.certs.outputs.root }}
+        run: |
+          if ($env:ROOT -and (Test-Path -LiteralPath $env:ROOT)) {
+            Remove-Item -LiteralPath $env:ROOT -Recurse -Force -ErrorAction SilentlyContinue
+          }

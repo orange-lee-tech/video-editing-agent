@@ -19,6 +19,11 @@ from video_editing_agent.adapters.product.update_state import (
     load_update_state,
     save_update_state,
 )
+from video_editing_agent.adapters.product.update_trust import (
+    ReplacementTrust,
+    default_replacement_trust,
+    enforce_replacement_trust,
+)
 
 PATCH_SCHEMA = "video-editing-agent/component-patch/v1"
 _FORBIDDEN_PATCH_TARGETS = {
@@ -163,6 +168,7 @@ def apply_component_archives(
     manifest: UpdateManifest,
     archives: Sequence[tuple[UpdateComponent, Path]],
     progress: Callable[[str, int, int], None] | None = None,
+    trust: ReplacementTrust | None = None,
 ) -> InstalledUpdateState:
     install_root = install_root.resolve()
     previous = load_update_state(state_path)
@@ -176,6 +182,7 @@ def apply_component_archives(
     original_existence: dict[str, bool] = {}
     touched_paths: set[str] = set()
     current = previous
+    replacement_trust = trust if trust is not None else default_replacement_trust()
 
     try:
         for remote, archive in archives:
@@ -212,6 +219,15 @@ def apply_component_archives(
                     if sha256_file(temporary) != record.sha256:
                         temporary.unlink(missing_ok=True)
                         raise ValueError(f"staged component file failed SHA-256: {relative}")
+                    previous_publisher = (
+                        replacement_trust.publisher_of(target) if target.is_file() else None
+                    )
+                    enforce_replacement_trust(
+                        temporary,
+                        destination=target,
+                        previous_publisher=previous_publisher,
+                        trust=replacement_trust,
+                    )
                     os.replace(temporary, target)
                     if progress is not None:
                         progress(remote.component_id, index, total)
