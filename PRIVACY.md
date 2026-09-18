@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated: September 16, 2026**
+**Last updated:** 2026-09-18
 
 This Privacy Policy applies to the **video-editing-agent / 有岐** project maintained by **orange-lee-tech** and available at:
 
