@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $Root = Join-Path $RepoRoot $PayloadRoot
 $Cache = Join-Path $Root "cache"
-$FfmpegArchive = Join-Path $Cache "ffmpeg-n8.1.2-44-g7c533d0f86-win64-lgpl-shared-8.1.zip"
+$FfmpegArchive = Join-Path $Cache "ffmpeg-n8.1.2-50-g1a748fe2cd-win64-lgpl-shared-8.1.zip"
 $FfmpegExtract = Join-Path $Root "ffmpeg-extracted"
 $FfmpegOwned = Join-Path $Root "ffmpeg-owned"
 $TransNet = Join-Path $Root "transnet"
@@ -31,13 +31,16 @@ robocopy (Join-Path $PythonRoot "DLLs") $PythonStdlib "*.pyd" "*.dll" `
     /NFL /NDL /NJH /NJS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "Pinned Python native standard library staging failed" }
 
+# BtbN retains the last build of each month for two years. Pin a month-end
+# release instead of an ordinary daily autobuild so the immutable URL remains
+# available for reproducible Windows packaging.
 if (-not (Test-Path -LiteralPath $FfmpegArchive)) {
     Invoke-WebRequest `
-        -Uri "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-08-20-13-45/ffmpeg-n8.1.2-44-g7c533d0f86-win64-lgpl-shared-8.1.zip" `
+        -Uri "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-08-31-13-27/ffmpeg-n8.1.2-50-g1a748fe2cd-win64-lgpl-shared-8.1.zip" `
         -OutFile $FfmpegArchive
 }
 $ArchiveHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $FfmpegArchive).Hash.ToLowerInvariant()
-if ($ArchiveHash -ne "d311c8c7b86e06b54588e442652f963bae165bd4d8393e73cc9ebb445b025547") {
+if ($ArchiveHash -ne "e9712ffbdb03ef71bbab660c75b835bfe698ef6fad0247c76d8d394a39a3db63") {
     throw "FFmpeg archive SHA-256 mismatch"
 }
 if (-not (Test-Path -LiteralPath $FfmpegExtract)) {
