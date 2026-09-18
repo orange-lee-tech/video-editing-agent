@@ -1,5 +1,7 @@
 # License Status
 
+**Last updated:** 2026-09-18
+
 The project-authored portions of `video-editing-agent` / 有岐 are licensed under the **Apache License, Version 2.0** (`Apache-2.0`). The authoritative license text is the top-level [`LICENSE`](LICENSE) file.
 
 Copyright notice and distribution attribution are recorded in [`NOTICE`](NOTICE).
