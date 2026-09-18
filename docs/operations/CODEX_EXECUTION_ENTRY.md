@@ -1,73 +1,88 @@
 # Codex Execution Entry
 
-**Last updated:** 2026-08-25  
-**Purpose:** expose the currently authorized local construction boundary.
+**Last updated:** 2026-09-18  
+**Purpose:** expose whether any Codex/local construction work is currently authorized.
 
-## Release state
+## Current release/control state
 
-**Work Order:** `R0.12-STAGE-A-FINAL-CLOSURE-002`  
-**Release:** CLOSED PENDING FOCUSED LOCAL DIAGNOSTIC  
-**Construction branch:** NONE  
-**Accepted engineering foundation:** `c2c959239cf8842388ac661777c19f20f64a6a90`  
-**Current main / failed Human Gate candidate:** `1015096fc4c5b2b9138e98cbe713fc4cc1770c07`  
+**Active Work Order:** `NONE`  
+**Construction branch:** `NONE`  
+**Development stage:** `RELEASED`  
+**Stable release:** `v1.0.0`  
+**Stable product source:** `fc6391b846432586a41311a295251e8860cdf9fa`  
+**Current main baseline:** `b201c685fa74b83e3559e16b50f63aea58eddd83`  
 **Foreman:** ChatGPT  
 **Authority:** `docs/operations/CURRENT_WORK_ORDER.md`
 
-There is currently no authorized blind implementation batch. The Product Owner's real Human Gate has already proved two implementation defects; however, Editing must first be diagnosed from its persisted local Workspace evidence rather than by guessing at another prompt or threshold.
+There is currently **no standing Codex construction assignment**.
 
-## Current defects
+Stage A is complete, R0.13 is closed, and stable `v1.0.0` has been released. Planning and Automatic Editing remain accepted product gates.
 
-### Planning
+Current activity is post-release security/signing governance review, not product construction.
 
-The bounded Script proposal repair remains insufficient. The second model proposal still introduced unsupported fit/operability implications and the independent semantic reviewer correctly vetoed it.
+## Open review tracks
 
-A reopened implementation batch may add a bounded conservative `unsupported_claim` recovery that removes unsupported semantic properties and re-reviews the result. It must not weaken prohibited-content, brand, locked-state or authority gates and must not add an open-ended retry loop.
+### PR #36 — governance / SignPath preparation
 
-### Editing
+`governance: adopt Apache-2.0 for 有岐`
 
-The one bounded Resolver -> Director recovery added by PR #21 executed in the real packaged product. The revised EditPlan still requested multiple semantic beats not grounded in the actual local footage.
+State: **Ready for human review / not merged**.
 
-Before a new Editing patch, inspect at minimum the failed Workspace's:
+This PR is being reviewed by Liu Lei. No Codex work is required for the current documentation/licensing/signing-policy review. Small deterministic documentation/governance corrections should be handled directly through bounded GitHub edits.
 
-- Brief payload;
-- latest shot-analysis payloads;
-- EditPlan revision 1 and revision 2;
-- resolver reasons / temporal evidence only if necessary.
+### PR #35 — update trust-chain hardening
 
-No public/web/generated visual substitution is allowed.
+`security: harden component update trust chain`
 
-## Engineering iteration protocol
+State: **Draft / not merge-ready**.
 
-When ChatGPT reopens Codex/local construction:
+This branch contains security hardening but still requires the final public code-signing route. The currently intended route is SignPath Foundation, subject to approval and later trusted-build integration.
 
-1. sync the local repository to the exact current main;
-2. apply one focused patch for the evidence-backed defect;
-3. run targeted tests first, then the repository quality gate as needed;
-4. use the local developer GUI/product route to repeat the failed scenario;
-5. return compact logs/structured Workspace evidence, not private media unless specifically needed;
-6. do **not** build/upload the full Windows onedir artifact for each repair;
-7. commit/push only a coherent green patch.
+Codex may become appropriate only if the SignPath integration requires non-trivial multi-file workflow/build iteration that cannot be safely handled as a bounded deterministic GitHub change.
 
-The developer may use PowerShell/CLI for this loop. That is engineering tooling, not ordinary-user product UX.
+## Codex activation rule
 
-## Windows release delivery
+Do **not** infer authorization from this file, old chat history, an old branch name, or an old failed Human Gate.
 
-Guided `Setup.exe` delivery is now part of Stage-A / 1.0 closure by explicit Product Owner direction. Raw ZIP/onedir is engineering staging only.
+Before any Codex/local construction run:
 
-Installer implementation should start after the current Planning/Editing repair set is stable enough to avoid repeatedly repackaging multi-gigabyte runtime trees. Preferred study order is Inno Setup 7.1, NSIS Modern UI 2, Velopack, then WiX/Burn only if prerequisite chaining justifies it.
+1. read `CURRENT_CONTROL_STATE.md`;
+2. read `CURRENT_PHASE_STATUS.md`;
+3. read `CURRENT_WORK_ORDER.md`;
+4. verify that an explicit active work order exists;
+5. verify the exact target branch and accepted baseline;
+6. constrain the task to that authorized boundary.
 
-The installer boundary must preserve application-owned private runtimes, Workspace separation and user consent before destructive environment changes.
+If `CURRENT_WORK_ORDER.md` says `ID: NONE`, Codex must not start product implementation.
 
-## Still out of scope
+## When Codex is appropriate
 
-Do not reopen:
+Use Codex only when it materially reduces risk for work such as:
 
-- Remote Reference URL 2.0;
-- TTS or advanced separation/effects/NLE features;
-- public/generated visual fallback;
-- unrelated Domain/EDL/Renderer authority changes;
-- unrelated architecture cleanup.
+- complex local Windows/runtime iteration;
+- multi-file build/signing integration with meaningful execution feedback;
+- difficult reproducibility/debugging work that requires local shell/tooling;
+- other explicitly authorized construction where direct bounded GitHub edits are not sufficient.
 
-## Final authority
+Do not spend Codex budget on:
 
-Stage-A remains 95% until repaired Planning, grounded Editing/speech, Combined behavior and guided Windows setup delivery all pass Human evidence. ChatGPT/Product Owner retain final acceptance authority.
+- clerical documentation synchronization;
+- one-file deterministic metadata edits;
+- simple PR/reviewer/status maintenance;
+- changes that are not covered by an active work order.
+
+## Current protected invariants
+
+Until a new work order explicitly changes them:
+
+- do not reopen Planning or Automatic Editing without a demonstrated regression;
+- do not modify stable `v1.0.0` release bytes;
+- do not weaken update/signature/signer/rollback evidence;
+- do not treat a provisional signing adapter as accepted production signing;
+- do not start unrelated 2.0 product capability work.
+
+## Next likely handoff point
+
+The next plausible Codex handoff is **after SignPath Foundation approval**, if integrating its trusted-build GitHub signing flow into PR #35 proves complex enough to justify local/multi-file execution.
+
+Until then, direct GitHub governance/review work remains preferred.
