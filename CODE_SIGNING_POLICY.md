@@ -1,5 +1,7 @@
 # Code signing policy
 
+**Last updated:** 2026-09-18
+
 This policy defines how official Windows release artifacts for **有岐 / video-editing-agent** are eligible for production code signing.
 
 ## SignPath Foundation
