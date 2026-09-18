@@ -63,8 +63,8 @@ def test_release_version_identity_is_1_0_0_and_packaging_mirrors_it() -> None:
     assert "ProductName mismatch" in package_script
     assert "ProductVersion mismatch" in package_script
     assert "FileVersion mismatch" in package_script
-    assert 'windows-version-info.json' in package_script
-    assert 'video-editing-agent-windows-version-info/v1' in package_script
+    assert "windows-version-info.json" in package_script
+    assert "video-editing-agent-windows-version-info/v1" in package_script
 
     workflow = Path(".github/workflows/windows-release-candidate.yml").read_text(encoding="utf-8")
     assert "steps.source.outputs.version" in workflow
