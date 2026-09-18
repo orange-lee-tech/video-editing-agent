@@ -1,5 +1,7 @@
 # Roadmap
 
+**Last updated:** 2026-09-18
+
 ## Durable roadmap map
 
 `ROADMAP_V2.md` is the activated/frozen Stage-A construction map established by `A0_PLANNING_BASELINE_ACCEPTANCE.md` on 2026-08-11. Stage A has since reached 100% and stable `v1.0.0` is released, so the Roadmap is now a durable construction/architecture reference rather than a standing authorization to continue Stage-A implementation.
