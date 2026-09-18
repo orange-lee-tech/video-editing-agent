@@ -57,6 +57,15 @@ def test_release_version_identity_is_1_0_0_and_packaging_mirrors_it() -> None:
     assert "packaging/windows/VideoEditingAgent.version" in spec
     assert spec.count("version=version_info") == 3
 
+    package_script = Path("scripts/package_windows.ps1").read_text(encoding="utf-8")
+    assert 'ExpectedProductName = "有岐"' in package_script
+    assert 'ExpectedFileVersion = "$ApplicationVersion.0"' in package_script
+    assert "ProductName mismatch" in package_script
+    assert "ProductVersion mismatch" in package_script
+    assert "FileVersion mismatch" in package_script
+    assert 'windows-version-info.json' in package_script
+    assert 'video-editing-agent-windows-version-info/v1' in package_script
+
     workflow = Path(".github/workflows/windows-release-candidate.yml").read_text(encoding="utf-8")
     assert "steps.source.outputs.version" in workflow
     assert "VideoEditingAgent-Setup-0.1.0.exe" not in workflow
