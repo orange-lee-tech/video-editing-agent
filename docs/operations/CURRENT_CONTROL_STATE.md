@@ -2,14 +2,14 @@
 
 ---
 schema: video-editing-agent-control-state/v1
-updated: 2026-08-31
+updated: 2026-09-18
 current_phase: R0.13
 phase_state: CLOSED_1_0_0_RELEASED
 active_work_order: NONE
-active_construction_branch: main
-accepted_code_baseline: 35d99730d250d09c23a955c8df682c037335f58c
-accepted_engineering_baseline: 111b50f13d1b19670dfe0e0a68bfa2da00212a5f
-current_main_baseline: 35d99730d250d09c23a955c8df682c037335f58c
+active_construction_branch: NONE
+accepted_code_baseline: fc6391b846432586a41311a295251e8860cdf9fa
+accepted_engineering_baseline: b201c685fa74b83e3559e16b50f63aea58eddd83
+current_main_baseline: b201c685fa74b83e3559e16b50f63aea58eddd83
 latest_human_gate_candidate: fc6391b846432586a41311a295251e8860cdf9fa
 structural_progress_percent: 100
 stage_a_completion_gate: PASS
@@ -23,85 +23,90 @@ development_stage: RELEASED
 stable_release_tag: v1.0.0
 stable_release_source: fc6391b846432586a41311a295251e8860cdf9fa
 stable_installer_sha256: dd47f88953d134dac522990db80fc719367a7abe627203b142fe681cb786e5a8
+post_release_review_state: SECURITY_AND_SIGNING_GOVERNANCE_IN_REVIEW
+security_review_pr: 35
+governance_review_pr: 36
+main_ruleset: main-production-protection
 writer: chatgpt
 ---
 
 ## Current accepted truth
 
-Stage-A remains complete at **100%** with accepted core baseline:
+Stage-A remains complete at **100%**. Planning and Automatic Editing remain Human-accepted **PASS** and are not reopened by the current post-release work.
 
-`e59cab8475a615d29003c03497ddcdaf862476a6` / version `0.1.5`.
+The accepted product/release baseline is:
 
-R0.13 is a bounded post-Stage-A release-engineering phase. It does not reopen Planning or Editing unless a material regression appears.
+- application version: `1.0.0`;
+- exact stable product source: `fc6391b846432586a41311a295251e8860cdf9fa`;
+- stable tag: `v1.0.0`;
+- stable installer SHA-256: `dd47f88953d134dac522990db80fc719367a7abe627203b142fe681cb786e5a8`.
 
-## Closed R0.13 work
+The current `main` baseline is `b201c685fa74b83e3559e16b50f63aea58eddd83` (`docs: finalize human-accepted 1.0.0`). It is the accepted repository-control baseline; the stable product bytes remain anchored to `fc6391b...`.
 
-Work order:
+R0.13 is **CLOSED**. There is **no active product construction work order** and no active construction branch.
 
-`R0.13-RELEASE-POLISH-001`
+## Post-release security and signing governance review
 
-Approved scope:
+Two bounded review tracks are open. Neither is part of the accepted `main` baseline until its own Human/automation gates pass and the PR is merged.
 
-1. installer remaining-time estimate/countdown;
-2. Windows DPI-aware typography and clearer Chinese text;
-3. persisted Day / Comfort / Night appearance modes;
-4. verified component/file patch updates with rollback, while retaining the full Setup.exe as bootstrap/recovery fallback;
-5. bilingual installer Software License and User Agreement with explicit interactive acceptance;
-6. header consolidation so update checking lives inside Settings plus a sibling Declaration control;
-7. visible product branding as `有岐` with slogan `创作有岐，表达有路`, while compatibility-sensitive internal identifiers remain stable.
+### PR #35 — update trust-chain hardening
 
-## Release boundary
+`security: harden component update trust chain` remains **Draft / not merge-ready**.
 
-Final `1.0.0` is **PUBLISHED and FINAL** after the Product Owner accepted the bounded presentation hotfix on 2026-08-31. The stable `v1.0.0` tag now resolves to exact source `fc6391b846432586a41311a295251e8860cdf9fa`; that source passed the repository Quality Gate and full Windows installer lifecycle before byte-for-byte promotion of the verified RC assets.
+Current security branch: `fix/unsigned-patch-update-trust`. The branch head includes the owner-generated production Ed25519 public-key rotation at `79460885647138cbabbfb76e7b40c35eb64099c8`; the private seed is not repository content.
 
-No advanced creative capability work belongs in this phase.
+This track hardens signed update manifests, URL/origin policy, component hashes/sizes, Authenticode signer binding, rollback, release evidence, and stable promotion. It must remain unmerged until the final public Windows signing route is integrated and a signed RC plus the v1.0.0 migration path are exercised.
 
-Execution discipline: direct bounded repository edits are preferred for deterministic work; Codex is reserved for genuinely complex/local Windows iteration. The accepted Planning and Editing paths are protected invariants and any regression blocks R0.13 closure.
+The earlier PFX/cloud-HSM placeholder is **not** the accepted production-signing baseline. The current intended public-signing route is the SignPath Foundation open-source program, subject to Foundation approval and later workflow integration.
 
-## Required invariants
+### PR #36 — Apache-2.0 and SignPath governance
 
-R0.13 changes must preserve:
+`governance: adopt Apache-2.0 for 有岐` is **Ready for review / not merged**.
 
-- accepted Planning/Editing behavior;
-- external Workspace/original-media safety;
-- public update discovery;
-- packaged H.264 encode verification;
-- guided installer lifecycle;
-- fail-open network/update checks;
-- explicit user consent for applying an update.
+The branch contains the proposed Apache-2.0 project license, NOTICE/license packaging, compatible user-term presentation, public code-signing policy, privacy disclosures, and Windows product/version metadata contract required for the SignPath route.
 
-Byte-level binary delta algorithms are out of scope; component/file replacement with cryptographic verification and rollback is the chosen 1.0 update strategy.
+These changes are still review material. They must not be described as accepted repository truth until the requested human review and protected-branch merge complete.
 
+## Repository governance controls now active
 
-## Current R0.13 engineering candidate
+The following controls are already active repository state, independent of whether PR #35/#36 merge:
 
-Version `0.1.6`, exact source `111b50f13d1b19670dfe0e0a68bfa2da00212a5f`, completed Windows RC run `33379570088` with **SUCCESS**.
+- both named signing-team GitHub accounts have confirmed 2FA enabled;
+- repository ruleset `main-production-protection` is active on the default branch;
+- bypass actors: none;
+- pull requests require at least one approving review;
+- stale approvals are dismissed after new pushes;
+- unresolved review threads block merge;
+- protected merges require the branch to be up to date;
+- required checks: `Quality Gate`, `inventory`, and `repository-doctor`;
+- deletion and non-fast-forward/force-push of the protected default branch are blocked.
 
-Installer SHA-256:
+## Stable-release boundary
 
-`f6a90b2a8b484806e893d0bbcc369adf5ced83425a14e887bc6f65954528796b`
+Existing `v1.0.0` release assets remain final and unchanged. They predate the planned SignPath Foundation integration and must not be represented as SignPath-signed.
 
-This candidate supersedes the earlier `6a6bb6f` Human-review candidate after Product Owner feedback found three UI regressions: inaccessible profile Import / Export / Save / Delete actions in the fixed-height Settings dialog, premature developer-homepage exposure, and appearance selection that did not visibly apply on selection. The remediation preserves both form/API profile actions in a resizable scrollable Settings surface, replaces developer-homepage navigation with the temporary-closure notice, and applies Day / Comfort / Night preview immediately with cancel restore and persisted apply behavior.
+No current governance/security review authorizes:
 
-Engineering verification is complete. The Product Owner reports all R0.13 visual/interaction review items **PASS**, including the final three presentation-hotfix checks. R0.13 is closed and stable `v1.0.0` is final. Final hotfix Windows verification run `33401022544` passed install / upgrade / repair / uninstall lifecycle validation. The final stable installer SHA-256 is `dd47f88953d134dac522990db80fc719367a7abe627203b142fe681cb786e5a8`.
+- replacement of stable `v1.0.0` assets;
+- reopening Planning or Automatic Editing;
+- new creative/product scope;
+- silent weakening of update trust or release evidence;
+- production signing before the selected public-signing route is approved and verified.
 
+## Next controlled sequence
+
+1. Finish Liu Lei's human review of PR #36.
+2. Merge PR #36 only after the required approval and protected-branch checks pass.
+3. Run a Windows Packaging Candidate from the merged source and verify real VERSIONINFO values on the built project executables.
+4. Refresh the existing `v1.0.0` release/download description for the SignPath application.
+5. Submit the SignPath Foundation application and enable SignPath MFA for signing-team accounts when created.
+6. After Foundation approval, integrate the real SignPath trusted-build/signing path into PR #35, replacing the temporary production-signing placeholder.
+7. Exercise the signed Windows RC, update-manifest/component evidence, and v1.0.0-to-secure-release migration.
+8. Complete Liu Lei's security review of PR #35 before any merge.
 
 ## Stable release
 
-Release: https://github.com/orange-lee-tech/video-editing-agent/releases/tag/v1.0.0  
-Installer: https://github.com/orange-lee-tech/video-editing-agent/releases/download/v1.0.0/VideoEditingAgent-Setup-1.0.0.exe
+Release: <https://github.com/orange-lee-tech/video-editing-agent/releases/tag/v1.0.0>  
+Installer: <https://github.com/orange-lee-tech/video-editing-agent/releases/download/v1.0.0/VideoEditingAgent-Setup-1.0.0.exe>
 
-The final stable assets were promoted byte-for-byte from `v1.0.0-rc-fc6391b` after Human Gate acceptance; no product binary rebuild occurred during promotion. Stable promotion run `33406476432` passed, and `v1.0.0` now resolves to exact source `fc6391b846432586a41311a295251e8860cdf9fa`.
-
-
-## 1.0.0 presentation hotfix review
-
-The Product Owner reports both core product functions **PASS** and those core gates remain closed/accepted. During final 1.0.0 presentation acceptance, three bounded desktop defects were observed: the local-reference picker was attached to the wrong grid row, English mode left the visible product brand/slogan in Chinese, and the header API-status pill could collapse to a stray `/` glyph.
-
-Exact hotfix source: `fc6391b846432586a41311a295251e8860cdf9fa`  
-Application version: `1.0.0` (unchanged)  
-Repository Quality Gate: **PASS**, run `33400752251`  
-Windows RC / installer lifecycle: **PASS**, run `33401022544`  
-Human-review prerelease: `v1.0.0-rc-fc6391b`
-
-The Product Owner visually rechecked all three presentation fixes and reports **PASS**. The verified RC assets were promoted to the stable `v1.0.0` release without rebuilding. No Planning/Editing capability was reopened.
+The final stable assets were promoted byte-for-byte from the Human-accepted RC. No post-release security/governance work has modified those published bytes.
