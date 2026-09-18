@@ -26,6 +26,22 @@
       "platform": "any", "architecture": "any", "absence_fatal": true
     },
     {
+      "id": "project-license", "kind": "resource", "classification": "bundled-required",
+      "capability": "legal-notice", "version": "Apache-2.0", "location_policy": "install-relative",
+      "provenance": "repository root LICENSE", "license_state": "reviewed",
+      "inclusion": "include", "hash_policy": "build-generated",
+      "path": "_internal/licenses/LICENSE",
+      "platform": "any", "architecture": "any", "absence_fatal": true
+    },
+    {
+      "id": "project-notice", "kind": "resource", "classification": "bundled-required",
+      "capability": "legal-notice", "version": "2026-09-16", "location_policy": "install-relative",
+      "provenance": "repository root NOTICE", "license_state": "reviewed",
+      "inclusion": "include", "hash_policy": "build-generated",
+      "path": "_internal/licenses/NOTICE",
+      "platform": "any", "architecture": "any", "absence_fatal": true
+    },
+    {
       "id": "python-runtime", "kind": "runtime", "classification": "bundled-required",
       "capability": "host-runtime", "version": "3.12", "location_policy": "bundler-internal",
       "provenance": "CPython runtime selected by pinned PyInstaller build environment",

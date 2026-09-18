@@ -1,10 +1,10 @@
 # 产品红黑榜
 
-**状态：** ACTIVE DASHBOARD  
+**状态：** HISTORICAL DIAGNOSTIC SNAPSHOT — NOT CURRENT BLOCKER AUTHORITY  
 **首次建立：** 2026-08-19  
-**最后更新：** 2026-08-19 — Stage-A Editing 产品流大排查  
-**用途：** 用普通人能快速理解的方式，持续记录已经被证据证明的核心优势，以及尚未解决的攻关目标/风险。  
-**权威边界：** 本文件是动态看板，不替代 Product Constitution、Architecture Contract、`CURRENT_CONTROL_STATE.md`、`CURRENT_PHASE_STATUS.md` 或 `CURRENT_WORK_ORDER.md`。
+**最后更新：** 2026-09-18 — 状态降级说明；主体内容保留 2026-08-19 诊断快照  
+**用途：** 保留 Stage-A 建设期已经被证据证明的核心优势与当时未闭环的攻关目标/风险，作为历史诊断索引。  
+**权威边界：** 本文件不是当前执行看板。当前状态、当前 blocker 与授权边界只以 Product Constitution、Architecture Contract 和 `CURRENT_CONTROL_STATE.md` / `CURRENT_PHASE_STATUS.md` / `CURRENT_WORK_ORDER.md` 为准。
 
 ---
 
@@ -14,7 +14,15 @@
 2. **黑榜不是“项目失败清单”。** 它记录尚未闭环、需要持续盯住的产品问题、工程风险和商用化门槛。
 3. 某项从黑榜解决后，应写明闭环证据，再移入红榜或归档；不要静默删除历史问题。
 4. 红黑榜不能改变核心生产关系：Provider 只提议/观察，Resolver 选择源窗口，canonical EDL 拥有精确时间线，Renderer 只执行，Review 只分类/路由。
-5. Stage-A 结构进度仍受 `STAGE_A_COMPLETION_GATE.md` 约束；UI 美化、测试全绿或文档完善都不能单独把 90% 提到 100%。
+5. Stage-A 已按 `STAGE_A_COMPLETION_GATE.md` 达到 100% 并发布稳定 `v1.0.0`；下文仍保留的旧黑榜项不得自动视为当前 Gate Blocker，必须由 live trio 或新的 Work Order 重新确认。
+
+---
+
+## 2026-09-18 状态说明
+
+Stage A 已完成，Planning / Automatic Editing 产品门均已接受，稳定 `v1.0.0` 已发布。目前没有 active product-construction Work Order；正在进行的是发布后的安全、开源许可与代码签名治理审查。
+
+因此，本文件下方的 B* 条目表示 **2026-08-19 当时的诊断与风险记录**。其中部分问题后来已经闭环，部分属于未来维护/2.0 候选。除非 canonical live trio 或新的 Work Order 明确重新打开，不得把它们直接当成今天的施工任务。
 
 ---
 
@@ -325,4 +333,6 @@ R0.9 closure 明确记录：当时语义检索部分仍用了 human-confirmed ma
 
 # 当前一句话状态
 
-> **我们并不是“缺剪辑算法”，而是已经有很多被独立验证过的能力，却还差最后一段关键工作：把这些能力用正确的输出规格、Review-before-publish 语义真实接入普通用户的一键 Editing ProductFlow；在这条主线之外，再逐步完成 Provider Neutral、商业 UI 与 Windows 可分发性。**
+> **Stage A 已完成并发布稳定 `v1.0.0`。当前没有新的产品施工授权；近期工作重点是把已发布产品的开源许可、更新信任链和公开代码签名治理做实，而不是重新追逐旧黑榜中的建设期任务。**
+
+原 2026-08-19 的一句话诊断已由本文件正文完整保留，可作为理解当时工程决策的历史背景。

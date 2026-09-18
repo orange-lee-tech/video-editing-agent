@@ -22,6 +22,9 @@ AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
 VersionInfoVersion={#AppVersion}
+VersionInfoProductName={#AppName}
+VersionInfoProductVersion={#AppVersion}
+VersionInfoProductTextVersion={#AppVersion}
 VersionInfoDescription={#AppName} Windows Installer
 DefaultDirName={localappdata}\Programs\Video Editing Agent
 DefaultGroupName=有岐
@@ -47,8 +50,8 @@ ChangesEnvironment=no
 MinVersion=10.0
 
 [Languages]
-Name: "en"; MessagesFile: "compiler:Default.isl"; LicenseFile: "..\..\resources\legal\USER_AGREEMENT_en.txt"
-Name: "zhcn"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"; LicenseFile: "..\..\resources\legal\USER_AGREEMENT_zh-CN.txt"
+Name: "en"; MessagesFile: "compiler:Default.isl"; InfoBeforeFile: "..\..\resources\legal\USER_AGREEMENT_en.txt"
+Name: "zhcn"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"; InfoBeforeFile: "..\..\resources\legal\USER_AGREEMENT_zh-CN.txt"
 
 [CustomMessages]
 en.FullInstall=Planning + Automatic Editing

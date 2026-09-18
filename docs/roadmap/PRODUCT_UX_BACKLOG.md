@@ -1,25 +1,26 @@
 # Product UX Backlog
 
-**Updated:** 2026-08-26  
+**Updated:** 2026-09-18  
 **Purpose:** preserve ordinary-user UX work without overriding the live Work Order.  
 **Current authority:** `docs/operations/CURRENT_WORK_ORDER.md`.
 
-Priority:
+Priority interpretation after 1.0 release:
 
-- **P0** — required for the current Stage-A / 1.0 closure;
-- **P1** — high-value usability after the current closure wave is stable;
-- **P2 / 2.0** — future capability expansion that must not be faked in 1.0.
+- **P0 (historical)** — items that were required for Stage-A / 1.0 closure; do not treat them as open merely because they remain documented below;
+- **P1** — post-release usability/maintainability improvements, only executable when a new Work Order authorizes them;
+- **P2 / 2.0** — future capability expansion that must not be backported into 1.0 by implication.
 
 ## Current truth
 
-- structural progress is **95%**; Stage-A completion remains OPEN;
-- Planning factual recovery now works in a focused local repair, but Planning quality still requires hardening;
-- Chinese-speaking and English-speaking real local footage both completed the visual-first automatic Editing path on the focused local repair candidate;
-- source-speech continuity reconstruction, translated/bilingual subtitles and cross-language narration/TTS are deferred to 2.0 by Product Owner decision on 2026-08-26;
-- ordinary remote reference URL remains hidden in 1.0; local reference video remains supported;
-- Windows runtime/onedir engineering proof exists; normal 1.0 delivery still requires guided `Setup.exe`.
+- Stage A structural progress is **100%** and stable `v1.0.0` is published;
+- Planning and Automatic Editing have passed their retained Product/Human gates;
+- guided Windows `Setup.exe` delivery and the install / repair-or-upgrade / uninstall lifecycle are part of the accepted 1.0 baseline;
+- source-speech continuity reconstruction, translated/bilingual subtitles and cross-language narration/TTS remain deferred to 2.0 unless a future Work Order changes that boundary;
+- ordinary remote reference URL remains outside the 1.0 product path; local reference video remains supported;
+- there is currently **no active product-construction Work Order**;
+- current activity is post-release security/signing governance review, not UX implementation.
 
-Do not use this backlog to override the live control trio.
+Do not use this backlog to override the live control trio. Items below preserve design intent and future candidates; their old P0 wording is historical unless the live Work Order explicitly reopens them.
 
 ---
 
@@ -165,13 +166,10 @@ Already implemented/accepted unless a regression is observed:
 
 Historical superseded UX wave details belong in `docs/archive/**` and are not current authority.
 
-## Current execution order
+## Current execution status
 
-1. preserve/accept focused local Human Gate repair;
-2. Planning quality hardening + direct configuration UI + deferred-capability hiding + bounded provider wait;
-3. exact-head quality/governance/CI closure;
-4. release-candidate staging build with 1.0-only default runtime payload;
-5. guided `Setup.exe` build and install/repair/uninstall Human Gate;
-6. Stage-A 100% only if the completion contract is genuinely satisfied.
+The former Stage-A execution order is complete and must not be replayed from this backlog.
 
-UX polish or an EXE by itself does not close Stage A.
+Current authorized sequencing is controlled by the live trio and is limited to post-release governance: finish PR #36 review/merge gates, prove Windows metadata on a fresh candidate, prepare the SignPath Foundation application, then integrate the approved signing path into PR #35 and complete signed-RC/migration/security review.
+
+Any new UX implementation requires a new explicit Work Order. Stable `v1.0.0` remains the accepted product baseline until such a work order is opened.

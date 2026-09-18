@@ -1,8 +1,10 @@
 # Roadmap
 
-## Active map
+**Last updated:** 2026-09-18
 
-`ROADMAP_V2.md` is the active construction map. It was explicitly activated/frozen by `A0_PLANNING_BASELINE_ACCEPTANCE.md` on 2026-08-11.
+## Durable roadmap map
+
+`ROADMAP_V2.md` is the activated/frozen Stage-A construction map established by `A0_PLANNING_BASELINE_ACCEPTANCE.md` on 2026-08-11. Stage A has since reached 100% and stable `v1.0.0` is released, so the Roadmap is now a durable construction/architecture reference rather than a standing authorization to continue Stage-A implementation.
 
 The original `CANDIDATE ROADMAP` wording at the top of the drafted file is a pre-A0 drafting label. A0 supersedes that label for activation status.
 
@@ -10,7 +12,7 @@ Do not infer the current phase from dated prose in this README. Use the live-sta
 
 ## Development stage
 
-The project is currently in **Stage A — Structural Construction**. `DEVELOPMENT_STAGE_MODEL.md` defines the meaning of the 0–100% construction scale.
+The project is currently **RELEASED**. Stage A structural construction is complete at **100%**. `DEVELOPMENT_STAGE_MODEL.md` remains the definition of the historical 0–100% construction scale.
 
 `STAGE_A_COMPLETION_GATE.md` is the hard 100% contract.
 
@@ -35,13 +37,13 @@ Do not duplicate current phase/commit/progress snapshots in this README; that cr
 
 ## Product red/black dashboard
 
-`PRODUCT_RED_BLACK_BOARD.md` is a continuously maintained **non-authoritative dashboard**:
+`PRODUCT_RED_BLACK_BOARD.md` is a **non-authoritative historical diagnostic dashboard**. Its detailed 2026-08-19 blocker list is retained for provenance and must not be treated as current work:
 
 - 红榜 only records strengths/capabilities backed by implementation + CI/Probe/Human evidence;
 - 黑榜 records unresolved product problems, major attack goals and commercial/reliability risks;
-- issues move only with evidence, and the board cannot override the live-state trio or Stage-A gate.
+- historical issues move only with evidence, and the board cannot override the live-state trio or the accepted Stage-A gate.
 
-Use it for a fast product-health scan, not as a substitute for the Roadmap or Work Order.
+Use it to understand what was considered risky during construction, not as a current blocker list. Current product/release/security state comes from the live trio.
 
 ## Durable downstream integration constraints
 

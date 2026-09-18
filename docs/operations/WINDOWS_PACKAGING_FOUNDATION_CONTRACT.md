@@ -1,8 +1,8 @@
 # Windows Packaging Foundation Contract
 
-**Status:** PREPARATION FOUNDATION — IMPLEMENTATION NOT RELEASED  
-**Parent:** R0.12-STAGE-A-FINAL-CLOSURE-002 / Wave D  
-**Updated:** 2026-08-25
+**Status:** IMPLEMENTED / RELEASED BASELINE — MAINTENANCE CONTRACT  
+**Parent:** R0.12-STAGE-A-FINAL-CLOSURE-002 / Wave D (closed)  
+**Updated:** 2026-09-18
 
 ## Purpose
 
@@ -11,7 +11,14 @@ Packaging is an application delivery layer, not a replacement architecture.
 
 The goal is not merely to produce an `.exe`. The goal is a reproducible ordinary-user Windows product whose required runtime capabilities are explicit, diagnosable, replaceable and traceable instead of depending on whatever happens to be installed on the development machine.
 
-Nothing in this preparation document releases Wave D. Packaging implementation begins only after Workspace/UX Human Gate acceptance and an explicit live-control release.
+Wave D and the ordinary Windows packaging path were subsequently implemented and accepted through the stable `v1.0.0` release. This document now preserves the packaging architecture/maintenance contract; it no longer authorizes a construction wave. Current authorization comes only from the canonical live trio.
+
+
+## Release closure note — 2026-09-18
+
+Stable `v1.0.0` proves that the packaging foundation is no longer hypothetical: the guided installer, external Workspace separation, runtime inventory/manifest, package smoke, and install/repair-or-upgrade/uninstall lifecycle have all reached an accepted release baseline.
+
+The current post-release review does **not** reopen this foundation. PR #36 adds licensing/signing-governance prerequisites and Windows product metadata; PR #35 hardens update trust and will later integrate the approved public-signing path. Existing `v1.0.0` bytes remain unchanged.
 
 ## Core boundaries
 
@@ -272,7 +279,7 @@ Do not:
 
 ## 8. Release sequence
 
-After Workspace/UX is accepted and Wave D is explicitly released, preferred order is:
+The original 1.0 implementation followed this engineering order and the resulting Windows delivery is now released. For future maintenance/signing work, preserve the same provenance and validation boundaries:
 
 ```text
 ordinary quality/governance gate
@@ -288,4 +295,4 @@ ordinary quality/governance gate
 → explicit release decision
 ```
 
-Packaging implementation must stop/report at its released boundary; it does not self-authorize installer/onefile/update/signing work unless the live control plane explicitly expands scope.
+Packaging/signing maintenance must stop/report at its authorized boundary. This contract never self-authorizes installer, update, signing, or product changes; the live control plane must explicitly authorize them.

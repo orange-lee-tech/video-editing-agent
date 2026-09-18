@@ -5,95 +5,104 @@
 **Structural progress:** 100%  
 **Current phase:** R0.13 — 1.0 release polish and compatibility  
 **Engineering state:** R0.13_CLOSED_1_0_0_RELEASED  
-**Updated:** 2026-08-31  
-**Active work order:** NONE
+**Updated:** 2026-09-18  
+**Active work order:** NONE  
+**Current review track:** Post-release security and signing governance
 
-## Stage-A baseline
+## Accepted release baseline
 
-Stage-A remains **100% complete**.
+R0.13 is **CLOSED** and Stage-A remains **100% complete**.
 
-Accepted core-product baseline:
+Accepted stable product:
 
-- application version: `0.1.5`;
-- exact source: `e59cab8475a615d29003c03497ddcdaf862476a6`;
-- Planning Human Gate: **PASS**;
-- Automatic Editing Human Gate: **PASS**.
+- application version: `1.0.0`;
+- exact stable source: `fc6391b846432586a41311a295251e8860cdf9fa`;
+- stable release: `v1.0.0`;
+- final Windows verification: **PASS**;
+- installer SHA-256: `dd47f88953d134dac522990db80fc719367a7abe627203b142fe681cb786e5a8`.
 
-R0.13 does not reopen those core gates unless a material regression is demonstrated.
+Planning and Automatic Editing remain Human-accepted **PASS**. No current activity reopens those product gates.
 
-## R0.13 scope
+The repository default branch currently points to `b201c685fa74b83e3559e16b50f63aea58eddd83`, a documentation finalization commit after the accepted 1.0.0 product source.
 
-The Product Owner approved seven release-polish items before final 1.0.0 packaging:
+## Current post-release review
 
-1. localized installer remaining-time estimate/countdown;
-2. Windows DPI-aware crisp typography;
-3. persisted Day / Comfort / Night appearance modes;
-4. component/file patch updating so ordinary patch releases do not require redownloading the full runtime bundle;
-5. bilingual installer Software License and User Agreement requiring explicit interactive acceptance;
-6. header consolidation so update checking lives inside Settings plus a sibling Declaration control;
-7. visible product branding as `有岐` with slogan `创作有岐，表达有路`, while compatibility-sensitive internal identifiers remain stable.
+Current engineering activity is a bounded **post-release security / signing-governance review**, not a new product-construction phase.
+
+### PR #35 — security hardening
+
+`security: harden component update trust chain`
+
+State: **Draft / not merge-ready**.
+
+The branch includes signed-manifest verification, stricter update-origin and component-integrity checks, actual Authenticode signer-certificate binding, rollback/evidence hardening, updater-protocol migration, and release/promotion protections.
+
+The production Ed25519 public key has been rotated on the branch; the private seed is not repository content.
+
+The final public Windows signing route is not yet integrated. The previous PFX/cloud-HSM adapter is an engineering placeholder, not an accepted production identity. The intended route is now the **SignPath Foundation** open-source signing program, subject to Foundation approval.
+
+### PR #36 — Apache-2.0 / SignPath governance
+
+`governance: adopt Apache-2.0 for 有岐`
+
+State: **Ready for review / not merged**.
+
+The branch proposes:
+
+- Apache License 2.0 for project-authored material;
+- aligned NOTICE/license packaging;
+- user-term presentation compatible with Apache-2.0 rights;
+- public code-signing policy;
+- privacy disclosures for optional providers and update infrastructure;
+- Windows VERSIONINFO/ProductName/ProductVersion metadata contracts.
+
+These are pending Human review and are not yet accepted `main` truth.
+
+## Governance controls already active
+
+Repository-level controls now in force:
+
+- both named signing-team GitHub accounts have 2FA enabled;
+- `main-production-protection` is active on the default branch;
+- no bypass actors are configured;
+- one approving PR review is required;
+- stale reviews are dismissed after new commits;
+- unresolved review threads block merge;
+- protected merges must be up to date;
+- required checks are `Quality Gate`, `inventory`, and `repository-doctor`;
+- protected-branch deletion and force/non-fast-forward updates are blocked.
+
+These controls are current repository state and do not depend on PR #35/#36 merging.
 
 ## Release boundary
 
-Structural progress remains **100%** because core construction is complete.
+Stable `v1.0.0` remains published and unchanged.
 
-R0.13 is **CLOSED**. Planning and Editing remain accepted PASS. The Product Owner accepted the bounded presentation hotfix, the application version remains `1.0.0`, and the verified hotfix RC assets have been promoted to the stable `v1.0.0` release.
+The existing stable release predates SignPath integration and must not be represented as SignPath-signed. Current governance/security work does not authorize changing the published 1.0.0 binaries.
 
-The full Setup.exe remains the bootstrap/recovery path. Routine future patch updates should use verified changed-component delivery with rollback rather than byte-level binary diff machinery.
+The following remain outside the current review boundary:
 
-## Verification focus
+- new creative/editing capabilities;
+- reopening Planning or Automatic Editing;
+- replacing existing stable-release bytes;
+- weakening update trust to make unsigned/self-signed artifacts appear production-trusted.
 
-R0.13 must preserve:
+## Next controlled sequence
 
-- Stage-A Planning/Editing behavior;
-- public update discovery;
-- Windows packaged GUI smoke;
-- packaged H.264 encode verification;
-- installer upgrade/repair/uninstall lifecycle;
-- Workspace/original-media safety.
+1. Liu Lei completes the human review of PR #36.
+2. PR #36 may merge only after the protected-branch review/check requirements pass.
+3. Run the Windows Packaging Candidate from merged source and inspect actual EXE VERSIONINFO.
+4. Refresh the `v1.0.0` release/download description for the SignPath application.
+5. Submit the SignPath Foundation application and enable SignPath MFA for signing-team accounts.
+6. After Foundation approval, integrate SignPath trusted-build signing into PR #35.
+7. Run an end-to-end signed Windows RC and verify the v1.0.0 migration path.
+8. Complete human security review of PR #35 before merge.
 
-Before final 1.0.0 authorization, Windows presentation must also be reviewed at 100%, 125%, 150% and 200% display scaling.
+## Historical R0.13 closure
 
+The original R0.13 scope covered installer ETA, DPI/typography, Day/Comfort/Night modes, component/file patching, bilingual installer terms, header consolidation/declaration, and 有岐 branding.
 
-## Current 0.1.6 engineering RC
+That scope has been completed and accepted. The verified 1.0.0 RC assets were promoted byte-for-byte to the stable release; no product-source rebuild occurred during stable promotion.
 
-Exact candidate: `111b50f13d1b19670dfe0e0a68bfa2da00212a5f`  
-Windows RC: `33379570088` — **SUCCESS**  
-Installer SHA-256: `f6a90b2a8b484806e893d0bbcc369adf5ced83425a14e887bc6f65954528796b`
-
-This is the remediated Human-review candidate after three observed UI regressions in the earlier 0.1.6 RC: Settings must retain Import / Export / Save / Delete profile actions, developer-homepage activation must show the temporary-closure notice instead of exposing the page, and Day / Comfort / Night selection must visibly preview immediately. The remediated candidate passed repository and Windows staging / Setup.exe / install-upgrade-repair-uninstall engineering verification.
-
-The Product Owner reports all required visual/interaction review items **PASS**, including the required Windows display-scaling review. R0.13 is closed and final `1.0.0` packaging is authorized. Remaining activity is release finalization only; no new creative capability scope is opened.
-
-
-## Final stable 1.0.0 release
-
-Stable release: `v1.0.0` — **PUBLISHED**  
-Exact release source: `fc6391b846432586a41311a295251e8860cdf9fa`  
-Final Windows verification run: `33401022544` — **SUCCESS**  
-Installer lifecycle: **PASS**  
-Installer: `VideoEditingAgent-Setup-1.0.0.exe`  
-Installer SHA-256: `dd47f88953d134dac522990db80fc719367a7abe627203b142fe681cb786e5a8`
-
-Stable release page: https://github.com/orange-lee-tech/video-editing-agent/releases/tag/v1.0.0  
-Direct installer: https://github.com/orange-lee-tech/video-editing-agent/releases/download/v1.0.0/VideoEditingAgent-Setup-1.0.0.exe
-
-The final stable installer and component patch assets are byte-for-byte copies of `v1.0.0-rc-fc6391b`, which passed the Windows install / upgrade / repair / uninstall lifecycle gate. Promotion run `33406476432` succeeded, `v1.0.0` now resolves to `fc6391b846432586a41311a295251e8860cdf9fa`, and no product-source rebuild occurred during promotion.
-
-
-## 1.0.0 presentation hotfix candidate
-
-The Product Owner confirms both core functions **PASS**. Final presentation review found three non-core regressions, now repaired without changing the release version:
-
-- local-reference picker aligned to the actual local-reference field;
-- English visible brand localized to `Youqi` with slogan `Create your way, express your path`;
-- clipped header API-status pill removed, eliminating the stray `/` glyph.
-
-Exact source: `fc6391b846432586a41311a295251e8860cdf9fa`  
-Version: `1.0.0`  
-Quality Gate: run `33400752251` — **SUCCESS**  
-Windows RC: run `33401022544` — **SUCCESS**  
-Installer lifecycle: **PASS**  
-Prerelease: `v1.0.0-rc-fc6391b`
-
-Human Gate: **PASS** for all three presentation items. Core Planning/Editing were not reopened. This candidate is now the final stable `1.0.0` source.
+Stable release: <https://github.com/orange-lee-tech/video-editing-agent/releases/tag/v1.0.0>  
+Installer: <https://github.com/orange-lee-tech/video-editing-agent/releases/download/v1.0.0/VideoEditingAgent-Setup-1.0.0.exe>

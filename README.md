@@ -1,12 +1,14 @@
 # video-editing-agent
 
+**Last updated:** 2026-09-18
+
 A **local-first, evidence-grounded AI Director + AI Video Editor** for user-supplied footage.
 
 Initial product focus: Windows desktop, commercial short-form video, ecommerce/product advertising and Vlog, primarily under 60 seconds.
 
 ## Two core product functions
 
-The project is not considered structurally complete until both of these are genuinely usable by an ordinary Windows user.
+The Stage-A structural-completion contract required both of these to be genuinely usable by an ordinary Windows user; that gate is now accepted.
 
 ### 1. Planning
 
@@ -40,9 +42,9 @@ Final visual media comes from user-supplied local footage under the active Produ
 
 ## Current state — do not duplicate stale snapshots here
 
-The project is in **Stage A — Structural Construction**.
+Stage A structural construction is **complete at 100%**, and stable **v1.0.0** is published. There is currently no active product-construction work order; post-release security/signing governance is under review.
 
-Current phase, exact Work Order, accepted code baseline, structural progress and Stage-A Product Gates are live in:
+Current phase/review state, exact authorization boundary, accepted baselines and Product Gates are live in:
 
 - [`docs/operations/CURRENT_CONTROL_STATE.md`](docs/operations/CURRENT_CONTROL_STATE.md)
 - [`docs/roadmap/CURRENT_PHASE_STATUS.md`](docs/roadmap/CURRENT_PHASE_STATUS.md)
@@ -88,7 +90,7 @@ Normative order:
 2. [`docs/architecture/ARCHITECTURE_CONTRACT_V0.2.md`](docs/architecture/ARCHITECTURE_CONTRACT_V0.2.md) — active architecture baseline;
 3. [`docs/capabilities/`](docs/capabilities/) — active capability specifications;
 4. [`docs/adr/`](docs/adr/) — active architecture decisions;
-5. [`docs/roadmap/ROADMAP_V2.md`](docs/roadmap/ROADMAP_V2.md) — active construction map;
+5. [`docs/roadmap/ROADMAP_V2.md`](docs/roadmap/ROADMAP_V2.md) — durable Stage-A construction map and historical sequencing reference;
 6. live control state / Work Order;
 7. implementation/tests/provider behavior.
 
@@ -114,7 +116,8 @@ Retired documents live under [`docs/archive/`](docs/archive/) and are provenance
 - `.github/` — CI and reproducible probe/maintenance workflows.
 - `docs/` — product/architecture/roadmap/ADR/validation/log/operations control plane.
 - `docs/archive/` — retired documentation preserved for provenance only.
-- `LICENSES/` — third-party license-text staging/retention policy, not the project license.
+- `LICENSE` / `NOTICE` — repository-wide Apache-2.0 license and attribution notice for project-authored material.
+- `LICENSES/` — third-party license-text staging/retention policy; third-party material remains under its own terms.
 - `scripts/` — repository/developer helper scripts and historical standalone probes.
 - `src/` — production Python package.
 - `tests/` — unit/integration/contract tests and redistributable fixtures.
@@ -167,8 +170,18 @@ Active upstream governance:
 - [`docs/upstream/UPSTREAM_COMPONENTS_V2.md`](docs/upstream/UPSTREAM_COMPONENTS_V2.md)
 - [`docs/upstream/UPSTREAM_POLICY_V2.md`](docs/upstream/UPSTREAM_POLICY_V2.md)
 
-## License status
+## Code signing policy
 
-A repository-wide open-source license has not yet been selected. All rights are reserved by default until an explicit project license is adopted.
+The project maintains a public [Code signing policy](CODE_SIGNING_POLICY.md) for official Windows releases.
 
-See [`LICENSE_STATUS.md`](LICENSE_STATUS.md) and [`LICENSES/README.md`](LICENSES/README.md).
+Upon approval of the project's SignPath Foundation application, production Windows releases will use **Free code signing provided by SignPath.io, certificate by SignPath Foundation**. The policy documents the signing-team roles, MFA requirement, trusted GitHub Actions build boundary, manual approval requirement, third-party binary boundary, artifact metadata, and incident rules.
+
+The current `v1.0.0` release predates SignPath Foundation signing and is not represented as SignPath-signed.
+
+Privacy and external-provider behavior are documented in [`PRIVACY.md`](PRIVACY.md).
+
+## License
+
+Project-authored material in this repository is licensed under the **Apache License, Version 2.0** (`Apache-2.0`). See [`LICENSE`](LICENSE), [`NOTICE`](NOTICE), and [`LICENSE_STATUS.md`](LICENSE_STATUS.md).
+
+Bundled and referenced third-party components remain under their respective licenses and review gates; see [`LICENSES/README.md`](LICENSES/README.md) and the runtime third-party notices.

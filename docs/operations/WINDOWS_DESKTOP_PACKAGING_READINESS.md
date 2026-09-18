@@ -1,15 +1,17 @@
 # Windows Desktop Packaging Readiness
 
-**状态：** RELEASE DELIVERY ACTIVE — guided Setup.exe not yet Human-approved  
-**更新日期：** 2026-08-26  
-**目标：** 从已完成的 Windows onedir/runtime 工程证明，收口到普通用户可安装、可修复、可卸载的 1.0 `Setup.exe`。  
-**当前 Work Order：** `R0.12-STAGE-A-FINAL-CLOSURE-002`
+**状态：** RELEASED BASELINE — 1.0.0 GUIDED SETUP ACCEPTED; MAINTENANCE REFERENCE  
+**更新日期：** 2026-09-18  
+**目标：** 记录已经闭环的 Windows onedir/runtime → guided `Setup.exe` 交付基线，并作为后续安全签名/维护版本的 packaging 参考。  
+**历史 Work Order：** `R0.12-STAGE-A-FINAL-CLOSURE-002`（已关闭；当前 Work Order 为 `NONE`）
 
 ---
 
 # 1. 当前判断
 
-**运行时/onedir 工程基础已经证明，当前真正未闭环的是普通用户安装交付。**
+**Windows 普通用户安装交付已经在 1.0.0 闭环。本文不再是待执行计划，而是发布后的 packaging 基线/维护参考。**
+
+稳定 `v1.0.0` 已完成 guided Setup.exe 的安装 / 升级或修复 / 卸载生命周期验证，并通过 Human Gate。当前 post-release 工作是安全签名与更新信任治理，准确状态见 canonical live trio。
 
 已完成的工程事实包括：
 
@@ -234,21 +236,24 @@ Speech runtime/model可以记录为 `deferred_not_shipped_1_0`，不应继续作
 
 ---
 
-# 9. Current action order
+# 9. Release closure and current maintenance boundary
+
+The original 1.0 packaging sequence is closed:
 
 - [x] Project Workspace / UX foundation；
 - [x] runtime inventory / manifest；
 - [x] onedir engineering build foundation；
-- [x] FFmpeg / TransNet / speech engineering payload proof；
-- [x] heavy package workflow改为 explicit/manual；
-- [ ] preserve + accept current focused Planning/Editing repair；
-- [ ] final Planning quality + UI isolation + bounded provider wait patch；
-- [ ] full Quality Gate + accepted green SHA；
-- [ ] remove deferred speech payload from default 1.0 staging spec/manifest；
-- [ ] build explicit 1.0 staging tree；
-- [ ] build guided `Setup.exe`；
-- [ ] install / repair-or-upgrade / uninstall smoke；
-- [ ] final ordinary-user Human Gate；
-- [ ] Stage-A 100% only when the gate is truthful。
+- [x] FFmpeg / TransNet engineering payload proof；
+- [x] deferred 2.0 speech payload excluded from the default 1.0 package；
+- [x] accepted Planning / Editing product gates；
+- [x] full Quality Gate and accepted source；
+- [x] explicit 1.0 staging tree；
+- [x] guided `Setup.exe`；
+- [x] install / upgrade-or-repair / uninstall lifecycle smoke；
+- [x] final ordinary-user Human Gate；
+- [x] Stage-A structural completion at 100%；
+- [x] stable `v1.0.0` publication.
 
-我们现在已经越过“能不能打包”的问题。剩下的是**把 1.0 scope 冻结干净，并完成真正的 Windows 安装产品化**。
+Current packaging-related work is limited to post-release governance: prove real VERSIONINFO on a fresh Windows candidate, obtain the selected public-signing route, integrate trusted signing, and preserve the existing packaging/runtime invariants.
+
+Do not use this document as the current Work Order. Read `CURRENT_CONTROL_STATE.md`, `CURRENT_PHASE_STATUS.md`, and `CURRENT_WORK_ORDER.md` first.

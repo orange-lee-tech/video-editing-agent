@@ -3,6 +3,7 @@ name = "video-editing-agent"
 version = "1.0.0"
 description = "Script-driven personal video editing agent"
 readme = "README.md"
+license = "Apache-2.0"
 authors = [
     { name = "雨涟帘", email = "16175136+rainy-curtain@user.noreply.gitee.com" }
 ]

@@ -41,6 +41,21 @@ def test_release_version_identity_is_1_0_0_and_packaging_mirrors_it() -> None:
     installer = Path("packaging/windows/VideoEditingAgent.iss").read_text(encoding="utf-8")
     match = re.search(r'#define AppVersion "([^"]+)"', installer)
     assert match is not None and match.group(1) == APP_VERSION
+    assert "VersionInfoProductName={#AppName}" in installer
+    assert "VersionInfoProductVersion={#AppVersion}" in installer
+    assert "VersionInfoProductTextVersion={#AppVersion}" in installer
+
+    version_info = Path("packaging/windows/VideoEditingAgent.version").read_text(encoding="utf-8")
+    version_tuple = tuple(int(part) for part in APP_VERSION.split(".")) + (0,)
+    expected_tuple = ", ".join(str(part) for part in version_tuple)
+    assert f"filevers=({expected_tuple})" in version_info
+    assert f"prodvers=({expected_tuple})" in version_info
+    assert f'StringStruct("ProductVersion", "{APP_VERSION}")' in version_info
+    assert 'StringStruct("ProductName", "有岐")' in version_info
+
+    spec = Path("packaging/video_editing_agent.spec").read_text(encoding="utf-8")
+    assert "packaging/windows/VideoEditingAgent.version" in spec
+    assert spec.count("version=version_info") == 3
 
     workflow = Path(".github/workflows/windows-release-candidate.yml").read_text(encoding="utf-8")
     assert "steps.source.outputs.version" in workflow
@@ -127,11 +142,13 @@ def test_update_manifest_parses_component_patches() -> None:
     assert manifest.components[0].size_bytes == 123456
 
 
-def test_installer_requires_bilingual_user_agreement_and_eta() -> None:
+def test_installer_shows_bilingual_user_terms_without_clickthrough_and_eta() -> None:
     installer = Path("packaging/windows/VideoEditingAgent.iss").read_text(encoding="utf-8")
 
-    assert 'LicenseFile: "..\\..\\resources\\legal\\USER_AGREEMENT_en.txt"' in installer
-    assert 'LicenseFile: "..\\..\\resources\\legal\\USER_AGREEMENT_zh-CN.txt"' in installer
+    assert 'InfoBeforeFile: "..\\..\\resources\\legal\\USER_AGREEMENT_en.txt"' in installer
+    assert 'InfoBeforeFile: "..\\..\\resources\\legal\\USER_AGREEMENT_zh-CN.txt"' in installer
+    assert 'LicenseFile: "..\\..\\resources\\legal\\USER_AGREEMENT_en.txt"' not in installer
+    assert 'LicenseFile: "..\\..\\resources\\legal\\USER_AGREEMENT_zh-CN.txt"' not in installer
     assert "CurInstallProgressChanged" in installer
     assert "InstallEtaRemaining" in installer
     assert Path("resources/legal/USER_AGREEMENT_en.txt").is_file()
