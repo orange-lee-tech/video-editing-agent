@@ -1,6 +1,6 @@
 # Operations
 
-**Last updated:** 2026-08-21
+**Last updated:** 2026-09-18
 
 Dynamic collaboration/execution state lives here. These files change more often than product/architecture authority and are part of the repository control plane, not decorative documentation.
 
@@ -10,18 +10,18 @@ For current execution state use:
 
 1. `../DOCUMENT_REGISTRY.json` — compact repository/document map and attention classes.
 2. `CURRENT_CONTROL_STATE.md` — machine-readable high-level live control state, accepted baseline and Stage-A gates.
-3. `CURRENT_WORK_ORDER.md` — exact currently authorized implementation/evidence boundary.
+3. `CURRENT_WORK_ORDER.md` — exact authorization/review boundary; it may explicitly state that no construction work order is active.
 4. `../roadmap/CURRENT_PHASE_STATUS.md` — human-readable live phase position and remaining terrain.
-5. `CODEX_EXECUTION_ENTRY.md` only when local Codex execution is actually released.
+5. `CODEX_EXECUTION_ENTRY.md` only when a bounded Codex/local handoff is explicitly authorized.
 
 Stable supporting files:
 
 - `DOCUMENT_CONTROL_POLICY.md` — update-date, lifecycle, placement, archive and registry rules.
 - `CHATGPT_GITHUB_CODEX_COLLABORATION.md` — role split and handoff protocol.
-- `CODEX_EXECUTION_ENTRY.md` — minimal local Codex startup/read-order.
+- `CODEX_EXECUTION_ENTRY.md` — Codex/local handoff gate; currently carries no standing construction authority.
 - `CODEX_TOOLBOX.md` — bounded escalation/tool routes.
 - `CONTROL_PLANE_ARCHITECTURE.md` — control-plane design.
-- `WINDOWS_DESKTOP_PACKAGING_READINESS.md` — Windows packaging/release-readiness boundary.
+- `WINDOWS_DESKTOP_PACKAGING_READINESS.md` — released Windows packaging baseline and maintenance reference.
 - `WINDOWS_RUNTIME_DEPENDENCY_INVENTORY.md` — active runtime/component packaging inventory.
 
 Completed/superseded wave notes must not remain active entry points merely because they were once useful. Preserve meaningful closure evidence in `../validation/` or `../logs/`; archive only when the semantic archive rule is met.
