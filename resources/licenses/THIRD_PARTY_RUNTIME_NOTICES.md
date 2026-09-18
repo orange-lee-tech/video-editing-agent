@@ -10,9 +10,9 @@ that runtime.
 
 ## FFmpeg / ffprobe
 
-- BtbN FFmpeg-Builds tag `autobuild-2026-08-20-13-45`.
-- Revision `n8.1.2-44-g7c533d0f86`, LGPL shared Windows x64 asset.
-- Archive SHA-256 `d311c8c7b86e06b54588e442652f963bae165bd4d8393e73cc9ebb445b025547`.
+- BtbN FFmpeg-Builds tag `autobuild-2026-08-31-13-27`.
+- Revision `n8.1.2-50-g1a748fe2cd`, LGPL shared Windows x64 asset.
+- Archive SHA-256 `e9712ffbdb03ef71bbab660c75b835bfe698ef6fad0247c76d8d394a39a3db63`.
 - Runtime validation rejects `--enable-gpl` and `--enable-nonfree`.
 - The exact build configuration enables `libopenh264` and disables `libx264`.
 - Stage-A H.264 rendering uses the bundled software `libopenh264` encoder; packaging performs a real encode + ffprobe verification before release.
