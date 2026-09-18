@@ -1,9 +1,16 @@
 # Stage A Workspace + UX Consolidation
 
-**Updated:** 2026-08-22  
-**Parent Work Order:** `R0.12-STAGE-A-FINAL-CLOSURE-002`  
-**Status:** ACTIVE / RELEASED — BOUNDED LOCAL WAVE  
-**Purpose:** make the existing Stage-A desktop product behave like one coherent user application before Windows packaging.
+**Updated:** 2026-09-18  
+**Parent Work Order:** `R0.12-STAGE-A-FINAL-CLOSURE-002` (closed)  
+**Status:** CLOSED / RELEASED — RETAINED IMPLEMENTATION RECORD  
+**Purpose:** preserve the released Stage-A Workspace/UX consolidation contract and the design decisions that the Windows 1.0 package now depends on.
+
+
+## Closure note — 2026-09-18
+
+This wave is no longer an active construction entry. Its accepted outcomes are part of the stable `v1.0.0` product baseline, including shared Project Workspace behavior, configuration ownership, desktop workflow structure and install-directory separation.
+
+Current security/signing governance work must preserve these outcomes but does not reopen this wave. For current authorization, read the canonical live trio before using any requirement below as an implementation task.
 
 ## Product intent
 
@@ -236,4 +243,4 @@ An ordinary user should be able to answer these without knowing repository archi
 4. How do I collapse information I am not editing right now?
 5. Where will the final video be written by default?
 
-If those answers are obvious from the main window, the wave is ready to hand off to Packaging.
+Those acceptance questions were satisfied before the Windows 1.0 release. They remain regression checks for future packaging/maintenance work, not an open handoff gate.
