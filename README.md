@@ -40,9 +40,9 @@ Final visual media comes from user-supplied local footage under the active Produ
 
 ## Current state — do not duplicate stale snapshots here
 
-The project is in **Stage A — Structural Construction**.
+Stage A structural construction is **complete at 100%**, and stable **v1.0.0** is published. There is currently no active product-construction work order; post-release security/signing governance is under review.
 
-Current phase, exact Work Order, accepted code baseline, structural progress and Stage-A Product Gates are live in:
+Current phase/review state, exact authorization boundary, accepted baselines and Product Gates are live in:
 
 - [`docs/operations/CURRENT_CONTROL_STATE.md`](docs/operations/CURRENT_CONTROL_STATE.md)
 - [`docs/roadmap/CURRENT_PHASE_STATUS.md`](docs/roadmap/CURRENT_PHASE_STATUS.md)
@@ -88,7 +88,7 @@ Normative order:
 2. [`docs/architecture/ARCHITECTURE_CONTRACT_V0.2.md`](docs/architecture/ARCHITECTURE_CONTRACT_V0.2.md) — active architecture baseline;
 3. [`docs/capabilities/`](docs/capabilities/) — active capability specifications;
 4. [`docs/adr/`](docs/adr/) — active architecture decisions;
-5. [`docs/roadmap/ROADMAP_V2.md`](docs/roadmap/ROADMAP_V2.md) — active construction map;
+5. [`docs/roadmap/ROADMAP_V2.md`](docs/roadmap/ROADMAP_V2.md) — durable Stage-A construction map and historical sequencing reference;
 6. live control state / Work Order;
 7. implementation/tests/provider behavior.
 
