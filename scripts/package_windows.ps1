@@ -48,7 +48,7 @@ try {
         throw "Could not resolve application version for packaged metadata"
     }
 
-    $ExpectedProductName = "有岐"
+    $ExpectedProductName = -join @([char]0x6709, [char]0x5C90)
     $ExpectedFileVersion = "$ApplicationVersion.0"
     $VersionInfoEvidence = @()
     foreach ($Executable in @($GuiExecutable, $CliExecutable, $UpdaterExecutable)) {
