@@ -43,15 +43,47 @@ try {
     }
     New-Item -ItemType Directory -Force -Path $Evidence | Out-Null
     $SourceSha = (git rev-parse HEAD).Trim()
+    $ApplicationVersion = (uv run python -c "from video_editing_agent.version import APP_VERSION; print(APP_VERSION)").Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($ApplicationVersion)) {
+        throw "Could not resolve application version for packaged metadata"
+    }
+
+    $ExpectedProductName = -join @([char]0x6709, [char]0x5C90)
+    $ExpectedFileVersion = "$ApplicationVersion.0"
+    $VersionInfoEvidence = @()
+    foreach ($Executable in @($GuiExecutable, $CliExecutable, $UpdaterExecutable)) {
+        $VersionInfo = (Get-Item -LiteralPath $Executable).VersionInfo
+        $Record = [ordered]@{
+            file = [System.IO.Path]::GetFileName($Executable)
+            product_name = $VersionInfo.ProductName
+            product_version = $VersionInfo.ProductVersion
+            file_version = $VersionInfo.FileVersion
+        }
+        if ($Record.product_name -ne $ExpectedProductName) {
+            throw "Packaged VERSIONINFO ProductName mismatch for $($Record.file): '$($Record.product_name)'"
+        }
+        if ($Record.product_version -ne $ApplicationVersion) {
+            throw "Packaged VERSIONINFO ProductVersion mismatch for $($Record.file): '$($Record.product_version)'"
+        }
+        if ($Record.file_version -ne $ExpectedFileVersion) {
+            throw "Packaged VERSIONINFO FileVersion mismatch for $($Record.file): '$($Record.file_version)'"
+        }
+        $VersionInfoEvidence += [pscustomobject]$Record
+        Write-Host "VERSIONINFO PASS: $($Record.file) ProductName='$($Record.product_name)' ProductVersion='$($Record.product_version)' FileVersion='$($Record.file_version)'"
+    }
+    [ordered]@{
+        schema = "video-editing-agent-windows-version-info/v1"
+        source_git_sha = $SourceSha
+        expected_product_name = $ExpectedProductName
+        expected_product_version = $ApplicationVersion
+        expected_file_version = $ExpectedFileVersion
+        executables = $VersionInfoEvidence
+    } | ConvertTo-Json -Depth 5 | Set-Content -Encoding utf8 (Join-Path $Evidence "windows-version-info.json")
+
     uv run python -m video_editing_agent.adapters.bootstrap.package_validation `
         --manifest $Manifest --staged-root $Stage `
         --evidence (Join-Path $Evidence "package-evidence.json") --source-sha $SourceSha
     if ($LASTEXITCODE -ne 0) { throw "Static package validation failed" }
-
-    $ApplicationVersion = (uv run python -c "from video_editing_agent.version import APP_VERSION; print(APP_VERSION)").Trim()
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($ApplicationVersion)) {
-        throw "Could not resolve application version for update components"
-    }
     $UpdateComponents = Join-Path $RepoRoot "build\update-components"
     if (Test-Path -LiteralPath $UpdateComponents) {
         Remove-Item -LiteralPath $UpdateComponents -Recurse -Force
