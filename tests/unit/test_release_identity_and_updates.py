@@ -58,7 +58,8 @@ def test_release_version_identity_is_1_0_0_and_packaging_mirrors_it() -> None:
     assert spec.count("version=version_info") == 3
 
     package_script = Path("scripts/package_windows.ps1").read_text(encoding="utf-8")
-    assert 'ExpectedProductName = "有岐"' in package_script
+    assert "ExpectedProductName = -join @([char]0x6709, [char]0x5C90)" in package_script
+    assert 'ExpectedProductName = "有岐"' not in package_script
     assert 'ExpectedFileVersion = "$ApplicationVersion.0"' in package_script
     assert "ProductName mismatch" in package_script
     assert "ProductVersion mismatch" in package_script
