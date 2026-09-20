@@ -1,52 +1,199 @@
-有岐 Open-Source License Notice and User Terms
-Version: 1.0 Open-Source Alignment
-Updated: 2026-09-16
+VideoEditingAgent User Agreement
+Effective Date: September 16, 2026
+Version: 1.0
 
-IMPORTANT:
-Project-authored source code, documentation, build scripts, and corresponding object code that are covered by the project license are provided under the Apache License, Version 2.0 (Apache-2.0). The complete Apache-2.0 text is provided in the LICENSE file distributed with the source and application.
+Important Notice
 
-You do not need to accept these User Terms in order to receive or exercise rights already granted by Apache-2.0, including rights to use, copy, modify, sublicense, and redistribute covered project work. These User Terms primarily describe AI behavior, optional third-party network services, user-supplied media, privacy, security, updates, and responsibility boundaries. If these User Terms conflict with Apache-2.0 concerning rights in project-authored software, Apache-2.0 controls.
+Before you begin using Video Editing Agent (the "Software"), please carefully read and fully understand all provisions of this Agreement, especially provisions shown in bold concerning exemptions or limitations of liability, intellectual-property authorization, compliance obligations for AI-generated content, and dispute resolution. By installing, copying, downloading, accessing, or otherwise using the Software, you are deemed to have fully read, understood, and accepted all terms of this Agreement.
 
-Third-party software, runtimes, models, codecs, data, and services remain subject to their own licenses or service terms. Adoption of Apache-2.0 for this project does not alter those third-party terms.
+1. Definitions and Interpretation
 
-1. Open-Source License
-Project-authored software is provided under Apache-2.0. The rights, conditions, patent grant, trademark limitations, warranty disclaimer, and limitation of liability for that work are stated in LICENSE. These User Terms do not revoke, narrow, or add restrictions to rights granted by Apache-2.0. The project name, marks, and publisher identity are not licensed for endorsement or branding beyond what Apache-2.0 and applicable law permit. Third-party components and services are governed by their respective rights holders.
+1.1 Software: the desktop application named Video Editing Agent, which provides AI-assisted video-editing functions by calling third-party AI model APIs.
 
-2. AI Features and Outputs
-The Software includes AI-assisted understanding, planning, review, directing, and editing features. AI outputs are probabilistic and may be inaccurate, incomplete, outdated, inappropriate, or inconsistent with your intent. The maintainers do not guarantee viral performance, commercial results, platform recommendations, legal compliance, copyright clearance, or any other particular outcome. You are responsible for appropriate human review before publication, distribution, commercial use, or reliance on outputs.
+1.2 We / Developer: the developer and operator of the Software.
 
-3. Third-Party APIs, Network Transmission, and External Services
-When you actively configure and use a third-party API such as DeepSeek, Gemini, OpenAI, or another supported provider, the Software may transmit data reasonably necessary to perform your request, including text you enter, task instructions, prompts, frames or thumbnails extracted from media you select, technical media metadata, intermediate context, and authentication information.
-Third-party providers independently determine their data handling, retention, model-training policies, privacy rules, content rules, availability, pricing, regional restrictions, and security measures. Review and comply with the applicable provider terms and confirm that you are authorized to submit relevant data. Do not submit confidential, regulated, sensitive personal, trade-secret, or otherwise specially protected information unless applicable law, organizational policy, and provider terms permit that transmission.
+1.3 You / User: any natural person, legal person, or other organization that installs, copies, downloads, accesses, or otherwise uses the Software.
 
-4. API Keys, Accounts, and Fees
-The Software does not generally include third-party API credits. Charges, quotas, taxes, and account status are governed by your relationship with the relevant provider. You are responsible for protecting API keys and credentials. When you explicitly save an API profile, the Software may use operating-system-provided local credential protection, but no device environment can be guaranteed absolutely secure.
+1.4 Third-Party AI Model API: AI model services provided by third-party service providers and accessible through application programming interfaces, including but not limited to text-generation models and video-analysis models.
 
-5. Your Media, Music, and Intellectual Property
-You retain rights you lawfully hold in your original media, project files, and outputs. You are responsible for ensuring that you have the rights needed to analyze, edit, copy, adapt, publish, or commercially use any video, image, music, text, trademark, likeness, or other material you select. Automated rights checks are technical assistance only, are not legal advice, and do not guarantee the absence of disputes. A rights attestation records your own representation and does not obtain a third-party license for you.
+1.5 AI-Assisted Output: script suggestions, editing plans, editing recommendations, and similar content generated by the Software based on the materials and instructions you provide through calls to third-party AI model APIs.
 
-6. Privacy, Local Data, and Logs
-The Software primarily uses a local project workspace. Project files, original media, and outputs are ordinarily stored at locations you select. The Software may keep local run logs, error information, technical metadata, and model-usage information for operation, diagnostics, and quality review. Except for network features you choose to use, the maintainers do not obtain ownership of your local files. Update checks may contact project-maintained update metadata and download sources. The detailed privacy disclosure is maintained in PRIVACY.md or an expressly identified successor document.
+1.6 Output Content: the final video files and related files exported after you use the Software to edit and compose content.
 
-7. Updates and Compatibility
-The maintainers may publish security updates, bug fixes, component patches, compatibility updates, or feature updates. Routine updates may replace only changed components; major layout changes, repair installation, updater failure, or incompatible states may require a full installer. Updates may change third-party components, system requirements, interface behavior, or configuration formats. Back up important work before critical production use or major updates.
-Integrity checks and signatures are security measures for official releases. Apache-2.0 permits modification of project code, but modification does not authorize impersonation of an official release or circumvention of third-party security, access-control, or billing systems you do not control.
+1.7 Explicit Label: a label added to generated or synthetic content or to an interactive interface, presented by text, sound, graphics, or other means and clearly perceptible to users.
 
-8. Prohibited Abuse
-Do not use the Software to violate applicable law; distribute malware; perform unauthorized access, fraud, harassment, or other abuse; bypass third-party access controls, billing, or security restrictions; or falsely represent that you are the official publisher or have endorsement, authorization, or partnership that does not exist.
-Nothing in this section restricts source inspection, modification, research, debugging, reverse engineering, or redistribution that is permitted by Apache-2.0 or applicable law.
+1.8 Implicit Label: a label added by technical means to generated or synthetic content file data that is not readily perceptible to users.
 
-9. Disclaimer of Warranties
-For project-authored software, Apache-2.0 Section 7 governs the warranty disclaimer. To the maximum extent permitted by applicable law, the Software and related functionality are provided "as is" and "as available" without guarantees that they will be error-free, uninterrupted, permanently compatible with every device or third-party service, or that AI outputs will always be accurate, complete, or fit for a particular purpose. Third-party services and components are not warranted beyond the maintainers' actual control.
+2. Scope and Acceptance of the Agreement
 
-10. Limitation of Liability
-For project-authored software, Apache-2.0 Section 8 governs limitation of liability, subject to applicable law. Responsibility for losses caused by failure to back up data, misconfigured APIs, unauthorized media use, ignored warnings, breach of third-party terms, or failure to review outputs remains with the responsible party as provided by law. Nothing excludes liability that applicable law does not permit to be excluded.
+2.1 This Agreement is a legally binding agreement between you and the developer/operator of Video Editing Agent concerning your use of the Software.
 
-11. Changes and Service Termination
-The maintainers may update these User Terms for legal, compliance, security, functional, or service reasons and may announce material changes through the repository, installer, application, update page, or release notes. Optional network services or maintainer-operated services that are separate from the Apache-2.0 software license may be changed, suspended, or discontinued where lawful. Updates to these User Terms, discontinuation of maintenance, or termination of optional services do not revoke Apache-2.0 rights in project-authored software you already lawfully received.
+2.2 This Agreement also includes any individual service agreements, activity rules, notices, or other statements that we may publish from time to time. Such documents form an integral part of this Agreement and have the same legal effect.
 
-12. Governing Law and Disputes
-These User Terms are generally governed by the laws of the People's Republic of China, subject to mandatory consumer-protection or other non-waivable rules that apply. The parties should first attempt good-faith resolution; unresolved disputes may be brought before a court or other body with lawful jurisdiction.
+2.3 We may revise this Agreement in response to changes in laws and regulations or business needs. The revised Agreement will be prominently notified within the Software or on the official website. If you do not agree to the revised terms, you should stop using the Software; continued use will be deemed acceptance of the revised Agreement.
 
-13. Miscellaneous
-If any provision is invalid or unenforceable, the remaining provisions remain effective. If these User Terms conflict with Apache-2.0 concerning project-authored software, Apache-2.0 controls. Third-party components and services remain governed by their applicable licenses, privacy policies, and service terms. These User Terms are not an additional condition on rights granted by Apache-2.0.
+2.4 This Agreement applies to installed versions, portable versions, and any other distribution forms of the Software that we may subsequently release.
+
+3. Service Description
+
+3.1 Video Editing Agent is an AI-assisted desktop video-editing tool. Its core functions include using AI models to assist users in generating video scripts, carrying out video-editing operations, and performing related editing functions. The Software runs as a local EXE desktop application and does not require account registration.
+
+3.2 The Software does not generate entirely new video content. AI-assisted functions operate only on user-provided materials and instructions to provide assistance with editing, arrangement, script suggestions, and similar tasks. The substantive source of final Output Content remains the original materials uploaded or provided by the user.
+
+3.3 The Software does not include any AI model API key and does not act as an agent for any AI service. The Software provides API-calling functionality, and you configure and manage the third-party AI model APIs you use, including but not limited to API keys, access addresses, and usage quotas. Your relationship with a third-party AI service provider is governed by the agreement between you and that third party.
+
+3.4 The Software may adjust, add, or discontinue certain functions according to technological developments or business needs. We will make reasonable efforts to provide advance notice.
+
+4. Data and Privacy
+
+4.1 The Software is a locally running desktop application and does not require account registration.
+
+4.2 All of your data, including uploaded video materials, audio materials, script text, software configuration, and project files, is stored in designated directories on your local device and cannot be accessed by us. The Software's default working directories are folders under the installation directory and other local paths specified by you.
+
+4.3 If you enable automatic updates, the Software will send the software version number and a locally generated random installation identifier to our update server for version identification and update delivery. The identifier is not associated with any of your identity information. You may disable automatic updates in Settings. Automatic updates are enabled by default.
+
+4.4 Third-Party API Data Processing: when you configure and call a third-party AI model API, your video materials, audio materials, script text, and other content will be sent directly from your local device to the third-party AI service provider. The data-processing relationship between you and that provider is governed by the provider's privacy policy or data agreement.
+
+4.5 You are responsible for ensuring that the third-party AI service provider you use complies with applicable laws and regulations and for compliance obligations arising from your use of that third-party service. We recommend reviewing the provider's privacy policy, data-processing agreement, and service terms before use.
+
+4.6 You may remove local program files by uninstalling the Software. Locally generated project files, cache files, configuration files, and similar data must be deleted by you from your local device. The uninstaller does not automatically delete your project files.
+
+4.7 Data Security Recommendation: we recommend applying appropriate local encryption to video materials and script content containing sensitive information and regularly backing up important project files.
+
+5. Software License and Use
+
+5.1 Subject to your compliance with this Agreement, we grant you a non-exclusive, non-transferable, irrevocable license to install and use the Software on devices that you own or control.
+
+5.2 You must not:
+
+(1) reverse engineer, decompile, disassemble, or attempt to obtain the source code of the Software;
+
+(2) modify, translate, adapt, rent, lend, sell, or distribute the Software or any part of it;
+
+(3) remove or alter any copyright notice, trademark, or other rights notice in the Software;
+
+(4) use the Software for any illegal or unauthorized purpose;
+
+(5) disseminate or distribute modified, cracked, or malware-containing versions of the Software;
+
+(6) bypass or attempt to bypass any technical protection measure or usage restriction of the Software.
+
+5.3 Anti-Circumvention Mechanism: the Software may contain technical measures for verifying software integrity and compliant use. You must not interfere with, disable, or circumvent such measures in any manner.
+
+5.4 The Software may contain third-party open-source components, which are governed by their respective open-source licenses. If an open-source license conflicts with this Agreement, the open-source license prevails. The Software will provide an open-source license notice page in the installation directory or on the official website listing the principal open-source components and their licenses.
+
+5.5 You should obtain the Software installer through official channels provided by us. We cannot guarantee the security, integrity, or functional availability of installers obtained through unofficial channels and accept no liability for losses arising from such installers.
+
+6. User Conduct
+
+6.1 When using the Software, you must comply with applicable laws and regulations of the People's Republic of China, including but not limited to the Cybersecurity Law, Data Security Law, Personal Information Protection Law, Copyright Law, Administrative Measures for Internet Information Services, Provisions on the Governance of the Online Information Content Ecosystem, Interim Measures for the Management of Generative Artificial Intelligence Services, Measures for Labeling Artificial Intelligence-Generated and Synthetic Content, and Provisions on the Administration of Deep Synthesis in Internet-based Information Services.
+
+6.2 You must not use the Software to:
+
+(1) upload, edit, output, or disseminate content that violates the basic principles established by the Constitution, endangers national security, leaks state secrets, subverts state power, or undermines national unity;
+
+(2) upload, edit, output, or disseminate content involving terrorism, extremism, incitement of ethnic hatred, ethnic discrimination, or disruption of ethnic unity;
+
+(3) upload, edit, output, or disseminate obscene or pornographic content, gambling content, violence, homicide, terror, or content that incites crime;
+
+(4) upload, edit, output, or disseminate content that insults or defames others or infringes another person's reputation, likeness, privacy, intellectual property, or other lawful rights and interests;
+
+(5) upload, edit, output, or disseminate false or misleading information, or use AI technology to forge or alter another person's identity, voice, or likeness;
+
+(6) bypass or attempt to bypass the Software's security mechanisms in any manner;
+
+(7) collect, store, or use another person's personal information without authorization;
+
+(8) violate the applicable terms of use or content policies of a third-party AI model provider when using the Software to call that provider;
+
+(9) use another person's API key without authorization or configure an API interface by impersonating another person;
+
+(10) use the Software to produce, reproduce, publish, or disseminate false news information;
+
+(11) edit biometric information such as a person's face or voice without that person's consent;
+
+(12) use the Software for activities that infringe another person's intellectual property, trade secrets, or other lawful rights and interests.
+
+6.3 You understand and agree that you bear sole responsibility for the legality and compliance of all content processed using the Software.
+
+7. AI-Generated Content Labeling and Content Compliance
+
+7.1 Under the Measures for Labeling Artificial Intelligence-Generated and Synthetic Content, where you use the Software's AI-assisted functions to edit or synthesize video content and the editing result falls within the circumstances specified in Article 17, Paragraph 1 of the Provisions on the Administration of Deep Synthesis in Internet-based Information Services, you must add explicit labels to the Output Content as follows:
+
+(1) add a prominent notice at the beginning of the video and at an appropriate position around video playback;
+
+(2) the same notice may also be added at the end of the video and at appropriate positions in the middle.
+
+7.2 When you download, export, or otherwise disseminate video content output by the Software, you must ensure that the file contains an explicit label that complies with the above requirements. The Software will provide a labeling function to assist you in fulfilling this obligation, but as the party outputting the content, you bear final responsibility for the completeness and compliance of the labeling.
+
+7.3 To the extent technically feasible, the Software will add an implicit label to the metadata of output video files in accordance with Article 5 of the Measures for Labeling Artificial Intelligence-Generated and Synthetic Content, including production-element information such as generated/synthetic content attributes, the service provider name or code, and a content identifier. You must not delete, alter, or damage implicit labels contained in output files.
+
+7.4 You must comply with all terms of use and content policies of the third-party AI model providers you use. Consequences arising from your violation of a third-party provider's terms, such as an API request being rejected or an account being suspended because of illegal or inappropriate input, are borne by you.
+
+7.5 The Software does not include a built-in content-moderation mechanism and does not proactively review content you upload, edit, or output. However, you understand and agree that this provision does not constitute a disclaimer of any reasonable duty of care required by applicable law. If, within a reasonable scope, we discover or are notified by a third party that you are using the Software for illegal or non-compliant conduct, we may take reasonable measures, including but not limited to restricting relevant functionality in later versions and reserving the right to report the matter to competent authorities.
+
+7.6 Content Accuracy Notice: AI-assisted script suggestions, editing plans, and similar content may contain factual inaccuracies, logical errors, or inconsistencies with your original materials. Before externally publishing AI-Assisted Output, you should perform necessary fact-checking and content review. "Generated by AI" is not a defense that exempts you from content-compliance responsibility.
+
+8. Intellectual Property
+
+8.1 Intellectual property rights in original video materials, audio materials, written scripts, and other content you upload to the Software belong to you or the relevant rights holder. Intellectual property rights in videos that you edit or compose and output through the Software belong to you, excluding third-party intellectual property contained in the Output Content.
+
+8.2 Intellectual property rights in the Software and its underlying technology, including but not limited to software code, interface design, algorithmic logic, trademarks, and documentation, belong to us or the relevant rights holders. Without written authorization, you must not copy, modify, reverse engineer, rent, sell, or use them for any commercial purpose.
+
+8.3 You understand and agree that we do not acquire any intellectual property right or ownership interest in your content through the Software.
+
+8.4 You understand and agree that AI-assisted script suggestions and editing plans may not possess originality within the meaning of copyright law. Whether they constitute works and the ownership of any rights must be determined case by case based on your actual intellectual contribution.
+
+9. Disclaimer
+
+9.1 AI-assisted functions have technical limitations. Script suggestions, editing plans, and similar content output by AI models are for reference only and do not constitute professional advice of any kind. You are responsible for determining their accuracy, applicability, and compliance and for decisions and actions taken based on AI output.
+
+9.2 We are not liable for:
+
+(1) any loss caused by interruption, delay, data loss, erroneous output, charges, or account suspension relating to a third-party AI model API configured by you. Any dispute between you and a third-party AI service provider must be resolved between you and that third party, and we are not a party to the dispute;
+
+(2) any loss caused by a third-party AI service provider's data-processing conduct, including but not limited to data leakage, data misuse, or cross-border data transfer. We do not participate in that data-transfer process and are not liable for the third party's data-processing conduct;
+
+(3) restrictions on use of the Software or other adverse consequences caused by your violation of this Agreement or applicable laws and regulations;
+
+(4) Software malfunction or data loss caused by force majeure, computer viruses, hacker attacks, system failures, network interruption, or other causes not attributable to our fault;
+
+(5) any claim, demand, or liability arising from your use of Output Content that infringes a third party's lawful rights and interests;
+
+(6) any risk or loss arising from your acquisition, installation, or use of the Software through unofficial channels;
+
+(7) any legal liability arising from your failure to add AI labels or fulfill content-compliance obligations in accordance with Section 7 of this Agreement.
+
+9.3 You understand and agree that AI model outputs are uncertain and random, and the same input may produce different outputs. We do not guarantee the accuracy, completeness, reliability, or fitness for a particular purpose of AI-assisted results.
+
+9.4 Third-Party Service Availability: functions of the Software depend on the availability of third-party AI model APIs. We do not guarantee that any third-party AI service will be available at all times and are not liable for limitations on Software functionality caused by changes to, termination of, or interface adjustments by a third-party AI service.
+
+10. Termination
+
+10.1 You may stop using and uninstall the Software at any time, at which point this Agreement terminates. The Software does not require account registration, so there is no account-cancellation process.
+
+10.2 If you materially breach this Agreement, we may suspend or terminate the software license or services provided to you and reserve the right to pursue legal liability.
+
+10.3 Following termination of this Agreement, provisions concerning intellectual property, disclaimers, AI labeling obligations, and dispute resolution remain effective.
+
+11. Governing Law and Dispute Resolution
+
+11.1 The formation, validity, interpretation, performance, and dispute resolution of this Agreement are governed by the laws of the People's Republic of China.
+
+11.2 Any dispute arising from this Agreement should first be resolved through friendly consultation. If consultation fails, either party may bring an action before a competent people's court at the developer's location.
+
+12. Miscellaneous
+
+12.1 If any provision of this Agreement is found invalid or unenforceable, the validity of the remaining provisions is unaffected.
+
+12.2 Our failure or delay in exercising any right under this Agreement does not constitute a waiver of that right.
+
+12.3 This Agreement constitutes the entire agreement between the parties concerning use of the Software and supersedes all prior oral or written communications and agreements.
+
+12.4 Headings in this Agreement are for convenience only and do not affect interpretation.
+
+13. Contact
+
+If you have any questions, comments, or complaints concerning this Agreement, you may contact us as follows:
+
+Email:
