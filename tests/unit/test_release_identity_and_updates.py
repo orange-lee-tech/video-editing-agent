@@ -172,7 +172,7 @@ def test_user_terms_preserve_apache_rights_and_match_update_privacy_reality() ->
 
     assert "如本协议与Apache-2.0就项目原创软件权利发生冲突，以Apache-2.0为准" in zh
     assert "This User Agreement does not revoke, narrow, or add restrictions to those rights." in en
-    assert "随机安装标识符" in zh
+    assert "本地生成的随机安装标识符" not in zh
     assert "当前实现不生成或发送随机安装标识符" in zh
     assert "does not generate or transmit a random installation identifier" in en
     assert "does **not** generate or transmit a random installation identifier" in privacy
