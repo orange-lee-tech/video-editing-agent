@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated:** 2026-09-18
+**Last updated:** 2026-09-20
 
 This Privacy Policy applies to the **video-editing-agent / 有岐** project maintained by **orange-lee-tech** and available at:
 
@@ -26,7 +26,7 @@ Such information is used to provide the requested editing, analysis, rendering, 
 
 ## 3. Third-party AI and service providers
 
-Some features may rely on third-party AI models, APIs, or other services configured or selected by the user. When such a feature is used, the data required for that request may be transmitted directly to the relevant provider.
+Some features may rely on third-party AI models, APIs, or other services configured or selected by the user. When such a feature is used, only data reasonably necessary for the selected function is transmitted to the relevant provider. Depending on the feature, this may include text entered by the user, task goals, prompts, frames or thumbnails extracted from media the user selected, technical media metadata, intermediate context, and authentication information required for the request. Not every feature uploads complete video or audio files.
 
 The handling of information by a third-party provider is governed by that provider's own privacy policy, terms, retention rules, and security practices. Users should review those policies before enabling or using an external provider.
 
@@ -48,9 +48,9 @@ The application does not bundle developer-owned production API credentials for t
 
 ## 5. Public update channel and GitHub infrastructure
 
-When the user invokes the software update check, the application retrieves public update metadata from project-controlled public web infrastructure and may subsequently open or download an official GitHub Release artifact.
+The application may automatically check for software updates after startup, and the user may also invoke an update check manually. The check retrieves public update metadata from project-controlled public web infrastructure and may subsequently open or download an official GitHub Release artifact through the applicable update flow.
 
-The update check sends a normal HTTPS request containing standard network information and a product/version User-Agent. It does **not** upload the user's source media, project database, editing instructions, API keys, or rendered output as part of the update check.
+The current update check sends a normal HTTPS request containing standard network information and a product/version User-Agent. The current implementation does **not** generate or transmit a random installation identifier. The update check does **not** upload the user's source media, project database, editing instructions, API keys, or rendered output.
 
 GitHub and GitHub Pages may process ordinary connection metadata such as IP address, request information, and browser/network metadata under GitHub's own privacy terms. GitHub's privacy statement is published at <https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement>.
 
@@ -86,8 +86,9 @@ This Privacy Policy may be updated as the project, supported providers, or data 
 
 ## 12. Contact
 
-For privacy-related questions about this project, contact the maintainer through the **orange-lee-tech** GitHub account:
+For privacy-related questions about this project, contact:
 
-https://github.com/orange-lee-tech
+- Email: **yulianlian_05@qq.com**
+- GitHub maintainer: <https://github.com/orange-lee-tech>
 
-Please do not include passwords, API keys, private media, or other sensitive personal information in a public GitHub issue.
+Please do not include passwords, API keys, private media, or other sensitive personal information in a public GitHub issue or ordinary email unless it is necessary and you have taken appropriate precautions.
