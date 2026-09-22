@@ -163,3 +163,21 @@ def test_installer_shows_bilingual_user_terms_without_clickthrough_and_eta() -> 
     assert "InstallEtaRemaining" in installer
     assert Path("resources/legal/USER_AGREEMENT_en.txt").is_file()
     assert Path("resources/legal/USER_AGREEMENT_zh-CN.txt").is_file()
+
+
+def test_user_terms_preserve_apache_rights_and_match_update_privacy_reality() -> None:
+    zh = Path("resources/legal/USER_AGREEMENT_zh-CN.txt").read_text(encoding="utf-8")
+    en = Path("resources/legal/USER_AGREEMENT_en.txt").read_text(encoding="utf-8")
+    privacy = Path("PRIVACY.md").read_text(encoding="utf-8")
+
+    assert "如本协议与Apache-2.0就项目原创软件权利发生冲突，以Apache-2.0为准" in zh
+    assert "This User Agreement does not revoke, narrow, or add restrictions to those rights." in en
+    assert "本地生成的随机安装标识符" not in zh
+    assert "当前实现不生成或发送随机安装标识符" in zh
+    assert "does not generate or transmit a random installation identifier" in en
+    assert "does **not** generate or transmit a random installation identifier" in privacy
+    assert "本软件当前版本不承诺内置显式AI标识添加功能" in zh
+    assert "does not promise a built-in explicit AI-labeling function" in en
+    assert "yulianlian_05@qq.com" in zh
+    assert "yulianlian_05@qq.com" in en
+    assert "yulianlian_05@qq.com" in privacy
