@@ -21,3 +21,10 @@ Forbidden evidence shortcuts include:
 Expected answers may exist separately for scoring/ground truth, but must never be injected as system outputs.
 
 Private inputs and generated previews remain gitignored. Durable conclusions belong in `docs/validation/` or `docs/logs/PROBE_LEDGER.md`, not in committed media.
+
+
+## Historical probe archive
+
+Retired phase-specific probe harnesses from R0.7B through R0.11 were moved to
+`archive/engineering-scaffolding/tools/probes/`. They are provenance-only and are not part of
+the ordinary active tooling surface or the software-copyright source-selection set.
