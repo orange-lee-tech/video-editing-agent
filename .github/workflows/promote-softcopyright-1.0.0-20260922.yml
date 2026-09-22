@@ -1,0 +1,138 @@
+name: Promote 2026-09-22 Stable 1.0.0
+
+on:
+  push:
+    branches:
+      - release/promote-softcopyright-20260922
+    paths:
+      - ".github/workflows/promote-softcopyright-1.0.0-20260922.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_SHA: 25b7eeb9ea59138d06ddb825d5b06b29c527d131
+      RC_TAG: v1.0.0-rc-25b7eeb
+      STABLE_TAG: v1.0.0
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download accepted 2026-09-22 RC assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p promote-assets
+          cd promote-assets
+          gh release download "$RC_TAG" \
+            --pattern "VideoEditingAgent-Setup-1.0.0.exe" \
+            --pattern "VideoEditingAgent-Update-app-core-1.0.0.zip" \
+            --pattern "VideoEditingAgent-Update-media-runtime-1.0.0.zip" \
+            --pattern "VideoEditingAgent-Update-transnet-runtime-1.0.0.zip" \
+            --pattern "update-release-components.json"
+
+      - name: Verify accepted RC bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd promote-assets
+          cat > SHA256SUMS <<'EOF'
+          ceb5f7f959a0aec2e7a16252572ef4fe24865182f4b2f77d4be685b01166847c  VideoEditingAgent-Setup-1.0.0.exe
+          9da5d91468cdf4b3bde48dd2b1b2ce6bbfed40998db57b04d5ac0f46796b33f7  VideoEditingAgent-Update-app-core-1.0.0.zip
+          0c9ce9dd97e919db8242cd0f6a19beed7b51b636608cf1a52e6ee3acf59c3552  VideoEditingAgent-Update-media-runtime-1.0.0.zip
+          c8bc65011949c04ee82daaf04bdfdcd326fb29730eca7997d6d2bfa891579bc9  VideoEditingAgent-Update-transnet-runtime-1.0.0.zip
+          a064c166e6a9d04ccfbe233e464a5002ed228da403dddde8ed98ecb5d3554418  update-release-components.json
+          EOF
+          sha256sum -c SHA256SUMS
+
+      - name: Prepare final release notes
+        shell: bash
+        run: |
+          cat > release-notes.md <<'EOF'
+          # 有岐 1.0.0
+
+          有岐是一款面向 Windows 的 local-first AI 视频创作与剪辑软件。
+
+          本次 **1.0.0 最终申报/发布基线于 2026-09-22 重新冻结**，取代此前 2026-08-31 的早期 1.0.0 发布快照。
+
+          ## Final accepted baseline
+
+          - Version: `1.0.0`
+          - Final accepted source: `25b7eeb9ea59138d06ddb825d5b06b29c527d131`
+          - Final Human Gate date: `2026-09-22`
+          - Planning: **PASS**
+          - Automatic Editing: **PASS**
+          - Final MP4 playback: **PASS**
+          - Windows install / launch / run / uninstall: **PASS**
+          - Automated install / upgrade / repair / uninstall lifecycle: **PASS**
+
+          Installer:
+
+          `VideoEditingAgent-Setup-1.0.0.exe`
+
+          SHA-256:
+
+          `ceb5f7f959a0aec2e7a16252572ef4fe24865182f4b2f77d4be685b01166847c`
+
+          ## Core product capabilities
+
+          - **Planning** — 将创作意图、参考内容与需求整理为可检查的 ScriptPlan 与 ShootingPlan。
+          - **Automatic Editing** — 对用户选择的本地视频素材进行媒体理解、镜头匹配、编辑决策、字幕/音频/图形处理、EDL 构建与最终 MP4 渲染。
+          - 支持 Planning-only、Editing-only 和 Combined 工作流。
+
+          ## Governance
+
+          Project-authored material is licensed under Apache License 2.0. See `LICENSE`, `NOTICE`, `PRIVACY.md` and the current user agreement in the repository.
+
+          The existing 1.0.0 release is not represented as SignPath-signed.
+          EOF
+
+      - name: Reissue stable v1.0.0 at accepted 2026-09-22 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git tag -f "$STABLE_TAG" "$SOURCE_SHA"
+          git push origin "refs/tags/$STABLE_TAG" --force
+
+          if gh release view "$STABLE_TAG" >/dev/null 2>&1; then
+            gh release delete "$STABLE_TAG" --yes
+          fi
+
+          gh release create "$STABLE_TAG" \
+            promote-assets/VideoEditingAgent-Setup-1.0.0.exe \
+            promote-assets/VideoEditingAgent-Update-app-core-1.0.0.zip \
+            promote-assets/VideoEditingAgent-Update-media-runtime-1.0.0.zip \
+            promote-assets/VideoEditingAgent-Update-transnet-runtime-1.0.0.zip \
+            promote-assets/update-release-components.json \
+            --target "$SOURCE_SHA" \
+            --title "有岐 1.0.0" \
+            --notes-file release-notes.md \
+            --latest
+
+      - name: Verify stable tag and release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          resolved="$(git ls-remote origin "refs/tags/$STABLE_TAG" | awk '{print $1}')"
+          test "$resolved" = "$SOURCE_SHA"
+
+          check_digest() {
+            name="$1"
+            expected="$2"
+            actual="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$STABLE_TAG" --jq ".assets[] | select(.name==\"$name\") | .digest")"
+            test "$actual" = "sha256:$expected"
+          }
+
+          check_digest "VideoEditingAgent-Setup-1.0.0.exe" "ceb5f7f959a0aec2e7a16252572ef4fe24865182f4b2f77d4be685b01166847c"
+          check_digest "VideoEditingAgent-Update-app-core-1.0.0.zip" "9da5d91468cdf4b3bde48dd2b1b2ce6bbfed40998db57b04d5ac0f46796b33f7"
+          check_digest "VideoEditingAgent-Update-media-runtime-1.0.0.zip" "0c9ce9dd97e919db8242cd0f6a19beed7b51b636608cf1a52e6ee3acf59c3552"
+          check_digest "VideoEditingAgent-Update-transnet-runtime-1.0.0.zip" "c8bc65011949c04ee82daaf04bdfdcd326fb29730eca7997d6d2bfa891579bc9"
+          check_digest "update-release-components.json" "a064c166e6a9d04ccfbe233e464a5002ed228da403dddde8ed98ecb5d3554418"
