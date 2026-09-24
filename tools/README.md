@@ -3,7 +3,7 @@
 `tools/` contains developer/evidence/maintenance tooling that supports construction but is not ordinary runtime Domain authority.
 
 - `media_corpus_manifest.py` manages/checks local corpus metadata without committing private media.
-- `probes/` contains reusable phase Engineering/Product Probe harnesses.
+- `probes/` contains currently retained reusable Engineering/Product Probe harnesses. Retired phase-specific R0.7B–R0.11 probe scaffolding is preserved under `archive/engineering-scaffolding/tools/probes/`.
 - `maintenance/` contains small repository-doctor/handoff helpers for repeated construction work.
 
 A tool may inspect or execute canonical decisions, but must not invent a parallel hidden authority path simply to produce a passing preview.
