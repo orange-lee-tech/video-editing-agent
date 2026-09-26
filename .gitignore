@@ -37,6 +37,13 @@ Desktop.ini
 *.tmp
 *.bak
 
+# Signing/private key material must never enter Git history
+*.pfx
+*.p12
+*.key
+*.seed
+*.private
+
 # Repository-local toolchains, private inputs and generated media
 /.tools/
 /.private/

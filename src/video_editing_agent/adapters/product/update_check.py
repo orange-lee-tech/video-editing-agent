@@ -3,8 +3,17 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from urllib.request import Request, urlopen
 
+from video_editing_agent.adapters.product.update_signature import (
+    UPDATE_MANIFEST_PUBLIC_KEY,
+    verify_manifest_signature,
+)
+from video_editing_agent.adapters.product.update_url import (
+    DEFAULT_UPDATE_ORIGIN_POLICY,
+    UpdateOriginPolicy,
+    assert_allowed_update_url,
+    fetch_https_bytes,
+)
 from video_editing_agent.version import APP_VERSION
 
 DEFAULT_UPDATE_MANIFEST_URL = (
@@ -93,7 +102,11 @@ def _validate_sha256(value: str) -> str:
     return normalized
 
 
-def _parse_components(payload: dict[str, object]) -> tuple[UpdateComponent, ...]:
+def _parse_components(
+    payload: dict[str, object],
+    *,
+    origin_policy: UpdateOriginPolicy,
+) -> tuple[UpdateComponent, ...]:
     raw = payload.get("components", [])
     if not isinstance(raw, list):
         raise ValueError("update manifest components must be a list")
@@ -104,11 +117,13 @@ def _parse_components(payload: dict[str, object]) -> tuple[UpdateComponent, ...]
         size = item.get("size_bytes")
         if isinstance(size, bool) or not isinstance(size, int):
             raise ValueError("update component size_bytes must be an integer")
+        url = _non_empty_string(item, "url")
+        assert_allowed_update_url(url, role="component", policy=origin_policy)
         components.append(
             UpdateComponent(
                 component_id=_non_empty_string(item, "id"),
                 version=_non_empty_string(item, "version"),
-                url=_non_empty_string(item, "url"),
+                url=url,
                 sha256=_validate_sha256(_non_empty_string(item, "sha256")),
                 size_bytes=size,
             )
@@ -116,26 +131,36 @@ def _parse_components(payload: dict[str, object]) -> tuple[UpdateComponent, ...]
     return tuple(components)
 
 
-def parse_update_manifest(content: str) -> UpdateManifest:
+def parse_update_manifest(
+    content: str,
+    *,
+    public_key: bytes = UPDATE_MANIFEST_PUBLIC_KEY,
+    origin_policy: UpdateOriginPolicy = DEFAULT_UPDATE_ORIGIN_POLICY,
+) -> UpdateManifest:
     root = json.loads(content)
     if not isinstance(root, dict):
         raise ValueError("update manifest root must be an object")
+    verify_manifest_signature(root, public_key=public_key)
     mandatory = root.get("mandatory", False)
     if not isinstance(mandatory, bool):
         raise ValueError("update manifest mandatory must be a bool")
     version = _non_empty_string(root, "version")
     _version_tuple(version)
     sha256 = _validate_sha256(_non_empty_string(root, "installer_sha256"))
+    release_notes_url = _non_empty_string(root, "release_notes_url")
+    download_url = _non_empty_string(root, "download_url")
+    assert_allowed_update_url(release_notes_url, role="notes", policy=origin_policy)
+    assert_allowed_update_url(download_url, role="installer", policy=origin_policy)
     return UpdateManifest(
         version=version,
         published_at=_non_empty_string(root, "published_at"),
-        release_notes_url=_non_empty_string(root, "release_notes_url"),
-        download_url=_non_empty_string(root, "download_url"),
+        release_notes_url=release_notes_url,
+        download_url=download_url,
         installer_sha256=sha256,
         mandatory=mandatory,
         layout_version=_integer(root, "layout_version", 1),
         minimum_updater_version=_integer(root, "minimum_updater_version", 1),
-        components=_parse_components(root),
+        components=_parse_components(root, origin_policy=origin_policy),
     )
 
 
@@ -144,18 +169,43 @@ def check_for_update(
     current_version: str = APP_VERSION,
     manifest_url: str = DEFAULT_UPDATE_MANIFEST_URL,
     timeout_seconds: float = 4.0,
+    public_key: bytes = UPDATE_MANIFEST_PUBLIC_KEY,
+    origin_policy: UpdateOriginPolicy = DEFAULT_UPDATE_ORIGIN_POLICY,
 ) -> UpdateCheckResult:
     try:
         _version_tuple(current_version)
-        request = Request(
+        assert_allowed_update_url(manifest_url, role="manifest", policy=origin_policy)
+        payload = fetch_https_bytes(
             manifest_url,
-            headers={"User-Agent": f"VideoEditingAgent/{current_version}"},
+            timeout_seconds=timeout_seconds,
+            max_bytes=_MAX_MANIFEST_BYTES,
+            user_agent=f"VideoEditingAgent/{current_version}",
+            role="manifest",
+            policy=origin_policy,
         )
-        with urlopen(request, timeout=timeout_seconds) as response:
-            payload = response.read(_MAX_MANIFEST_BYTES + 1)
-        if len(payload) > _MAX_MANIFEST_BYTES:
-            raise ValueError("update manifest exceeds size limit")
-        manifest = parse_update_manifest(payload.decode("utf-8"))
+        manifest = parse_update_manifest(
+            payload.decode("utf-8"),
+            public_key=public_key,
+            origin_policy=origin_policy,
+        )
         return UpdateCheckResult(current_version, manifest)
     except Exception as exc:
         return UpdateCheckResult(current_version, None, f"{type(exc).__name__}: {exc}")
+
+
+def fetch_update_bytes(
+    url: str,
+    *,
+    timeout_seconds: float,
+    max_bytes: int,
+    user_agent: str,
+    origin_policy: UpdateOriginPolicy = DEFAULT_UPDATE_ORIGIN_POLICY,
+) -> bytes:
+    return fetch_https_bytes(
+        url,
+        timeout_seconds=timeout_seconds,
+        max_bytes=max_bytes,
+        user_agent=user_agent,
+        role="component",
+        policy=origin_policy,
+    )

@@ -242,3 +242,46 @@ def test_component_patch_rolls_back_after_partial_replace_failure(
 
     assert (install / "VideoEditingAgent.exe").read_bytes() == b"old-exe"
     assert (install / "_internal/app.txt").read_bytes() == b"old-app"
+
+
+class _RejectProductExe:
+    def publisher_of(self, path: Path) -> str | None:
+        del path
+        return None
+
+
+def test_component_patch_rejects_unsigned_product_exe_and_rolls_back(tmp_path: Path) -> None:
+    install = tmp_path / "install"
+    (install / "_internal").mkdir(parents=True)
+    (install / "VideoEditingAgent.exe").write_bytes(b"MZ-old")
+    (install / "_internal/app.txt").write_bytes(b"old-app")
+    state_path = install / "_internal/resources/packaging/update-state.json"
+    save_update_state(state_path, _state())
+
+    archive = tmp_path / "app.zip"
+    archive_sha = _write_patch(
+        archive,
+        component_id="app-core",
+        version="1.0.1",
+        files={"VideoEditingAgent.exe": b"MZ-new"},
+    )
+    remote = UpdateComponent(
+        "app-core",
+        "1.0.1",
+        "https://example.invalid/app.zip",
+        archive_sha,
+        archive.stat().st_size,
+    )
+
+    with pytest.raises(ValueError, match="Authenticode-signed"):
+        apply_component_archives(
+            install_root=install,
+            state_path=state_path,
+            target_application_version="1.0.1",
+            manifest=_manifest(remote),
+            archives=((remote, archive),),
+            trust=_RejectProductExe(),
+        )
+
+    assert (install / "VideoEditingAgent.exe").read_bytes() == b"MZ-old"
+    assert (install / "_internal/app.txt").read_bytes() == b"old-app"

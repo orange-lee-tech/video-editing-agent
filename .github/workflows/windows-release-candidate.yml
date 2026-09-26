@@ -59,6 +59,57 @@ jobs:
           powershell.exe -NoProfile -ExecutionPolicy Bypass
           -File .\scripts\package_windows.ps1
 
+      - name: Materialize release signing credentials
+        id: signing
+        shell: powershell
+        env:
+          WINDOWS_CODESIGN_PFX_B64: ${{ secrets.WINDOWS_CODESIGN_PFX_B64 }}
+          WINDOWS_CODESIGN_PFX_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PFX_PASSWORD }}
+          UPDATE_MANIFEST_SIGNING_KEY: ${{ secrets.UPDATE_MANIFEST_SIGNING_KEY }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CODESIGN_PFX_B64)) {
+            throw "WINDOWS_CODESIGN_PFX_B64 is required for release candidates"
+          }
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CODESIGN_PFX_PASSWORD)) {
+            throw "WINDOWS_CODESIGN_PFX_PASSWORD is required for release candidates"
+          }
+          if ($env:UPDATE_MANIFEST_SIGNING_KEY -notmatch '^[0-9a-fA-F]{64}$') {
+            throw "UPDATE_MANIFEST_SIGNING_KEY must be a 32-byte Ed25519 seed encoded as hex"
+          }
+          $pfx = Join-Path $env:RUNNER_TEMP "video-editing-agent-codesign.pfx"
+          try {
+            [IO.File]::WriteAllBytes(
+              $pfx,
+              [Convert]::FromBase64String($env:WINDOWS_CODESIGN_PFX_B64)
+            )
+          }
+          catch {
+            throw "WINDOWS_CODESIGN_PFX_B64 is not valid base64"
+          }
+          "pfx=$pfx" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Authenticode sign staged product executables
+        shell: powershell
+        env:
+          WINDOWS_CODESIGN_PFX_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PFX_PASSWORD }}
+        run: |
+          & .\scripts\sign_windows_artifacts.ps1 `
+            -PfxPath "${{ steps.signing.outputs.pfx }}" `
+            -PfxPassword $env:WINDOWS_CODESIGN_PFX_PASSWORD `
+            -File @(
+              ".\build\packaging\dist\VideoEditingAgent\VideoEditingAgent.exe",
+              ".\build\packaging\dist\VideoEditingAgent\VideoEditingAgent-cli.exe",
+              ".\build\packaging\dist\VideoEditingAgent\VideoEditingAgent-updater.exe"
+            ) `
+            -EvidencePath ".\build\packaging\evidence\authenticode-staged.json"
+
+      - name: Rebuild component archives and smoke signed staging
+        shell: powershell
+        run: >-
+          powershell.exe -NoProfile -ExecutionPolicy Bypass
+          -File .\scripts\package_windows.ps1 -SkipBuild
+
       - name: Acquire and verify Inno Setup 7.1.0
         id: inno
         shell: powershell
@@ -128,6 +179,19 @@ jobs:
           -InstallerToolVersion "${{ steps.inno.outputs.release }}"
           -AppVersion "${{ steps.source.outputs.version }}"
 
+      - name: Authenticode sign guided Setup.exe
+        shell: powershell
+        env:
+          WINDOWS_CODESIGN_PFX_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PFX_PASSWORD }}
+        run: |
+          & .\scripts\sign_windows_artifacts.ps1 `
+            -PfxPath "${{ steps.signing.outputs.pfx }}" `
+            -PfxPassword $env:WINDOWS_CODESIGN_PFX_PASSWORD `
+            -File @(
+              ".\build\installer\VideoEditingAgent-Setup-${{ steps.source.outputs.version }}.exe"
+            ) `
+            -EvidencePath ".\build\installer\authenticode-installer.json"
+
       - name: Reclaim sealed packaging staging before lifecycle smoke
         shell: powershell
         run: |
@@ -161,6 +225,28 @@ jobs:
           -File .\scripts\smoke_windows_installer.ps1
           -InstallerPath .\build\installer\VideoEditingAgent-Setup-${{ steps.source.outputs.version }}.exe
 
+      - name: Build and verify signed stable-channel manifest asset
+        shell: powershell
+        env:
+          UPDATE_MANIFEST_SIGNING_KEY: ${{ secrets.UPDATE_MANIFEST_SIGNING_KEY }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = "${{ steps.source.outputs.version }}"
+          $publishedAt = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+          $manifest = ".\build\update-components\update-channel-manifest.json"
+          uv run python tools/maintenance/build_update_channel_manifest.py `
+            --version $version `
+            --published-at $publishedAt `
+            --installer ".\build\installer\VideoEditingAgent-Setup-$version.exe" `
+            --component-metadata ".\build\update-components\update-release-components.json" `
+            --component-root ".\build\update-components" `
+            --repository-slug "orange-lee-tech/video-editing-agent" `
+            --release-notes-url "https://orange-lee-tech.github.io/homepages/video-editing-agent/stable/$version.html" `
+            --output $manifest
+          if ($LASTEXITCODE -ne 0) { throw "Signed update-channel manifest build failed" }
+          uv run python -c "from pathlib import Path; from video_editing_agent.adapters.product.update_check import parse_update_manifest; parse_update_manifest(Path(r'$manifest').read_text(encoding='utf-8')); print('signed update manifest verified')"
+          if ($LASTEXITCODE -ne 0) { throw "Signed update-channel manifest verification failed" }
+
       - name: Upload compact installer failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
@@ -172,6 +258,8 @@ jobs:
             build/installer/smoke-logs
             build/installer/installer-evidence.json
             build/installer/inno-tool-evidence.json
+            build/installer/authenticode-installer.json
+            build/packaging/evidence/authenticode-staged.json
           if-no-files-found: warn
           compression-level: 9
           retention-days: 7
@@ -203,22 +291,27 @@ jobs:
               ForEach-Object { $_.FullName }
           )
           $componentMetadata = Join-Path $componentRoot "update-release-components.json"
-          if ($componentArchives.Count -lt 3 -or -not (Test-Path -LiteralPath $componentMetadata -PathType Leaf)) {
-            throw "Component patch release assets are incomplete"
+          $signedManifest = Join-Path $componentRoot "update-channel-manifest.json"
+          if (
+            $componentArchives.Count -lt 3 -or
+            -not (Test-Path -LiteralPath $componentMetadata -PathType Leaf) -or
+            -not (Test-Path -LiteralPath $signedManifest -PathType Leaf)
+          ) {
+            throw "Component patch or signed update-channel release assets are incomplete"
           }
 
           if ($releaseExists) {
-            $assets = @($installer) + $componentArchives + @($componentMetadata)
+            $assets = @($installer) + $componentArchives + @($componentMetadata, $signedManifest)
             gh release upload $tag @assets --clobber
           }
           else {
             gh release create $tag $installer `
               --target $sha `
               --title "有岐 $version RC ($short)" `
-              --notes "R0.13 Windows release candidate with full-installer recovery and component patch assets. Source: $sha" `
+              --notes "Windows release candidate with Authenticode-signed product binaries, full-installer recovery, signed update manifest, and component patch assets. Source: $sha" `
               --prerelease
             if ($LASTEXITCODE -eq 0) {
-              $patchAssets = $componentArchives + @($componentMetadata)
+              $patchAssets = $componentArchives + @($componentMetadata, $signedManifest)
               gh release upload $tag @patchAssets --clobber
             }
           }
@@ -226,6 +319,7 @@ jobs:
             throw "Could not publish prerelease installer/component assets"
           }
           gh release view $tag --json url,tagName,name
+
       - name: Upload release-candidate installer and compact evidence
         continue-on-error: true
         uses: actions/upload-artifact@v4
@@ -235,10 +329,21 @@ jobs:
             build/installer/VideoEditingAgent-Setup-${{ steps.source.outputs.version }}.exe
             build/installer/installer-evidence.json
             build/installer/inno-tool-evidence.json
+            build/installer/authenticode-installer.json
             build/installer/installer-smoke.json
             build/packaging/evidence
             build/update-components/update-release-components.json
+            build/update-components/update-channel-manifest.json
             build/update-components/VideoEditingAgent-Update-*.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
+
+      - name: Remove materialized code-signing certificate
+        if: always()
+        shell: powershell
+        run: |
+          $pfx = "${{ steps.signing.outputs.pfx }}"
+          if ($pfx -and (Test-Path -LiteralPath $pfx)) {
+            Remove-Item -LiteralPath $pfx -Force
+          }

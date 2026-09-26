@@ -1,0 +1,284 @@
+name: Promote Windows Stable Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      rc_tag:
+        description: Reviewed prerelease tag, for example v1.0.1-rc-abcdef0
+        required: true
+        type: string
+      confirm_version:
+        description: Stable version to publish, for example 1.0.1
+        required: true
+        type: string
+
+concurrency:
+  group: windows-stable-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout trusted promotion logic
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Validate reviewed release candidate
+        id: candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RC_TAG: ${{ inputs.rc_tag }}
+          CONFIRM_VERSION: ${{ inputs.confirm_version }}
+        shell: python
+        run: |
+          import json
+          import os
+          import re
+          import subprocess
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          rc_tag = os.environ["RC_TAG"].strip()
+          version = os.environ["CONFIRM_VERSION"].strip()
+          match = re.fullmatch(r"v(\d+\.\d+\.\d+)-rc-([0-9a-f]{7})", rc_tag)
+          if match is None:
+              raise SystemExit("rc_tag must match vMAJOR.MINOR.PATCH-rc-SHA7")
+          if match.group(1) != version:
+              raise SystemExit("confirm_version does not match rc_tag")
+
+          raw = subprocess.check_output(
+              ["gh", "api", f"repos/{repo}/releases/tags/{rc_tag}"],
+              text=True,
+          )
+          release = json.loads(raw)
+          if release.get("draft") or not release.get("prerelease"):
+              raise SystemExit("selected RC must be a published prerelease")
+          source_sha = release.get("target_commitish")
+          if not isinstance(source_sha, str) or re.fullmatch(r"[0-9a-f]{40}", source_sha) is None:
+              raise SystemExit("RC target_commitish must be an exact Git SHA")
+          if not source_sha.startswith(match.group(2)):
+              raise SystemExit("RC tag short SHA does not match its target commit")
+
+          subprocess.run(["git", "fetch", "origin", "main"], check=True)
+          ancestor = subprocess.run(
+              ["git", "merge-base", "--is-ancestor", source_sha, "origin/main"],
+              check=False,
+          )
+          if ancestor.returncode != 0:
+              raise SystemExit("RC source commit is not an ancestor of main")
+
+          version_source = subprocess.check_output(
+              ["git", "show", f"{source_sha}:src/video_editing_agent/version.py"],
+              text=True,
+          )
+          version_match = re.search(
+              r'APP_VERSION\s*=\s*"(?P<version>\d+\.\d+\.\d+)"',
+              version_source,
+          )
+          if version_match is None or version_match.group("version") != version:
+              raise SystemExit("RC source APP_VERSION does not match promotion version")
+
+          assets = release.get("assets")
+          if not isinstance(assets, list):
+              raise SystemExit("RC release assets are missing")
+          required = {
+              f"VideoEditingAgent-Setup-{version}.exe",
+              f"VideoEditingAgent-Update-app-core-{version}.zip",
+              f"VideoEditingAgent-Update-media-runtime-{version}.zip",
+              f"VideoEditingAgent-Update-transnet-runtime-{version}.zip",
+              "update-release-components.json",
+              "update-channel-manifest.json",
+          }
+          by_name = {
+              item.get("name"): item
+              for item in assets
+              if isinstance(item, dict) and isinstance(item.get("name"), str)
+          }
+          missing = sorted(required - set(by_name))
+          extra = sorted(set(by_name) - required)
+          if missing or extra:
+              raise SystemExit(
+                  f"RC sealed asset set mismatch; missing={missing}, extra={extra}"
+              )
+          for name in sorted(required):
+              digest = by_name[name].get("digest")
+              if not isinstance(digest, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", digest) is None:
+                  raise SystemExit(f"RC asset has no valid GitHub SHA-256 digest: {name}")
+
+          output = os.environ["GITHUB_OUTPUT"]
+          with open(output, "a", encoding="utf-8") as handle:
+              handle.write(f"version={version}\n")
+              handle.write(f"stable_tag=v{version}\n")
+              handle.write(f"source_sha={source_sha}\n")
+
+      - name: Reject an existing stable tag or release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STABLE_TAG: ${{ steps.candidate.outputs.stable_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git rev-parse --verify --quiet "refs/tags/$STABLE_TAG" >/dev/null; then
+            echo "Stable tag already exists: $STABLE_TAG" >&2
+            exit 1
+          fi
+          if gh release view "$STABLE_TAG" >/dev/null 2>&1; then
+            echo "Stable release already exists: $STABLE_TAG" >&2
+            exit 1
+          fi
+
+      - name: Download sealed RC assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RC_TAG: ${{ inputs.rc_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/stable-promotion
+          gh release download "$RC_TAG" --dir build/stable-promotion \
+            --pattern 'VideoEditingAgent-Setup-*.exe' \
+            --pattern 'VideoEditingAgent-Update-*.zip' \
+            --pattern 'update-release-components.json' \
+            --pattern 'update-channel-manifest.json'
+
+      - name: Verify downloaded bytes and signed stable manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RC_TAG: ${{ inputs.rc_tag }}
+          VERSION: ${{ steps.candidate.outputs.version }}
+          STABLE_TAG: ${{ steps.candidate.outputs.stable_tag }}
+        shell: python
+        run: |
+          import hashlib
+          import json
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          rc_tag = os.environ["RC_TAG"]
+          version = os.environ["VERSION"]
+          stable_tag = os.environ["STABLE_TAG"]
+          root = Path("build/stable-promotion")
+          release = json.loads(
+              subprocess.check_output(
+                  ["gh", "api", f"repos/{repo}/releases/tags/{rc_tag}"],
+                  text=True,
+              )
+          )
+          digests = {
+              item["name"]: item["digest"].removeprefix("sha256:")
+              for item in release["assets"]
+              if isinstance(item.get("digest"), str)
+              and item["digest"].startswith("sha256:")
+          }
+          files = sorted(item for item in root.iterdir() if item.is_file())
+          if len(files) != 6:
+              raise SystemExit(f"expected exactly 6 downloaded assets, got {len(files)}")
+          for path in files:
+              expected = digests.get(path.name)
+              if expected is None:
+                  raise SystemExit(f"downloaded unexpected or unverified asset: {path.name}")
+              actual = hashlib.sha256(path.read_bytes()).hexdigest()
+              if actual != expected:
+                  raise SystemExit(f"RC asset digest mismatch after download: {path.name}")
+
+          manifest_path = root / "update-channel-manifest.json"
+          payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+          if payload.get("version") != version:
+              raise SystemExit("signed manifest version does not match promotion version")
+          expected_prefix = f"https://github.com/{repo}/releases/download/{stable_tag}/"
+          if not str(payload.get("download_url", "")).startswith(expected_prefix):
+              raise SystemExit("signed installer URL does not target the stable tag")
+          components = payload.get("components")
+          if not isinstance(components, list) or not components:
+              raise SystemExit("signed manifest has no components")
+          if any(not str(item.get("url", "")).startswith(expected_prefix) for item in components):
+              raise SystemExit("signed component URL does not target the stable tag")
+
+          sys.path.insert(0, str(Path("src").resolve()))
+          from video_editing_agent.adapters.product.update_check import parse_update_manifest
+
+          parse_update_manifest(manifest_path.read_text(encoding="utf-8"))
+          print("Signed stable manifest verified with the production embedded key")
+
+      - name: Create sealed stable draft
+        id: draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.candidate.outputs.version }}
+          STABLE_TAG: ${{ steps.candidate.outputs.stable_tag }}
+          SOURCE_SHA: ${{ steps.candidate.outputs.source_sha }}
+          RC_TAG: ${{ inputs.rc_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "attempted=true" >> "$GITHUB_OUTPUT"
+          mapfile -t assets < <(find build/stable-promotion -maxdepth 1 -type f -print | sort)
+          if [ "${#assets[@]}" -ne 6 ]; then
+            echo "Expected exactly 6 sealed promotion assets, got ${#assets[@]}" >&2
+            exit 1
+          fi
+          gh release create "$STABLE_TAG" "${assets[@]}" \
+            --target "$SOURCE_SHA" \
+            --title "有岐 $VERSION" \
+            --notes "Stable promotion of reviewed $RC_TAG. Assets are byte-for-byte copies of the sealed RC; update-channel-manifest.json is Ed25519-signed and product executables are Authenticode-signed. Source: $SOURCE_SHA" \
+            --draft
+
+      - name: Verify stable draft before publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RC_TAG: ${{ inputs.rc_tag }}
+          STABLE_TAG: ${{ steps.candidate.outputs.stable_tag }}
+        shell: python
+        run: |
+          import json
+          import os
+          import subprocess
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+
+          def release(tag: str) -> dict:
+              return json.loads(
+                  subprocess.check_output(
+                      ["gh", "api", f"repos/{repo}/releases/tags/{tag}"],
+                      text=True,
+                  )
+              )
+
+          rc = release(os.environ["RC_TAG"])
+          stable = release(os.environ["STABLE_TAG"])
+          rc_assets = {item["name"]: item.get("digest") for item in rc["assets"]}
+          stable_assets = {item["name"]: item.get("digest") for item in stable["assets"]}
+          if stable_assets != rc_assets:
+              raise SystemExit("stable draft assets are not byte-for-byte identical to the RC")
+          if not stable.get("draft") or stable.get("prerelease"):
+              raise SystemExit("stable release must remain a non-prerelease draft during verification")
+          print("Stable draft matches reviewed RC asset digests exactly")
+
+      - name: Publish verified stable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STABLE_TAG: ${{ steps.candidate.outputs.stable_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release edit "$STABLE_TAG" --draft=false
+
+      - name: Clean up failed stable draft
+        if: failure() && steps.draft.outputs.attempted == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STABLE_TAG: ${{ steps.candidate.outputs.stable_tag }}
+        shell: bash
+        run: |
+          set +e
+          is_draft=$(gh release view "$STABLE_TAG" --json isDraft --jq '.isDraft' 2>/dev/null)
+          if [ "$is_draft" = "true" ]; then
+            gh release delete "$STABLE_TAG" --cleanup-tag --yes
+          fi

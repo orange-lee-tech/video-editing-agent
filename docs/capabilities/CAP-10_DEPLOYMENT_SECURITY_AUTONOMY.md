@@ -1,5 +1,6 @@
 # CAP-10 — Deployment, Environment Doctor, Security and Autonomy
 
+**Last updated:** 2026-09-05  
 **Status:** CANDIDATE CAPABILITY SPEC  
 **Architecture:** `ARCHITECTURE_CONTRACT_V0.2.md`  
 **Scope:** Windows capability discovery / prerequisite repair / CPU-GPU-cloud routing / trust boundary / approval policy seam
@@ -376,10 +377,12 @@ Later ADRs/specs decide:
 - optional component manager;
 - per-user/system install;
 - signed binaries/installers;
-- runtime update channel;
+- runtime update channel with an Ed25519-signed manifest, HTTPS publisher-origin allowlist, SHA-256 payload verification, and Authenticode publisher matching for the product EXE;
 - rollback;
 - model download cache;
 - component hashes.
+
+The updater executable is not patchable by component updates; the manifest public key is therefore baked into that binary. Component URLs must be HTTPS assets on the product GitHub Pages prefix or `releases/download` path. GitHub CDN hosts are accepted only as policy-checked redirects. Unsigned or publisher-mismatched `VideoEditingAgent.exe` replacements fail closed.
 
 Environment Doctor is designed to work regardless of packaging choice.
 
@@ -411,5 +414,4 @@ Test cases include:
 - exact secret store;
 - exact approval matrix;
 - telemetry collection policy;
-- signed-update infrastructure;
 - local model package format.

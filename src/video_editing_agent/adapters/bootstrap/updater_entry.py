@@ -9,7 +9,6 @@ import tempfile
 import threading
 from collections.abc import Callable
 from pathlib import Path
-from urllib.request import Request, urlopen
 
 from video_editing_agent.adapters.product.component_update import (
     apply_component_archives,
@@ -20,6 +19,7 @@ from video_editing_agent.adapters.product.update_check import (
     DEFAULT_UPDATE_MANIFEST_URL,
     UpdateComponent,
     check_for_update,
+    fetch_update_bytes,
 )
 from video_editing_agent.adapters.product.update_state import (
     default_update_state_path,
@@ -68,26 +68,20 @@ def download_component(
     *,
     progress: Callable[[int, int], None] | None = None,
 ) -> None:
-    request = Request(
+    payload = fetch_update_bytes(
         component.url,
-        headers={"User-Agent": "VideoEditingAgent-Updater/1"},
+        timeout_seconds=30.0,
+        max_bytes=component.size_bytes,
+        user_agent="VideoEditingAgent-Updater/2",
     )
-    received = 0
-    with urlopen(request, timeout=30.0) as response:
-        with destination.open("wb") as output:
-            while True:
-                chunk = response.read(1024 * 1024)
-                if not chunk:
-                    break
-                output.write(chunk)
-                received += len(chunk)
-                if progress is not None:
-                    progress(received, component.size_bytes)
-    if received != component.size_bytes:
+    if progress is not None:
+        progress(len(payload), component.size_bytes)
+    if len(payload) != component.size_bytes:
         raise ValueError(
             f"downloaded size mismatch for {component.component_id}: "
-            f"{received} != {component.size_bytes}"
+            f"{len(payload)} != {component.size_bytes}"
         )
+    destination.write_bytes(payload)
     if sha256_file(destination) != component.sha256:
         raise ValueError(f"downloaded SHA-256 mismatch for {component.component_id}")
 
